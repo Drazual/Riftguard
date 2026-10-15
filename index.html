@@ -9,39 +9,41 @@
 </head>
 <body>
 <div class="wrap">
-  <div class="top">
+  <header class="top">
     <div class="brand">Rift<span>guard</span></div>
     <div class="stat"><small>Map</small><b id="sMap">-</b></div>
-    <div class="stat"><small>Wave</small><b id="sWave">0/15</b></div>
+    <div class="stat"><small>Wave</small><b id="sWave">0/20</b></div>
     <div class="stat lives"><small>Base</small><b id="sLives">20</b></div>
     <div class="stat gold"><small>Gold</small><b id="sGold">150</b></div>
     <div class="herobar">
       <div class="stat"><small>Hero</small><b id="sLvl">Lv 1</b></div>
-      <div style="flex:1;display:grid;gap:3px">
+      <div class="meters">
         <div class="meter hp"><i id="mHp"></i></div>
         <div class="meter xp"><i id="mXp"></i></div>
       </div>
     </div>
-  </div>
+    <button class="icon" id="settingsBtn" title="Settings and menu (Esc)" aria-label="Settings">⚙</button>
+  </header>
 
-  <div id="board"><div id="toast" hidden></div></div>
+  <main class="stage"><div id="board"><div id="toast" hidden></div></div></main>
 
-  <div class="bar" id="buildBar"></div>
-
-  <div class="lower">
+  <aside class="side">
     <div class="card" id="heroCard"></div>
     <div class="card" id="inspector">
       <h3>Tower</h3>
-      <p>Pick a tower above, then tap a free tile near your hero to build it. Tap a built tower to level it up, merge it or sell it.</p>
+      <p>Pick a tower below, then click a free tile near your hero to build it. Click a built tower to level it up, merge it or sell it.</p>
     </div>
-    <div class="card">
-      <h3>Merge codex</h3>
+    <details class="card codexcard">
+      <summary><h3>Merge codex and controls</h3></summary>
       <ul class="codex" id="codex"></ul>
-      <p class="help" style="margin-top:10px">Right-click to move the hero (tap on touch screens), or use <kbd>WASD</kbd> / arrows when Keys is on. Stand on the path to block enemies. Left-click to build and select. <kbd>1</kbd>–<kbd>4</kbd> pick a tower, <kbd>R</kbd> cancel placing or sell the selected tower, <kbd>Q</kbd> hero ability, <kbd>Space</kbd> start wave.</p>
-    </div>
-  </div>
+      <p class="help" style="margin-top:10px">Right-click to move the hero (tap on touch screens), or use <kbd>WASD</kbd> / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. <kbd>1</kbd>–<kbd>4</kbd> pick a tower, <kbd>R</kbd> cancel placing or sell the selected tower, <kbd>Q</kbd> hero ability, <kbd>Space</kbd> start wave, <kbd>Esc</kbd> settings.</p>
+    </details>
+  </aside>
+
+  <nav class="bar" id="buildBar"></nav>
 </div>
 
+<div class="screen" id="screen" hidden></div>
 <div class="modal" id="modal" hidden><div class="box" id="modalBox"></div></div>
 <div class="tip" id="tip" hidden></div>
 <script type="module" src="/src/main.js"></script>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 
@@ -49,7 +49,13 @@ function checkForUpdates() {
 }
 
 function createWindow() {
-  const win = new BrowserWindow({ width: 1280, height: 960, minWidth: 800, minHeight: 600, backgroundColor: '#0b0f1c', title: 'Riftguard', autoHideMenuBar: true, show: false, webPreferences: { contextIsolation: true } });
+  // Opens fullscreen by default; the game's settings can switch it off (and remember that).
+  const win = new BrowserWindow({ width: 1280, height: 800, minWidth: 800, minHeight: 600, fullscreen: true, backgroundColor: '#0b0f1c', title: 'Riftguard', autoHideMenuBar: true, show: false,
+    webPreferences: { contextIsolation: true, preload: path.join(__dirname, 'preload.cjs') } });
+  ipcMain.removeAllListeners('fullscreen');
+  ipcMain.removeAllListeners('quit');
+  ipcMain.on('fullscreen', (_e, on) => win.setFullScreen(on));
+  ipcMain.on('quit', () => app.quit());
   win.removeMenu();
   win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   win.once('ready-to-show', () => {
