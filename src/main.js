@@ -11,9 +11,12 @@ const MAPS = {
     path: [[-1,7],[4,7],[4,2],[10,2],[10,12],[15,12],[15,3],[20,3],[20,8],[23,8]] },
   warped:   { name: 'Warped Spire', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
     path: [[-1,12],[6,12],[6,3],[12,3],[12,9],[18,9],[18,2],[23,2]] },
+  maelstrom: { name: 'Rift Maelstrom', tier: 'Level 4', waves: 35, shardMul: 2.5, enemyHp: 1.8, armorBonus: 0.1, early: 2, tyrantCores: 8,
+    desc: 'A long spiral into a base in the middle. Rift Storm: enemies have 80% more HP, armored enemies get +10% armor, and special enemies show up 2 waves early. The final Tyrant drops 8 Boss Cores.',
+    path: [[-1,1],[22,1],[22,13],[1,13],[1,4],[19,4],[19,10],[4,10],[4,7],[15,7]] },
 };
 // Maps unlock in order: beat one to open the next.
-const MAP_ORDER = ['verdant', 'ironhold', 'warped'];
+const MAP_ORDER = ['verdant', 'ironhold', 'warped', 'maelstrom'];
 function mapUnlocked(id) { const i = MAP_ORDER.indexOf(id); return i <= 0 || !!(META.best[MAP_ORDER[i - 1]] && META.best[MAP_ORDER[i - 1]].won); }
 let WP, SEG, PATH_LEN, pathCells, BASE;
 function setMap(id) {
@@ -57,7 +60,12 @@ const TOWERS = {
     info: 'Hits weakly but slows enemies down, so the rest of your towers get more time to shoot. Pairs with everything.' },
   tesla:  { name: 'Tesla Coil', key: '4', cost: 90, dmg: 12, rate: 1.1, range: 105, chain: 3, color: 0x4fd8e8, css: '#4fd8e8',
     info: 'Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies.' },
+  beacon: { name: 'Rift Beacon', key: '5', cost: 100, dmg: 0, rate: 1, range: 130, support: true, unlock: 200, color: 0xfff0a0, css: '#fff0a0',
+    info: 'Never attacks. Every tower in its range deals +15% damage. Beacons don’t stack on the same tower (the strongest wins), so spread them out.' },
+  anvil:  { name: 'Grave Anvil', key: '6', cost: 90, dmg: 40, rate: 1.6, range: 70, unlock: 200, color: 0xd08a5a, css: '#d08a5a',
+    info: 'Slams the ground, crushing enemies that are not moving: blocked by your hero, stunned or frozen. The longer they stay still, the harder it hits. Moving enemies only take 30%.' },
 };
+const towerUnlocked = k => !TOWERS[k].unlock || !!(META.towerUnlocked && META.towerUnlocked[k]);
 // Tower paths. Every tower shows the same 5 paths. Each level-up puts a point into one path. A tower uses
 // 3 paths of 4 points; with the Oracle it uses 4 paths of 3 bigger points (ranks 2/3/4), so a maxed path is
 // the same either way. A path's last point unlocks its mastery. At level 13 the tower ascends into a form named
@@ -67,8 +75,8 @@ const TOWER_PATHS = {
   arcane: [
     P('runes', 'Sharpened Runes', 'power', ['Runic', 'Glyph', 'Runes'], '+20% damage per point.', t => t.dmg *= 1.2,
       { name: 'Arcane Mark', desc: 'Hits mark enemies to take +20% damage from everything for 2s.', apply: t => t.mark += 0.2 }),
-    P('twin', 'Twin Cast', 'multi', ['Twin', 'Prism', 'Twins'], 'Points 1 and 3: shoot 1 more enemy. Points 2 and 4: +10% damage.', (t, r) => r % 2 ? t.multi += 1 : t.dmg *= 1.1,
-      { name: 'Prism Split', desc: 'Each hit splits to 2 nearby enemies for 40% damage.', apply: t => t.prism += 2 }),
+    P('hex', 'Hex Brand', 'arcane', ['Hexed', 'Brand', 'Hexes'], 'Hits brand enemies. Every second a branded enemy pulses 2% more per point of all the damage it has taken so far, to itself and enemies within 60. Ignores armor.', t => t.hex += 0.02,
+      { name: 'Hex Nova', desc: 'Branded enemies explode when they die for 25% of all the damage they took, hitting enemies within 80.', apply: t => t.hexNova = Math.max(t.hexNova, 0.25) }),
     P('focus', 'Arcane Focus', 'precision', ['Focused', 'Lens', 'Focus'], 'Each hit in a row on the same enemy deals +10% more damage per point (5 stacks).', t => t.ramp += 0.1,
       { name: 'Executioner', desc: 'Hits finish off non-boss enemies below 12% HP.', apply: t => t.execute += 0.12 }),
     P('surge', 'Mana Surge', 'arcane', ['Surging', 'Nova', 'Mana'], 'Every 5th shot deals triple damage; each point makes it come 1 shot sooner.', (t, r) => t.surge = 6 - r,
@@ -112,8 +120,34 @@ const TOWER_PATHS = {
     P('jump', 'Arc Reach', 'chain', ['Leaping', 'Relay', 'Reach'], 'Lightning jumps 20% farther per point.', t => t.chainReach *= 1.2,
       { name: 'Arc Storm', desc: 'Shoots 1 more enemy and lightning jumps 2 more times.', apply: t => { t.multi += 1; t.chain += 2; } }),
   ],
+  beacon: [
+    P('empower', 'Empower', 'power', ['Radiant', 'Beacon', 'Light'], 'Buffed towers deal +6% more damage per point.', t => t.bDmg += 0.06,
+      { name: 'Overdrive', desc: 'Buffed towers crit 10% of the time for triple damage.', apply: t => t.bOverdrive = true }),
+    P('haste', 'Haste', 'speed', ['Hastening', 'Pulse', 'Haste'], 'Buffed towers fire 6% faster per point.', t => t.bRate += 0.06,
+      { name: 'Tempo Link', desc: 'Every 10s, buffed towers fire at double speed for 3s.', apply: t => t.bTempo = true }),
+    P('reach', 'Reach', 'precision', ['Far', 'Lantern', 'Reach'], 'Buffed towers and the Beacon get +8% range per point.', t => { t.bRange += 0.08; t.range *= 1.08; },
+      { name: 'Lighthouse', desc: 'Buffed towers can hit enemies within twice their range.', apply: t => t.bLight = true }),
+    P('sunder', 'Sunder', 'precision', ['Sundering', 'Spike', 'Sundering'], 'Buffed towers ignore 8% armor per point.', t => t.bSunder += 0.08,
+      { name: 'Armor Break', desc: 'Enemies hit by buffed towers lose 15% armor for 3s, stacking to 45%.', apply: t => t.bBreak = true }),
+    P('btithe', 'Tithe', 'arcane', ['Gilded', 'Shrine', 'Fortune'], 'Kills by buffed towers give +6% gold per point.', t => t.bGold += 0.06,
+      { name: 'Gold Rush', desc: 'Each kill by a buffed tower has a 5% chance to drop a 25 gold coin. Walk your hero over it (coins left at the end of a wave are collected for you).', apply: t => t.bRush = true }),
+  ],
+  anvil: [
+    P('crush', 'Crush', 'power', ['Crushing', 'Anvil', 'Ruin'], '+15% damage per point.', t => t.dmg *= 1.15,
+      { name: 'Executioner’s Weight', desc: 'Stopped enemies below 15% HP are crushed instantly (not bosses).', apply: t => t.crushExec = 0.15 }),
+    P('pin', 'Pin', 'slow', ['Pinning', 'Spike', 'Chains'], 'Slams hold stopped enemies in place 0.3s longer per point (bosses half).', t => t.pin += 0.3,
+      { name: 'Shackle', desc: 'Every 4th slam roots every enemy in the area for 1s, moving or not (bosses 0.5s).', apply: t => t.shackle = true }),
+    P('quake', 'Quake', 'burst', ['Quaking', 'Hammer', 'Tremors'], '+10 slam radius per point.', t => t.range += 10,
+      { name: 'Aftershock', desc: 'Each slam sends a second shockwave 0.5s later for 50% damage.', apply: t => t.after = true }),
+    P('pressure', 'Pressure', 'precision', ['Grinding', 'Press', 'Pressure'], '+10% more damage per second stopped per point, and the cap rises by 25%.', t => { t.press += 0.1; t.pressCap += 0.25; },
+      { name: 'Crushing Tide', desc: 'Pressure no longer resets when an enemy starts moving again; it fades over 3s instead.', apply: t => t.tide = true }),
+    P('guardian', 'Guardian', 'slow', ['Guarding', 'Bastion', 'Wardens'], 'Your hero takes 4% less damage per point from enemies it blocks within range.', t => t.guard += 0.04,
+      { name: 'Bulwark Pact', desc: 'While your hero blocks an enemy in range, the Anvil slams twice as fast.', apply: t => t.pact = true }),
+  ],
 };
-const ELEMENT_TAG = { arcane: 'arcane', plasma: 'burn', frost: 'slow', tesla: 'chain' };
+const ELEMENT_TAG = { arcane: 'arcane', plasma: 'burn', frost: 'slow', tesla: 'chain', beacon: 'power', anvil: 'burst' };
+// Only the four elemental towers have merge recipes.
+const MERGEABLE = { arcane: true, plasma: true, frost: true, tesla: true };
 // Merged towers never get plain stat upgrades: their 5 paths come from this pool of effects, picked to match
 // the paths their parents used. Every point also adds +8% damage on top of the effect.
 const F = (id, name, tags, desc, apply) => ({ id, name, tags, desc, apply });
@@ -168,15 +202,40 @@ const MERGE_COST = 1000, MAX_LVL = 13, MERGE_LVL = 13, PATH_MAX = 4, SELL_RATE =
 const ORACLE_RANKS = [0, 2, 3, 4];
 // Numeric tower traits; merges keep the stronger value of each.
 const TRAITS = ['splash', 'slow', 'slowDur', 'chain', 'chainMul', 'chainReach', 'multi', 'ramp', 'surge', 'burn', 'brittle', 'mark', 'cluster', 'orbital', 'freeze', 'zero', 'stun',
-  'prism', 'execute', 'nova', 'echo', 'deathBlast', 'gravity', 'timeLock', 'shatter', 'frostfire', 'storm', 'chainBlast', 'overload', 'pierce', 'loot', 'leech', 'tempo'];
+  'prism', 'execute', 'nova', 'echo', 'deathBlast', 'gravity', 'timeLock', 'shatter', 'frostfire', 'storm', 'chainBlast', 'overload', 'pierce', 'loot', 'leech', 'tempo', 'hex', 'hexNova'];
 
+// Enemies. armor = % damage taken off (capped at 60%). unslow = immune to slows (stuns still work).
+// phase = only Defensive heroes can block it. first = the wave it starts showing up; per = how many each time.
+const ARMOR_CAP = 0.6;
 const ENEMIES = {
-  grunt:  { hp: 40,   speed: 52, gold: 5,   lives: 1,  atk: 8,  r: 9,  color: 0xff5d6c },
-  runner: { hp: 24,   speed: 96, gold: 4,   lives: 1,  atk: 5,  r: 7,  color: 0xffb35d },
-  brute:  { hp: 170,  speed: 34, gold: 12,  lives: 3,  atk: 20, r: 13, color: 0xd14b8f },
-  knight: { hp: 1100, speed: 30, gold: 60,  lives: 5,  atk: 30, r: 16, color: 0xff2e4d, boss: true, name: 'Rift Knight' },
-  warden: { hp: 3000, speed: 26, gold: 120, lives: 10, atk: 45, r: 18, color: 0xff2e4d, boss: true, name: 'Rift Warden' },
-  tyrant: { hp: 9000, speed: 22, gold: 300, lives: 20, atk: 80, r: 23, color: 0xff2e4d, boss: true, name: 'Rift Tyrant' },
+  grunt:  { name: 'Grunt',  hp: 55,   speed: 52,  gold: 5,   lives: 1,  atk: 8,  r: 9,  color: 0xff5d6c },
+  runner: { name: 'Runner', hp: 35,   speed: 100, gold: 4,   lives: 1,  atk: 5,  r: 7,  color: 0xffb35d },
+  brute:  { name: 'Brute',  hp: 220,  speed: 34,  gold: 12,  lives: 3,  atk: 20, r: 13, color: 0xd14b8f, armor: 0.15 },
+  wraith: { name: 'Wraith', hp: 45,   speed: 120, gold: 5,   lives: 1,  atk: 6,  r: 8,  color: 0x9ad8ff, unslow: true, first: 6, per: 2 },
+  phantom:{ name: 'Phantom', hp: 70,  speed: 70,  gold: 7,   lives: 2,  atk: 10, r: 9,  color: 0xc8b8ff, phase: true, first: 7, per: 2 },
+  splitter:{ name: 'Splitter', hp: 150, speed: 45, gold: 8,  lives: 2,  atk: 14, r: 12, color: 0x7fe07f, split: 2, first: 8, per: 1 },
+  juggernaut:{ name: 'Juggernaut', hp: 600, speed: 26, gold: 25, lives: 4, atk: 35, r: 16, color: 0x9a7a66, armor: 0.3, unslow: true, first: 9, per: 1 },
+  shieldbearer:{ name: 'Shieldbearer', hp: 260, speed: 38, gold: 15, lives: 3, atk: 18, r: 13, color: 0xd8b84a, armor: 0.2, shieldAura: 0.15, first: 11, per: 1 },
+  mender: { name: 'Mender', hp: 120,  speed: 48,  gold: 12,  lives: 2,  atk: 8,  r: 10, color: 0x7dffb0, heal: 0.03, first: 12, per: 1 },
+  knight: { hp: 1100, speed: 30, gold: 60,  lives: 5,  atk: 30, r: 16, color: 0xff2e4d, boss: true, name: 'Rift Knight', armor: 0.25 },
+  warden: { hp: 3000, speed: 26, gold: 120, lives: 10, atk: 45, r: 18, color: 0xff2e4d, boss: true, name: 'Rift Warden', armor: 0.3 },
+  tyrant: { hp: 9000, speed: 22, gold: 300, lives: 20, atk: 80, r: 23, color: 0xff2e4d, boss: true, name: 'Rift Tyrant', armor: 0.35, unslow: true },
+};
+const SPECIAL_ENEMIES = ['wraith', 'phantom', 'splitter', 'juggernaut', 'shieldbearer', 'mender'];
+// Codex text: what each enemy does and how to beat it.
+const ENEMY_INFO = {
+  grunt: ['No special trait.', 'Anything works.'],
+  runner: ['Fast.', 'Slows and chain lightning.'],
+  brute: ['15% armor.', 'Big hits, burns and Hex Brand ignore or shrug off armor.'],
+  wraith: ['Very fast and can’t be slowed.', 'Stuns still work. Chain lightning and long range.'],
+  phantom: ['Only Defensive heroes can block it.', 'The Vanguard stops it. Everyone else has to shoot it down.'],
+  splitter: ['Splits into 2 Runners when it dies.', 'Splash and chain damage clean up the pieces.'],
+  juggernaut: ['30% armor, huge HP and can’t be slowed.', 'Burns, Hex Brand, Brittle, Sunder and the Grave Anvil.'],
+  shieldbearer: ['20% armor and gives enemies within 70 +15% armor.', 'Kill it first; Sunder and Armor Break cut through.'],
+  mender: ['Heals enemies within 70 for 3% of their max HP every second.', 'Focus it first. Sniper Spotter and Headhunter help.'],
+  knight: ['25% armor. Shield Bash: every 8s stuns the nearest tower for 2s.', 'Spread your towers out.'],
+  warden: ['30% armor. Rift Lock: every 10s stuns 2 random towers for 3s. Summons Grunts at 75%, 50% and 25% HP.', 'Grounded makes stuns shorter.'],
+  tyrant: ['35% armor, can’t be slowed. Roar: every 12s stuns 3 towers and knocks your hero back. Enrages at 50% HP and summons 2 Juggernauts.', 'Stuns still work. Save your ability for the enrage.'],
 };
 
 // ---------- heroes ----------
@@ -241,6 +300,7 @@ const PERKS = [
   { id: 'bounty',  cls: 'offensive', name: 'Bounty Sigil', m: 2, desc: m => `Enemies your hero kills drop +${Math.max(1, Math.round(m))} gold.`, apply: (h, m) => h.bounty += Math.max(1, Math.round(m)) },
   { id: 'tithe',   cls: 'defensive', also: ['support'], name: 'War Tithe', m: 0.6, desc: m => `Every enemy killed by your towers or your hero drops +${Math.max(1, Math.round(m))} gold.`, apply: (h, m) => h.tithe += Math.max(1, Math.round(m)) },
   { id: 'siphon',  cls: 'defensive', name: 'Siphon',        m: 3,    desc: m => `Heal ${Math.round(m)} HP for every kill.`, apply: (h, m) => h.siphon += Math.round(m) },
+  { id: 'grounded', cls: 'any', name: 'Grounded', m: 0.5, desc: m => `Boss stuns on your towers last ${pct(Math.min(0.8, m))} less (up to 80%).`, apply: (h, m) => h.grounded = 1 - (1 - h.grounded) * (1 - Math.min(0.8, m)) },
   { id: 'boots',   cls: 'any', name: 'Rift Boots',    m: 0.15, desc: m => `+${pct(m)} move speed.`, apply: (h, m) => h.speed *= 1 + m },
   // Vanguard
   { id: 'taunt',   cls: 'vanguard', name: 'Taunt',         m: 2,    desc: m => `After Shield Slam, enemies within 120 stop and attack you for ${m.toFixed(1)}s.`, apply: (h, m) => h.taunt += m },
@@ -409,7 +469,7 @@ const HERO_META = {
   oracle: [
     { id: 'resonance', name: 'Resonance',       max: 5, cost: r => 30 + 25 * r, desc: r => `Tower aura gives +${4 * r}% more damage`, apply: (h, r) => h.aura += 0.04 * r },
     { id: 'longclock', name: 'Long Overclock',  max: 4, cost: r => 40 + 30 * r, desc: r => `Overclock Field lasts ${(0.6 * r).toFixed(1)}s longer`, apply: (h, r) => h.ab.dur += 0.6 * r },
-    { id: 'tithe',     name: 'Rift Tithe',      max: 4, cost: r => 40 + 30 * r, desc: r => `Start each run with +${25 * r} gold`, apply: (h, r) => S.gold += 25 * r },
+    { id: 'tithe',     name: 'Rift Tithe',      max: 4, cost: r => 40 + 30 * r, desc: r => `Start each run with +${25 * r} gold`, stat: ['Starting gold bonus', r => 25 * r], apply: (h, r) => S.gold += 25 * r },
     { id: 'widesig',   name: 'Wide Signal',     max: 3, cost: r => 50 + 40 * r, desc: r => `All towers get +${3 * r}% range`, apply: (h, r) => h.towerRange += 0.03 * r },
   ],
   sniper: [
@@ -425,7 +485,7 @@ const SPECIALS = [
   { id: 'second',    rarity: 'mythic',    cost: 30, name: 'Second Chance',     desc: 'Once per run, when your base would fall, the wave restarts with your base at 10 HP.' },
   { id: 'bazaar',    rarity: 'legendary', cost: 40, name: 'Grand Bazaar',      desc: 'Boss shops show 9 items instead of 6, and the first item you buy in each is free.' },
   { id: 'foundry',   rarity: 'legendary', cost: 50, name: 'Ascendant Foundry', desc: 'Every tower you build gets its first 2 level-ups free.' },
-  { id: 'pact',      rarity: 'secret',    cost: 70, name: 'Demon Pact',        desc: 'Demonic shops go from 1% to 10%, and every demonic curse is half as strong.' },
+  { id: 'pact',      rarity: 'secret',    cost: 200, name: 'Demon Pact',        desc: 'Demonic shops go from 1% to 10%, and every demonic curse is half as strong.' },
   { id: 'bulwarkS',  hero: 'vanguard', rarity: 'mythic',    cost: 35, name: 'Immortal Bulwark', desc: 'Start each run with Aegis Core and Unbreakable, and Unbreakable can save you twice per wave.' },
   { id: 'dancer',    hero: 'striker',  rarity: 'mythic',    cost: 35, name: 'Blade Dancer',     desc: 'Rift Nova casts itself every 8th kill by your hero, on top of its normal cooldown.' },
   { id: 'conductor', hero: 'oracle',   rarity: 'legendary', cost: 45, name: 'Grand Conductor',  desc: 'Overclock Field is always on at half power across the whole map.' },
@@ -434,16 +494,35 @@ const SPECIALS = [
 const BOSS_CORES = { knight: 1, warden: 2, tyrant: 5 };
 const BIG_BOSS = { warden: true, tyrant: true };
 const GLOBAL_META = [
-  { id: 'gold',    name: 'War Chest',       max: 5, cost: r => 25 + 20 * r, desc: r => `Start with +${20 * r} gold` },
-  { id: 'lives',   name: 'Reinforced Core', max: 5, cost: r => 25 + 20 * r, desc: r => `Base starts with +${2 * r} HP` },
-  { id: 'reroll',  name: 'Fate Weaver',     max: 3, cost: r => 50 + 40 * r, desc: r => `+${r} upgrade reroll${r > 1 ? 's' : ''} per run` },
-  { id: 'luck',    name: 'Lucky Star',      max: 3, cost: r => 60 + 50 * r, desc: r => `Rarer upgrades are ${10 * r}% more likely` },
-  { id: 'vet',     name: 'Veteran',         max: 2, cost: r => 120 + 100 * r, desc: r => `Start each run with ${r} free hero upgrade${r > 1 ? 's' : ''}` },
-  { id: 'fortune', name: 'Fortune’s Favor', max: 3, cost: r => 300 + 250 * r, desc: r => `Much better upgrade odds: Rare and above ${30 * r}% more likely, Common ${15 * r}% less likely` },
+  { id: 'gold',    name: 'War Chest',       max: 5, cost: r => 25 + 20 * r, desc: r => `Start with +${20 * r} gold`, stat: ['Starting gold', r => 150 + 20 * r] },
+  { id: 'lives',   name: 'Reinforced Core', max: 5, cost: r => 25 + 20 * r, desc: r => `Base starts with +${2 * r} HP`, stat: ['Base HP', r => 20 + 2 * r] },
+  { id: 'reroll',  name: 'Fate Weaver',     max: 3, cost: r => 50 + 40 * r, desc: r => `+${r} upgrade reroll${r > 1 ? 's' : ''} per run`, stat: ['Rerolls per run', r => 2 + r] },
+  { id: 'luck',    name: 'Lucky Star',      max: 3, cost: r => 60 + 50 * r, desc: r => `Rarer upgrades are ${10 * r}% more likely`, stat: ['Rarer upgrade odds', r => '+' + 10 * r + '%'] },
+  { id: 'vet',     name: 'Veteran',         max: 2, cost: r => 120 + 100 * r, desc: r => `Start each run with ${r} free hero upgrade${r > 1 ? 's' : ''}`, stat: ['Free hero upgrades at the start', r => r] },
+  { id: 'fortune', name: 'Fortune’s Favor', max: 3, cost: r => 300 + 250 * r, desc: r => `Much better upgrade odds: Rare and above ${30 * r}% more likely, Common ${15 * r}% less likely`, stat: ['Rare and above odds', r => '+' + 30 * r + '%'] },
 ];
-let META = { v: 2, shards: 0, cores: 0, specials: {}, heroes: { vanguard: {}, striker: {}, oracle: {}, sniper: {} }, unlocked: {}, global: {}, best: {}, runs: [] };
+// Each tower has its own permanent upgrades on the Towers page: 3 basics and a unique Signature.
+const TOWER_META = [
+  { id: 'power',  name: 'Power',        max: 5, cost: r => 30 + 25 * r, desc: (r, k) => k === 'beacon' ? `Beacon buff +${2 * r}% damage` : `+${4 * r}% damage`,
+    stat: ['Damage', (r, k) => k === 'beacon' ? '+' + (15 + 2 * r) + '% buff' : Math.round(TOWERS[k].dmg * (1 + 0.04 * r))] },
+  { id: 'supply', name: 'Supply Line',  max: 4, cost: r => 40 + 30 * r, desc: r => `Builds ${5 * r}% cheaper`, stat: ['Build cost', (r, k) => Math.round(TOWERS[k].cost * (1 - 0.05 * r))] },
+  { id: 'vet',    name: 'Veteran Crew', max: 2, cost: r => 120 + 100 * r, desc: r => `New copies start with ${r} free level-up${r > 1 ? 's' : ''}`, stat: ['Free level-ups', r => r] },
+];
+const SIGNATURES = {
+  arcane: { name: 'Spellweave',    desc: 'Every 5th bolt also applies Hex Brand, even without points in it.' },
+  plasma: { name: 'Napalm Shells', desc: 'Explosions leave burning ground for 2s. Burns ignore armor.' },
+  frost:  { name: 'Deep Freeze',   desc: 'An enemy slowed for 3s straight freezes solid for 1s.' },
+  tesla:  { name: 'Overcharge',    desc: 'Chain lightning no longer loses power on each jump.' },
+  beacon: { name: 'Twin Signal',   desc: 'Two Beacons can stack on the same tower.' },
+  anvil:  { name: 'Fault Line',    desc: 'Slams travel along the path in both directions for 2 tiles.' },
+};
+const SIG_COST = 250;
+let META = { v: 2, shards: 0, cores: 0, specials: {}, heroes: { vanguard: {}, striker: {}, oracle: {}, sniper: {} }, unlocked: {}, global: {}, best: {}, runs: [],
+  towers: {}, towerUnlocked: {}, loadout: null, seen: {} };
 try { const m = JSON.parse(localStorage.getItem('riftguard-meta') || 'null'); if (m) META = Object.assign(META, m, { v: m.v || 1 }); } catch (e) {}
 if (!META.specials) META.specials = {}; if (!META.cores) META.cores = 0;
+META.towers = META.towers || {}; META.towerUnlocked = META.towerUnlocked || {}; META.seen = META.seen || {};
+for (const k of Object.keys(TOWERS)) META.towers[k] = META.towers[k] || {};
 function saveMeta() { try { localStorage.setItem('riftguard-meta', JSON.stringify(META)); } catch (e) {} }
 // Older saves used one shared upgrade list for every hero: refund those shards so they can be spent on the new hero upgrades.
 if (META.v < 2) {
@@ -525,6 +604,7 @@ function spentOn(defs, obj) { let n = 0; for (const d of defs) for (let r = 0; r
 function refundValue(kind, hero) {
   if (kind === 'hero') return spentOn(HERO_META[hero], META.heroes[hero]);
   if (kind === 'global') return spentOn(GLOBAL_META, META.global);
+  if (kind === 'tower') return spentOn(TOWER_META, META.towers[hero]) + (META.towers[hero].sig ? SIG_COST : 0);
   return SPECIALS.filter(x => (x.hero || null) === (hero || null) && META.specials[x.id]).reduce((a, x) => a + x.cost, 0);
 }
 // Refunds are free: they give back everything spent in that tab.
@@ -540,16 +620,17 @@ function specialRow(x) {
 function showMenu() {
   S = null; closeModal();
   showScreen(`<div class="title"><h1>Rift<span>guard</span></h1>
-    <p class="lead">Hold the rift. Earn Rift Shards every run to make your heroes stronger.</p>
+    <p class="lead">Hold the rift. Earn Rift Shards every run to make your heroes and towers stronger.</p>
     <p style="margin-top:10px">${shardsTag()}</p>
     <div class="menu">
       <button class="go" id="mStart">Play</button>
       <button id="mUpgrades">Heroes</button>
+      <button id="mTowers">Towers</button>
       <button id="mSettings">Settings</button>
       <button id="mLog">Stats log</button>
       ${desktop ? '<button id="mQuit">Quit</button>' : ''}
     </div></div>`);
-  $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = () => showHeroes(); $('mLog').onclick = showLog; $('mSettings').onclick = showSettings;
+  $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = () => showHeroes(); $('mTowers').onclick = () => showTowers(); $('mLog').onclick = showLog; $('mSettings').onclick = showSettings;
   if ($('mQuit')) $('mQuit').onclick = () => desktop.quit();
 }
 function showMapSelect() {
@@ -563,10 +644,58 @@ function showMapSelect() {
   $('screen').querySelectorAll('.map-pick').forEach(b => b.onclick = () => newRun(b.dataset.k));
   $('mBack').onclick = showMenu;
 }
-function metaRow(def, obj, key, heroId) {
+// "Max HP 340 → 374": what the next rank changes, in real numbers.
+function metaDelta(def, key, id, r) {
+  if (def.stat) { const [label, val] = def.stat; return `${label} ${val(r, id)} → ${val(r + 1, id)}`; }
+  if (key === 'hero') {
+    const a = makeHero(id), b = makeHero(id);
+    if (r) def.apply(a, r); def.apply(b, r + 1);
+    return deltaText(diffStats(heroStats(a), heroStats(b)), def.name);
+  }
+  return def.desc(r + 1, id);
+}
+function metaRow(def, obj, key, id) {
   const r = rank(obj, def.id), maxed = r >= def.max, cost = def.cost(r);
-  return `<div class="meta-row"><div><b>${def.name}</b> <span class="help">${r}/${def.max}</span><br><span class="help">${r ? def.desc(r) : 'Not bought'}${maxed ? '' : ' → ' + def.desc(r + 1)}</span></div>
-    <button data-meta="${key}" data-id="${def.id}" ${heroId ? `data-hero="${heroId}"` : ''} ${maxed || META.shards < cost ? 'disabled' : ''}>${maxed ? 'Maxed' : '◆ ' + cost}</button></div>`;
+  return `<div class="meta-row"><div><b>${def.name}</b> <span class="help">${r}/${def.max}</span><br><span class="help">${r ? def.desc(r, id) : 'Not bought'}</span>${maxed ? '' : `<br><span class="delta">${metaDelta(def, key, id, r)}</span>`}</div>
+    <button data-meta="${key}" data-id="${def.id}" ${id ? `data-hero="${id}"` : ''} ${maxed || META.shards < cost ? 'disabled' : ''}>${maxed ? 'Maxed' : '◆ ' + cost}</button></div>`;
+}
+// Towers page: unlock towers and buy their permanent upgrades.
+function showTowers(sel) {
+  sel = sel || 'arcane';
+  const d = TOWERS[sel], open = towerUnlocked(sel), M = META.towers[sel], sig = SIGNATURES[sel], hasSig = !!M.sig;
+  showScreen(`<div class="screen-head"><h2>Towers</h2>${shardsTag()}<button id="mBack">Back</button></div>
+    <p class="lead">Before each run you bring your hero and 5 towers. Upgrades here are permanent and apply every time you build that tower.</p>
+    <div class="heroes">
+      <div class="roster">${Object.entries(TOWERS).map(([k, t]) => `<button data-tower-tab="${k}" class="${k === sel ? 'on' : ''} ${towerUnlocked(k) ? '' : 'locked'}" style="border-left-color:${t.css}">
+        <small>${t.support ? 'Support' : t.cost + ' gold'}</small><b style="color:${t.css}">${t.name}</b>${towerUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${t.unlock}</span>`}</button>`).join('')}</div>
+      <div class="card herodetail">
+        <h3 style="color:${d.css}">${d.name}</h3>
+        <p>${d.info}</p>
+        <div class="stats">${d.support ? `<div><span>Buff</span>+15% damage</div>` : `<div><span>Damage</span>${d.dmg}</div><div><span>Shots/s</span>${(1 / d.rate).toFixed(2)}</div>`}
+          <div><span>Range</span>${d.range}</div><div><span>Cost</span>${d.cost}</div></div>
+        <p class="help">Paths: ${TOWER_PATHS[sel].map(p => p.name).join(', ')}.</p>
+        ${open ? `<h3 class="meta-h">${d.name} upgrades ${refundBtn('tower', sel)}</h3>${TOWER_META.map(x => metaRow(x, M, 'tower', sel)).join('')}
+          <div class="meta-row special"><div><b class="rar-mythic">Signature: ${sig.name}</b><br><span class="help">${sig.desc}</span></div>
+          <button data-sig="${sel}" ${hasSig || META.shards < SIG_COST ? 'disabled' : ''}>${hasSig ? 'Owned' : '◆ ' + SIG_COST}</button></div>`
+          : `<div class="row"><button class="go" id="unlockTower" ${META.shards < d.unlock ? 'disabled' : ''}>Unlock ${d.name} · ◆ ${d.unlock}</button></div>`}
+      </div>
+    </div>`);
+  $('screen').querySelectorAll('[data-tower-tab]').forEach(b => b.onclick = () => showTowers(b.dataset.towerTab));
+  $('screen').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
+    const def = TOWER_META.find(x => x.id === b.dataset.id), cost = def.cost(rank(M, def.id));
+    if (META.shards < cost || rank(M, def.id) >= def.max) return;
+    META.shards -= cost; M[def.id] = rank(M, def.id) + 1; saveMeta(); showTowers(sel);
+  });
+  $('screen').querySelectorAll('[data-sig]').forEach(b => b.onclick = () => {
+    if (M.sig || META.shards < SIG_COST) return;
+    META.shards -= SIG_COST; M.sig = 1; saveMeta(); sfx('level'); showTowers(sel);
+  });
+  $('screen').querySelectorAll('[data-refund]').forEach(b => b.onclick = () => { META.shards += refundValue('tower', sel); META.towers[sel] = {}; saveMeta(); showTowers(sel); });
+  if ($('unlockTower')) $('unlockTower').onclick = () => {
+    if (META.shards < d.unlock) return;
+    META.shards -= d.unlock; META.towerUnlocked[sel] = true; saveMeta(); sfx('level'); showTowers(sel);
+  };
+  $('mBack').onclick = showMenu;
 }
 // Heroes page: every hero (locked ones too), their permanent upgrades, and the upgrades shared by all heroes.
 function showHeroes(sel) {
@@ -674,7 +803,7 @@ function newRun(mapId) {
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    echoes: [], zones: [], delayed: [], cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    echoes: [], zones: [], delayed: [], cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).filter(towerUnlocked).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
     mod: { towerDmg: 1, slow: 0, gold: map.gold || 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
     hero: null,
   };
@@ -690,7 +819,7 @@ function makeHero(id) {
     buildRange: 170, respawn: 8, thorns: 0, aura: s.aura || 0, auraRange: 130, auraSlow: 0, siphon: 0,
     costMul: 1, lvlMul: 1, mergeMul: 1, crit: s.crit || 0, critDmg: 2, multi: 0, bounty: 0, towerRange: 0, interest: 0,
     brace: s.brace || 0, braceT: 0, pierce: 0, deadeye: 0, shotStun: 0,
-    execute: 0, bulletStorm: 0, attacks: 0, unbreakable: false, unbreakLeft: 1, unbreakMax: 1, tithe: 0, taunt: 0, momentum: 0, momStacks: 0, momT: 0, rapid: 0, spotter: 0, headhunter: 0, danceKills: 0, timeWarp: 0, autoCast: false,
+    grounded: 0, execute: 0, bulletStorm: 0, attacks: 0, unbreakable: false, unbreakLeft: 1, unbreakMax: 1, tithe: 0, taunt: 0, momentum: 0, momStacks: 0, momT: 0, rapid: 0, spotter: 0, headhunter: 0, danceKills: 0, timeWarp: 0, autoCast: false,
     ab: Object.assign({ t: 0 }, d.ability),
     boonSlow: 0, boonSplash: 0, boonRail: 0, boonVent: 0, boonChain: 0, boonIon: 0,
   };
@@ -708,20 +837,48 @@ function applySpecials(h) {
   if (sp.sovereign) { const u = pick(UNIQUES.filter(x => x.rarity === 'legendary' && x.cls === h.cls && !owns(x.id))); if (u) give(u); }
   h.hp = h.maxHp;
 }
+const LOADOUT_SIZE = 5;
+// Loadout: pick a hero and up to 5 towers. The last loadout is remembered.
 function showHeroSelect() {
-  showScreen(`<div class="screen-head"><h2>Choose your hero</h2><button id="mBack">Back</button></div>
-    <p class="lead">${MAPS[S.map].name} · ${MAX_WAVE} waves. Each hero has their own ability and upgrades, plus shared ones.</p>
-    ${CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => { const open = isUnlocked(k);
-      return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
-      <small class="path" style="color:${d.css}">${d.role}</small><b style="color:${d.css}">${d.name}</b><span>${d.desc}</span>
-      <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + d.stats.block}</span>
-      ${open ? `<em class="reward">Ability: ${d.ability.name}</em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('')}`);
-  $('screen').querySelectorAll('.hero-pick').forEach(b => b.onclick = () => {
-    S.hero = makeHero(b.dataset.k); applyHeroMeta(S.hero); applySpecials(S.hero); S.paused = false; hideScreen();
-    renderBuildBar(); renderInspector(); renderCodex(); renderHero();
-    toast(HEROES[b.dataset.k].name + ' ready. Build towers, then start the wave.');
-  });
-  $('mBack').onclick = () => { S = null; showMapSelect(); };
+  const openTowers = Object.keys(TOWERS).filter(towerUnlocked), need = Math.min(LOADOUT_SIZE, openTowers.length);
+  const last = META.loadout || {};
+  let hero = HEROES[last.hero] && isUnlocked(last.hero) ? last.hero : 'vanguard';
+  let picks = (last.towers || []).filter(k => TOWERS[k] && towerUnlocked(k)).slice(0, LOADOUT_SIZE);
+  for (const k of openTowers) if (picks.length < need && !picks.includes(k)) picks.push(k);
+  const render = () => {
+    const y = $('screen').hidden ? 0 : $('screen').scrollTop;
+    showScreen(`<div class="screen-head"><h2>Loadout</h2><button class="go" id="startRunTop" ${picks.length === need ? '' : 'disabled'}>Start run</button><button id="mBack">Back</button></div>
+      <p class="lead">${MAPS[S.map].name} · ${MAX_WAVE} waves. Pick your hero and ${need} towers to bring.</p>
+      ${CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => { const open = isUnlocked(k);
+        return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'} ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
+        <small class="path" style="color:${d.css}">${d.role}</small><b style="color:${d.css}">${d.name}</b><span>${d.desc}</span>
+        <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + d.stats.block}</span>
+        ${open ? `<em class="reward">Ability: ${d.ability.name}</em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('')}
+      <h3 class="cat-h">Towers · ${picks.length}/${need}</h3>
+      <div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const open = towerUnlocked(k), on = picks.includes(k);
+        return `<button class="choice mapcard tower-pick ${open ? '' : 'locked'} ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
+        <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${d.info}</span>
+        ${open ? '' : `<span class="lock">Locked: unlock on the Towers page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>
+      <div class="row" style="margin-top:14px"><button class="go" id="startRun" ${picks.length === need ? '' : 'disabled'}>Start run</button></div>`);
+    $('screen').querySelectorAll('.hero-pick').forEach(b => b.onclick = () => { hero = b.dataset.k; render(); });
+    $('screen').querySelectorAll('.tower-pick').forEach(b => b.onclick = () => {
+      const k = b.dataset.k;
+      if (picks.includes(k)) picks = picks.filter(x => x !== k); else if (picks.length < LOADOUT_SIZE) picks.push(k); else toast('You can bring ' + LOADOUT_SIZE + ' towers. Remove one first.');
+      render();
+    });
+    $('startRun').onclick = $('startRunTop').onclick = () => startRun(hero, picks);
+    $('screen').scrollTop = y;
+    $('mBack').onclick = () => { S = null; showMapSelect(); };
+  };
+  render();
+}
+function startRun(hero, towers) {
+  META.loadout = { hero, towers: towers.slice() }; saveMeta();
+  S.loadout = towers.slice();
+  S.sig = {}; for (const k of towers) if (META.towers[k].sig) S.sig[k] = true;
+  S.hero = makeHero(hero); applyHeroMeta(S.hero); applySpecials(S.hero); S.paused = false; hideScreen();
+  renderBuildBar(); renderInspector(); renderCodex(); renderEnemyCodex(); renderHero();
+  toast(HEROES[hero].name + ' ready. Build towers, then start the wave.');
 }
 
 const $ = id => document.getElementById(id);
@@ -729,12 +886,12 @@ let toastT = 0;
 function toast(msg) { $('toast').textContent = msg; $('toast').hidden = false; toastT = 3; }
 
 function countType(type) { return S.towers.filter(t => t.type === type || (t.parents && t.parents.includes(type))).length; }
-function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul); }
+function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul * (1 - 0.05 * rank(META.towers[type], 'supply'))); }
 function levelCost(t) { return S.freeLevels > 0 || t.freeUps > 0 ? 0 : Math.round(t.baseCost * 0.5 * t.lvl * S.hero.lvlMul); }
 function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul); }
 function pathLimit() { return 3 + (S.hero.cls === 'oracle' ? 1 : 0) + (S.pathBonus || 0); }
 function pathMax() { return S.hero && S.hero.cls === 'oracle' ? 3 : PATH_MAX; }
-function tRange(t) { return t.range * (1 + S.hero.towerRange); }
+function tRange(t) { return t.range * (1 + S.hero.towerRange) * (t.buff ? (1 + t.buff.range) * (t.buff.light ? 2 : 1) : 1); }
 function towerName(t) { return t.name || (t.hybrid ? RECIPES[t.type].name : TOWERS[t.type].name); }
 function towerBlurb(t) { return t.super ? t.desc : t.hybrid ? RECIPES[t.type].desc : TOWERS[t.type].info; }
 function towerKind(t) { return t.super ? 'Super ' : t.hybrid ? 'Hybrid ' : ''; }
@@ -770,7 +927,100 @@ function traits(t) {
   if (t.loot) out.push('Kills drop +' + t.loot.toFixed(0) + ' gold.');
   if (t.leech) out.push('Kills heal your hero ' + t.leech.toFixed(0) + ' HP.');
   if (t.tempo) out.push('Each shot speeds up the next by ' + pct(t.tempo) + ' (5 stacks).');
+  if (t.hex) out.push('Brands enemies: every second they pulse ' + pct(t.hex) + ' of all damage they took to themselves and enemies within 60.');
+  if (t.hexNova) out.push('Branded enemies explode on death for ' + pct(t.hexNova) + ' of the damage they took.');
+  if (t.buff) out.push('Beacon buff: +' + pct(t.buff.dmg) + ' damage' + (t.buff.rate ? ', +' + pct(t.buff.rate) + ' fire rate' : '') + (t.buff.range ? ', +' + pct(t.buff.range) + ' range' : '') + (t.buff.sunder ? ', ignores ' + pct(t.buff.sunder) + ' armor' : '') + '.');
   return out;
+}
+function supportTraits(t) {
+  const out = ['Buffed towers deal +' + pct(beaconDmg(t)) + ' damage.'];
+  if (t.bRate) out.push('Buffed towers fire ' + pct(t.bRate) + ' faster.');
+  if (t.bRange) out.push('Buffed towers get +' + pct(t.bRange) + ' range.');
+  if (t.bSunder) out.push('Buffed towers ignore ' + pct(t.bSunder) + ' armor.');
+  if (t.bGold) out.push('Kills by buffed towers give +' + pct(t.bGold) + ' gold.');
+  if (t.bOverdrive) out.push('Overdrive: buffed towers crit 10% of the time for triple damage.');
+  if (t.bTempo) out.push('Tempo Link: every 10s, buffed towers fire twice as fast for 3s.');
+  if (t.bLight) out.push('Lighthouse: buffed towers hit enemies within twice their range.');
+  if (t.bBreak) out.push('Armor Break: hits from buffed towers strip 15% armor for 3s (up to 45%).');
+  if (t.bRush) out.push('Gold Rush: kills by buffed towers can drop 25 gold coins.');
+  out.push('Buffing ' + S.towers.filter(x => x.buff && x.buff.from.includes(t)).length + ' tower(s).');
+  return out;
+}
+function anvilTraits(t) {
+  const out = ['Slams every ' + (t.rate * S.mod.towerRate).toFixed(1) + 's, hitting every enemy within ' + tRange(t).toFixed(0) + '. Moving enemies take 30%.',
+    'Stopped enemies (blocked, stunned, frozen) take +' + pct(t.press) + ' more per second stopped, up to +' + pct(t.pressCap) + '.'];
+  if (t.pin) out.push('Holds stopped enemies in place ' + t.pin.toFixed(1) + 's longer.');
+  if (t.guard) out.push('Your hero takes ' + pct(t.guard) + ' less damage from enemies it blocks in range.');
+  if (t.crushExec) out.push('Crushes stopped enemies below ' + pct(t.crushExec) + ' HP.');
+  if (t.shackle) out.push('Every 4th slam roots everything in range for 1s.');
+  if (t.after) out.push('Each slam has a 50% aftershock.');
+  if (t.tide) out.push('Pressure fades over 3s instead of resetting.');
+  if (t.pact) out.push('Slams twice as fast while your hero blocks an enemy in range.');
+  if (t.buff) out.push('Beacon buff: +' + pct(t.buff.dmg) + ' damage.');
+  return out;
+}
+const towerTraits = t => t.support ? supportTraits(t) : t.type === 'anvil' ? anvilTraits(t) : traits(t);
+
+// ---------- "current → new" previews ----------
+const fmtN = v => Math.abs(v) >= 10 || Math.abs(v - Math.round(v)) < 0.05 ? String(Math.round(v)) : v.toFixed(1);
+const FMT = { n: fmtN, p: v => Math.round(v * 100) + '%', s: v => v.toFixed(1) + 's', r: v => v.toFixed(2) + '/s', x: v => v.toFixed(1) + '×' };
+const HERO_STATS = [
+  ['Damage', h => h.dmg, 'n'], ['Attacks', h => 1 / h.rate, 'r'], ['Max HP', h => h.maxHp, 'n'], ['Armor', h => h.armor, 'p'], ['Regen/s', h => h.regen, 'n'],
+  ['Crit chance', h => h.crit, 'p'], ['Crit damage', h => h.critDmg, 'p'], ['Targets', h => 1 + h.multi, 'n'], ['Range', h => Math.min(9999, h.range), 'n'],
+  ['Move speed', h => h.speed, 'n'], ['Blocks', h => h.block, 'n'], ['Respawn', h => h.respawn, 's'], ['Build range', h => h.buildRange, 'n'],
+  ['Tower aura', h => h.aura, 'p'], ['Aura reach', h => h.auraRange, 'n'], ['Aura slow', h => h.auraSlow, 'p'], ['Heal per kill', h => h.siphon, 'n'],
+  ['Hero kill gold', h => h.bounty, 'n'], ['Kill gold (all)', h => h.tithe, 'n'], ['Thorns/s', h => h.thorns, 'n'], ['Taunt', h => h.taunt, 's'],
+  ['Momentum per kill', h => h.momentum, 'p'], ['Free level-ups near you', h => h.rapid, 'n'], ['Spotter', h => h.spotter, 'p'], ['Boss damage', h => h.headhunter, 'p'],
+  ['Interest', h => h.interest, 'p'], ['Brace time', h => h.brace, 's'], ['Extra hits', h => h.pierce, 'n'], ['Tower range', h => h.towerRange, 'p'],
+  ['Tower build cost', h => h.costMul, 'p'], ['Level-up cost', h => h.lvlMul, 'p'], ['Merge cost', h => h.mergeMul, 'p'], ['Boss stun reduction', h => Math.min(0.8, h.grounded), 'p'],
+  ['Execute below', h => h.execute, 'p'], [h => h.ab.name + ' damage', h => h.ab.dmg, 'n'], [h => h.ab.name + ' cooldown', h => h.ab.cd, 's'],
+  [h => h.ab.name + ' radius', h => h.ab.r, 'n'], [h => h.ab.name + ' stun', h => h.ab.stun, 's'], [h => h.ab.name + ' duration', h => h.ab.dur, 's'],
+  [h => h.ab.name + ' speed-up', h => h.ab.power, 'p'], [h => h.ab.name + ' damage', h => h.ab.mult, 'x'],
+];
+const RUN_STATS = [
+  ['All tower damage', () => S.mod.towerDmg, 'p'], ['All tower fire rate', () => 1 / S.mod.towerRate, 'p'], ['Kill gold', () => S.mod.gold, 'p'],
+  ['Base HP', () => S.lives, 'n'], ['Gold', () => S.gold, 'n'], ['Paths per tower', () => pathLimit(), 'n'], ['Free tower upgrades', () => S.freeLevels, 'n'],
+  ['Free merges', () => S.freeMerges, 'n'], ['Hero upgrades to pick', () => S.pendingLevels, 'n'], ['Hit slow', () => S.mod.allSlow, 'p'], ['Hit burn', () => S.mod.allBurn, 'p'],
+  ['Enemy HP', () => S.mod.enemyHp, 'p'], ['Enemy speed', () => S.mod.enemySpeed, 'p'],
+];
+const TOWER_STATS = [
+  ['Damage', t => t.support ? 0 : t.dmg * S.mod.towerDmg, 'n'], ['Shots', t => t.support ? 0 : 1 / (t.rate * S.mod.towerRate), 'r'], ['Range', t => t.range * (1 + S.hero.towerRange), 'n'],
+  ['Blast radius', t => t.splash, 'n'], ['Slow', t => t.slow, 'p'], ['Slow time', t => t.slowDur, 's'], ['Jumps', t => t.chain, 'n'], ['Jump power', t => t.chainMul, 'p'],
+  ['Jump reach', t => t.chainReach, 'n'], ['Extra targets', t => t.multi, 'n'], ['Damage per hit in a row', t => t.ramp, 'p'], ['Triple shot every', t => t.surge, 'n'],
+  ['Burn', t => t.burn, 'p'], ['Brittle', t => t.brittle, 'p'], ['Mark', t => t.mark, 'p'], ['Bomblets', t => t.cluster, 'n'], ['Huge blast every', t => t.orbital, 'n'],
+  ['Freeze every', t => t.freeze, 'n'], ['Aura slow', t => t.zero, 'p'], ['Stun chance', t => t.stun, 'p'], ['Prism splits', t => t.prism, 'n'], ['Execute below', t => t.execute, 'p'],
+  ['Nova', t => t.nova, 'p'], ['Echo', t => t.echo, 'p'], ['Death blast', t => t.deathBlast, 'p'], ['Drag back', t => t.gravity, 'n'], ['Time lock', t => t.timeLock, 's'],
+  ['Shatter', t => t.shatter, 'p'], ['Frostfire', t => t.frostfire, 'p'], ['Storm bolts', t => t.storm, 'n'], ['Ion burst', t => t.chainBlast, 'p'], ['Overload', t => t.overload, 'p'],
+  ['Pierce', t => t.pierce, 'n'], ['Kill gold', t => t.loot, 'n'], ['Kill heal', t => t.leech, 'n'], ['Tempo', t => t.tempo, 'p'], ['Hex pulse', t => t.hex, 'p'], ['Hex Nova', t => t.hexNova, 'p'],
+  ['Buff damage', t => t.support ? beaconDmg(t) : 0, 'p'], ['Buff fire rate', t => t.bRate, 'p'], ['Buff range', t => t.bRange, 'p'], ['Armor ignored', t => t.bSunder, 'p'],
+  ['Buff kill gold', t => t.bGold, 'p'], ['Pressure per second', t => t.type === 'anvil' ? t.press : 0, 'p'], ['Pressure cap', t => t.type === 'anvil' ? t.pressCap : 0, 'p'],
+  ['Pin', t => t.pin, 's'], ['Hero damage taken', t => t.type === 'anvil' ? 1 - t.guard : 0, 'p'], ['Crush below', t => t.crushExec, 'p'],
+];
+const readStats = (list, obj) => list.map(([l, f, k]) => [typeof l === 'function' ? l(obj) : l, f(obj), k]);
+const heroStats = h => readStats(HERO_STATS, h);
+function diffStats(a, b) {
+  const out = [];
+  a.forEach(([l, v, k], i) => { const w = b[i][1]; if (typeof v === 'number' && typeof w === 'number' && !isNaN(v) && !isNaN(w) && Math.abs(v - w) > 1e-9 && FMT[k](v) !== FMT[k](w)) out.push([l, v, w, k]); });
+  return out;
+}
+function deltaText(list, name) { return list.length ? list.map(([l, a, b, k]) => `${l} ${FMT[k](a)} → ${FMT[k](b)}`).join(' · ') : 'New: ' + name; }
+// Runs an upgrade on copies of the hero and run state and reports what changed.
+function previewRun(apply, name) {
+  const keep = { hero: S.hero, mod: S.mod, lives: S.lives, gold: S.gold, pathBonus: S.pathBonus, freeLevels: S.freeLevels, freeMerges: S.freeMerges, pendingLevels: S.pendingLevels };
+  const read = () => heroStats(S.hero).concat(readStats(RUN_STATS, null));
+  const before = read();
+  S.hero = structuredClone(keep.hero); S.mod = Object.assign({}, keep.mod);
+  try { apply(); } catch (e) {}
+  const after = read();
+  Object.assign(S, keep);
+  return deltaText(diffStats(before, after), name);
+}
+function previewLevel(t, path) {
+  const c = Object.assign({}, t, { ups: Object.assign({}, t.ups), rk: Object.assign({}, t.rk), order: t.order.slice() });
+  const before = readStats(TOWER_STATS, t);
+  const { mastered } = applyLevel(c, path);
+  const txt = deltaText(diffStats(before, readStats(TOWER_STATS, c)), path.name);
+  return mastered ? txt + ' · New: ' + path.mastery.name : txt;
 }
 
 // ---------- waves ----------
@@ -814,9 +1064,15 @@ function offerWaveChoice() {
 }
 function makeWave(n, mode) {
   let q = [];
-  for (let i = 0; i < 6 + n * 3; i++) q.push('grunt');
+  for (let i = 0; i < 8 + n * 3; i++) q.push('grunt');
   if (n >= 2) for (let i = 0; i < n * 2; i++) q.push('runner');
   if (n >= 4) for (let i = 0; i < n - 2; i++) q.push('brute');
+  // Special enemies join from their first wave (earlier on some maps) and grow every 2 waves. Once more than 3 are
+  // available, each wave brings 2 or 3 of them so waves feel different.
+  const early = MAPS[S.map].early || 0, first = k => ENEMIES[k].first - early;
+  const open = SPECIAL_ENEMIES.filter(k => n >= first(k));
+  const types = open.length > 3 ? shuffle(open.slice()).slice(0, Math.random() < 0.5 ? 2 : 3) : open;
+  for (const k of types) for (let i = 0; i < ENEMIES[k].per * (1 + Math.floor((n - first(k)) / 2)); i++) q.push(k);
   if (mode.kind === 'hard') q = q.concat(q.slice(0, Math.round(q.length * 0.25)));
   if (mode.challenge === 'swarm') q = q.concat(q);
   if (mode.challenge === 'iron') q = q.slice(0, Math.max(4, Math.round(q.length / 3))).map(() => 'brute');
@@ -853,6 +1109,7 @@ function endWave() {
   for (const t of S.towers) t.dmgWave = 0;
   const bonus = 25 + 5 * S.wave; S.gold += bonus;
   const msgs = ['+' + bonus + ' gold'];
+  if (S.coins.length) { S.gold += 25 * S.coins.length; msgs.push('+' + 25 * S.coins.length + ' from coins'); S.coins = []; }
   if (S.hero.interest) { const i = Math.round(S.gold * Math.min(0.3, S.hero.interest)); S.gold += i; msgs.push('+' + i + ' interest'); }
   const r = S.mode.reward;
   if (r) {
@@ -879,7 +1136,7 @@ function showShop() {
     openModal(`<h2 class="${demonic ? 'demonic-title' : ''}">${demonic ? '☠ Demonic Bazaar' : 'Rift Bazaar'}</h2>
       <p>${demonic ? 'A demonic merchant has opened shop. Half of these are demonic: twice as strong, with a curse.' : 'The boss dropped a key to the Rift Bazaar. Everything here is sold only in this shop.'} You have <b style="color:var(--gold)">${Math.floor(S.gold)} gold</b>.</p>
       <div class="choices">${items.map((x, i) => `<button class="choice shop-item ${x.dem ? 'is-demonic' : ''}" data-i="${i}" ${x.sold || (S.gold < x.cost && !freeLeft) ? 'disabled' : ''}>
-        <small class="path">${x.dem ? 'Demonic ' : ''}${x.it.kind}</small><b>${x.it.name}</b><span>${x.it.desc(x.m)}</span>
+        <small class="path">${x.dem ? 'Demonic ' : ''}${x.it.kind}</small><b>${x.it.name}</b><span>${x.it.desc(x.m)}</span>${x.sold ? '' : `<span class="delta">${previewRun(() => x.it.apply(x.m), x.it.name)}</span>`}
         ${x.curse ? `<em class="cost">Curse: ${x.curse.desc(x.k)}</em>` : ''}
         <em class="reward">${x.sold ? 'Bought' : freeLeft ? 'Free' : x.cost + ' gold'}</em></button>`).join('')}</div>
       <div class="row" style="margin-top:12px"><button class="go" id="shopLeave">Leave shop</button></div>`);
@@ -894,26 +1151,88 @@ function showShop() {
   };
   render();
 }
-function spawn(type) {
-  const d = ENEMIES[type], m = S.mode;
-  // Harder curve than before; bosses also scale with the wave they lead.
-  let scale = d.boss ? 1 + 0.1 * Math.max(0, S.wave - 5) : 1 + 0.45 * (S.wave - 1) + 0.07 * (S.wave - 1) ** 2;
+// atD: spawn partway along the path (Splitter pieces, boss summons).
+function spawn(type, atD) {
+  const d = ENEMIES[type], m = S.mode, map = MAPS[S.map];
+  // Enemies get much tougher each wave; bosses also scale with the wave they lead.
+  let scale = d.boss ? 1 + 0.15 * Math.max(0, S.wave - 5) : 1 + 0.55 * (S.wave - 1) + 0.1 * (S.wave - 1) ** 2;
   scale *= S.mod.enemyHp;
   if (m.kind === 'hard') scale *= 1.4;
   if (m.hpMul) scale *= m.hpMul;
   if (m.challenge === 'swarm') scale *= 0.65;
   const speed = d.speed * S.mod.enemySpeed * (m.challenge === 'blitz' ? 1.4 : 1);
-  const p = posAt(0);
-  S.enemies.push({ type, boss: !!d.boss, hp: d.hp * scale, max: d.hp * scale, speed, d: 0, x: p.x - 30, y: p.y,
-    slow: 0, slowT: 0, stunT: 0, burnT: 0, burnDps: 0, markT: 0, mark: 0, brittle: 0,
+  const at = atD || 0, p = posAt(at);
+  if (!META.seen[type]) { META.seen[type] = true; saveMeta(); renderEnemyCodex(); toast('New enemy: ' + d.name + '. ' + ENEMY_INFO[type][0]); }
+  S.enemies.push({ type, boss: !!d.boss, hp: d.hp * scale, max: d.hp * scale, speed, d: at, x: atD ? p.x : p.x - 30, y: p.y,
+    slow: 0, slowT: 0, stunT: 0, burnT: 0, burnDps: 0, markT: 0, mark: 0, brittle: 0, brittleT: 0, brk: 0, brkT: 0,
+    armor: d.armor ? d.armor + (map.armorBonus || 0) : 0, auraArmor: 0, unslow: !!d.unslow, phase: !!d.phase, split: d.split || 0, heal: d.heal || 0, shieldAura: d.shieldAura || 0,
+    taken: 0, stillT: 0, hex: 0, hexT: 0, hexTick: 1, healT: 1, slowedFor: 0,
     gold: d.gold * (m.gilded ? 3 : 1), lives: d.lives, atk: d.atk, r: d.r, color: m.gilded ? 0xf2c14e : d.color, blocked: false, dead: false });
+}
+// Boss powers. Targeted towers flash red for 1s before the stun lands.
+const BOSS_POWER = {
+  knight: { name: 'Shield Bash', every: 8,  n: 1, dur: 2, nearest: true },
+  warden: { name: 'Rift Lock',   every: 10, n: 2, dur: 3 },
+  tyrant: { name: 'Roar',        every: 12, n: 3, dur: 3, roar: true },
+};
+function bossAct(e, dt) {
+  const p = BOSS_POWER[e.type]; if (!p) return;
+  if (e.powT == null) e.powT = p.every * 0.6;
+  if (e.stunT <= 0) e.powT -= dt;
+  if (e.powT <= 0) { e.powT = p.every; bossPower(e, p); }
+  if (e.type === 'warden') {
+    const steps = [0.75, 0.5, 0.25]; e.sum = e.sum || 0;
+    while (e.sum < 3 && e.hp / e.max <= steps[e.sum]) {
+      e.sum++;
+      for (let i = 0; i < 4; i++) spawn('grunt', Math.max(0, e.d - 15 - 12 * i));
+      S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 70, color: 0xff2e4d, t: 0.6, T: 0.6, fill: true }); shake(0.006, 200);
+      toast('The Rift Warden tears open a rift!');
+    }
+  }
+  if (e.type === 'tyrant' && !e.enraged && e.hp / e.max <= 0.5) {
+    e.enraged = true; e.speed *= 1.3; e.color = 0xff0000;
+    for (let i = 0; i < 2; i++) spawn('juggernaut', Math.max(0, e.d - 25 - 20 * i));
+    S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 140, color: 0xff0000, t: 0.9, T: 0.9, fill: true }); shake(0.02, 500); sfx('boss');
+    toast('The Rift Tyrant is enraged! +30% speed, and 2 Juggernauts join it.');
+  }
+}
+function bossPower(e, p) {
+  const live = S.towers.filter(t => !(t.stunT > 0) && !(t.warnT > 0));
+  const targets = p.nearest ? live.filter(t => Math.hypot(t.x - e.x, t.y - e.y) <= 260).sort((a, b) => Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(b.x - e.x, b.y - e.y)).slice(0, 1)
+                            : shuffle(live).slice(0, p.n);
+  for (const t of targets) {
+    t.warnT = 1;
+    S.fx.push({ k: 'line', x1: e.x, y1: e.y, x2: t.x, y2: t.y, color: 0xff2e4d, t: 1, T: 1, w: 2 });
+    S.delayed.push({ at: S.time + 1, fn: () => {
+      t.warnT = 0; if (!S.towers.includes(t)) return;
+      t.stunT = Math.max(t.stunT, p.dur * (1 - Math.min(0.8, S.hero.grounded))); t.stunMax = t.stunT;
+      S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 26, color: 0xff2e4d, t: 0.4, T: 0.4, fill: true });
+    } });
+  }
+  if (p.roar) {
+    const h = S.hero; shake(0.014, 450); sfx('boss');
+    S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 220, color: 0xff2e4d, t: 0.7, T: 0.7 });
+    if (!h.ko) { const dx = h.x - e.x, dy = h.y - e.y, d = Math.hypot(dx, dy) || 1; h.x = Math.max(10, Math.min(W - 10, h.x + dx / d * 120)); h.y = Math.max(10, Math.min(H - 10, h.y + dy / d * 120)); h.tx = null; }
+  }
+  if (targets.length || p.roar) toast(ENEMIES[e.type].name + ': ' + p.name + '!');
 }
 
 // ---------- combat ----------
-function damage(e, amt, src) {
+// Armor: % damage taken off, capped. Brittle enemies have none; Shieldbearers add to it; Sunder and Armor Break cut it.
+function armorOf(e, src) {
+  if (e.brittleT > 0) return 0;
+  let a = (e.armor || 0) + (e.auraArmor || 0) - (e.brkT > 0 ? e.brk : 0);
+  if (src && typeof src === 'object' && src.buff) a -= src.buff.sunder;
+  return Math.max(0, Math.min(ARMOR_CAP, a));
+}
+const coresFor = type => type === 'tyrant' && MAPS[S.map].tyrantCores ? MAPS[S.map].tyrantCores : BOSS_CORES[type] || 0;
+// pierce: true = ignores armor (burns, zones, executes); 'hex' = Hex Brand pulse (ignores armor and doesn't feed the brand).
+function damage(e, amt, src, pierce) {
   if (e.dead) return;
-  amt *= 1 + (e.markT > 0 ? e.mark : 0) + (e.slowT > 0 ? e.brittle : 0) + (e.spotT > 0 && src && typeof src === 'object' ? e.spot : 0);
+  amt *= 1 + (e.markT > 0 ? e.mark : 0) + (e.brittleT > 0 ? e.brittle : 0) + (e.spotT > 0 && src && typeof src === 'object' ? e.spot : 0);
+  if (!pierce) amt *= 1 - armorOf(e, src);
   const dealt = Math.min(amt, e.hp);
+  if (pierce !== 'hex') e.taken = (e.taken || 0) + dealt;
   if (src && typeof src === 'object') { src.dmgWave = (src.dmgWave || 0) + dealt; src.dmgTotal = (src.dmgTotal || 0) + dealt; }
   else if (S.ws) S.ws.heroDmg += dealt;
   e.hp -= amt;
@@ -922,10 +1241,18 @@ function damage(e, amt, src) {
     const h = S.hero;
     const byHero = !(src && typeof src === 'object');
     let g = e.gold * S.mod.gold + (byHero ? h.bounty : 0) + h.tithe;
+    if (!byHero && src.buff && src.buff.gold) g *= 1 + src.buff.gold;
+    if (!byHero && src.buff && src.buff.rush && Math.random() < 0.05) S.coins.push({ x: e.x, y: e.y, t: 0 });
     if (S.heroics.goldrush && Math.random() < 0.08 * S.heroics.goldrush) { g += 15; S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 14, color: 0xf2c14e, t: 0.5, T: 0.5, fill: true }); }
     S.gold += g; h.xp += e.gold;
     if (S.ws) { S.ws.kills++; S.ws.gold += g; }
-    if (e.boss) { S.bossKills++; S.cores += BOSS_CORES[e.type] || 0; S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 80, color: 0xff6fd8, t: 0.9, T: 0.9, fill: true }); shake(0.012, 350); }
+    if (e.split) for (let i = 0; i < e.split; i++) spawn('runner', Math.max(0, e.d - 8 + 16 * i));
+    if (e.hexT > 0 && e.hexNova) {
+      const boom = (e.taken || 0) * e.hexNova;
+      S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 80, color: 0xb07cff, t: 0.45, T: 0.45, fill: true });
+      for (const o of inRange(e.x, e.y, 80)) damage(o, boom, e.hexSrc, 'hex');
+    }
+    if (e.boss) { S.bossKills++; S.cores += coresFor(e.type); S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 80, color: 0xff6fd8, t: 0.9, T: 0.9, fill: true }); shake(0.012, 350); }
     if (h.siphon && !h.ko) h.hp = Math.min(h.maxHp, h.hp + h.siphon);
     if (byHero) {
       if (h.momentum) { h.momStacks = Math.min(10, h.momStacks + 1); h.momT = 4; }
@@ -940,27 +1267,31 @@ function damage(e, amt, src) {
       if (src.deathBlast) { S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 55, color: 0xff8a3d, t: 0.25, T: 0.25, fill: true }); for (const o of inRange(e.x, e.y, 55)) damage(o, e.max * src.deathBlast, src); }
     }
     if (e.boss) {
-      const n = BOSS_CORES[e.type] || 0;
+      const n = coresFor(e.type);
       if (e.type !== 'tyrant') S.pendingHeroic++;
       toast(ENEMIES[e.type].name + ' defeated! +' + n + ' Boss Core' + (n > 1 ? 's' : '') + (e.type !== 'tyrant' ? ' and a heroic power.' : '.'));
     }
     S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 6, color: e.color, t: 0.3, T: 0.3 });
   }
 }
-function slowEnemy(e, amt, dur) { e.slow = Math.min(0.85, Math.max(e.slow, amt + S.mod.slow)); e.slowT = Math.max(e.slowT, dur || 1.6); }
+function slowEnemy(e, amt, dur) { if (e.unslow) return; e.slow = Math.min(0.85, Math.max(e.slow, amt + S.mod.slow)); e.slowT = Math.max(e.slowT, dur || 1.6); }
 function inRange(x, y, r) { return S.enemies.filter(e => !e.dead && Math.hypot(e.x - x, e.y - y) <= r); }
 function nearAura(t) { const h = S.hero; return !h.ko && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange; }
 
 function applyHit(t, e, dmg, freeze) {
   if (t.shatter && e.stunT > 0) dmg *= 1 + t.shatter;
-  if (t.execute && !e.boss && (e.hp - dmg) / e.max <= t.execute) dmg = e.hp + 1;
+  let pierce = false;
+  if (t.execute && !e.boss && (e.hp - dmg) / e.max <= t.execute) { dmg = e.hp + 1; pierce = true; }
   if (t.frostfire && e.slowT > 0) { e.burnDps = Math.max(e.burnDps, dmg * t.frostfire / 2); e.burnT = 2; e.burnSrc = t.src; }
   if (t.frostfire && e.burnT > 0) slowEnemy(e, Math.min(0.5, t.frostfire / 3), 1);
   if (S.mod.allSlow) slowEnemy(e, S.mod.allSlow, 1.2);
   if (S.mod.allBurn) { e.burnDps = Math.max(e.burnDps, dmg * S.mod.allBurn / 2); e.burnT = 2; e.burnSrc = t.src; }
-  damage(e, dmg, t.src);
+  damage(e, dmg, t.src, pierce);
   if (t.slow) slowEnemy(e, t.slow, t.slowDur);
-  if (t.brittle) e.brittle = Math.max(e.brittle, t.brittle);
+  if (t.brittle) { e.brittle = Math.max(e.brittle, t.brittle); e.brittleT = Math.max(e.brittleT || 0, t.slowDur || 1.6); }
+  const hx = t.hex || (S.sig.arcane && baseTypes(t).includes('arcane') && t.shots % 5 === 0 ? 0.02 : 0);
+  if (hx) { e.hex = Math.max(e.hex || 0, hx); e.hexT = 4; e.hexSrc = t.src; e.hexNova = Math.max(e.hexNova || 0, t.hexNova || 0); }
+  if (t.buff && t.buff.brk) { e.brk = Math.min(0.45, (e.brkT > 0 ? e.brk : 0) + 0.15); e.brkT = 3; }
   if (t.mark) { e.mark = Math.max(e.mark, t.mark); e.markT = 2; }
   if (t.burn) { e.burnDps = Math.max(e.burnDps, dmg * t.burn / 2); e.burnT = 2; e.burnSrc = t.src; }
   if (freeze) e.stunT = Math.max(e.stunT, 1.2);
@@ -972,6 +1303,7 @@ function fire(t, targets) {
   let dmg = t.dmg * S.mod.towerDmg * (S.mode.challenge === 'lone' ? 0.6 : 1);
   const aura = h.aura && nearAura(t);
   if (aura) dmg *= 1 + h.aura;
+  if (t.buff) { dmg *= 1 + t.buff.dmg; if (t.buff.overdrive && Math.random() < 0.1) dmg *= 3; }
   if (t.surge && t.shots % t.surge === 0) dmg *= 3;
   const over = t.overload && t.shots % 10 === 0;
   if (over) dmg *= 1 + t.overload;
@@ -987,6 +1319,7 @@ function fire(t, targets) {
     S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.color, t: 0.12, T: 0.12, w: t.hybrid ? 3 : 2 });
     const hits = splash ? inRange(target.x, target.y, splash) : [target];
     if (splash) S.fx.push({ k: 'ring', x: target.x, y: target.y, r: splash, color: t.color, t: 0.25, T: 0.25, fill: big });
+    if (splash && S.sig.plasma && baseTypes(t).includes('plasma')) S.zones.push({ x: target.x, y: target.y, r: splash * 0.7, t: 2, T: 2, dps: d * 0.25, slow: 0, color: 0xff8a3d, src: t });
     for (const e of hits) { applyHit(hitT, e, d, freeze); if (over) e.stunT = Math.max(e.stunT, 0.5); }
     if (t.prism) for (const n of inRange(target.x, target.y, 90).filter(e => !hits.includes(e)).slice(0, Math.round(t.prism))) {
       S.fx.push({ k: 'line', x1: target.x, y1: target.y, x2: n.x, y2: n.y, color: t.color, t: 0.12, T: 0.12, w: 1 }); applyHit(hitT, n, d * 0.4, false);
@@ -1003,7 +1336,8 @@ function fire(t, targets) {
     }
     const chainN = t.chain + (oc && h.ab.chrono ? 1 : 0);
     if (chainN) {
-      const hit = new Set(hits); let from = target, cd = d * t.chainMul;
+      const keep = S.sig.tesla && baseTypes(t).includes('tesla');
+      const hit = new Set(hits); let from = target, cd = d * (keep ? 1 : t.chainMul);
       for (let i = 0; i < chainN; i++) {
         let best = null, bd = t.chainReach;
         for (const e of S.enemies) { if (e.dead || hit.has(e)) continue; const dd = Math.hypot(e.x - from.x, e.y - from.y); if (dd < bd) { bd = dd; best = e; } }
@@ -1012,7 +1346,7 @@ function fire(t, targets) {
         applyHit(hitT, best, cd, false);
         if (t.chainBlast) for (const o of inRange(best.x, best.y, 40)) if (o !== best) damage(o, cd * t.chainBlast, t);
         if (t.stun && Math.random() < t.stun) best.stunT = Math.max(best.stunT, 0.6);
-        hit.add(best); from = best; cd *= 0.85;
+        hit.add(best); from = best; if (!keep) cd *= 0.85;
       }
     }
   }
@@ -1027,6 +1361,54 @@ function shotEffects(t, dmg) {
   if (t.nova && t.shots % 6 === 0) { for (const e of inR()) applyHit(Object.assign({}, t, { src: t }), e, dmg * t.nova, false); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: tRange(t), color: t.color, t: 0.3, T: 0.3 }); }
   if (t.timeLock && t.shots % 8 === 0) { for (const e of inR()) e.stunT = Math.max(e.stunT, t.timeLock); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: tRange(t), color: 0xb07cff, t: 0.3, T: 0.3, fill: true }); }
   if (t.storm && t.shots % 4 === 0) for (const e of shuffle(inR()).slice(0, Math.round(t.storm))) { applyHit(Object.assign({}, t, { src: t }), e, dmg * 0.8, false); S.fx.push({ k: 'line', x1: e.x, y1: e.y - 200, x2: e.x, y2: e.y, color: 0x8affff, t: 0.2, T: 0.2, w: 2 }); }
+}
+// Rift Beacon: each tower takes the strongest Beacon in reach (two with Twin Signal).
+const beaconDmg = b => b.bDmg + 0.01 * (b.lvl - 1) + (b.lvl >= MAX_LVL ? 0.05 : 0);
+const beaconPower = b => beaconDmg(b) + b.bRate + b.bRange + b.bSunder + b.bGold;
+function computeBuffs() {
+  const beacons = S.towers.filter(b => b.support && !(b.stunT > 0));
+  for (const t of S.towers) {
+    t.buff = null;
+    if (t.support || !beacons.length) continue;
+    const near = beacons.filter(b => Math.hypot(b.x - t.x, b.y - t.y) <= tRange(b)).sort((a, b) => beaconPower(b) - beaconPower(a)).slice(0, S.sig.beacon ? 2 : 1);
+    if (!near.length) continue;
+    const f = { dmg: 0, rate: 0, range: 0, sunder: 0, gold: 0, overdrive: false, tempo: false, light: false, brk: false, rush: false, from: near };
+    for (const b of near) {
+      f.dmg += beaconDmg(b); f.rate += b.bRate; f.range += b.bRange; f.sunder += b.bSunder; f.gold += b.bGold;
+      f.overdrive = f.overdrive || b.bOverdrive; f.tempo = f.tempo || (b.bTempo && S.time % 10 < 3);
+      f.light = f.light || b.bLight; f.brk = f.brk || b.bBreak; f.rush = f.rush || b.bRush;
+    }
+    t.buff = f;
+  }
+}
+// Grave Anvil: crushes enemies that aren't moving; moving ones take 30%.
+function anvilSlam(t, area, mult) {
+  const h = S.hero;
+  t.shots++;
+  let base = t.dmg * S.mod.towerDmg * mult * (S.mode.challenge === 'lone' ? 0.6 : 1);
+  if (h.aura && nearAura(t)) base *= 1 + h.aura;
+  if (t.buff) { base *= 1 + t.buff.dmg; if (t.buff.overdrive && Math.random() < 0.1) base *= 3; }
+  if (t === S.drained) base *= 0.5;
+  let hits = area;
+  if (S.sig.anvil) { const more = S.enemies.filter(o => !o.dead && !area.includes(o) && area.some(e => Math.abs(o.d - e.d) <= 80)); hits = area.concat(more); for (const o of more) S.fx.push({ k: 'ring', x: o.x, y: o.y, r: 14, color: t.color, t: 0.25, T: 0.25 }); }
+  const hitT = Object.assign({}, t, { src: t, auraSlow: 0 });
+  for (const e of hits) {
+    const stopped = e.stunT > 0 || e.blocked || e.tauntT > 0;
+    const d = base * (stopped ? 1 + Math.min(t.pressCap, t.press * e.stillT) : 0.3);
+    if (stopped && t.crushExec && !e.boss && (e.hp - d) / e.max <= t.crushExec) {
+      damage(e, e.hp + 1, t, true); S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 10, color: 0xffffff, t: 0.4, T: 0.4, fill: true }); continue;
+    }
+    applyHit(hitT, e, d, false);
+    if (stopped && t.pin) e.stunT = Math.max(e.stunT, e.boss ? t.pin / 2 : t.pin);
+  }
+  if (t.shackle && t.shots % 4 === 0) { for (const e of hits) e.stunT = Math.max(e.stunT, e.boss ? 0.5 : 1); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: tRange(t) + 10, color: 0x9a7cff, t: 0.5, T: 0.5 }); }
+  S.fx.push({ k: 'ring', x: t.x, y: t.y, r: tRange(t), color: t.color, t: 0.35, T: 0.35, fill: true });
+  if (mult >= 1) shake(0.002, 90);
+  sfx('boom');
+  if (t.after && mult >= 1) S.delayed.push({ at: S.time + 0.5, fn: () => {
+    if (!S.towers.includes(t)) return;
+    const a = inRange(t.x, t.y, tRange(t)); if (a.length) anvilSlam(t, a, 0.5);
+  } });
 }
 function heroDmg() { return S.hero.dmg * (S.mode.challenge === 'lone' ? 2 : 1); }
 
@@ -1105,8 +1487,9 @@ function piercingShot(h, a) {
   let kills = 0;
   for (const e of hit) {
     let d = base * (e.boss ? 1 + h.headhunter : 1);
-    if (a.execR && !e.boss && (e.hp - d) / e.max <= 0.3) d = e.hp + 1;
-    damage(e, d); if (e.dead) kills++;
+    const ex = a.execR && !e.boss && (e.hp - d) / e.max <= 0.3;
+    if (ex) d = e.hp + 1;
+    damage(e, d, undefined, ex); if (e.dead) kills++;
     if (a.cluster) { for (const o of inRange(e.x, e.y, 50)) if (o !== e) damage(o, base * 0.4); S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 50, color: 0xffb35d, t: 0.3, T: 0.3, fill: true }); }
   }
   const ex = h.x + ux * 2000, ey = h.y + uy * 2000;
@@ -1142,6 +1525,7 @@ function restartWave(reason) {
   S.secondChance = false;
   S.enemies = []; S.zones = []; S.delayed = []; S.echoes = [];
   S.spawnQ = makeWave(S.wave, S.mode); S.spawnT = 1.5; S.lives = Math.max(S.lives, 10); S.bossWarned = false;
+  for (const t of S.towers) { t.warnT = 0; t.stunT = 0; }
   S.fx.push({ k: 'ring', x: BASE.x, y: BASE.y, r: 220, color: 0xf2c14e, t: 1.2, T: 1.2, fill: true }); shake(0.015, 500);
   toast(reason + '. Second Chance: the wave starts over!'); sfx('boss');
 }
@@ -1223,8 +1607,9 @@ function update(dt) {
           if (t.boss && h.headhunter) dmg *= 1 + h.headhunter;
           if (S.oneShotReady) { dmg *= 10; S.oneShotReady = false; S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 46, color: 0xffffff, t: 0.6, T: 0.6, fill: true }); shake(0.012, 250); toast('One Shot!'); }
           if (h.boonRail && h.attacks % h.boonRail === 0) dmg *= 4;
-          if (h.execute && !t.boss && (t.hp - dmg) / t.max <= h.execute) dmg = t.hp;
-          damage(t, dmg);
+          const ex = h.execute && !t.boss && (t.hp - dmg) / t.max <= h.execute;
+          if (ex) dmg = t.hp + 1;
+          damage(t, dmg, undefined, ex);
           if (h.shotStun) t.stunT = Math.max(t.stunT, t.boss ? 0.2 : h.shotStun);
           if (h.spotter) { t.spot = Math.max(t.spot || 0, h.spotter); t.spotT = 3; }
           if (HX.marked && h.attacks % 5 === 0) { t.mark = Math.max(t.mark, 0.2 * HX.marked); t.markT = 4; S.fx.push({ k: 'ring', x: t.x, y: t.y, r: t.r + 12, color: 0xff2e4d, t: 0.5, T: 0.5 }); }
@@ -1274,23 +1659,51 @@ function update(dt) {
   else if (h.autoCast && !h.ko && S.enemies.length && (h.ab.id === 'overclock' || inRange(h.x, h.y, h.ab.r).length)) useAbility();
 
   let blocking = 0;
-  const order = S.enemies.slice().sort((a, b) => b.d - a.d);
+  const order = S.enemies.slice().sort((a, b) => b.d - a.d), tank = HEROES[h.cls].cat === 'defensive';
   for (const e of order) {
-    e.blocked = false;
+    e.blocked = false; e.auraArmor = 0;
+    if (e.phase && !tank) continue; // Phantoms walk through every hero except Defensive ones
     if (!h.ko && blocking < h.block && Math.hypot(e.x - h.x, e.y - h.y) <= e.r + 14) { e.blocked = true; blocking++; }
   }
+  for (const sb of S.enemies) if (sb.shieldAura && !sb.dead) for (const o of inRange(sb.x, sb.y, 70)) if (o !== sb) o.auraArmor += sb.shieldAura;
+  const anvils = S.towers.filter(t => t.type === 'anvil' && !(t.stunT > 0));
+  S.tide = anvils.some(t => t.tide);
   for (const e of S.enemies) {
     if (e.dead) continue;
-    if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) { e.slow = 0; e.brittle = 0; } }
+    if (e.slowT > 0) { e.slowT -= dt; if (e.slowT <= 0) e.slow = 0; }
+    if (e.brittleT > 0) { e.brittleT -= dt; if (e.brittleT <= 0) e.brittle = 0; }
+    if (e.brkT > 0) e.brkT -= dt;
+    if (e.boss) bossAct(e, dt);
+    if (e.heal && (e.healT -= dt) <= 0) {
+      e.healT = 1;
+      const near = inRange(e.x, e.y, 70).filter(o => o !== e && !o.boss && o.hp < o.max);
+      for (const o of near) o.hp = Math.min(o.max, o.hp + o.max * e.heal);
+      if (near.length) S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 70, color: 0x7dffb0, t: 0.4, T: 0.4 });
+    }
+    if (e.hexT > 0) {
+      e.hexT -= dt;
+      if ((e.hexTick -= dt) <= 0) {
+        e.hexTick = 1;
+        const pulse = e.taken * e.hex;
+        if (pulse > 0) { for (const o of inRange(e.x, e.y, 60)) damage(o, pulse, e.hexSrc, 'hex'); S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 60, color: 0xb07cff, t: 0.35, T: 0.35, fill: true }); }
+        if (e.dead) continue;
+      }
+    }
+    // Deep Freeze (Frost signature): slowed for 3s straight freezes solid for 1s.
+    if (S.sig.frost) { if (e.slowT > 0) { e.slowedFor += dt; if (e.slowedFor >= 3) { e.slowedFor = 0; e.stunT = Math.max(e.stunT, 1); S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 8, color: 0xdff6ff, t: 0.5, T: 0.5, fill: true }); } } else e.slowedFor = 0; }
+    // Grave Anvil pressure: time spent not moving.
+    if (e.stunT > 0 || e.blocked || e.tauntT > 0) e.stillT += dt; else e.stillT = S.tide ? Math.max(0, e.stillT - dt * 2) : 0;
     if (e.markT > 0) e.markT -= dt;
     if (e.spotT > 0) e.spotT -= dt;
     if (S.overclockT > 0 && h.ab.chrono && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, 0.3, 0.3);
-    if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burnDps * dt, e.burnSrc); if (e.dead) continue; }
+    if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burnDps * dt, e.burnSrc, true); if (e.dead) continue; }
     if (S.overclockT > 0 && h.timeWarp && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, h.timeWarp, 0.3);
     if (e.stunT > 0) { e.stunT -= dt; }
     else if (e.tauntT > 0 && !h.ko) { e.tauntT -= dt; h.hp -= e.atk * (1 - h.armor) * dt * 0.5; }
     else if (e.blocked) {
-      h.hp -= e.atk * (1 - h.armor) * dt;
+      let guard = 0;
+      for (const t of anvils) if (t.guard && Math.hypot(t.x - e.x, t.y - e.y) <= tRange(t)) guard = Math.max(guard, t.guard);
+      h.hp -= e.atk * (1 - h.armor) * (1 - Math.min(0.6, guard)) * dt;
       if (h.thorns) damage(e, h.thorns * dt);
     } else {
       e.d += e.speed * (1 - e.slow) * dt;
@@ -1320,7 +1733,7 @@ function update(dt) {
     if (z.dps || z.slow) for (const e of S.enemies) {
       if (e.dead) continue;
       if (z.line ? segDist(e.x, e.y, z) > z.r + e.r : Math.hypot(e.x - z.x, e.y - z.y) > z.r) continue;
-      if (z.dps) damage(e, z.dps * dt);
+      if (z.dps) damage(e, z.dps * dt, z.src, true);
       if (z.slow) slowEnemy(e, z.slow, 0.3);
     }
   }
@@ -1329,10 +1742,21 @@ function update(dt) {
   S.delayed = S.delayed.filter(d => !d.done);
 
   const conductor = S.specials.conductor && h.cls === 'oracle';
+  computeBuffs();
   for (const t of S.towers) {
+    if (t.stunT > 0) { t.stunT -= dt; continue; }
+    if (t.support) continue;
     if (t.zero) for (const e of inRange(t.x, t.y, tRange(t))) slowEnemy(e, t.zero, 0.2);
-    t.cd -= dt * (overclocked(t) ? 1 + h.ab.power : conductor ? 1 + h.ab.power * 0.5 : 1);
+    let spd = overclocked(t) ? 1 + h.ab.power : conductor ? 1 + h.ab.power * 0.5 : 1;
+    if (t.buff) spd *= (1 + t.buff.rate) * (t.buff.tempo ? 2 : 1);
+    if (t.pact && S.enemies.some(e => e.blocked && Math.hypot(e.x - t.x, e.y - t.y) <= tRange(t))) spd *= 2;
+    t.cd -= dt * spd;
     if (t.cd > 0) continue;
+    if (t.type === 'anvil') {
+      const area = inRange(t.x, t.y, tRange(t));
+      if (area.length) { t.cd = t.rate * S.mod.towerRate; anvilSlam(t, area, 1); }
+      continue;
+    }
     const targets = inRange(t.x, t.y, tRange(t)).sort((a, b) => b.d - a.d).slice(0, 1 + t.multi);
     if (targets.length) {
       if (t.tempo) t.tempoStacks = Math.min(5, t.tempoStacks + 1);
@@ -1340,6 +1764,8 @@ function update(dt) {
       shotEffects(t, t.dmg * S.mod.towerDmg);
     } else t.tempoStacks = 0;
   }
+  if (!h.ko) for (const c of S.coins) if (!c.got && Math.hypot(c.x - h.x, c.y - h.y) <= 30) { c.got = true; S.gold += 25; S.fx.push({ k: 'ring', x: c.x, y: c.y, r: 20, color: 0xf2c14e, t: 0.4, T: 0.4, fill: true }); sfx('kill'); }
+  S.coins = S.coins.filter(c => !c.got);
   for (const ec of S.echoes) if (S.time >= ec.at) {
     ec.done = true;
     if (!ec.target.dead) { applyHit(ec.t, ec.target, ec.d, false); S.fx.push({ k: 'ring', x: ec.target.x, y: ec.target.y, r: 8, color: ec.t.color, t: 0.15, T: 0.15 }); }
@@ -1389,7 +1815,7 @@ function offerHtml(o, i) {
   const desc = perkDesc(o);
   const label = (o.demonic ? 'Demonic ' : '') + r.name + ' · ' + poolName(p);
   return `<button class="choice rarity-${r.id} ${o.demonic ? 'is-demonic' : ''}" data-i="${i}"><small class="path rar-${r.id}">${label}</small>
-    <b>${p.name}</b><span>${desc}</span>${o.demonic ? `<em class="cost">Curse: ${o.curse.desc(o.k)}</em>` : ''}
+    <b>${p.name}</b><span>${desc}</span><span class="delta">${previewRun(() => (p.rarity || p.fixed) ? p.apply(S.hero) : p.apply(S.hero, o.m), p.name)}</span>${o.demonic ? `<em class="cost">Curse: ${o.curse.desc(o.k)}</em>` : ''}
     ${owns(p.id) ? `<em class="reward">Owned ×${S.picks.filter(x => x.perk.id === p.id).length}</em>` : ''}</button>`;
 }
 function showLevelUp(offers) {
@@ -1470,8 +1896,10 @@ function buildProblem(c, r, type) {
   return null;
 }
 function newTower(type, c, r) {
-  const d = TOWERS[type];
-  return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg, rate: d.rate, range: d.range,
+  const d = TOWERS[type], pw = rank(META.towers[type], 'power');
+  return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg * (1 + 0.04 * pw), rate: d.rate, range: d.range, support: !!d.support,
+    hex: 0, hexNova: 0, bDmg: d.support ? 0.15 + 0.02 * pw : 0, bRate: 0, bRange: 0, bSunder: 0, bGold: 0, bOverdrive: false, bTempo: false, bLight: false, bBreak: false, bRush: false,
+    press: 0.25, pressCap: 1.5, pin: 0, shackle: false, after: false, tide: false, guard: 0, pact: false, crushExec: 0, stunT: 0, stunMax: 0, warnT: 0, buff: null,
     splash: d.splash || 0, slow: d.slow || 0, slowDur: 1.6, chain: d.chain || 0, chainMul: 0.7, chainReach: 95,
     multi: 0, ramp: 0, surge: 0, burn: 0, brittle: 0, mark: 0, cluster: 0, orbital: 0, freeze: 0, zero: 0, stun: 0,
     prism: 0, execute: 0, nova: 0, echo: 0, deathBlast: 0, gravity: 0, timeLock: 0, shatter: 0, frostfire: 0, storm: 0, chainBlast: 0, overload: 0, pierce: 0, loot: 0, leech: 0, tempo: 0, tempoStacks: 0,
@@ -1480,7 +1908,7 @@ function newTower(type, c, r) {
 function placeTower(c, r, type) {
   const cost = towerCost(type), t = newTower(type, c, r), h = S.hero;
   S.gold -= cost; t.spent = cost; S.towers.push(t);
-  t.freeUps = (S.specials.foundry ? 2 : 0) + (h.rapid && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange ? h.rapid : 0);
+  t.freeUps = (S.specials.foundry ? 2 : 0) + (h.rapid && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange ? h.rapid : 0) + rank(META.towers[type], 'vet');
   if (t.freeUps) S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 30, color: 0xb07cff, t: 0.5, T: 0.5, fill: true });
   if (S.build && S.gold < towerCost(S.build)) S.build = null;
   renderBuildBar(); renderInspector();
@@ -1503,11 +1931,9 @@ function formName(t) {
   const [a, b, c, d] = paths;
   return `${a.adj} ${b ? b.noun : TOWERS[t.type].name}${c ? ' of ' + c.title : ''}${d ? ' and ' + d.title : ''}`;
 }
-function levelTower(t, path) {
-  const lc = levelCost(t);
-  if (S.gold < lc || t.lvl >= MAX_LVL || pathState(t, path) !== 'open') return;
-  if (t.freeUps > 0) t.freeUps--; else if (S.freeLevels > 0) S.freeLevels--;
-  S.gold -= lc; t.spent += lc; t.lvl++; t.dmg *= 1.05;
+// The stat changes of one level-up (shared by the real level-up and the "current → new" preview).
+function applyLevel(t, path) {
+  t.lvl++; t.dmg *= 1.05;
   if (!t.ups[path.id]) t.order.push(path.id);
   const pts = t.ups[path.id] = (t.ups[path.id] || 0) + 1, max = pathMax();
   // Oracle points are bigger: they apply ranks in steps of 2/1/1, so 3 points reach the same rank 4.
@@ -1515,10 +1941,20 @@ function levelTower(t, path) {
   t.rk = t.rk || {};
   for (let r = (t.rk[path.id] || 0) + 1; r <= target; r++) path.rank(t, r);
   t.rk[path.id] = target;
+  const mastered = pts === max && path.mastery;
+  if (mastered) path.mastery.apply(t);
+  if (t.lvl === MAX_LVL) { t.dmg *= 1.3; t.rate *= 0.87; }
+  return { pts, max, mastered };
+}
+function levelTower(t, path) {
+  const lc = levelCost(t);
+  if (S.gold < lc || t.lvl >= MAX_LVL || pathState(t, path) !== 'open') return;
+  if (t.freeUps > 0) t.freeUps--; else if (S.freeLevels > 0) S.freeLevels--;
+  S.gold -= lc; t.spent += lc;
+  const { pts, max, mastered } = applyLevel(t, path);
   let msg = towerName(t) + ' reached level ' + t.lvl + ': ' + path.name + ' ' + pts + '/' + max;
-  if (pts === max && path.mastery) { path.mastery.apply(t); msg += ', mastered: ' + path.mastery.name; }
+  if (mastered) msg += ', mastered: ' + path.mastery.name;
   if (t.lvl === MAX_LVL) {
-    t.dmg *= 1.3; t.rate *= 0.87;
     if (!t.hybrid) t.name = formName(t); else t.perfected = true;
     msg = towerName(t) + (t.hybrid ? ' is perfected' : ' ascended') + ' at level ' + MAX_LVL + '!';
     sfx('level');
@@ -1570,6 +2006,7 @@ function mergeProblem(a, b) {
   if (a.super || b.super) return 'Super towers are already fully merged.';
   if (a.lvl < MERGE_LVL || b.lvl < MERGE_LVL) return 'Both towers need to be level ' + MERGE_LVL + '.';
   if (a.hybrid !== b.hybrid) return 'Merge two basic towers into a hybrid, or two hybrids into a super tower.';
+  if (!a.hybrid && (!MERGEABLE[a.type] || !MERGEABLE[b.type])) return 'Rift Beacons and Grave Anvils can’t merge.';
   if (!a.hybrid && a.type === b.type) return 'Merge two different tower types.';
   return '';
 }
@@ -1625,9 +2062,9 @@ function renderBuildBar() {
   if (!S.hero) return;
   const bar = $('buildBar');
   const modeTag = S.mode.kind !== 'normal' ? ' · ' + S.mode.name : '';
-  bar.innerHTML = Object.entries(TOWERS).map(([k, d]) =>
-    `<button class="tbtn ${S.build === k ? 'on' : ''}" data-k="${k}" ${S.gold < towerCost(k) ? 'disabled' : ''}>
-      <span class="sw" style="background:${d.css}"></span>${d.name}<span class="c">${towerCost(k)}</span><kbd>${d.key}</kbd></button>`).join('') +
+  bar.innerHTML = S.loadout.map((k, i) => { const d = TOWERS[k];
+    return `<button class="tbtn ${S.build === k ? 'on' : ''}" data-k="${k}" ${S.gold < towerCost(k) ? 'disabled' : ''}>
+      <span class="sw" style="background:${d.css}"></span>${d.name}<span class="c">${towerCost(k)}</span><kbd>${i + 1}</kbd></button>`; }).join('') +
     `<button id="abilityBtn" class="ability">${S.hero.ab.name} <kbd>Q</kbd></button><span class="spacer"></span>
      <button id="speedBtn">${S.speed}×</button>
      <button class="go" id="waveBtn" ${S.waveActive || S.over ? 'disabled' : ''}>${S.waveActive ? 'Wave ' + S.wave + modeTag : 'Start wave ' + (S.wave + 1) + modeTag + ' <kbd>Space</kbd>'}</button>`;
@@ -1661,18 +2098,21 @@ function previewTower(k) { return newTower(k, 0, 0); }
 function buildTipHtml(k) {
   const d = TOWERS[k], t = previewTower(k);
   return `<b>${d.name}</b> <span class="tip-c">${towerCost(k)} gold</span><p>${d.info}</p>
-    <div class="tip-s">Damage ${d.dmg} · ${(1 / d.rate).toFixed(2)} shots/s · Range ${d.range}</div>
-    <ul>${traits(t).slice(1).map(x => `<li>${x}</li>`).join('')}</ul>
+    <div class="tip-s">${d.support ? 'Buff +' + pct(beaconDmg(t)) : 'Damage ' + t.dmg.toFixed(0) + ' · ' + (1 / d.rate).toFixed(2) + ' shots/s'} · Range ${d.range}</div>
+    <ul>${(d.support || k === 'anvil' ? towerTraits(t) : traits(t).slice(1)).map(x => `<li>${x}</li>`).join('')}</ul>
+    ${S.sig[k] ? `<div class="tip-s rar-mythic">Signature: ${SIGNATURES[k].name}. ${SIGNATURES[k].desc}</div>` : ''}
     <div class="tip-s">Paths: ${TOWER_PATHS[k].map(u => u.name).join(', ')}. Pick up to 3 of them (4 with the Oracle) as it levels to ${MAX_LVL}.</div>`;
 }
 function towerTipHtml(t) {
   const opts = towerOptions(t), ups = t.order.map(id => { const u = opts.find(x => x.id === id); return u ? u.name + ' ' + t.ups[id] + '/' + PATH_MAX : ''; }).filter(Boolean);
   return `<b>${towerName(t)}</b> <span class="tip-c">Lv ${t.lvl}/${MAX_LVL}${t.super ? ' · Super' : t.hybrid ? ' · Hybrid' : ''}</span>${t === S.drained ? '<p style="color:var(--danger)">Drained: half damage this wave.</p>' : ''}<p>${towerBlurb(t)}</p>
     <div class="tip-s">Damage dealt: ${Math.round(t.dmgTotal || 0)} total, ${Math.round(t.dmgWave || 0)} this wave</div>
-    <div class="tip-s">Damage ${(t.dmg * S.mod.towerDmg).toFixed(0)} · ${(1 / (t.rate * S.mod.towerRate)).toFixed(2)} shots/s · Range ${tRange(t).toFixed(0)}</div>
-    <ul>${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>${ups.length ? `<div class="tip-s">Paths: ${ups.join(', ')}</div>` : ''}`;
+    <div class="tip-s">${t.support ? 'Buff +' + pct(beaconDmg(t)) : 'Damage ' + dmgWithBuff(t) + ' · ' + (1 / (t.rate * S.mod.towerRate)).toFixed(2) + ' shots/s'} · Range ${tRange(t).toFixed(0)}</div>
+    <ul>${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>${ups.length ? `<div class="tip-s">Paths: ${ups.join(', ')}</div>` : ''}`;
 }
 
+// "82 → 94 (Beacon)" when a Beacon buffs this tower.
+function dmgWithBuff(t) { const d = t.dmg * S.mod.towerDmg; return t.buff ? `${d.toFixed(0)} → ${(d * (1 + t.buff.dmg)).toFixed(0)} <small>(Beacon)</small>` : d.toFixed(0); }
 function renderInspector() {
   if (!S.hero) return;
   const el = $('inspector'), t = S.sel;
@@ -1693,20 +2133,21 @@ function renderInspector() {
     const note = state === 'maxed' ? 'Maxed.' : state === 'locked' ? `Locked: this tower already uses ${lim} paths.` : u.desc;
     const mastery = u.mastery ? `<em class="mastery">${n >= pathMax() ? '★ Mastered: ' : 'Mastery at ' + pathMax() + ': '}${u.mastery.name}. ${u.mastery.desc}</em>` : '';
     return `<button class="up ${state}" data-u="${i}" ${S.gold < lc || state !== 'open' || t.lvl >= MAX_LVL ? 'disabled' : ''}>
-      <b>${u.name} <small>${n}/${pathMax()}</small></b><span>${note}</span>${mastery}
+      <b>${u.name} <small>${n}/${pathMax()}</small></b><span>${note}</span>${state === 'open' && t.lvl < MAX_LVL ? `<span class="delta">${previewLevel(t, u)}</span>` : ''}${mastery}
       ${state === 'open' && t.lvl < MAX_LVL ? `<i class="price">${lc ? lc + ' gold' : 'Free'}</i>` : ''}</button>`;
   };
   // Once a tower has picked all its paths, the unused ones are hidden.
   const shown = (u, i) => pathState(t, u) === 'locked' ? '' : btn(u, i);
   el.innerHTML = `<h3>${towerName(t)} · ${towerKind(t)}Lv ${t.lvl}/${MAX_LVL}</h3>
     <p>${towerBlurb(t)}${t.hybrid ? ' Contains ' + t.parents.map(p => TOWERS[p].name).join(' + ') + '.' : ''}</p>
+    ${t.stunT > 0 ? `<p style="color:var(--danger)">Stunned by a boss: ${t.stunT.toFixed(1)}s left.</p>` : ''}
     <div class="stats">
-      <div><span>Damage</span>${(t.dmg * S.mod.towerDmg).toFixed(0)}</div><div><span>Shots/s</span>${(1 / (t.rate * S.mod.towerRate)).toFixed(2)}</div>
+      ${t.support ? `<div><span>Buff</span>+${pct(beaconDmg(t))}</div>` : `<div><span>Damage</span>${dmgWithBuff(t)}</div><div><span>${t.type === 'anvil' ? 'Slams/s' : 'Shots/s'}</span>${(1 / (t.rate * S.mod.towerRate)).toFixed(2)}</div>`}
       <div><span>Range</span>${tRange(t).toFixed(0)}</div><div><span>Spent</span>${t.spent}</div>
     </div>
-    <ul class="traits">${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>
+    <ul class="traits">${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>
     ${S.mergeFrom === t ? `<p>Tap another level ${MERGE_LVL} ${t.hybrid ? 'hybrid' : 'tower of a different type'} to merge with. Tap anywhere else to cancel.</p>` : ''}
-    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level adds +5% damage; level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'}.</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
+    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level adds ${t.support ? '+1% to its buff' : '+5% damage'}; level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'}.</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
     <div class="ups">${opts.map(shown).join('')}</div>
     <div class="row">
       ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost() ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost() || 'Free')}</button>` : ''}
@@ -1729,6 +2170,12 @@ function renderCodex() {
     return codex[k] ? `<li class="found" title="${r.desc}"><b>${r.name}</b><span>${TOWERS[a].name} + ${TOWERS[b].name}</span></li>`
                     : `<li><b>???</b><span>Undiscovered</span></li>`;
   }).join('');
+}
+// Enemies tab: each enemy you have met, what it does and how to beat it.
+function renderEnemyCodex() {
+  $('enemyCodex').innerHTML = Object.entries(ENEMIES).map(([k, d]) => META.seen[k]
+    ? `<li class="found"><div><b style="color:#${d.color.toString(16).padStart(6, '0')}">${d.name}</b><span>${ENEMY_INFO[k][0]}</span><em>Counter: ${ENEMY_INFO[k][1]}</em></div></li>`
+    : `<li><b>???</b><span>Not met yet</span></li>`).join('');
 }
 function renderHero() {
   const h = S.hero; if (!h) return;
@@ -1828,7 +2275,9 @@ function draw(g) {
   if (S.mergeFrom) for (const t of S.towers) if (t !== S.mergeFrom && !mergeProblem(S.mergeFrom, t))
     g.lineStyle(2, 0xf2c14e, 0.8).strokeRect(t.x - 18, t.y - 18, 36, 36);
 
+  for (const t of S.towers) if (t.buff) for (const b of t.buff.from) g.lineStyle(1, 0xfff0a0, 0.18 + 0.1 * Math.sin(S.time * 4)).lineBetween(b.x, b.y, t.x, t.y);
   for (const t of S.towers) {
+    if (t.warnT > 0) g.fillStyle(0xff2e4d, 0.25 + 0.25 * Math.sin(S.time * 30)).fillRoundedRect(t.x - 20, t.y - 20, 40, 40, 6);
     g.fillStyle(0x141a2e, 1).fillRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
     g.lineStyle(2, t.color, t === S.sel ? 1 : 0.6).strokeRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
     if (t === S.drained) { g.lineStyle(2, 0xff5d6c, 0.9).lineBetween(t.x - 14, t.y - 14, t.x + 14, t.y + 14); }
@@ -1845,14 +2294,30 @@ function draw(g) {
       if (t.type === 'arcane') g.fillTriangle(t.x, t.y - 12, t.x - 8, t.y + 4, t.x + 8, t.y + 4);
       else if (t.type === 'plasma') g.fillCircle(t.x, t.y - 3, 8);
       else if (t.type === 'frost') g.fillPoints([{ x: t.x, y: t.y - 13 }, { x: t.x + 7, y: t.y - 3 }, { x: t.x, y: t.y + 7 }, { x: t.x - 7, y: t.y - 3 }], true);
+      else if (t.type === 'beacon') { g.fillCircle(t.x, t.y - 3, 5); g.lineStyle(2, t.color, 0.5 + 0.3 * Math.sin(S.time * 3)).strokeCircle(t.x, t.y - 3, 10); }
+      else if (t.type === 'anvil') { g.fillRect(t.x - 10, t.y - 11, 20, 7); g.fillRect(t.x - 4, t.y - 4, 8, 6); g.fillRect(t.x - 8, t.y + 2, 16, 3); }
       else g.fillRect(t.x - 4, t.y - 12, 8, 16);
+    }
+    if (t.stunT > 0) {
+      g.fillStyle(0x000000, 0.45).fillRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
+      const a0 = S.time * 6;
+      g.lineStyle(2, 0xffffff, 0.8).beginPath(); g.arc(t.x, t.y, 20, a0, a0 + 1.4); g.strokePath();
+      g.lineStyle(3, 0xff2e4d, 0.9).beginPath(); g.arc(t.x, t.y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (t.stunT / (t.stunMax || 1))); g.strokePath();
     }
     // level pips: 10 small dots in two rows of 5
     for (let i = 0; i < t.lvl; i++) g.fillStyle(i >= 5 ? 0xff6fd8 : 0xf2c14e, 1).fillCircle(t.x - 10 + (i % 5) * 5, t.y + 10 + (i >= 5 ? 0 : 3), 1.6);
   }
 
+  for (const c of S.coins) { g.fillStyle(0xf2c14e, 1).fillCircle(c.x, c.y, 6); g.lineStyle(1, 0xffffff, 0.8).strokeCircle(c.x, c.y, 8 + 2 * Math.sin(S.time * 6)); }
   for (const e of S.enemies) {
-    g.fillStyle(e.color, 1).fillCircle(e.x, e.y, e.r);
+    if (e.shieldAura) g.lineStyle(1, 0xd8b84a, 0.25).strokeCircle(e.x, e.y, 70);
+    if (e.heal) g.lineStyle(2, 0x7dffb0, 0.15 + 0.15 * Math.sin(S.time * 5)).strokeCircle(e.x, e.y, e.r + 6 + 4 * Math.sin(S.time * 5));
+    if (e.unslow) { const back = posAt(Math.max(0, e.d - 18)); g.lineStyle(e.r, 0x4fa8ff, 0.35).lineBetween(back.x, back.y, e.x, e.y); }
+    if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; g.lineStyle(1.5, 0xd08a5a, 0.7).lineBetween(e.x, e.y, e.x + Math.cos(a) * (e.r + 4 + e.stillT * 3), e.y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
+    g.fillStyle(e.color, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r);
+    const arm = armorOf(e);
+    if (arm > 0) g.lineStyle(1 + arm * 8, 0xb8c0d8, 0.85).strokeCircle(e.x, e.y, e.r);
+    if (e.hexT > 0) { const a0 = S.time * 4; g.lineStyle(2, 0xb07cff, 0.9).beginPath(); g.arc(e.x, e.y, e.r + 5, a0, a0 + 4); g.strokePath(); }
     if (e.stunT > 0) g.lineStyle(2, 0xffffff, 0.9).strokeCircle(e.x, e.y, e.r + 2);
     else if (e.slow) g.lineStyle(2, 0x7fd4ff, 0.9).strokeCircle(e.x, e.y, e.r + 2);
     if (e.burnT > 0) g.fillStyle(0xff8a3d, 0.8).fillCircle(e.x, e.y - e.r, 2.5);
@@ -1952,7 +2417,7 @@ window.addEventListener('keydown', e => {
   if (!S || !S.hero || e.target.tagName === 'INPUT') return;
   const lk = e.key.toLowerCase();
   if (keyMove && MOVE_KEYS.includes(lk)) { e.preventDefault(); held.add(lk); return; }
-  const k = Object.keys(TOWERS).find(t => TOWERS[t].key === e.key);
+  const k = /^[1-9]$/.test(e.key) && S.loadout[+e.key - 1];
   if (k) selectBuild(k);
   else if (lk === 'r') { if (!S.paused && !S.over && !cancelPlacing()) sellSelected(); }
   else if (lk === 'q') useAbility();

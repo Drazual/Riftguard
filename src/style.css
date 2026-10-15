@@ -209,3 +209,10 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .meta-row.special b.rar-mythic { color: #ff6fd8; } .meta-row.special b.rar-legendary { color: var(--gold); }
 .meta-row.special b.rar-secret { background: linear-gradient(90deg, #4fd8e8, #b07cff, #ff6fd8); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .rar-mythic { color: #ff6fd8; }
+
+/* 0.9: current → new previews, loadout picks, enemy codex */
+.delta { display: block; margin-top: 4px; font-size: 12px; color: var(--tech); }
+.choice.picked { box-shadow: 0 0 0 2px var(--gold) inset; background: rgba(242, 193, 78, 0.08); }
+.codex.enemies li { display: block; }
+.codex.enemies li div { display: grid; gap: 2px; }
+.codex.enemies li em { color: var(--muted); font-size: 12px; font-style: normal; }

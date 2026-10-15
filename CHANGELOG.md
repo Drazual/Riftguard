@@ -2,6 +2,51 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.9: Tougher enemies, new towers, loadouts and Rift Maelstrom
+
+### Enemies
+- Enemies are much tougher: more base HP, a steeper HP curve each wave, and bigger waves.
+- **Armor:** Brutes, Juggernauts, Shieldbearers and bosses take less damage from hits (capped at 60%). Burns, damage zones, executes, Hex Brand and Brittle ignore armor.
+- New enemies:
+  - **Wraith:** very fast and can't be slowed.
+  - **Phantom:** only Defensive heroes can block it.
+  - **Splitter:** splits into 2 Runners when it dies.
+  - **Juggernaut:** huge, armored and can't be slowed.
+  - **Shieldbearer:** gives nearby enemies extra armor.
+  - **Mender:** heals nearby enemies.
+- From wave 6, each wave brings 2 or 3 of the special enemy types, so waves feel different.
+- Stuns still work on enemies that can't be slowed.
+- A new **Enemies** panel lists every enemy you've met, what it does and how to beat it.
+
+### Bosses
+- **Rift Knight, Shield Bash:** stuns the nearest tower.
+- **Rift Warden, Rift Lock:** stuns 2 random towers, and opens rifts that summon Grunts.
+- **Rift Tyrant, Roar:** stuns 3 towers and knocks your hero back. At half HP it enrages and calls in 2 Juggernauts.
+- Targeted towers flash red a second before every stun.
+- New upgrade for every hero, **Grounded**, makes boss stuns shorter.
+
+### Towers
+- **Rift Beacon (new):** a support tower that never attacks and buffs every tower in its range. Its paths add damage, fire rate, range, armor piercing or gold.
+- **Grave Anvil (new):** slams enemies that aren't moving (blocked, stunned or frozen), hitting harder the longer they stay still. It's built to pair with the Vanguard.
+- Both new towers unlock for 200 shards and can't be merged.
+- **Arcane Bolt:** Twin Cast is replaced by **Hex Brand**. Branded enemies pulse damage based on everything they've taken so far, to themselves and enemies nearby. Its mastery, **Hex Nova**, makes them explode when they die.
+
+### Loadouts and the Towers page
+- Before a run you pick your hero and **5 towers**. The build bar shows only those, on keys 1 to 5, and your last loadout is remembered.
+- New **Towers** page with permanent upgrades for each tower: Power, Supply Line, Veteran Crew, and a unique **Signature** upgrade.
+- Every tab has a free Refund button.
+
+### Clearer upgrades
+- Hero upgrades, tower paths, shop items and permanent upgrades now show real before and after numbers, like "Damage 23 → 28".
+
+### Maps
+- New **Rift Maelstrom** (Level 4) is a 35-wave spiral into a base in the middle of the board.
+  - Enemies have 80% more HP, armored enemies get +10% armor, and special enemies show up 2 waves early.
+  - The final Tyrant drops 8 Boss Cores.
+
+### Specials
+- Demon Pact now costs 200 Boss Cores.
+
 ## 0.8: Hero roles, ability upgrades, Boss Cores and level 13 towers
 
 ### Towers
