@@ -716,7 +716,7 @@ function endWave() {
 function spawn(type) {
   const d = ENEMIES[type], m = S.mode;
   // Harder curve than before; bosses also scale with the wave they lead.
-  let scale = d.boss ? 1 + 0.18 * Math.max(0, S.wave - 5) : 1 + 0.45 * (S.wave - 1) + 0.07 * (S.wave - 1) ** 2;
+  let scale = d.boss ? 1 + 0.1 * Math.max(0, S.wave - 5) : 1 + 0.45 * (S.wave - 1) + 0.07 * (S.wave - 1) ** 2;
   scale *= S.mod.enemyHp;
   if (m.kind === 'hard') scale *= 1.4;
   if (m.hpMul) scale *= m.hpMul;
