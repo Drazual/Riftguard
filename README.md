@@ -1,6 +1,8 @@
 # Riftguard
 
-A roguelike tower defense game. You control a hero who fights, blocks the path and builds towers. Towers level up to 10 with unique upgrades and merge into hybrids. Bosses drop heroic powers, and Rift Shards earned each run buy permanent hero upgrades.
+A roguelike tower defense game. You control a hero who fights, blocks the path and builds towers. Towers level up to 12 along 3 of their 5 upgrade paths, ascend into a form named after those paths, and merge into hybrids with unique fusion effects. Boss waves open a shop, and Rift Shards earned each run buy permanent hero upgrades.
+
+See [CHANGELOG.md](CHANGELOG.md) for everything that has changed in each version.
 
 Built with [Phaser 3](https://phaser.io) and [Vite](https://vitejs.dev).
 
@@ -15,7 +17,7 @@ Windows may show a "Windows protected your PC" warning because the app isn't cod
 
 **Sharing with testers:** send them the [latest release](https://github.com/Drazual/riftguard/releases/latest) link and have them install the setup file. Their copy updates itself just like yours. Progress is saved per computer.
 
-A new release is built automatically every time `main` changes. Each build's version is the `major.minor` from `package.json` plus the build number, so installed copies always see it as newer. Updates are downloaded from this repo's releases, so the repo (or wherever releases are published) must be public.
+A new release is built automatically every time `main` changes, with the newest [changelog](CHANGELOG.md) section as its release notes. Each build's version is the `major.minor` from `package.json` plus the build number, so installed copies always see it as newer. Updates are downloaded from this repo's releases, so the repo (or wherever releases are published) must be public.
 
 ## Run it from source
 
