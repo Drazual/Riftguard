@@ -2,6 +2,44 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.8: Hero roles, ability upgrades, Boss Cores and level 13 towers
+
+### Towers
+- Towers now go up to **level 13**, so the 12 level-ups max out 3 paths of 4 points and every chosen path gets its mastery.
+- Once a tower has picked all its paths, the unused paths disappear from the panel.
+- With the **Oracle**, towers use **4 paths of 3 points**. Each Oracle point is bigger, so a maxed path ends exactly as strong as a normal 4-point path and unlocks its mastery on the 3rd point.
+- Merging now needs two level 13 towers.
+
+### Hero upgrades
+- Heroes are grouped into **Offensive** (Striker, Sniper), **Defensive** (Vanguard) and **Support** (Oracle), with an empty **Special** group for future heroes.
+- Each hero only gets upgrades that fit it: its own list, a small list for its category, and 3 upgrades every hero can get (Rift Boots, Quick Reboot, and the rare Secret upgrades). The Sniper no longer sees armor, healing or Orbiting Blades.
+- Damage and crit upgrades are Offensive only, HP, regen and healing are Defensive only, and tower discounts and build range are Support only.
+- Gold per kill now comes in two clear versions: **Bounty Sigil** (Offensive: enemies your hero kills drop more gold) and **War Tithe** (Defensive and Support: every enemy killed by your towers or hero drops more gold, at a lower amount).
+- New upgrades: Taunt (Vanguard), Momentum (Striker), Rapid Construction (Oracle), Spotter and Headhunter (Sniper).
+- Boss heroic powers are split by hero too, with two new Sniper powers: **Ricochet** and **Marked for Death**.
+- The War Banner relic (+hero damage) only shows up for Offensive heroes.
+
+### Ability upgrades
+Every ability has 4 upgrades that change what it does, offered at Rare or better:
+- **Shield Slam:** Shockwave Rings, Magnetic Slam, Molten Crater, Echo Slam.
+- **Rift Nova:** Twin Nova, Black Hole, Chain Nova, Nova Dash.
+- **Overclock Field:** Mobile Field, Chrono Field, Overcharge Burst, Prism Field.
+- **Piercing Shot:** Railgun, Ricochet Round, Cluster Round, Execution Round.
+Big moments now come with screen shake, burning zones, vortexes and shockwaves.
+
+### Bosses
+- If a **big boss** (Rift Warden or Rift Tyrant) reaches your base, the run is lost. A **mini boss** (Rift Knight) costs 5 base HP.
+- Bosses show a health bar at the top of the board, and a warning flashes when a big boss is three quarters of the way to your base.
+- Bosses drop **Boss Cores**: 1 from a Rift Knight, 2 from a Rift Warden, 5 from the Rift Tyrant. You keep them even if you lose.
+
+### Special upgrades
+New permanent upgrades bought once with Boss Cores on the Heroes page:
+- All heroes: Rift Sovereign, Second Chance, Grand Bazaar, Ascendant Foundry, Demon Pact.
+- Vanguard: Immortal Bulwark. Striker: Blade Dancer. Oracle: Grand Conductor. Sniper: One Shot.
+
+### Heroes page
+- Every upgrade tab has a free **Refund** button that gives back everything spent there, so trying a build is never a mistake.
+
 ## 0.7: Tower paths, forms and the boss shop
 
 ### Towers
