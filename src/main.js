@@ -2,15 +2,19 @@ import Phaser from 'phaser';
 import './style.css';
 
 (() => {
-const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, MAX_WAVE = 15, CHOICE_FROM = 5;
+const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, CHOICE_FROM = 5;
+let MAX_WAVE = 20; // set per map in newRun
 const MAPS = {
-  verdant:  { name: 'Verdant Rift', tier: 'Level 1', shardMul: 1, desc: 'The standard run. No modifiers.',
+  verdant:  { name: 'Verdant Rift', tier: 'Level 1', waves: 20, shardMul: 1, desc: 'The standard run. No modifiers.',
     path: [[-1,2],[5,2],[5,7],[2,7],[2,12],[11,12],[11,4],[17,4],[17,10],[23,10]] },
-  ironhold: { name: 'Ironhold', tier: 'Level 2', shardMul: 1.5, enemyHp: 1.4, gold: 0.7, desc: 'Enemies have 40% more HP and drop 30% less gold.',
+  ironhold: { name: 'Ironhold', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, gold: 0.7, desc: 'Enemies have 40% more HP and drop 30% less gold.',
     path: [[-1,7],[4,7],[4,2],[10,2],[10,12],[15,12],[15,3],[20,3],[20,8],[23,8]] },
-  warped:   { name: 'Warped Spire', tier: 'Level 3', shardMul: 2, drain: true, desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
+  warped:   { name: 'Warped Spire', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
     path: [[-1,12],[6,12],[6,3],[12,3],[12,9],[18,9],[18,2],[23,2]] },
 };
+// Maps unlock in order: beat one to open the next.
+const MAP_ORDER = ['verdant', 'ironhold', 'warped'];
+function mapUnlocked(id) { const i = MAP_ORDER.indexOf(id); return i <= 0 || !!(META.best[MAP_ORDER[i - 1]] && META.best[MAP_ORDER[i - 1]].won); }
 let WP, SEG, PATH_LEN, pathCells, BASE;
 function setMap(id) {
   WP = MAPS[id].path.map(([c, r]) => ({ x: c * C + C / 2, y: r * C + C / 2 }));
@@ -157,11 +161,17 @@ const HEROES = {
     desc: 'Empowers towers. Nearby towers deal +15% damage, and Overclock Field makes them fire much faster.',
     stats: { hp: 210, dmg: 7, rate: 0.6, range: 100, block: 2, armor: 0, regen: 3, speed: 150, aura: 0.15 },
     ability: { id: 'overclock', name: 'Overclock Field', cd: 24, r: 170, dur: 6, power: 0.6 } },
+  sniper:   { name: 'Sniper', role: 'Marksman', color: 0xffd36e, css: '#ffd36e', unlock: 250,
+    desc: 'Hits anything on the map, but has to stand still and brace before every shot. Slow, heavy, precise.',
+    stats: { hp: 170, dmg: 48, rate: 2.4, range: 9999, block: 1, armor: 0, regen: 2, speed: 140, brace: 1.2, crit: 0.1 },
+    ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 } },
 };
+const isUnlocked = id => !HEROES[id].unlock || !!META.unlocked[id];
 function abilityText(h) {
   const a = h.ab;
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
   if (a.id === 'nova') return `Deals ${a.dmg.toFixed(0)} damage to every enemy within ${a.r.toFixed(0)}.`;
+  if (a.id === 'pierce') return `Fires a round through every enemy in a line toward the lead enemy for ${a.mult.toFixed(1)}× damage.`;
   return `Towers within ${a.r.toFixed(0)} fire ${pct(a.power)} faster for ${a.dur.toFixed(1)}s.`;
 }
 
@@ -177,8 +187,8 @@ const RARITIES = [
 const RAR = Object.fromEntries(RARITIES.map(r => [r.id, r]));
 const DEMONIC_CHANCE = 0.01;
 function rollRarity() {
-  const luck = 1 + 0.1 * rank(META.global, 'luck');
-  const ws = RARITIES.map(x => x.id === 'common' ? x.w : x.w * luck), total = ws.reduce((a, b) => a + b, 0);
+  const luck = (1 + 0.1 * rank(META.global, 'luck')) * (1 + 0.3 * rank(META.global, 'fortune'));
+  const ws = RARITIES.map(x => x.id === 'common' ? x.w * (1 - 0.15 * rank(META.global, 'fortune')) : x.w * luck), total = ws.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
   for (let i = 0; i < RARITIES.length; i++) { if ((r -= ws[i]) < 0) return RARITIES[i]; }
   return RARITIES[0];
@@ -206,7 +216,8 @@ const PERKS = [
   { id: 'daze',    cls: 'vanguard', name: 'Concussion',    m: 0.4,  desc: m => `Shield Slam stuns ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.stun += m },
   { id: 'fort',    cls: 'vanguard', name: 'Fortify',       m: 0.15, desc: m => `+${pct(m)} max HP.`, apply: (h, m) => { h.maxHp = Math.round(h.maxHp * (1 + m)); h.hp = h.maxHp; } },
   // Striker
-  { id: 'crit',    cls: 'striker', name: 'Weak Point',     m: 0.08, desc: m => `+${pct(m)} chance to deal double damage.`, apply: (h, m) => h.crit = Math.min(0.75, h.crit + m) },
+  { id: 'crit',    cls: 'striker', also: ['sniper'], name: 'Weak Point', m: 0.08, desc: m => `+${pct(m)} crit chance.`, apply: (h, m) => h.crit = Math.min(0.75, h.crit + m) },
+  { id: 'critdmg', cls: 'striker', also: ['sniper'], name: 'Lethal Edge', m: 0.25, desc: m => `+${pct(m)} crit damage.`, apply: (h, m) => h.critDmg += m },
   { id: 'split',   cls: 'striker', name: 'Split Shot',     m: 1,    desc: m => `Attacks hit ${Math.max(1, Math.round(m))} more enemy.`, apply: (h, m) => h.multi = Math.min(6, h.multi + Math.max(1, Math.round(m))) },
   { id: 'scope',   cls: 'striker', name: 'Long Barrel',    m: 0.12, desc: m => `+${pct(m)} attack range.`, apply: (h, m) => h.range *= 1 + m },
   { id: 'clock',   cls: 'striker', name: 'Overclock',      m: 0.15, desc: m => `+${pct(m)} attack speed.`, apply: (h, m) => h.rate /= 1 + m },
@@ -220,6 +231,13 @@ const PERKS = [
   { id: 'extend',  cls: 'oracle', name: 'Extended Field',  m: 1.5,  desc: m => `Overclock Field lasts ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.dur += m },
   { id: 'chill',   cls: 'oracle', name: 'Chilling Presence', m: 0.08, desc: m => `Towers near you also slow enemies by ${pct(m)}.`, apply: (h, m) => h.auraSlow = Math.min(0.6, h.auraSlow + m) },
   { id: 'interest',cls: 'oracle', name: 'Investments',     m: 0.03, desc: m => `Earn ${pct(m)} interest on your gold after each wave.`, apply: (h, m) => h.interest += m },
+  // Sniper
+  { id: 'brace',   cls: 'sniper', name: 'Quick Brace',     m: 0.15, desc: m => `Brace ${pct(Math.min(0.6, m))} faster.`, apply: (h, m) => h.brace = Math.max(0.25, h.brace * (1 - Math.min(0.6, m))) },
+  { id: 'caliber', cls: 'sniper', name: 'Heavy Caliber',   m: 0.25, desc: m => `+${pct(m)} hero damage.`, apply: (h, m) => h.dmg *= 1 + m },
+  { id: 'chamber', cls: 'sniper', name: 'Fast Chamber',    m: 0.12, desc: m => `+${pct(m)} attack speed.`, apply: (h, m) => h.rate /= 1 + m },
+  { id: 'penetrate', cls: 'sniper', name: 'Penetrator',    m: 1,    desc: m => `Shots also hit ${Math.max(1, Math.round(m))} enemy near the target for 50% damage.`, apply: (h, m) => h.pierce += Math.max(1, Math.round(m)) },
+  { id: 'apround', cls: 'sniper', name: 'Armor-Piercing Rounds', m: 0.3, desc: m => `Piercing Shot deals +${pct(m)} damage.`, apply: (h, m) => h.ab.mult *= 1 + m },
+  { id: 'steady',  cls: 'sniper', name: 'Steady Aim',      m: 0.1,  desc: m => `Piercing Shot recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(5, h.ab.cd * (1 - Math.min(0.5, m))) },
   { id: 'alchemy', cls: 'oracle', name: 'Alchemist',       m: 0.15, desc: m => `Merging costs ${pct(Math.min(0.8, m))} less.`, apply: (h, m) => h.mergeMul *= 1 - Math.min(0.8, m) },
 ];
 // Unique upgrades that only appear at Legendary (per hero) or Secret (any hero).
@@ -230,6 +248,8 @@ const UNIQUES = [
   { id: 'storm',  cls: 'striker',  rarity: 'legendary', name: 'Bullet Storm',   desc: 'Every 3rd attack hits every enemy in range.', apply: h => h.bulletStorm = 3 },
   { id: 'master', cls: 'oracle',   rarity: 'legendary', name: 'Master Architect', desc: 'All towers deal +25% damage and cost 20% less.', apply: h => { S.mod.towerDmg += 0.25; h.costMul *= 0.8; } },
   { id: 'warp',   cls: 'oracle',   rarity: 'legendary', name: 'Time Warp',      desc: 'Overclock Field also slows enemies inside it by 40%.', apply: h => h.timeWarp = 0.4 },
+  { id: 'deadeye', cls: 'sniper', rarity: 'legendary', name: 'Deadeye',      desc: 'Every 3rd shot is a guaranteed crit, and crits deal +50% more damage.', apply: h => { h.deadeye = 3; h.critDmg += 0.5; } },
+  { id: 'overwatch', cls: 'sniper', rarity: 'legendary', name: 'Overwatch',  desc: 'Your shots stun their target for 0.5s (bosses 0.2s).', apply: h => h.shotStun = 0.5 },
   { id: 'sun',    cls: 'any', rarity: 'secret', name: 'Second Sun',     desc: 'Your ability casts itself whenever it is ready, and recharges 25% faster.', apply: h => { h.autoCast = true; h.ab.cd = Math.max(5, h.ab.cd * 0.75); } },
   { id: 'midas',  cls: 'any', rarity: 'secret', name: 'Midas Protocol', desc: 'Enemies drop double gold.', apply: () => S.mod.gold += 1 },
   { id: 'heart',  cls: 'any', rarity: 'secret', name: 'Rift Heart',     desc: 'All towers deal +30% damage and fire 30% faster.', apply: () => { S.mod.towerDmg += 0.3; S.mod.towerRate *= 0.7; } },
@@ -292,46 +312,144 @@ const BOONS = {
 };
 
 // ---------- meta progression (saved in this browser)
-const HERO_META = [
-  { id: 'hp',  name: 'Hardened', max: 5, cost: r => 30 + 25 * r, desc: r => `+${8 * r}% max HP` },
-  { id: 'dmg', name: 'Honed',    max: 5, cost: r => 30 + 25 * r, desc: r => `+${6 * r}% damage` },
-  { id: 'cd',  name: 'Attuned',  max: 4, cost: r => 40 + 30 * r, desc: r => `Ability recharges ${5 * r}% faster` },
-  { id: 'vet', name: 'Veteran',  max: 2, cost: r => 90 + 70 * r, desc: r => `Start each run with ${r} free upgrade${r > 1 ? 's' : ''}` },
-];
+// Each hero has its own permanent upgrades, bought with Rift Shards on the Heroes page.
+const HERO_META = {
+  vanguard: [
+    { id: 'ironhide', name: 'Ironhide',         max: 5, cost: r => 30 + 25 * r, desc: r => `+${10 * r}% max HP`, apply: (h, r) => h.maxHp = Math.round(h.maxHp * (1 + 0.1 * r)) },
+    { id: 'bastion',  name: 'Bastion Plating',  max: 4, cost: r => 40 + 30 * r, desc: r => `Take ${4 * r}% less damage`, apply: (h, r) => h.armor = Math.min(0.75, h.armor + 0.04 * r) },
+    { id: 'seismic',  name: 'Seismic Training', max: 4, cost: r => 40 + 30 * r, desc: r => `Shield Slam deals +${15 * r}% damage and stuns ${(0.2 * r).toFixed(1)}s longer`, apply: (h, r) => { h.ab.dmg *= 1 + 0.15 * r; h.ab.stun += 0.2 * r; } },
+    { id: 'medic',    name: 'Field Medic',      max: 3, cost: r => 50 + 40 * r, desc: r => `+${(1.5 * r).toFixed(1)} HP regen per second`, apply: (h, r) => h.regen += 1.5 * r },
+  ],
+  striker: [
+    { id: 'honed',    name: 'Honed Edge',       max: 5, cost: r => 30 + 25 * r, desc: r => `+${7 * r}% damage`, apply: (h, r) => h.dmg *= 1 + 0.07 * r },
+    { id: 'instinct', name: 'Killer Instinct',  max: 4, cost: r => 40 + 30 * r, desc: r => `+${4 * r}% crit chance`, apply: (h, r) => h.crit += 0.04 * r },
+    { id: 'novam',    name: 'Nova Mastery',     max: 4, cost: r => 40 + 30 * r, desc: r => `Rift Nova deals +${10 * r}% damage and recharges ${6 * r}% faster`, apply: (h, r) => { h.ab.dmg *= 1 + 0.1 * r; h.ab.cd *= 1 - 0.06 * r; } },
+    { id: 'fleet',    name: 'Fleet Foot',       max: 3, cost: r => 50 + 40 * r, desc: r => `+${6 * r}% move and attack speed`, apply: (h, r) => { h.speed *= 1 + 0.06 * r; h.rate /= 1 + 0.06 * r; } },
+  ],
+  oracle: [
+    { id: 'resonance', name: 'Resonance',       max: 5, cost: r => 30 + 25 * r, desc: r => `Tower aura gives +${4 * r}% more damage`, apply: (h, r) => h.aura += 0.04 * r },
+    { id: 'longclock', name: 'Long Overclock',  max: 4, cost: r => 40 + 30 * r, desc: r => `Overclock Field lasts ${(0.6 * r).toFixed(1)}s longer`, apply: (h, r) => h.ab.dur += 0.6 * r },
+    { id: 'tithe',     name: 'Rift Tithe',      max: 4, cost: r => 40 + 30 * r, desc: r => `Start each run with +${25 * r} gold`, apply: (h, r) => S.gold += 25 * r },
+    { id: 'widesig',   name: 'Wide Signal',     max: 3, cost: r => 50 + 40 * r, desc: r => `All towers get +${3 * r}% range`, apply: (h, r) => h.towerRange += 0.03 * r },
+  ],
+  sniper: [
+    { id: 'rounds',   name: 'Heavy Rounds',     max: 5, cost: r => 30 + 25 * r, desc: r => `+${8 * r}% damage`, apply: (h, r) => h.dmg *= 1 + 0.08 * r },
+    { id: 'stance',   name: 'Steady Stance',    max: 4, cost: r => 40 + 30 * r, desc: r => `Brace ${12 * r}% faster`, apply: (h, r) => h.brace *= 1 - 0.12 * r },
+    { id: 'hollow',   name: 'Hollow Points',    max: 4, cost: r => 40 + 30 * r, desc: r => `+${15 * r}% crit damage`, apply: (h, r) => h.critDmg += 0.15 * r },
+    { id: 'drills',   name: 'Piercing Drills',  max: 3, cost: r => 50 + 40 * r, desc: r => `Piercing Shot recharges ${8 * r}% faster`, apply: (h, r) => h.ab.cd *= 1 - 0.08 * r },
+  ],
+};
 const GLOBAL_META = [
-  { id: 'gold',   name: 'War Chest',       max: 5, cost: r => 25 + 20 * r, desc: r => `Start with +${20 * r} gold` },
-  { id: 'lives',  name: 'Reinforced Core', max: 5, cost: r => 25 + 20 * r, desc: r => `Base starts with +${2 * r} HP` },
-  { id: 'reroll', name: 'Fate Weaver',     max: 3, cost: r => 50 + 40 * r, desc: r => `+${r} upgrade reroll${r > 1 ? 's' : ''} per run` },
-  { id: 'luck',   name: 'Lucky Star',      max: 3, cost: r => 60 + 50 * r, desc: r => `Rarer upgrades are ${10 * r}% more likely` },
+  { id: 'gold',    name: 'War Chest',       max: 5, cost: r => 25 + 20 * r, desc: r => `Start with +${20 * r} gold` },
+  { id: 'lives',   name: 'Reinforced Core', max: 5, cost: r => 25 + 20 * r, desc: r => `Base starts with +${2 * r} HP` },
+  { id: 'reroll',  name: 'Fate Weaver',     max: 3, cost: r => 50 + 40 * r, desc: r => `+${r} upgrade reroll${r > 1 ? 's' : ''} per run` },
+  { id: 'luck',    name: 'Lucky Star',      max: 3, cost: r => 60 + 50 * r, desc: r => `Rarer upgrades are ${10 * r}% more likely` },
+  { id: 'vet',     name: 'Veteran',         max: 2, cost: r => 120 + 100 * r, desc: r => `Start each run with ${r} free hero upgrade${r > 1 ? 's' : ''}` },
+  { id: 'fortune', name: 'Fortune’s Favor', max: 3, cost: r => 300 + 250 * r, desc: r => `Much better upgrade odds: Rare and above ${30 * r}% more likely, Common ${15 * r}% less likely` },
 ];
-let META = { shards: 0, heroes: { vanguard: {}, striker: {}, oracle: {} }, global: {}, best: {}, runs: [] };
-try { const m = JSON.parse(localStorage.getItem('riftguard-meta') || 'null'); if (m) META = Object.assign(META, m); } catch (e) {}
+let META = { v: 2, shards: 0, heroes: { vanguard: {}, striker: {}, oracle: {}, sniper: {} }, unlocked: {}, global: {}, best: {}, runs: [] };
+try { const m = JSON.parse(localStorage.getItem('riftguard-meta') || 'null'); if (m) META = Object.assign(META, m, { v: m.v || 1 }); } catch (e) {}
 function saveMeta() { try { localStorage.setItem('riftguard-meta', JSON.stringify(META)); } catch (e) {} }
+// Older saves used one shared upgrade list for every hero: refund those shards so they can be spent on the new hero upgrades.
+if (META.v < 2) {
+  const old = { hp: r => 30 + 25 * r, dmg: r => 30 + 25 * r, cd: r => 40 + 30 * r, vet: r => 90 + 70 * r };
+  for (const k of Object.keys(META.heroes)) {
+    for (const [id, cost] of Object.entries(old)) for (let r = 0; r < (META.heroes[k][id] || 0); r++) META.shards += cost(r);
+    META.heroes[k] = {};
+  }
+  META.v = 2; META.unlocked = META.unlocked || {}; saveMeta();
+}
+for (const k of Object.keys(HEROES)) META.heroes[k] = META.heroes[k] || {};
+META.unlocked = META.unlocked || {};
 const rank = (obj, id) => (obj && obj[id]) || 0;
+
+// ---------- settings (saved in this browser) ----------
+let SETTINGS = { volume: 0.6, muted: false, fullscreen: true };
+try { Object.assign(SETTINGS, JSON.parse(localStorage.getItem('riftguard-settings') || '{}')); } catch (e) {}
+function saveSettings() { try { localStorage.setItem('riftguard-settings', JSON.stringify(SETTINGS)); } catch (e) {} }
+const desktop = window.desktop || null; // set by the desktop app's preload script
+function setFullscreen(on) {
+  SETTINGS.fullscreen = on; saveSettings();
+  if (desktop) return desktop.setFullscreen(on);
+  try { if (on && !document.fullscreenElement) document.documentElement.requestFullscreen(); else if (!on && document.fullscreenElement) document.exitFullscreen(); } catch (e) {}
+}
+if (desktop && !SETTINGS.fullscreen) desktop.setFullscreen(false);
+
+// ---------- sound: tiny synthesized effects, no audio files ----------
+let actx = null, master = null;
+function audio() {
+  if (!actx) {
+    try { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.connect(actx.destination); } catch (e) { return null; }
+  }
+  master.gain.value = SETTINGS.muted ? 0 : SETTINGS.volume;
+  if (actx.state === 'suspended') actx.resume();
+  return actx;
+}
+const SFX = {
+  shot:    { f: 900, f2: 450, d: 0.05, type: 'square', v: 0.035, gap: 0.07 },
+  boom:    { noise: true, f: 500, d: 0.25, v: 0.16, gap: 0.09 },
+  snipe:   { f: 1600, f2: 120, d: 0.2, type: 'sawtooth', v: 0.12 },
+  kill:    { f: 520, f2: 260, d: 0.08, type: 'triangle', v: 0.07, gap: 0.04 },
+  leak:    { f: 160, f2: 60, d: 0.3, type: 'sawtooth', v: 0.2, gap: 0.15 },
+  wave:    { f: 300, f2: 620, d: 0.35, type: 'sawtooth', v: 0.1 },
+  boss:    { f: 110, f2: 55, d: 0.9, type: 'sawtooth', v: 0.18 },
+  level:   { f: 600, f2: 1300, d: 0.3, type: 'triangle', v: 0.14 },
+  ability: { f: 220, f2: 900, d: 0.3, type: 'sine', v: 0.2 },
+  click:   { f: 760, f2: 700, d: 0.04, type: 'sine', v: 0.06, gap: 0.03 },
+};
+const lastSfx = {};
+function sfx(name) {
+  if (SETTINGS.muted || SETTINGS.volume <= 0) return;
+  const s = SFX[name], ctx = audio(); if (!s || !ctx) return;
+  const now = ctx.currentTime;
+  if (s.gap && lastSfx[name] && now - lastSfx[name] < s.gap) return;
+  lastSfx[name] = now;
+  const g = ctx.createGain(); g.gain.setValueAtTime(s.v, now); g.gain.exponentialRampToValueAtTime(0.0001, now + s.d); g.connect(master);
+  if (s.noise) {
+    const len = Math.floor(ctx.sampleRate * s.d), buf = ctx.createBuffer(1, len, ctx.sampleRate), data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource(), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = s.f;
+    src.buffer = buf; src.connect(lp); lp.connect(g); src.start(now);
+    return;
+  }
+  const o = ctx.createOscillator(); o.type = s.type;
+  o.frequency.setValueAtTime(s.f, now); o.frequency.exponentialRampToValueAtTime(s.f2, now + s.d);
+  o.connect(g); o.start(now); o.stop(now + s.d + 0.02);
+}
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('button')) sfx('click'); });
 
 let codex = {};
 try { codex = JSON.parse(localStorage.getItem('riftguard-codex') || '{}') || {}; } catch (e) { codex = {}; }
 function saveCodex() { try { localStorage.setItem('riftguard-codex', JSON.stringify(codex)); } catch (e) {} }
 
 let S = null;
+function showScreen(html) { closeModal(); hideTip(); $('screen').innerHTML = `<div class="screen-inner">${html}</div>`; $('screen').hidden = false; $('screen').scrollTop = 0; }
+function hideScreen() { $('screen').hidden = true; }
+const shardsTag = () => `<span class="shards">◆ ${META.shards} Rift Shards</span>`;
 function showMenu() {
   S = null; closeModal();
-  openModal(`<h2>Riftguard</h2><p>Hold the rift. Earn Rift Shards every run to make your heroes stronger.</p>
-    <p class="shards">◆ ${META.shards} Rift Shards</p>
+  showScreen(`<div class="title"><h1>Rift<span>guard</span></h1>
+    <p class="lead">Hold the rift. Earn Rift Shards every run to make your heroes stronger.</p>
+    <p style="margin-top:10px">${shardsTag()}</p>
     <div class="menu">
-      <button class="go" id="mStart">Start a run</button>
-      <button id="mUpgrades">Hero upgrades</button>
+      <button class="go" id="mStart">Play</button>
+      <button id="mUpgrades">Heroes</button>
+      <button id="mSettings">Settings</button>
       <button id="mLog">Stats log</button>
-    </div>`);
-  $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = showUpgrades; $('mLog').onclick = showLog;
+      ${desktop ? '<button id="mQuit">Quit</button>' : ''}
+    </div></div>`);
+  $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = () => showHeroes(); $('mLog').onclick = showLog; $('mSettings').onclick = showSettings;
+  if ($('mQuit')) $('mQuit').onclick = () => desktop.quit();
 }
 function showMapSelect() {
-  openModal(`<h2>Choose a map</h2><p>Harder maps pay more Rift Shards.</p>
-    <div class="choices">${Object.entries(MAPS).map(([k, m]) => `<button class="choice map-pick" data-k="${k}">
-      <small class="path">${m.tier} · ×${m.shardMul} shards</small><b>${m.name}</b><span>${m.desc}</span>
-      <em class="reward">${META.best[k] ? 'Best: wave ' + META.best[k].wave + (META.best[k].won ? ' (cleared)' : '') : 'Not played yet'}</em></button>`).join('')}</div>
-    <div class="row" style="margin-top:12px"><button id="mBack">Back</button></div>`);
-  $('modalBox').querySelectorAll('.map-pick').forEach(b => b.onclick = () => newRun(b.dataset.k));
+  showScreen(`<div class="screen-head"><h2>Choose a map</h2>${shardsTag()}<button id="mBack">Back</button></div>
+    <p class="lead">Beat a map to unlock the next one. Harder maps have more waves and pay more Rift Shards.</p>
+    <div class="cards">${MAP_ORDER.map((k, i) => { const m = MAPS[k], open = mapUnlocked(k), best = META.best[k];
+      return `<button class="choice mapcard map-pick ${open ? '' : 'locked'}" data-k="${k}" ${open ? '' : 'disabled'}>
+      <small class="path">${m.tier} · ${m.waves} waves · ×${m.shardMul} shards</small><b>${m.name}</b><span>${m.desc}</span>
+      ${open ? `<em class="reward">${best ? 'Best: wave ' + best.wave + (best.won ? ' (beaten)' : '') : 'Not played yet'}</em>`
+             : `<span class="lock">Locked: beat ${MAPS[MAP_ORDER[i - 1]].name} to unlock</span>`}</button>`; }).join('')}</div>`);
+  $('screen').querySelectorAll('.map-pick').forEach(b => b.onclick = () => newRun(b.dataset.k));
   $('mBack').onclick = showMenu;
 }
 function metaRow(def, obj, key, heroId) {
@@ -339,27 +457,51 @@ function metaRow(def, obj, key, heroId) {
   return `<div class="meta-row"><div><b>${def.name}</b> <span class="help">${r}/${def.max}</span><br><span class="help">${r ? def.desc(r) : 'Not bought'}${maxed ? '' : ' → ' + def.desc(r + 1)}</span></div>
     <button data-meta="${key}" data-id="${def.id}" ${heroId ? `data-hero="${heroId}"` : ''} ${maxed || META.shards < cost ? 'disabled' : ''}>${maxed ? 'Maxed' : '◆ ' + cost}</button></div>`;
 }
-function showUpgrades() {
-  openModal(`<h2>Hero upgrades</h2><p class="shards">◆ ${META.shards} Rift Shards</p>
-    ${Object.entries(HEROES).map(([k, d]) => `<h3 class="meta-h" style="color:${d.css}">${d.name} · ${d.role}</h3>${HERO_META.map(x => metaRow(x, META.heroes[k], 'hero', k)).join('')}`).join('')}
-    <h3 class="meta-h">All heroes</h3>${GLOBAL_META.map(x => metaRow(x, META.global, 'global')).join('')}
-    <div class="row" style="margin-top:12px"><button id="mBack">Back</button></div>`);
-  $('modalBox').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
-    const defs = b.dataset.meta === 'hero' ? HERO_META : GLOBAL_META, def = defs.find(x => x.id === b.dataset.id);
-    const obj = b.dataset.meta === 'hero' ? (META.heroes[b.dataset.hero] = META.heroes[b.dataset.hero] || {}) : META.global;
+// Heroes page: every hero (locked ones too), their permanent upgrades, and the upgrades shared by all heroes.
+function showHeroes(sel) {
+  sel = sel || 'vanguard';
+  const d = HEROES[sel], open = isUnlocked(sel), st = d.stats;
+  showScreen(`<div class="screen-head"><h2>Heroes</h2>${shardsTag()}<button id="mBack">Back</button></div>
+    <div class="heroes">
+      <div class="roster">${Object.entries(HEROES).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''} ${isUnlocked(k) ? '' : 'locked'}" style="border-left-color:${h.css}">
+        <small>${h.role}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('')}</div>
+      <div class="card herodetail">
+        <h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
+        <p>${d.desc}</p>
+        <div class="stats">
+          <div><span>HP</span>${st.hp}</div><div><span>Damage</span>${st.dmg}</div>
+          <div><span>Attacks/s</span>${(1 / st.rate).toFixed(2)}</div><div><span>Range</span>${st.range >= 9999 ? 'Whole map' : st.range}</div>
+          <div><span>Blocks</span>${st.block}</div><div><span>Move speed</span>${st.speed}</div>
+          ${st.brace ? `<div><span>Brace time</span>${st.brace}s</div>` : ''}${st.crit ? `<div><span>Crit chance</span>${pct(st.crit)}</div>` : ''}
+        </div>
+        <p class="help"><b style="color:var(--text)">${d.ability.name}</b> (${d.ability.cd}s): ${abilityText({ ab: d.ability })}</p>
+        ${open ? `<h3 class="meta-h">${d.name} upgrades</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}`
+               : `<div class="row"><button class="go" id="unlockHero" ${META.shards < d.unlock ? 'disabled' : ''}>Unlock ${d.name} · ◆ ${d.unlock}</button></div>
+                  <p class="help" style="margin-top:8px">Unlock ${d.name} to play them and buy their upgrades.</p>`}
+      </div>
+    </div>
+    <div class="card"><h3>All heroes</h3>${GLOBAL_META.map(x => metaRow(x, META.global, 'global')).join('')}</div>`);
+  $('screen').querySelectorAll('[data-hero-tab]').forEach(b => b.onclick = () => showHeroes(b.dataset.heroTab));
+  $('screen').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
+    const isHero = b.dataset.meta === 'hero', defs = isHero ? HERO_META[b.dataset.hero] : GLOBAL_META, def = defs.find(x => x.id === b.dataset.id);
+    const obj = isHero ? META.heroes[b.dataset.hero] : META.global;
     const cost = def.cost(rank(obj, def.id));
     if (META.shards < cost || rank(obj, def.id) >= def.max) return;
-    META.shards -= cost; obj[def.id] = rank(obj, def.id) + 1; saveMeta(); showUpgrades();
+    META.shards -= cost; obj[def.id] = rank(obj, def.id) + 1; saveMeta(); showHeroes(sel);
   });
+  if ($('unlockHero')) $('unlockHero').onclick = () => {
+    if (META.shards < d.unlock) return;
+    META.shards -= d.unlock; META.unlocked[sel] = true; saveMeta(); sfx('level'); showHeroes(sel);
+  };
   $('mBack').onclick = showMenu;
 }
 function showLog() {
   const runs = META.runs.slice().reverse();
-  openModal(`<h2>Stats log</h2><p>Your last ${runs.length} runs, newest first. Copy the full log to share it for balancing.</p>
-    <div class="logwrap"><table class="log"><thead><tr><th>Map</th><th>Hero</th><th>Wave</th><th>Result</th><th>Lives lost</th><th>Top damage</th><th>Shards</th></tr></thead><tbody>
-    ${runs.map(r => `<tr><td>${MAPS[r.map].name}</td><td>${HEROES[r.hero].name}</td><td>${r.wave}</td><td>${r.won ? 'Won' : 'Lost'}</td><td>${r.livesLost}</td><td>${r.top || '-'}</td><td>◆ ${r.shards}</td></tr>`).join('') || '<tr><td colspan="7">No runs yet.</td></tr>'}
+  showScreen(`<div class="screen-head"><h2>Stats log</h2><button id="mCopy">Copy full log</button><button id="mBack">Back</button></div>
+    <p class="lead">Your last ${runs.length} runs, newest first. Copy the full log to share it for balancing.</p>
+    <div class="card logwrap"><table class="log"><thead><tr><th>Map</th><th>Hero</th><th>Wave</th><th>Result</th><th>Lives lost</th><th>Top damage</th><th>Shards</th></tr></thead><tbody>
+    ${runs.map(r => `<tr><td>${MAPS[r.map].name}</td><td>${HEROES[r.hero] ? HEROES[r.hero].name : r.hero}</td><td>${r.wave}</td><td>${r.won ? 'Won' : 'Lost'}</td><td>${r.livesLost}</td><td>${r.top || '-'}</td><td>◆ ${r.shards}</td></tr>`).join('') || '<tr><td colspan="7">No runs yet.</td></tr>'}
     </tbody></table></div>
-    <div class="row" style="margin-top:12px"><button id="mCopy">Copy full log</button><button id="mBack">Back</button></div>
     <textarea id="logText" readonly hidden></textarea>`);
   $('mBack').onclick = showMenu;
   $('mCopy').onclick = () => {
@@ -368,6 +510,34 @@ function showLog() {
     navigator.clipboard.writeText(text).then(() => toast('Log copied.'), () => { ta.hidden = false; ta.select(); toast('Select the text below and copy it.'); });
   };
 }
+// Settings: from the main menu, or mid-run with Esc / the gear button (which pauses the game).
+function showSettings() {
+  const inRun = !!(S && S.hero && !S.over);
+  if (inRun) { if (!$('modal').hidden) return; S.paused = true; }
+  openModal(`<h2>${inRun ? 'Paused' : 'Settings'}</h2>
+    <div class="settings">
+      <label>Volume <input type="range" id="setVol" min="0" max="1" step="0.05" value="${SETTINGS.volume}"></label>
+      <label>Mute sound <input type="checkbox" id="setMute" ${SETTINGS.muted ? 'checked' : ''}></label>
+      <label>Fullscreen <input type="checkbox" id="setFs" ${SETTINGS.fullscreen ? 'checked' : ''}></label>
+      <label>Move the hero with WASD / arrow keys <input type="checkbox" id="setKeys" ${keyMove ? 'checked' : ''}></label>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="go" id="setClose">${inRun ? 'Resume' : 'Done'}</button>
+      ${inRun ? '<button id="setRestart">Restart run</button><button id="setMenu">Main menu</button>' : ''}
+      ${desktop ? '<button id="setQuit">Quit game</button>' : ''}
+    </div>`);
+  $('setVol').oninput = e => { SETTINGS.volume = +e.target.value; saveSettings(); audio(); };
+  $('setVol').onchange = () => sfx('level');
+  $('setMute').onchange = e => { SETTINGS.muted = e.target.checked; saveSettings(); audio(); };
+  $('setFs').onchange = e => setFullscreen(e.target.checked);
+  $('setKeys').onchange = e => { if (e.target.checked !== keyMove) toggleKeys(); };
+  $('setClose').onclick = closeSettings;
+  if ($('setRestart')) $('setRestart').onclick = () => { const id = S.map; S.paused = false; endRun(false, true, true); newRun(id); };
+  if ($('setMenu')) $('setMenu').onclick = confirmQuit;
+  if ($('setQuit')) $('setQuit').onclick = () => desktop.quit();
+}
+function closeSettings() { closeModal(); if (S && S.hero && !S.over) S.paused = false; }
+const settingsOpen = () => !$('modal').hidden && !!$('setClose');
 function newRun(mapId) {
   setMap(mapId);
   const map = MAPS[mapId], G = META.global;
@@ -380,6 +550,7 @@ function newRun(mapId) {
     mod: { towerDmg: 1, slow: 0, gold: map.gold || 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false },
     hero: null,
   };
+  MAX_WAVE = map.waves;
   $('sMap').textContent = map.name;
   showHeroSelect();
 }
@@ -389,7 +560,8 @@ function makeHero(id) {
     cls: id, x: BASE.x - 80, y: BASE.y > 120 ? BASE.y - 60 : BASE.y + 60, tx: null, ty: null, hp: s.hp, maxHp: s.hp, dmg: s.dmg, rate: s.rate, cd: 0,
     range: s.range, block: s.block, regen: s.regen, armor: s.armor, speed: s.speed, ko: 0, lvl: 1, xp: 0, next: 30,
     buildRange: 170, respawn: 8, thorns: 0, aura: s.aura || 0, auraRange: 130, auraSlow: 0, siphon: 0,
-    costMul: 1, lvlMul: 1, mergeMul: 1, crit: 0, multi: 0, bounty: 0, towerRange: 0, interest: 0,
+    costMul: 1, lvlMul: 1, mergeMul: 1, crit: s.crit || 0, critDmg: 2, multi: 0, bounty: 0, towerRange: 0, interest: 0,
+    brace: s.brace || 0, braceT: 0, pierce: 0, deadeye: 0, shotStun: 0,
     execute: 0, bulletStorm: 0, attacks: 0, unbreakable: false, unbreakUsed: false, timeWarp: 0, autoCast: false,
     ab: Object.assign({ t: 0 }, d.ability),
     boonSlow: 0, boonSplash: 0, boonRail: 0, boonVent: 0, boonChain: 0, boonIon: 0,
@@ -397,22 +569,24 @@ function makeHero(id) {
 }
 function applyHeroMeta(h) {
   const M = META.heroes[h.cls] || {};
-  h.maxHp = Math.round(h.maxHp * (1 + 0.08 * rank(M, 'hp'))); h.hp = h.maxHp;
-  h.dmg *= 1 + 0.06 * rank(M, 'dmg');
-  h.ab.cd *= 1 - 0.05 * rank(M, 'cd');
-  S.pendingLevels += rank(M, 'vet');
+  for (const def of HERO_META[h.cls]) if (rank(M, def.id)) def.apply(h, rank(M, def.id));
+  h.hp = h.maxHp;
+  S.pendingLevels += rank(META.global, 'vet');
 }
 function showHeroSelect() {
-  openModal(`<h2>Choose your hero</h2><p>Each hero has their own ability and upgrades, plus shared ones.</p>
-    <div class="choices">${Object.entries(HEROES).map(([k, d]) => `<button class="choice hero-pick" data-k="${k}" style="border-color:${d.css}" title="${HERO_META.filter(x => rank(META.heroes[k], x.id)).map(x => x.name + ' ' + rank(META.heroes[k], x.id)).join(', ')}">
+  showScreen(`<div class="screen-head"><h2>Choose your hero</h2><button id="mBack">Back</button></div>
+    <p class="lead">${MAPS[S.map].name} · ${MAX_WAVE} waves. Each hero has their own ability and upgrades, plus shared ones.</p>
+    <div class="cards">${Object.entries(HEROES).map(([k, d]) => { const open = isUnlocked(k);
+      return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
       <small class="path" style="color:${d.css}">${d.role}</small><b style="color:${d.css}">${d.name}</b><span>${d.desc}</span>
-      <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · Blocks ${d.stats.block}</span>
-      <em class="reward">Ability: ${d.ability.name}</em></button>`).join('')}</div>`);
-  $('modalBox').querySelectorAll('.hero-pick').forEach(b => b.onclick = () => {
-    S.hero = makeHero(b.dataset.k); applyHeroMeta(S.hero); S.paused = false; closeModal();
+      <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + d.stats.block}</span>
+      ${open ? `<em class="reward">Ability: ${d.ability.name}</em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`);
+  $('screen').querySelectorAll('.hero-pick').forEach(b => b.onclick = () => {
+    S.hero = makeHero(b.dataset.k); applyHeroMeta(S.hero); S.paused = false; hideScreen();
     renderBuildBar(); renderInspector(); renderCodex(); renderHero();
     toast(HEROES[b.dataset.k].name + ' ready. Build towers, then start the wave.');
   });
+  $('mBack').onclick = () => { S = null; showMapSelect(); };
 }
 
 const $ = id => document.getElementById(id);
@@ -475,7 +649,7 @@ function offerWaveChoice() {
   else if (roll < 0.13) opts[2] = { kind: 'legendary', rarity: 'legendary', name: 'Legendary: ' + ch.name, challenge: ch.id, hpMul: 1.3,
     rule: ch.rule + ' Enemies also have 30% more HP.', reward: waveReward(n, 'legendary') };
   S.paused = true;
-  const boss = n === 10 || n === MAX_WAVE;
+  const boss = !!bossFor(n);
   openModal(`<h2>Choose wave ${n}</h2><p>${boss ? 'A boss leads this wave. ' : ''}Harder waves pay out when you clear them.</p>
     <div class="choices">${opts.map((o, i) => `<button class="choice mode-${o.kind} ${o.rarity ? 'rarity-' + o.rarity : ''}" data-i="${i}">
       <b>${o.name}</b><span>${o.rule}</span>
@@ -494,19 +668,19 @@ function makeWave(n, mode) {
   if (mode.challenge === 'swarm') q = q.concat(q);
   if (mode.challenge === 'iron') q = q.slice(0, Math.max(4, Math.round(q.length / 3))).map(() => 'brute');
   shuffle(q);
-  if (n === 5) q.push('knight');
-  if (n === 10) q.push('warden');
-  if (n === MAX_WAVE) q.push('tyrant');
+  const boss = bossFor(n);
+  if (boss) q.push(boss);
   return q;
 }
+function bossFor(n) { return n === MAX_WAVE ? 'tyrant' : n % 10 === 0 ? 'warden' : n % 5 === 0 ? 'knight' : null; }
 function startWave() {
   if (S.waveActive || S.over || S.paused) return;
   S.wave++; S.spawnQ = makeWave(S.wave, S.mode); S.spawnT = 0.3;
   S.interval = Math.max(0.3, 0.9 - S.wave * 0.04) * (S.mode.challenge === 'swarm' ? 0.6 : 1);
   S.waveActive = true; S.hero.unbreakUsed = false;
   S.ws = { wave: S.wave, mode: S.mode.name, livesLost: 0, kills: 0, gold: 0, heroDmg: 0, heroKOs: 0, start: S.time, enemies: S.spawnQ.length };
-  const boss = { 5: 'A Rift Knight leads this wave.', 10: 'The Rift Warden approaches.', 15: 'Final wave. The Rift Tyrant is coming.' }[S.wave];
-  toast(boss || 'Wave ' + S.wave + ' incoming.');
+  const boss = { knight: 'A Rift Knight leads this wave.', warden: 'The Rift Warden approaches.', tyrant: 'Final wave. The Rift Tyrant is coming.' }[bossFor(S.wave)];
+  toast(boss || 'Wave ' + S.wave + ' incoming.'); sfx(boss ? 'boss' : 'wave');
   renderBuildBar();
 }
 function closeWaveLog(cleared) {
@@ -541,7 +715,8 @@ function endWave() {
 }
 function spawn(type) {
   const d = ENEMIES[type], m = S.mode;
-  let scale = d.boss ? 1 : 1 + 0.4 * (S.wave - 1) + 0.06 * (S.wave - 1) ** 2;
+  // Harder curve than before; bosses also scale with the wave they lead.
+  let scale = d.boss ? 1 + 0.18 * Math.max(0, S.wave - 5) : 1 + 0.45 * (S.wave - 1) + 0.07 * (S.wave - 1) ** 2;
   scale *= S.mod.enemyHp;
   if (m.kind === 'hard') scale *= 1.4;
   if (m.hpMul) scale *= m.hpMul;
@@ -571,6 +746,7 @@ function damage(e, amt, src) {
     if (e.boss) S.bossKills++;
     if (h.siphon && !h.ko) h.hp = Math.min(h.maxHp, h.hp + h.siphon);
     while (h.xp >= h.next) { h.xp -= h.next; h.lvl++; h.next = Math.round(h.next * 1.3); S.pendingLevels++; }
+    sfx('kill');
     if (e.boss && e.type !== 'tyrant') { S.pendingHeroic++; toast(ENEMIES[e.type].name + ' defeated! It dropped a heroic power.'); }
     S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 6, color: e.color, t: 0.3, T: 0.3 });
   }
@@ -598,6 +774,7 @@ function fire(t, targets) {
   const big = t.orbital && t.shots % t.orbital === 0;
   const freeze = t.freeze && t.shots % t.freeze === 0;
   if (t === S.drained) dmg *= 0.5;
+  sfx(t.splash ? 'boom' : 'shot');
   const hitT = Object.assign({}, t, { auraSlow: aura ? h.auraSlow : 0, src: t });
   for (const target of targets) {
     let d = dmg;
@@ -633,7 +810,19 @@ function heroDmg() { return S.hero.dmg * (S.mode.challenge === 'lone' ? 2 : 1); 
 function useAbility() {
   const h = S.hero, a = h.ab;
   if (!h || h.ko > 0 || a.t > 0 || S.over || S.paused) return;
-  a.t = a.cd;
+  if (a.id === 'pierce') {
+    // A round through every enemy on the line from the hero toward the lead enemy.
+    const lead = S.enemies.filter(e => !e.dead).sort((x, y) => (y.boss - x.boss) || (y.d - x.d))[0];
+    if (!lead) return toast('No target for Piercing Shot.');
+    const dx = lead.x - h.x, dy = lead.y - h.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+    for (const e of S.enemies.filter(e => !e.dead)) {
+      const along = (e.x - h.x) * ux + (e.y - h.y) * uy, off = Math.abs((e.x - h.x) * uy - (e.y - h.y) * ux);
+      if (along > 0 && off <= a.w + e.r) damage(e, heroDmg() * a.mult);
+    }
+    S.fx.push({ k: 'line', x1: h.x, y1: h.y, x2: h.x + ux * 2000, y2: h.y + uy * 2000, color: 0xffd36e, t: 0.35, T: 0.35, w: 4 });
+    a.t = a.cd; sfx('snipe'); return;
+  }
+  a.t = a.cd; sfx('ability');
   if (a.id === 'slam') {
     for (const e of inRange(h.x, h.y, a.r)) { damage(e, a.dmg); e.stunT = Math.max(e.stunT, a.stun); }
     S.fx.push({ k: 'ring', x: h.x, y: h.y, r: a.r, color: 0x5fe39a, t: 0.4, T: 0.4, fill: true });
@@ -703,17 +892,22 @@ function update(dt) {
     // No healing between waves, so waiting it out isn't free.
     if (S.waveActive) h.hp = Math.min(h.maxHp, h.hp + h.regen * dt);
     h.cd -= dt;
-    if (h.cd <= 0) {
-      const inR = inRange(h.x, h.y, h.range).sort((a, b) => b.d - a.d);
+    // Sniper: has to stand still for h.brace seconds before it can shoot.
+    if (h.brace) h.braceT = h.x === h.px && h.y === h.py ? Math.min(h.brace, h.braceT + dt) : 0;
+    h.px = h.x; h.py = h.y;
+    if (h.cd <= 0 && (!h.brace || h.braceT >= h.brace)) {
+      const inR = inRange(h.x, h.y, h.range).sort((a, b) => (h.brace ? b.boss - a.boss : 0) || b.d - a.d);
       if (inR.length) {
-        h.cd = h.rate; h.attacks++;
+        h.cd = h.rate; h.attacks++; sfx(h.brace ? 'snipe' : 'shot');
         const ts = h.bulletStorm && h.attacks % h.bulletStorm === 0 ? inR : inR.slice(0, 1 + h.multi);
         for (const t of ts) {
-          const crit = Math.random() < h.crit;
-          let dmg = heroDmg() * (crit ? 2 : 1);
+          const crit = Math.random() < h.crit || (h.deadeye && h.attacks % h.deadeye === 0);
+          let dmg = heroDmg() * (crit ? h.critDmg : 1);
           if (h.boonRail && h.attacks % h.boonRail === 0) dmg *= 4;
           if (h.execute && !t.boss && (t.hp - dmg) / t.max <= h.execute) dmg = t.hp;
           damage(t, dmg);
+          if (h.shotStun) t.stunT = Math.max(t.stunT, t.boss ? 0.2 : h.shotStun);
+          if (h.pierce) for (const o of inRange(t.x, t.y, 60).filter(e => e !== t).slice(0, h.pierce)) damage(o, dmg * 0.5);
           if (h.boonSlow) slowEnemy(t, h.boonSlow, 1.2);
           if (h.boonSplash) { for (const o of inRange(t.x, t.y, 45)) if (o !== t) damage(o, dmg * h.boonSplash); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 45, color: 0xff6fd8, t: 0.2, T: 0.2 }); }
           if (h.boonChain) for (const o of inRange(t.x, t.y, 100).filter(e => e !== t).slice(0, h.boonChain)) { damage(o, dmg * 0.5); slowEnemy(o, 0.3, 1.2); S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: o.x, y2: o.y, color: 0x9af0ff, t: 0.12, T: 0.12, w: 1 }); }
@@ -770,7 +964,7 @@ function update(dt) {
     } else {
       e.d += e.speed * (1 - e.slow) * dt;
       if (e.d >= PATH_LEN) {
-        e.dead = true; S.lives -= e.lives; if (S.ws) S.ws.livesLost += e.lives;
+        e.dead = true; S.lives -= e.lives; if (S.ws) S.ws.livesLost += e.lives; sfx('leak');
         S.fx.push({ k: 'ring', x: BASE.x, y: BASE.y, r: 30, color: 0xff5d6c, t: 0.4, T: 0.4 });
         if (S.lives <= 0 && S.mod.phoenix) { S.mod.phoenix = false; S.lives = 10; toast('Phoenix Core saved your base!'); }
         if (S.lives <= 0) { S.lives = 0; return endRun(false); }
@@ -816,7 +1010,7 @@ function rollPerks() {
       perk = pick(UNIQUES.filter(u => u.rarity === 'legendary' && u.cls === h.cls && !owns(u.id) && !taken.has(u.id))) || null;
       if (perk) rar = RAR.legendary;
     }
-    if (!perk) perk = pick(weighted(PERKS.filter(p => p.cls === cls && !taken.has(p.id))));
+    if (!perk) perk = pick(weighted(PERKS.filter(p => (p.cls === cls || (p.also && p.also.includes(cls))) && !taken.has(p.id))));
     out.push(makeOffer(perk, rar, demonic));
   }
   return out;
@@ -824,13 +1018,13 @@ function rollPerks() {
 function offerHtml(o, i) {
   const p = o.perk, r = o.rarity;
   const desc = p.rarity ? p.desc : p.desc(o.m);
-  const label = (o.demonic ? 'Demonic ' : '') + r.name + ' · ' + (p.cls === 'any' ? 'Shared' : HEROES[p.cls].name);
+  const label = (o.demonic ? 'Demonic ' : '') + r.name + ' · ' + (p.cls === 'any' ? 'Shared' : HEROES[S.hero.cls].name);
   return `<button class="choice rarity-${r.id} ${o.demonic ? 'is-demonic' : ''}" data-i="${i}"><small class="path rar-${r.id}">${label}</small>
     <b>${p.name}</b><span>${desc}</span>${o.demonic ? `<em class="cost">Curse: ${o.curse.desc(o.k)}</em>` : ''}
     ${owns(p.id) ? `<em class="reward">Owned ×${S.picks.filter(x => x.perk.id === p.id).length}</em>` : ''}</button>`;
 }
 function showLevelUp(offers) {
-  S.paused = true;
+  S.paused = true; if (!offers) sfx('level');
   offers = offers || rollPerks();
   const h = S.hero;
   openModal(`<h2>Hero upgrade</h2><p>Level ${h.lvl}. Choose one. Rarer upgrades are stronger. Demonic ones are twice as strong but carry a curse.</p>
@@ -1027,9 +1221,7 @@ function renderBuildBar() {
     `<button class="tbtn ${S.build === k ? 'on' : ''}" data-k="${k}" ${S.gold < towerCost(k) ? 'disabled' : ''}>
       <span class="sw" style="background:${d.css}"></span>${d.name}<span class="c">${towerCost(k)}</span><kbd>${d.key}</kbd></button>`).join('') +
     `<button id="abilityBtn" class="ability">${S.hero.ab.name} <kbd>Q</kbd></button><span class="spacer"></span>
-     <button id="keysBtn" title="Move the hero with WASD or the arrow keys">Keys: ${keyMove ? 'On' : 'Off'}</button>
      <button id="speedBtn">${S.speed}×</button>
-     <button id="menuBtn" title="Abandon the run and return to the menu">Menu</button>
      <button class="go" id="waveBtn" ${S.waveActive || S.over ? 'disabled' : ''}>${S.waveActive ? 'Wave ' + S.wave + modeTag : 'Start wave ' + (S.wave + 1) + modeTag + ' <kbd>Space</kbd>'}</button>`;
   bar.querySelectorAll('.tbtn').forEach(b => {
     b.onclick = () => selectBuild(b.dataset.k);
@@ -1038,10 +1230,8 @@ function renderBuildBar() {
   });
   $('abilityBtn').onclick = useAbility;
   abilityMeter();
-  $('keysBtn').onclick = toggleKeys;
   $('speedBtn').onclick = () => { S.speed = S.speed === 3 ? 1 : S.speed + 1; renderBuildBar(); };
   $('waveBtn').onclick = startWave;
-  $('menuBtn').onclick = confirmQuit;
   lastBarGold = S.gold;
 }
 function confirmQuit() {
@@ -1050,6 +1240,7 @@ function confirmQuit() {
   openModal(`<h2>Leave this run?</h2><p>You'll still earn Rift Shards for the waves you cleared.</p>
     <div class="row"><button class="go" id="qStay">Keep playing</button><button id="qLeave">End run</button></div>`);
   $('qStay').onclick = () => { closeModal(); S.paused = false; };
+  // (End run returns to the main menu from the summary screen.)
   $('qLeave').onclick = () => { S.paused = false; endRun(false, true); };
 }
 function selectBuild(k) {
@@ -1133,8 +1324,9 @@ function renderHero() {
     <p class="help"><b style="color:var(--text)">${h.ab.name}</b> (${h.ab.cd.toFixed(0)}s): ${abilityText(h)}</p>
     <div class="stats">
       <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div>
-      <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${f(h.range)}</div>
-      <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit</span>${pct(h.crit)}</div>
+      <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${h.range >= 9999 ? 'Whole map' : f(h.range)}</div>
+      <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit chance</span>${pct(h.crit)}</div>
+      <div><span>Crit damage</span>${pct(h.critDmg)}</div>${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}
       <div><span>Armor</span>${pct(h.armor)}</div><div><span>Blocks</span>${h.block}</div>
       <div><span>Regen/s</span>${h.regen.toFixed(1)}</div><div><span>Respawn</span>${h.respawn.toFixed(1)}s</div>
       <div><span>Build range</span>${f(h.buildRange)}</div><div><span>Move speed</span>${f(h.speed)}</div>
@@ -1254,7 +1446,8 @@ function draw(g) {
   } else {
     const HX = S.heroics;
     if (HX.wither) g.fillStyle(0x7a2e5a, 0.12).fillCircle(h.x, h.y, 90 + 20 * HX.wither);
-    g.lineStyle(1, hc, 0.15).strokeCircle(h.x, h.y, h.range);
+    if (h.range < 9999) g.lineStyle(1, hc, 0.15).strokeCircle(h.x, h.y, h.range);
+    if (h.brace) { const ready = h.braceT >= h.brace; g.lineStyle(ready ? 3 : 2, ready ? 0xffd36e : 0x8d95b8, ready ? 0.95 : 0.6).beginPath(); g.arc(h.x, h.y, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (h.braceT / h.brace)); g.strokePath(); }
     g.fillStyle(hc, 0.2).fillCircle(h.x, h.y, 18);
     g.fillStyle(hc, 1).fillCircle(h.x, h.y, 12);
     g.fillStyle(0x0b0f1c, 1).fillCircle(h.x, h.y, 5);
@@ -1298,6 +1491,7 @@ class Main extends Phaser.Scene {
     });
     this.input.on('gameout', () => { if (S) S.hover = null; tipTower = null; hideTip(); });
     showMenu();
+    $('settingsBtn').onclick = () => (S && S.hero && !S.over ? showSettings() : null);
   }
   update(time, delta) {
     const dt = Math.min(delta / 1000, 0.05);
@@ -1313,11 +1507,12 @@ const MOVE_KEYS = ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arr
 function toggleKeys() {
   keyMove = !keyMove; held.clear();
   try { localStorage.setItem('riftguard-keys', keyMove ? 'on' : 'off'); } catch (e) {}
-  renderBuildBar(); toast('WASD / arrow movement ' + (keyMove ? 'on' : 'off') + '.');
+  if (S && S.hero) renderBuildBar(); toast('WASD / arrow movement ' + (keyMove ? 'on' : 'off') + '.');
 }
 window.addEventListener('keyup', e => held.delete(e.key.toLowerCase()));
 window.addEventListener('blur', () => held.clear());
 window.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && settingsOpen()) { e.preventDefault(); return closeSettings(); }
   if (!S || !S.hero || e.target.tagName === 'INPUT') return;
   const lk = e.key.toLowerCase();
   if (keyMove && MOVE_KEYS.includes(lk)) { e.preventDefault(); held.add(lk); return; }
@@ -1326,7 +1521,10 @@ window.addEventListener('keydown', e => {
   else if (lk === 'r') { if (!S.paused && !S.over && !cancelPlacing()) sellSelected(); }
   else if (lk === 'q') useAbility();
   else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (!e.repeat) startWave(); }
-  else if (e.key === 'Escape') { S.build = null; S.mergeFrom = null; S.sel = null; S.pendingBuild = null; renderBuildBar(); renderInspector(); }
+  else if (e.key === 'Escape') {
+    if (S.build || S.mergeFrom || S.sel || S.pendingBuild) { S.build = null; S.mergeFrom = null; S.sel = null; S.pendingBuild = null; renderBuildBar(); renderInspector(); }
+    else if (!S.over) showSettings();
+  }
 });
 
 window.riftguard = { get state() { return S; } };
