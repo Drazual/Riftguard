@@ -189,3 +189,23 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .up.maxed { border-color: var(--gold); } .up.maxed b { color: var(--gold); }
 .up .mastery { font-style: normal; font-size: 11px; color: var(--arcane); line-height: 1.35; }
 .demonic-title { color: var(--danger); text-shadow: 0 0 14px rgba(255,93,108,.5); }
+/* Boss health bar and base warning */
+#bossBar { position: absolute; left: 50%; top: 48px; transform: translateX(-50%); width: min(520px, 80%); text-align: center; pointer-events: none; }
+#bossBar b { display: block; font-family: var(--display); font-size: 13px; letter-spacing: .06em; color: #ff8a9a; text-shadow: 0 0 10px rgba(255,46,77,.6); margin-bottom: 4px; }
+#bossBar i { display: block; height: 10px; border-radius: 5px; background: rgba(255,46,77,.15); border: 1px solid rgba(255,46,77,.6); overflow: hidden; }
+#bossBar i span { display: block; height: 100%; background: linear-gradient(90deg, #ff2e4d, #ff8a3d); transition: width .1s; }
+#bossBar em { display: none; margin-top: 6px; font-style: normal; font-family: var(--display); font-size: 15px; color: #fff; background: rgba(255,46,77,.85); padding: 3px 10px; border-radius: 4px; }
+#bossBar.danger em { display: inline-block; animation: bossPulse .5s ease-in-out infinite alternate; }
+@keyframes bossPulse { from { opacity: .55; transform: scale(.96); } to { opacity: 1; transform: scale(1.04); } }
+.lose-reason { color: var(--danger); font-family: var(--display); }
+/* Boss Cores, special upgrades, refunds, hero categories */
+.cores { color: #ff6fd8; font-family: var(--display); }
+.roster .cat, .cat-h { font-family: var(--display); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 10px 0 2px; }
+.cat-h { margin: 18px 0 8px; font-size: 14px; }
+.cat-empty { padding: 4px 2px; }
+.meta-h { display: flex; align-items: center; gap: 10px; }
+.meta-h .refund { margin-left: auto; font-size: 12px; padding: 3px 10px; text-transform: none; letter-spacing: 0; }
+.special-h { color: #ff6fd8; }
+.meta-row.special b.rar-mythic { color: #ff6fd8; } .meta-row.special b.rar-legendary { color: var(--gold); }
+.meta-row.special b.rar-secret { background: linear-gradient(90deg, #4fd8e8, #b07cff, #ff6fd8); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.rar-mythic { color: #ff6fd8; }
