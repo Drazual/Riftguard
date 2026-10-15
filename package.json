@@ -6,12 +6,44 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview --host"
-  },
-  "dependencies": {
-    "phaser": "3.80.1"
+    "preview": "vite preview --host",
+    "desktop": "vite build && electron .",
+    "dist:win": "vite build && electron-builder --win portable nsis"
   },
   "devDependencies": {
-    "vite": "5.4.10"
+    "vite": "5.4.10",
+    "electron": "31.7.7",
+    "electron-builder": "25.1.8",
+    "phaser": "3.80.1"
+  },
+  "main": "electron/main.cjs",
+  "description": "Roguelike tower defense game",
+  "author": "Drazual",
+  "build": {
+    "appId": "com.drazual.riftguard",
+    "productName": "Riftguard",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "Riftguard-${version}-portable.exe"
+    },
+    "nsis": {
+      "artifactName": "Riftguard-${version}-setup.exe",
+      "oneClick": true,
+      "createDesktopShortcut": true
+    }
   }
 }

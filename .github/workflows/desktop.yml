@@ -1,0 +1,32 @@
+name: Desktop build
+
+# Builds the Windows app on every push to main and publishes it as a GitHub release.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:win
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Riftguard build ${{ github.run_number }}
+          body: |
+            Download **Riftguard-*-setup.exe** to install the game with a desktop shortcut, or **Riftguard-*-portable.exe** to play without installing.
+            Built from ${{ github.sha }}.
+          files: |
+            release/*-setup.exe
+            release/*-portable.exe
