@@ -1,20 +1,20 @@
 {
   "name": "riftguard",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
     "desktop": "vite build && electron .",
-    "dist:win": "vite build && electron-builder --win portable nsis"
+    "dist:win": "vite build && electron-builder --win portable nsis --publish never"
   },
   "devDependencies": {
-    "vite": "5.4.10",
     "electron": "31.7.7",
     "electron-builder": "25.1.8",
-    "phaser": "3.80.1"
+    "phaser": "3.80.1",
+    "vite": "5.4.10"
   },
   "main": "electron/main.cjs",
   "description": "Roguelike tower defense game",
@@ -44,6 +44,16 @@
       "artifactName": "Riftguard-${version}-setup.exe",
       "oneClick": true,
       "createDesktopShortcut": true
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Drazual",
+        "repo": "Riftguard"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.3.9"
   }
 }
