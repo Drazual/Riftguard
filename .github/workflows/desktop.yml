@@ -1,0 +1,45 @@
+name: Desktop build
+
+# Builds the Windows app on every push to main and publishes it as a GitHub release.
+# The installed game checks the latest release on launch and updates itself.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # Each build gets a higher version (major.minor from package.json, patch = run number)
+      # so installed copies see it as an update.
+      - name: Set build version
+        id: version
+        shell: bash
+        run: |
+          V="$(node -p "require('./package.json').version.split('.').slice(0, 2).join('.')").${{ github.run_number }}"
+          npm pkg set version="$V"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - run: npm run dist:win
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Riftguard ${{ steps.version.outputs.version }}
+          body: |
+            Download **Riftguard-${{ steps.version.outputs.version }}-setup.exe** to install the game. The installed game updates itself when you open it.
+            **Riftguard-${{ steps.version.outputs.version }}-portable.exe** plays without installing, but does not update itself.
+            Built from ${{ github.sha }}.
+          files: |
+            release/*-setup.exe
+            release/*-setup.exe.blockmap
+            release/latest.yml
+            release/*-portable.exe

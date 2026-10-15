@@ -4,12 +4,25 @@ A roguelike tower defense game. You control a hero who fights, blocks the path a
 
 Built with [Phaser 3](https://phaser.io) and [Vite](https://vitejs.dev).
 
-## Run it
+## Play on Windows
+
+Go to [the latest release](https://github.com/Drazual/riftguard/releases/latest) and download:
+
+- **Riftguard-x.y.z-setup.exe** to install the game with a desktop shortcut. The installed game checks for updates every time you open it, installs any it finds, then starts.
+- **Riftguard-x.y.z-portable.exe** to play without installing. This one does not update itself.
+
+Windows may show a "Windows protected your PC" warning because the app isn't code-signed yet. Click **More info**, then **Run anyway**. Press F11 for fullscreen.
+
+A new release is built automatically every time `main` changes. Each build's version is the `major.minor` from `package.json` plus the build number, so installed copies always see it as newer. Updates are downloaded from this repo's releases, so the repo (or wherever releases are published) must be public.
+
+## Run it from source
 
 ```bash
 npm install
 npm run dev      # local dev server with hot reload
 npm run build    # production build in dist/
+npm run desktop  # run as a desktop app (Electron)
+npm run dist:win # build the Windows .exe files into release/
 ```
 
 ## Project layout
@@ -17,6 +30,9 @@ npm run build    # production build in dist/
 - `index.html`: page layout (HUD, build bar, panels)
 - `src/main.js`: the whole game for now (data, rules, rendering)
 - `src/style.css`: UI styles
+- `electron/main.cjs`: desktop app window and update check
+- `electron/splash.html`: the "Checking for updates" screen
+- `.github/workflows/desktop.yml`: builds and publishes the Windows app
 - `docs/game-design.md`: design notes
 
 ## Roadmap

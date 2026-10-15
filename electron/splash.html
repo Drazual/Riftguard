@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Riftguard</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0f1c; color: #cfe3ff; font-family: 'Segoe UI', sans-serif; user-select: none; -webkit-app-region: drag; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; border: 1px solid #2a3a66; box-sizing: border-box; }
+  h1 { margin: 0; font-size: 34px; letter-spacing: 6px; color: #8fd0ff; text-shadow: 0 0 12px #3a8dff; }
+  #status { font-size: 14px; color: #9fb3d9; min-height: 18px; }
+  .bar { width: 260px; height: 6px; background: #18223d; border-radius: 3px; overflow: hidden; }
+  #fill { width: 0; height: 100%; background: linear-gradient(90deg, #3a8dff, #b46cff); transition: width .2s; }
+</style>
+</head>
+<body>
+  <h1>RIFTGUARD</h1>
+  <div id="status">Checking for updates…</div>
+  <div class="bar"><div id="fill"></div></div>
+  <script>
+    window.setStatus = (text, percent) => {
+      document.getElementById('status').textContent = text;
+      if (percent != null) document.getElementById('fill').style.width = percent + '%';
+    };
+  </script>
+</body>
+</html>
