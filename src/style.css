@@ -216,3 +216,5 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .codex.enemies li { display: block; }
 .codex.enemies li div { display: grid; gap: 2px; }
 .codex.enemies li em { color: var(--muted); font-size: 12px; font-style: normal; }
+.tipname { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
+.bar button.on { border-color: var(--gold); color: var(--gold); }
