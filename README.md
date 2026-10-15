@@ -1,6 +1,6 @@
 # Riftguard
 
-A roguelike tower defense game. You control a hero who fights, blocks the path and builds towers. Towers level up to 13 along 3 of their 5 upgrade paths, ascend into a form named after those paths, and merge into hybrids with unique fusion effects. Boss waves open a shop and drop Boss Cores for Special upgrades, and Rift Shards earned each run buy permanent hero upgrades.
+A roguelike tower defense game. You control a hero who fights, blocks the path and builds towers. Towers level up to 13 along 3 of their 5 upgrade paths, ascend into a form named after those paths, and merge into hybrids with unique fusion effects. Enemies bring armor, speed and boss powers that stun your towers. Before each run you pick a hero and 5 towers. Boss waves open a shop and drop Boss Cores for Special upgrades, and Rift Shards earned each run buy permanent hero and tower upgrades.
 
 See [CHANGELOG.md](CHANGELOG.md) for everything that has changed in each version.
 
