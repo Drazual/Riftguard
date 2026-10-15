@@ -2,6 +2,14 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.9.1: Sniper aim point, hold position and ability tooltips
+
+- **Sniper aim point:** point at the board and press **F**. Piercing Shot then always fires toward that spot, wherever the Sniper stands. Press F on the point (or click the Aim button) to clear it.
+- **Hold position:** the Vanguard and Sniper can press **H** to lock themselves in place so a stray click or key never moves them.
+- **Execution Round:** its cooldown refund from kills is capped at 40% per shot, so Piercing Shot can't refresh itself forever.
+- **Vanguard:** blocks every enemy that reaches it, with no limit. The Bulwark upgrade (+1 block) is gone, and Aegis Core now gives +150 max HP instead of +2 blocks.
+- **Ability tooltips:** hover any hero ability name (hero panel, ability button, Heroes page, loadout) for a box with its exact numbers, cooldown and upgrades.
+
 ## 0.9: Tougher enemies, new towers, loadouts and Rift Maelstrom
 
 ### Enemies

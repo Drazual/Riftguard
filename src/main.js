@@ -239,10 +239,13 @@ const ENEMY_INFO = {
 };
 
 // ---------- heroes ----------
+// The Vanguard has no block limit: it holds every enemy that walks into it.
+const ALL_BLOCK = 999;
+const blockText = n => n >= ALL_BLOCK ? 'All' : String(n);
 const HEROES = {
   vanguard: { name: 'Vanguard', role: 'Defensive', cat: 'defensive', color: 0x5fe39a, css: '#5fe39a',
-    desc: 'A walking fortress. Huge HP, blocks 3 enemies at once and stuns crowds.',
-    stats: { hp: 340, dmg: 8, rate: 0.7, range: 80, block: 3, armor: 0.1, regen: 5, speed: 135 },
+    desc: 'A walking fortress. Huge HP, blocks every enemy that reaches it and stuns crowds.',
+    stats: { hp: 340, dmg: 8, rate: 0.7, range: 80, block: ALL_BLOCK, armor: 0.1, regen: 5, speed: 135 },
     ability: { id: 'slam', name: 'Shield Slam', cd: 18, dmg: 30, r: 100, stun: 1.5 } },
   striker:  { name: 'Striker', role: 'Offensive', cat: 'offensive', color: 0xff8a7a, css: '#ff8a7a',
     desc: 'Fast and deadly but fragile. Shreds enemies and blasts groups with Rift Nova.',
@@ -260,11 +263,43 @@ const HEROES = {
 const isUnlocked = id => !HEROES[id].unlock || !!META.unlocked[id];
 const CATEGORIES = [['offensive', 'Offensive'], ['defensive', 'Defensive'], ['support', 'Support'], ['special', 'Special']];
 const heroesIn = cat => Object.entries(HEROES).filter(([, h]) => h.cat === cat);
+// Hover box for a hero's ability: exact numbers, what each upgrade adds, and the controls.
+function abilityTipHtml(h) {
+  const a = h.ab, rows = [];
+  if (a.id === 'slam') rows.push(['Damage', a.dmg.toFixed(0)], ['Radius', (a.r * (a.magnet ? 1.5 : 1)).toFixed(0)], ['Stun', a.stun.toFixed(1) + 's']);
+  if (a.id === 'nova') rows.push(['Damage', a.dmg.toFixed(0)], ['Radius', a.r.toFixed(0)]);
+  if (a.id === 'overclock') rows.push(['Radius', a.r.toFixed(0)], ['Towers fire faster', pct(a.power)], ['Lasts', a.dur.toFixed(1) + 's']);
+  if (a.id === 'pierce') rows.push(['Damage per enemy', h.dmg ? (h.dmg * a.mult).toFixed(0) + ' (' + a.mult.toFixed(1) + '× hero damage)' : a.mult.toFixed(1) + '× hero damage'], ['Width', (a.w * (a.rail ? 3 : 1)).toFixed(0)]);
+  rows.push(['Cooldown', a.cd.toFixed(1) + 's']);
+  const mods = ABILITY_MODS.filter(m => a[m.id]);
+  const extra = { slam: h.taunt ? `After the slam, enemies within 120 attack you for ${h.taunt.toFixed(1)}s (bosses half).` : '',
+    pierce: 'Press F to set an aim point and it always fires that way. Press F on the point to clear it.',
+    overclock: '', nova: '' }[a.id];
+  return `<b>${a.name}</b> <span class="tip-c">Q</span><p>${abilityText(h)}</p>
+    <div class="tip-s">${rows.map(([k, v]) => `${k}: <b>${v}</b>`).join(' · ')}</div>
+    ${mods.length ? `<ul>${mods.map(m => `<li><b class="rar-mythic">${m.name}:</b> ${m.desc}</li>`).join('')}</ul>` : ''}
+    ${extra ? `<div class="tip-s">${extra}</div>` : ''}`;
+}
+function tipFor(key) {
+  if (key === 'ability' && S && S.hero) return abilityTipHtml(S.hero);
+  if (key.startsWith('ability:')) { const d = HEROES[key.slice(8)]; return abilityTipHtml({ ab: Object.assign({}, d.ability), dmg: d.stats.dmg, taunt: 0 }); }
+  if (key.startsWith('mod:')) { const m = ABILITY_MODS.find(x => x.id === key.slice(4)); return m ? `<b>${m.name}</b><p>${m.desc}</p>` : ''; }
+  if (key === 'hold') return `<b>Hold position</b> <span class="tip-c">H</span><p>Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.</p>`;
+  if (key === 'aim') return `<b>Aim point</b> <span class="tip-c">F</span><p>Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.</p>`;
+  return '';
+}
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest && e.target.closest('[data-tip]');
+  if (!el) return;
+  const html = tipFor(el.dataset.tip); if (!html) return;
+  showTip(html, el.getBoundingClientRect(), el.closest('#buildBar') ? 'above' : 'below');
+  el.addEventListener('mouseleave', hideTip, { once: true });
+});
 function abilityText(h) {
   const a = h.ab;
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
   if (a.id === 'nova') return `Deals ${a.dmg.toFixed(0)} damage to every enemy within ${a.r.toFixed(0)}.`;
-  if (a.id === 'pierce') return `Fires a round through every enemy in a line toward the lead enemy for ${a.mult.toFixed(1)}× damage.`;
+  if (a.id === 'pierce') return `Fires a round through every enemy in a line toward your aim point (or the lead enemy) for ${a.mult.toFixed(1)}× damage.`;
   return `Towers within ${a.r.toFixed(0)} fire ${pct(a.power)} faster for ${a.dur.toFixed(1)}s.`;
 }
 
@@ -304,7 +339,6 @@ const PERKS = [
   { id: 'boots',   cls: 'any', name: 'Rift Boots',    m: 0.15, desc: m => `+${pct(m)} move speed.`, apply: (h, m) => h.speed *= 1 + m },
   // Vanguard
   { id: 'taunt',   cls: 'vanguard', name: 'Taunt',         m: 2,    desc: m => `After Shield Slam, enemies within 120 stop and attack you for ${m.toFixed(1)}s.`, apply: (h, m) => h.taunt += m },
-  { id: 'bulwark', cls: 'vanguard', name: 'Bulwark',       m: 1,    desc: m => `Block ${Math.max(1, Math.round(m))} more enemy at a time.`, apply: (h, m) => h.block += Math.max(1, Math.round(m)) },
   { id: 'shell',   cls: 'vanguard', name: 'Hardlight Shell', m: 0.08, desc: m => `Take ${pct(m)} less damage (up to 75%).`, apply: (h, m) => h.armor = Math.min(0.75, h.armor + m) },
   { id: 'thorns',  cls: 'vanguard', name: 'Thorn Field',   m: 8,    desc: m => `Enemies you block take ${Math.round(m)} damage per second.`, apply: (h, m) => h.thorns += m },
   { id: 'seismic', cls: 'vanguard', name: 'Seismic Slam',  m: 0.3,  desc: m => `Shield Slam deals +${pct(m)} damage.`, apply: (h, m) => h.ab.dmg *= 1 + m },
@@ -358,11 +392,11 @@ const ABILITY_MODS = [
   AM('sniper',   'rail',    'Railgun',         'Piercing Shot is 3× wider and leaves a burning line for 3s.'),
   AM('sniper',   'bounce',  'Ricochet Round',  'Piercing Shot bounces through 5 more enemies after its line.'),
   AM('sniper',   'cluster', 'Cluster Round',   'Every enemy Piercing Shot hits explodes for 40% damage around it.'),
-  AM('sniper',   'execR',   'Execution Round', 'Piercing Shot kills non-boss enemies below 30% HP, and each kill refunds 10% of its cooldown.'),
+  AM('sniper',   'execR',   'Execution Round', 'Piercing Shot kills non-boss enemies below 30% HP, and each kill refunds 10% of its cooldown (up to 40% per shot).'),
 ];
 // Unique upgrades that only appear at Legendary (per hero) or Secret (any hero).
 const UNIQUES = [
-  { id: 'aegis',  cls: 'vanguard', rarity: 'legendary', name: 'Aegis Core',     desc: 'Block 2 more enemies, take 20% less damage and gain 100 max HP.', apply: h => { h.block += 2; h.armor = Math.min(0.75, h.armor + 0.2); h.maxHp += 100; h.hp = h.maxHp; } },
+  { id: 'aegis',  cls: 'vanguard', rarity: 'legendary', name: 'Aegis Core',     desc: 'Take 20% less damage and gain 150 max HP.', apply: h => { h.maxHp += 50; h.armor = Math.min(0.75, h.armor + 0.2); h.maxHp += 100; h.hp = h.maxHp; } },
   { id: 'unbreak',cls: 'vanguard', rarity: 'legendary', name: 'Unbreakable',    desc: 'Once per wave, a fatal blow leaves you at full HP instead.', apply: h => h.unbreakable = true },
   { id: 'exec',   cls: 'striker',  rarity: 'legendary', name: 'Executioner',    desc: '+20% damage. Your hits instantly finish non-boss enemies below 15% HP.', apply: h => { h.dmg *= 1.2; h.execute = 0.15; } },
   { id: 'storm',  cls: 'striker',  rarity: 'legendary', name: 'Bullet Storm',   desc: 'Every 3rd attack hits every enemy in range.', apply: h => h.bulletStorm = 3 },
@@ -711,10 +745,10 @@ function showHeroes(sel) {
         <div class="stats">
           <div><span>HP</span>${st.hp}</div><div><span>Damage</span>${st.dmg}</div>
           <div><span>Attacks/s</span>${(1 / st.rate).toFixed(2)}</div><div><span>Range</span>${st.range >= 9999 ? 'Whole map' : st.range}</div>
-          <div><span>Blocks</span>${st.block}</div><div><span>Move speed</span>${st.speed}</div>
+          <div><span>Blocks</span>${blockText(st.block)}</div><div><span>Move speed</span>${st.speed}</div>
           ${st.brace ? `<div><span>Brace time</span>${st.brace}s</div>` : ''}${st.crit ? `<div><span>Crit chance</span>${pct(st.crit)}</div>` : ''}
         </div>
-        <p class="help"><b style="color:var(--text)">${d.ability.name}</b> (${d.ability.cd}s): ${abilityText({ ab: d.ability })}</p>
+        <p class="help"><b class="tipname" data-tip="ability:${sel}" style="color:var(--text)">${d.ability.name}</b> (${d.ability.cd}s): ${abilityText({ ab: d.ability })}</p>
         ${open ? `<h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
           <h3 class="meta-h special-h">Special upgrades · Boss Cores ${refundBtn('special', sel)}</h3>
           <p class="help">Bought once with Boss Cores, which bosses drop. Game-changing, and expensive.</p>
@@ -852,8 +886,8 @@ function showHeroSelect() {
       ${CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => { const open = isUnlocked(k);
         return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'} ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
         <small class="path" style="color:${d.css}">${d.role}</small><b style="color:${d.css}">${d.name}</b><span>${d.desc}</span>
-        <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + d.stats.block}</span>
-        ${open ? `<em class="reward">Ability: ${d.ability.name}</em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('')}
+        <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase()}</span>
+        ${open ? `<em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${d.ability.name}</span></em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('')}
       <h3 class="cat-h">Towers · ${picks.length}/${need}</h3>
       <div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const open = towerUnlocked(k), on = picks.includes(k);
         return `<button class="choice mapcard tower-pick ${open ? '' : 'locked'} ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
@@ -967,7 +1001,7 @@ const FMT = { n: fmtN, p: v => Math.round(v * 100) + '%', s: v => v.toFixed(1) +
 const HERO_STATS = [
   ['Damage', h => h.dmg, 'n'], ['Attacks', h => 1 / h.rate, 'r'], ['Max HP', h => h.maxHp, 'n'], ['Armor', h => h.armor, 'p'], ['Regen/s', h => h.regen, 'n'],
   ['Crit chance', h => h.crit, 'p'], ['Crit damage', h => h.critDmg, 'p'], ['Targets', h => 1 + h.multi, 'n'], ['Range', h => Math.min(9999, h.range), 'n'],
-  ['Move speed', h => h.speed, 'n'], ['Blocks', h => h.block, 'n'], ['Respawn', h => h.respawn, 's'], ['Build range', h => h.buildRange, 'n'],
+  ['Move speed', h => h.speed, 'n'], ['Blocks', h => Math.min(h.block, ALL_BLOCK - 1), 'n'], ['Respawn', h => h.respawn, 's'], ['Build range', h => h.buildRange, 'n'],
   ['Tower aura', h => h.aura, 'p'], ['Aura reach', h => h.auraRange, 'n'], ['Aura slow', h => h.auraSlow, 'p'], ['Heal per kill', h => h.siphon, 'n'],
   ['Hero kill gold', h => h.bounty, 'n'], ['Kill gold (all)', h => h.tithe, 'n'], ['Thorns/s', h => h.thorns, 'n'], ['Taunt', h => h.taunt, 's'],
   ['Momentum per kill', h => h.momentum, 'p'], ['Free level-ups near you', h => h.rapid, 'n'], ['Spotter', h => h.spotter, 'p'], ['Boss damage', h => h.headhunter, 'p'],
@@ -1415,7 +1449,7 @@ function heroDmg() { return S.hero.dmg * (S.mode.challenge === 'lone' ? 2 : 1); 
 function useAbility() {
   const h = S && S.hero, a = h && h.ab;
   if (!h || h.ko > 0 || a.t > 0 || S.over || S.paused) return;
-  if (a.id === 'pierce' && !S.enemies.some(e => !e.dead)) return toast('No target for Piercing Shot.');
+  if (a.id === 'pierce' && !S.aim && !S.enemies.some(e => !e.dead)) return toast('No target for Piercing Shot. Press F to set an aim point.');
   a.t = a.cd;
   castAbility(false);
 }
@@ -1474,11 +1508,12 @@ function riftNova(h, a) {
     if (tough) S.delayed.push({ at: S.time + 0.25, fn: () => blast(tough.x, tough.y, a.r * 0.8, a.dmg, 0) });
   }
 }
-// A round through every enemy on the line from the hero toward the lead enemy.
+// A round through every enemy on the line from the hero toward the aim point (F), or the lead enemy if none is set.
 function piercingShot(h, a) {
   const lead = S.enemies.filter(e => !e.dead).sort((x, y) => (y.boss - x.boss) || (y.d - x.d))[0];
-  if (!lead) return;
-  const dx = lead.x - h.x, dy = lead.y - h.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
+  const goal = S.aim || lead;
+  if (!goal) return;
+  const dx = goal.x - h.x, dy = goal.y - h.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
   const w = a.w * (a.rail ? 3 : 1), base = heroDmg() * a.mult, hit = [];
   for (const e of S.enemies.filter(e => !e.dead)) {
     const along = (e.x - h.x) * ux + (e.y - h.y) * uy, off = Math.abs((e.x - h.x) * uy - (e.y - h.y) * ux);
@@ -1497,6 +1532,7 @@ function piercingShot(h, a) {
   if (a.rail) S.zones.push({ line: true, x1: h.x, y1: h.y, x2: ex, y2: ey, r: w, t: 3, T: 3, dps: heroDmg() * 0.8, slow: 0, color: 0xffd36e });
   if (a.bounce) {
     let from = hit.length ? hit.reduce((p, q) => p.d > q.d ? p : q) : lead; const done = new Set(hit);
+    if (!from) from = { x: S.aim.x, y: S.aim.y };
     for (let i = 0; i < 5; i++) {
       const n = S.enemies.filter(e => !e.dead && !done.has(e)).sort((p, q) => Math.hypot(p.x - from.x, p.y - from.y) - Math.hypot(q.x - from.x, q.y - from.y))[0];
       if (!n) break;
@@ -1504,7 +1540,7 @@ function piercingShot(h, a) {
       damage(n, base * 0.6); done.add(n); from = n;
     }
   }
-  if (a.execR && kills) a.t = Math.max(0, a.t - a.cd * 0.1 * kills);
+  if (a.execR && kills) a.t = Math.max(0, a.t - a.cd * Math.min(0.4, 0.1 * kills));
   shake(a.rail ? 0.012 : 0.005, 200); sfx('snipe');
 }
 function overchargeBurst() {
@@ -1576,7 +1612,7 @@ function update(dt) {
   } else {
     const kx = (held.has('d') || held.has('arrowright') ? 1 : 0) - (held.has('a') || held.has('arrowleft') ? 1 : 0);
     const ky = (held.has('s') || held.has('arrowdown') ? 1 : 0) - (held.has('w') || held.has('arrowup') ? 1 : 0);
-    if (keyMove && (kx || ky)) {
+    if (keyMove && (kx || ky) && !h.hold) {
       const n = Math.hypot(kx, ky), step = h.speed * dt;
       h.x = Math.max(10, Math.min(W - 10, h.x + kx / n * step)); h.y = Math.max(10, Math.min(H - 10, h.y + ky / n * step));
       h.tx = null; S.pendingBuild = null;
@@ -1969,8 +2005,27 @@ function cancelPlacing() {
   toast('Cancelled.'); renderBuildBar(); renderInspector();
   return true;
 }
+// Hold position (H): the Vanguard and Sniper can lock themselves in place so a stray click never moves them.
+const canHold = h => h.cls === 'vanguard' || h.cls === 'sniper';
+function holdNote() { toast('Holding position. Press H to move again.'); }
+function toggleHold() {
+  const h = S && S.hero; if (!h || S.over || !canHold(h)) return;
+  h.hold = !h.hold; h.tx = null; S.pendingBuild = null; held.clear();
+  toast(h.hold ? 'Holding position: your hero won’t move until you press H again.' : 'Your hero can move again.');
+  renderBuildBar(); renderHero();
+}
+// Aim point (F): Piercing Shot always fires toward it. Press F near it again (or on the button) to clear it.
+function toggleAim() {
+  const h = S && S.hero; if (!h || S.over || h.cls !== 'sniper') return;
+  const p = S.pointer;
+  if (S.aim && (!p || Math.hypot(p.x - S.aim.x, p.y - S.aim.y) < 30)) { S.aim = null; toast('Aim point cleared: Piercing Shot aims at the lead enemy.'); }
+  else if (p) { S.aim = { x: p.x, y: p.y }; toast('Aim point set: Piercing Shot fires toward it. Press F on it to clear.'); }
+  else return toast('Point at the board, then press F to set an aim point.');
+  renderBuildBar();
+}
 function moveHero(x, y) {
   if (S.hero.ko) return;
+  if (S.hero.hold) return holdNote();
   S.pendingBuild = null;
   S.hero.tx = Math.max(10, Math.min(W - 10, x)); S.hero.ty = Math.max(10, Math.min(H - 10, y));
 }
@@ -1993,6 +2048,7 @@ function handleClick(x, y, touch) {
     if (why) return toast(why);
     if (inBuildRange(c, r)) return placeTower(c, r, S.build);
     const h = S.hero, cx = c * C + C / 2, cy = r * C + C / 2, d = Math.hypot(h.x - cx, h.y - cy), stop = h.buildRange * 0.8;
+    if (h.hold) return toast('Out of build range, and your hero is holding position (H).');
     h.tx = cx + (h.x - cx) / d * stop; h.ty = cy + (h.y - cy) / d * stop;
     S.pendingBuild = { c, r, type: S.build };
     return;
@@ -2065,7 +2121,10 @@ function renderBuildBar() {
   bar.innerHTML = S.loadout.map((k, i) => { const d = TOWERS[k];
     return `<button class="tbtn ${S.build === k ? 'on' : ''}" data-k="${k}" ${S.gold < towerCost(k) ? 'disabled' : ''}>
       <span class="sw" style="background:${d.css}"></span>${d.name}<span class="c">${towerCost(k)}</span><kbd>${i + 1}</kbd></button>`; }).join('') +
-    `<button id="abilityBtn" class="ability">${S.hero.ab.name} <kbd>Q</kbd></button><span class="spacer"></span>
+    `<button id="abilityBtn" class="ability" data-tip="ability">${S.hero.ab.name} <kbd>Q</kbd></button>` +
+    (canHold(S.hero) ? `<button id="holdBtn" class="${S.hero.hold ? 'on' : ''}" data-tip="hold">${S.hero.hold ? 'Holding' : 'Hold'} <kbd>H</kbd></button>` : '') +
+    (S.hero.cls === 'sniper' ? `<button id="aimBtn" class="${S.aim ? 'on' : ''}" data-tip="aim">${S.aim ? 'Aim set' : 'Aim'} <kbd>F</kbd></button>` : '') +
+    `<span class="spacer"></span>
      <button id="speedBtn">${S.speed}×</button>
      <button class="go" id="waveBtn" ${S.waveActive || S.over ? 'disabled' : ''}>${S.waveActive ? 'Wave ' + S.wave + modeTag : 'Start wave ' + (S.wave + 1) + modeTag + ' <kbd>Space</kbd>'}</button>`;
   bar.querySelectorAll('.tbtn').forEach(b => {
@@ -2074,6 +2133,8 @@ function renderBuildBar() {
     b.onmouseleave = hideTip;
   });
   $('abilityBtn').onclick = useAbility;
+  if ($('holdBtn')) $('holdBtn').onclick = toggleHold;
+  if ($('aimBtn')) $('aimBtn').onclick = () => { if (S.aim) { S.aim = null; toast('Aim point cleared.'); renderBuildBar(); } else toast('Point at the board and press F to set an aim point.'); };
   abilityMeter();
   $('speedBtn').onclick = () => { S.speed = S.speed === 3 ? 1 : S.speed + 1; renderBuildBar(); };
   $('waveBtn').onclick = startWave;
@@ -2184,13 +2245,13 @@ function renderHero() {
   const heroics = HEROICS.filter(x => S.heroics[x.id]).map(x => `<span class="tag rar-heroic" title="${x.desc(S.heroics[x.id])}">${x.name} ${'I'.repeat(S.heroics[x.id])}</span>`).join('');
   const relics = S.relics.map(r => `<span class="tag relic ${r.rarity ? 'rar-' + r.rarity : ''}" title="${r.desc}">${r.name}</span>`).join('');
   $('heroCard').innerHTML = `<h3 style="color:${d.css}">${d.name} · ${d.role} · Lv ${h.lvl}${h.ko ? ' · Knocked out' : ''}</h3>
-    <p class="help"><b style="color:var(--text)">${h.ab.name}</b> (${h.ab.cd.toFixed(0)}s): ${abilityText(h)}${ABILITY_MODS.some(m => h.ab[m.id]) ? `<br><b class="rar-mythic">Upgrades:</b> ${ABILITY_MODS.filter(m => h.ab[m.id]).map(m => m.name).join(', ')}` : ''}</p>
+    <p class="help"><b class="tipname" data-tip="ability" style="color:var(--text)">${h.ab.name}</b> (${h.ab.cd.toFixed(0)}s): ${abilityText(h)}${ABILITY_MODS.some(m => h.ab[m.id]) ? `<br><b class="rar-mythic">Upgrades:</b> ${ABILITY_MODS.filter(m => h.ab[m.id]).map(m => `<span class="tipname" data-tip="mod:${m.id}">${m.name}</span>`).join(', ')}` : ''}${h.hold ? '<br><b style="color:var(--gold)">Holding position (H)</b>' : ''}</p>
     <div class="stats">
       <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div>
       <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${h.range >= 9999 ? 'Whole map' : f(h.range)}</div>
       <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit chance</span>${pct(h.crit)}</div>
       <div><span>Crit damage</span>${pct(h.critDmg)}</div>${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}
-      <div><span>Armor</span>${pct(h.armor)}</div><div><span>Blocks</span>${h.block}</div>
+      <div><span>Armor</span>${pct(h.armor)}</div><div><span>Blocks</span>${blockText(h.block)}</div>
       <div><span>Regen/s</span>${h.regen.toFixed(1)}</div><div><span>Respawn</span>${h.respawn.toFixed(1)}s</div>
       <div><span>Build range</span>${f(h.buildRange)}</div><div><span>Move speed</span>${f(h.speed)}</div>
       ${h.aura ? `<div><span>Tower aura</span>+${pct(h.aura)}</div>` : ''}
@@ -2328,6 +2389,12 @@ function draw(g) {
   }
 
   if (h.tx !== null && !h.ko) g.lineStyle(1, hc, 0.5).strokeCircle(h.tx, h.ty, 6);
+  if (S.aim) {
+    const a = S.aim, ready = !(h.ab.t > 0);
+    if (!h.ko) { const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy) || 1; g.lineStyle(1, 0xffd36e, ready ? 0.35 : 0.15).lineBetween(h.x, h.y, h.x + dx / d * 1400, h.y + dy / d * 1400); }
+    g.lineStyle(2, 0xffd36e, 0.95).strokeCircle(a.x, a.y, 10);
+    g.lineBetween(a.x - 15, a.y, a.x - 5, a.y); g.lineBetween(a.x + 5, a.y, a.x + 15, a.y); g.lineBetween(a.x, a.y - 15, a.x, a.y - 5); g.lineBetween(a.x, a.y + 5, a.x, a.y + 15);
+  }
   if (h.ko) {
     g.fillStyle(0x8d95b8, 0.3).fillCircle(h.x, h.y, 13);
     g.lineStyle(3, hc, 0.8).beginPath();
@@ -2337,6 +2404,7 @@ function draw(g) {
     if (HX.wither) g.fillStyle(0x7a2e5a, 0.12).fillCircle(h.x, h.y, 90 + 20 * HX.wither);
     if (h.range < 9999) g.lineStyle(1, hc, 0.15).strokeCircle(h.x, h.y, h.range);
     if (h.brace) { const ready = h.braceT >= h.brace; g.lineStyle(ready ? 3 : 2, ready ? 0xffd36e : 0x8d95b8, ready ? 0.95 : 0.6).beginPath(); g.arc(h.x, h.y, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (h.braceT / h.brace)); g.strokePath(); }
+    if (h.hold) { g.lineStyle(2, 0xf2c14e, 0.9).strokeRect(h.x - 17, h.y - 17, 34, 34); }
     g.fillStyle(hc, 0.2).fillCircle(h.x, h.y, 18);
     g.fillStyle(hc, 1).fillCircle(h.x, h.y, 12);
     g.fillStyle(0x0b0f1c, 1).fillCircle(h.x, h.y, 5);
@@ -2421,6 +2489,8 @@ window.addEventListener('keydown', e => {
   if (k) selectBuild(k);
   else if (lk === 'r') { if (!S.paused && !S.over && !cancelPlacing()) sellSelected(); }
   else if (lk === 'q') useAbility();
+  else if (lk === 'h') toggleHold();
+  else if (lk === 'f') toggleAim();
   else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (!e.repeat) startWave(); }
   else if (e.key === 'Escape') {
     if (S.build || S.mergeFrom || S.sel || S.pendingBuild) { S.build = null; S.mergeFrom = null; S.sel = null; S.pendingBuild = null; renderBuildBar(); renderInspector(); }
