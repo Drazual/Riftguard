@@ -58,48 +58,93 @@ const TOWERS = {
   tesla:  { name: 'Tesla Coil', key: '4', cost: 90, dmg: 12, rate: 1.1, range: 105, chain: 3, color: 0x4fd8e8, css: '#4fd8e8',
     info: 'Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies.' },
 };
-// Each tower has the same 5 upgrade options at every level. Options stack up to their max rank.
-// Levels 5 and 10 also unlock the tower's bonus (TOWER_CAPS) automatically.
-const TOWER_UPS = {
+// Tower paths. Every tower shows the same 5 paths. Each level-up puts a point into one path (max 4 points),
+// but a tower can only ever use 3 different paths (4 when your hero is the Oracle). The 4th point in a path
+// unlocks its mastery. At level 12 the tower ascends into a form named after the paths you chose.
+const P = (id, name, tag, words, desc, rank, mastery) => ({ id, name, tag, adj: words[0], noun: words[1], title: words[2], desc, rank, mastery });
+const TOWER_PATHS = {
   arcane: [
-    { id: 'runes',  name: 'Sharpened Runes', desc: '+25% damage.', max: 5, apply: t => t.dmg *= 1.25 },
-    { id: 'twin',   name: 'Twin Cast',       desc: 'Shoots 1 more enemy at the same time.', max: 2, apply: t => t.multi += 1 },
-    { id: 'focus',  name: 'Arcane Focus',    desc: 'Each hit in a row on the same enemy deals +12% more damage, up to 5 stacks.', max: 2, apply: t => t.ramp += 0.12 },
-    { id: 'surge',  name: 'Mana Surge',      desc: 'Every 5th shot deals triple damage.', max: 1, apply: t => t.surge = 5 },
-    { id: 'quick',  name: 'Quickcast',       desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
+    P('runes', 'Sharpened Runes', 'power', ['Runic', 'Glyph', 'Runes'], '+20% damage per point.', t => t.dmg *= 1.2,
+      { name: 'Arcane Mark', desc: 'Hits mark enemies to take +20% damage from everything for 2s.', apply: t => t.mark += 0.2 }),
+    P('twin', 'Twin Cast', 'multi', ['Twin', 'Prism', 'Twins'], 'Points 1 and 3: shoot 1 more enemy. Points 2 and 4: +10% damage.', (t, r) => r % 2 ? t.multi += 1 : t.dmg *= 1.1,
+      { name: 'Prism Split', desc: 'Each hit splits to 2 nearby enemies for 40% damage.', apply: t => t.prism += 2 }),
+    P('focus', 'Arcane Focus', 'precision', ['Focused', 'Lens', 'Focus'], 'Each hit in a row on the same enemy deals +10% more damage per point (5 stacks).', t => t.ramp += 0.1,
+      { name: 'Executioner', desc: 'Hits finish off non-boss enemies below 12% HP.', apply: t => t.execute += 0.12 }),
+    P('surge', 'Mana Surge', 'arcane', ['Surging', 'Nova', 'Mana'], 'Every 5th shot deals triple damage; each point makes it come 1 shot sooner.', (t, r) => t.surge = 6 - r,
+      { name: 'Mana Nova', desc: 'Every 6th shot also blasts every enemy in range for 50% damage.', apply: t => t.nova += 0.5 }),
+    P('quick', 'Quickcast', 'speed', ['Swift', 'Repeater', 'Haste'], 'Fires 12% faster per point.', t => t.rate *= 0.88,
+      { name: 'Echo', desc: 'Every shot repeats a moment later for 40% damage.', apply: t => t.echo += 0.4 }),
   ],
   plasma: [
-    { id: 'shells', name: 'Bigger Shells',   desc: '+20% blast radius.', max: 3, apply: t => t.splash *= 1.2 },
-    { id: 'hot',    name: 'Hot Plasma',      desc: '+25% damage.', max: 5, apply: t => t.dmg *= 1.25 },
-    { id: 'burn',   name: 'Burning Ground',  desc: 'Enemies hit burn for 40% of the hit’s damage over 2s.', max: 2, apply: t => t.burn += 0.4 },
-    { id: 'auto',   name: 'Autoloader',      desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
-    { id: 'concuss',name: 'Concussive Shells', desc: 'Blasts slow enemies by 25% for 1s.', max: 1, apply: t => { t.slow = Math.max(t.slow, 0.25); t.slowDur = Math.max(t.slowDur, 1); } },
+    P('shells', 'Bigger Shells', 'burst', ['Shrapnel', 'Mortar', 'Shrapnel'], '+20% blast radius per point.', t => t.splash *= 1.2,
+      { name: 'Cluster Bomb', desc: 'Each shot also throws 2 bomblets at nearby enemies for 50% damage.', apply: t => t.cluster = 2 }),
+    P('hot', 'Hot Plasma', 'power', ['Molten', 'Cannon', 'Fire'], '+20% damage per point.', t => t.dmg *= 1.2,
+      { name: 'Orbital Strike', desc: 'Every 4th shot is a huge blast: double radius, triple damage.', apply: t => t.orbital = 4 }),
+    P('burn', 'Burning Ground', 'burn', ['Blazing', 'Pyre', 'Embers'], 'Hits burn for +30% of their damage over 2s per point.', t => t.burn += 0.3,
+      { name: 'Chain Reaction', desc: 'Enemies this tower kills explode for 20% of their max HP.', apply: t => t.deathBlast += 0.2 }),
+    P('auto', 'Autoloader', 'speed', ['Rapid', 'Autocannon', 'Haste'], 'Fires 12% faster per point.', t => t.rate *= 0.88,
+      { name: 'Double Tap', desc: 'Every shot fires again a moment later for 50% damage.', apply: t => t.echo += 0.5 }),
+    P('concuss', 'Concussive Shells', 'slow', ['Quaking', 'Hammer', 'Thunder'], 'Blasts slow enemies by 10% per point for 1s.', (t, r) => { t.slow = Math.max(t.slow, 0.1 * r); t.slowDur = Math.max(t.slowDur, 1); },
+      { name: 'Gravity Well', desc: 'Every 5th shot drags enemies near the blast 40 steps back along the path.', apply: t => t.gravity += 40 }),
   ],
   frost: [
-    { id: 'deep',   name: 'Deep Freeze',     desc: 'Slows 8% more (up to 85%).', max: 3, apply: t => t.slow = Math.min(0.85, t.slow + 0.08) },
-    { id: 'burst',  name: 'Frost Burst',     desc: 'Shots burst and chill every enemy nearby.', max: 3, apply: t => t.splash = t.splash ? t.splash * 1.2 : 35 },
-    { id: 'linger', name: 'Lingering Cold',  desc: 'Slows last 0.8s longer.', max: 3, apply: t => t.slowDur += 0.8 },
-    { id: 'shards', name: 'Ice Shards',      desc: '+50% damage.', max: 4, apply: t => t.dmg *= 1.5 },
-    { id: 'brittle',name: 'Brittle',         desc: 'Slowed enemies take 10% more damage from everything.', max: 3, apply: t => t.brittle += 0.1 },
+    P('deep', 'Deep Freeze', 'slow', ['Glacial', 'Spire', 'Winter'], 'Slows 7% more per point (up to 85%).', t => t.slow = Math.min(0.85, t.slow + 0.07),
+      { name: 'Absolute Zero', desc: 'Every enemy in range is constantly slowed by 30%.', apply: t => t.zero = Math.max(t.zero, 0.3) }),
+    P('burst', 'Frost Burst', 'burst', ['Shattering', 'Burst', 'Ice'], 'Shots burst and chill every enemy nearby; +20% burst size per point.', t => t.splash = t.splash ? t.splash * 1.2 : 35,
+      { name: 'Flash Freeze', desc: 'Every 6th shot freezes enemies solid for 1.2s.', apply: t => t.freeze = 6 }),
+    P('linger', 'Lingering Cold', 'slow', ['Lingering', 'Veil', 'Stillness'], 'Slows last 0.6s longer per point.', t => t.slowDur += 0.6,
+      { name: 'Time Lock', desc: 'Every 8th shot stuns every enemy in range for 0.6s.', apply: t => t.timeLock += 0.6 }),
+    P('shards', 'Ice Shards', 'power', ['Jagged', 'Shard', 'Shards'], '+35% damage per point.', t => t.dmg *= 1.35,
+      { name: 'Shatter', desc: 'Stunned or frozen enemies take +60% damage from this tower.', apply: t => t.shatter += 0.6 }),
+    P('brittle', 'Brittle', 'precision', ['Brittle', 'Fang', 'Frailty'], 'Slowed enemies take +8% damage from everything per point.', t => t.brittle += 0.08,
+      { name: 'Frostbite', desc: 'Hits on slowed enemies also burn them for 50% of the hit over 2s.', apply: t => t.frostfire += 0.5 }),
   ],
   tesla: [
-    { id: 'arcs',   name: 'More Arcs',       desc: 'Lightning jumps to 1 more enemy.', max: 4, apply: t => t.chain += 1 },
-    { id: 'volt',   name: 'High Voltage',    desc: '+25% damage.', max: 5, apply: t => t.dmg *= 1.25 },
-    { id: 'conduct',name: 'Conductive',      desc: 'Jumps lose less damage (+8% per jump).', max: 3, apply: t => t.chainMul = Math.min(0.95, t.chainMul + 0.08) },
-    { id: 'bank',   name: 'Capacitor Bank',  desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
-    { id: 'jump',   name: 'Arc Reach',       desc: 'Lightning can jump 25% farther.', max: 3, apply: t => t.chainReach *= 1.25 },
+    P('arcs', 'More Arcs', 'chain', ['Forked', 'Arc', 'Storms'], 'Lightning jumps to 1 more enemy per point.', t => t.chain += 1,
+      { name: 'Storm Call', desc: 'Every 4th shot calls lightning down on 3 random enemies in range.', apply: t => t.storm += 3 }),
+    P('volt', 'High Voltage', 'power', ['Charged', 'Coil', 'Voltage'], '+20% damage per point.', t => t.dmg *= 1.2,
+      { name: 'Overload', desc: 'Lightning jumps have a 15% chance to stun for 0.6s.', apply: t => t.stun = Math.max(t.stun, 0.15) }),
+    P('conduct', 'Conductive', 'chain', ['Conductive', 'Conduit', 'Currents'], 'Jumps lose 7% less damage per point.', t => t.chainMul = Math.min(0.95, t.chainMul + 0.07),
+      { name: 'Ion Burst', desc: 'Every lightning jump explodes for 30% damage around it.', apply: t => t.chainBlast += 0.3 }),
+    P('bank', 'Capacitor Bank', 'speed', ['Overclocked', 'Dynamo', 'Haste'], 'Fires 12% faster per point.', t => t.rate *= 0.88,
+      { name: 'Overcharge', desc: 'Every 10th shot deals +150% damage and stuns for 0.5s.', apply: t => t.overload += 1.5 }),
+    P('jump', 'Arc Reach', 'chain', ['Leaping', 'Relay', 'Reach'], 'Lightning jumps 20% farther per point.', t => t.chainReach *= 1.2,
+      { name: 'Arc Storm', desc: 'Shoots 1 more enemy and lightning jumps 2 more times.', apply: t => { t.multi += 1; t.chain += 2; } }),
   ],
 };
-const TOWER_CAPS = {
-  arcane: { 5: { id: 'mark', name: 'Arcane Mark', desc: 'Enemies hit take 20% more damage from everything for 2s.', apply: t => t.mark = 0.2 },
-            10: { id: 'archmage', name: 'Archmage', desc: 'Fires 50% faster and shoots 1 more enemy.', apply: t => { t.rate *= 0.67; t.multi += 1; } } },
-  plasma: { 5: { id: 'cluster', name: 'Cluster Bomb', desc: 'Each shot throws 2 bomblets at nearby enemies for 50% damage.', apply: t => t.cluster = 2 },
-            10: { id: 'orbital', name: 'Orbital Strike', desc: 'Every 4th shot is a huge blast: double radius, triple damage.', apply: t => t.orbital = 4 } },
-  frost:  { 5: { id: 'flash', name: 'Flash Freeze', desc: 'Every 6th shot freezes enemies solid for 1.2s.', apply: t => t.freeze = 6 },
-            10: { id: 'zero', name: 'Absolute Zero', desc: 'Every enemy in range is constantly slowed by 35%.', apply: t => t.zero = 0.35 } },
-  tesla:  { 5: { id: 'overload', name: 'Overload', desc: 'Lightning jumps have a 15% chance to stun for 0.6s.', apply: t => t.stun = 0.15 },
-            10: { id: 'storm', name: 'Storm Core', desc: 'Shoots 1 more enemy and lightning jumps 2 more times.', apply: t => { t.multi += 1; t.chain += 2; } } },
-};
+const ELEMENT_TAG = { arcane: 'arcane', plasma: 'burn', frost: 'slow', tesla: 'chain' };
+// Merged towers never get plain stat upgrades: their 5 paths come from this pool of effects, picked to match
+// the paths their parents used. Every point also adds +8% damage on top of the effect.
+const F = (id, name, tags, desc, apply) => ({ id, name, tags, desc, apply });
+const FUSIONS = [
+  F('chainreact', 'Chain Reaction', ['burst', 'burn'], (r, m) => `Enemies this tower kills explode for ${Math.round(8 * r * m)}% of their max HP.`, (t, m) => t.deathBlast += 0.08 * m),
+  F('frostfire', 'Frostfire', ['slow', 'burn'], (r, m) => `Hits on slowed enemies burn them for ${Math.round(30 * r * m)}% of the hit, and burning enemies are slowed.`, (t, m) => t.frostfire += 0.3 * m),
+  F('echo', 'Echo Shot', ['speed', 'power'], (r, m) => `Every shot repeats a moment later for ${Math.round(15 * r * m)}% damage.`, (t, m) => t.echo += 0.15 * m),
+  F('shatter', 'Shatter', ['slow', 'precision'], (r, m) => `Stunned or frozen enemies take +${Math.round(25 * r * m)}% damage from this tower.`, (t, m) => t.shatter += 0.25 * m),
+  F('gravity', 'Gravity Well', ['burst', 'slow'], (r, m) => `Every 5th shot drags enemies near the target ${Math.round(15 * r * m)} steps back along the path.`, (t, m) => t.gravity += 15 * m),
+  F('execute', 'Executioner', ['precision', 'power'], (r, m) => `Hits finish off non-boss enemies below ${Math.round(4 * r * m)}% HP.`, (t, m) => t.execute = Math.min(0.35, t.execute + 0.04 * m)),
+  F('prism', 'Prism Split', ['multi', 'arcane'], (r, m) => `Each hit splits to ${Math.round(r * m)} nearby enemies for 40% damage.`, (t, m) => t.prism += m),
+  F('storm', 'Storm Call', ['chain', 'power'], (r, m) => `Every 4th shot calls lightning on ${Math.round(r * m)} random enemies in range.`, (t, m) => t.storm += m),
+  F('ionburst', 'Ion Burst', ['chain', 'burst'], (r, m) => `Lightning jumps explode for ${Math.round(10 * r * m)}% damage around them.`, (t, m) => { t.chainBlast += 0.1 * m; if (!t.chain) t.chain = 2; }),
+  F('timelock', 'Time Lock', ['slow', 'arcane'], (r, m) => `Every 8th shot stuns every enemy in range for ${(0.15 * r * m).toFixed(2)}s.`, (t, m) => t.timeLock += 0.15 * m),
+  F('corrode', 'Corrosion', ['burn', 'precision'], (r, m) => `Hits melt armor: enemies take +${Math.round(5 * r * m)}% damage from everything for 2s.`, (t, m) => t.mark += 0.05 * m),
+  F('phase', 'Phase Rounds', ['precision', 'multi'], (r, m) => `Shots pass through and hit ${Math.round(r * m)} enemies behind the target for 60% damage.`, (t, m) => t.pierce += m),
+  F('gilded', 'Gilded Rounds', ['power', 'arcane'], (r, m) => `Kills by this tower drop +${Math.round(2 * r * m)} gold.`, (t, m) => t.loot += 2 * m),
+  F('siphon', 'Soul Siphon', ['arcane', 'burn'], (r, m) => `Kills by this tower heal your hero ${Math.round(4 * r * m)} HP and give extra XP.`, (t, m) => t.leech += 4 * m),
+  F('overload', 'Overload', ['chain', 'speed'], (r, m) => `Every 10th shot deals +${Math.round(60 * r * m)}% damage and stuns for 0.5s.`, (t, m) => t.overload += 0.6 * m),
+  F('nova', 'Rift Nova', ['burst', 'arcane'], (r, m) => `Every 6th shot blasts every enemy in range for ${Math.round(20 * r * m)}% damage.`, (t, m) => t.nova += 0.2 * m),
+  F('tempo', 'Tempo Field', ['speed', 'multi'], (r, m) => `Each shot makes the next one ${Math.round(4 * r * m)}% faster, up to 5 stacks (resets on a miss).`, (t, m) => t.tempo += 0.04 * m),
+  F('static', 'Static Web', ['chain', 'slow'], (r, m) => `Lightning and hits slow enemies by ${Math.round(6 * r * m)}% for 1.5s.`, (t, m) => { t.slow = Math.min(0.85, Math.max(t.slow, 0.06 * m * ((t.ups.static || 0) + 1))); t.slowDur = Math.max(t.slowDur, 1.5); }),
+];
+// Deterministic pick: the 5 fusions that best match a set of tags; ties broken by a hash of the recipe so
+// different path combos land on different sets.
+function hashStr(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619); return h >>> 0; }
+function pickFusions(tags, seed, exclude) {
+  const count = k => tags.filter(x => x === k).length;
+  return FUSIONS.filter(f => !exclude.includes(f.id))
+    .map(f => ({ f, score: f.tags.reduce((a, k) => a + count(k), 0) * 1000 + hashStr(seed + f.id) % 1000 }))
+    .sort((a, b) => b.score - a.score).slice(0, 5).map(x => x.f);
+}
 const RECIPES = {
   'arcane+frost':  { name: 'Rimeshard',    color: 0xc9b8ff, desc: 'Fires rapid ice shards that slow every enemy they hit. Arcane speed with Frost control.' },
   'arcane+plasma': { name: 'Starbolt',     color: 0xff6fd8, desc: 'Fires fast bolts that explode on impact. Arcane speed with Plasma splash, so it shreds groups.' },
@@ -109,24 +154,7 @@ const RECIPES = {
   'plasma+tesla':  { name: 'Ion Storm',    color: 0xffd36e, desc: 'Explosive shells whose blast also throws lightning outward. The best crowd clearer.' },
 };
 // Hybrids pick from a fixed 5 of their parents' upgrades (ranks start fresh after the merge).
-const HYBRID_UPS = {
-  'arcane+frost':  ['runes', 'quick', 'twin', 'deep', 'brittle'],
-  'arcane+plasma': ['runes', 'quick', 'twin', 'shells', 'burn'],
-  'arcane+tesla':  ['runes', 'quick', 'focus', 'arcs', 'conduct'],
-  'frost+plasma':  ['hot', 'auto', 'shells', 'deep', 'linger'],
-  'frost+tesla':   ['volt', 'bank', 'arcs', 'deep', 'brittle'],
-  'plasma+tesla':  ['hot', 'auto', 'shells', 'arcs', 'conduct'],
-};
-// Super towers: two level 10 hybrids merged together. They share one set of 5 upgrades.
-const SUPER_UPS = [
-  { id: 'overcharge', name: 'Overcharge',     desc: '+30% damage.', max: 4, apply: t => t.dmg *= 1.3 },
-  { id: 'hyper',      name: 'Hyperdrive',     desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
-  { id: 'resonant',   name: 'Resonant Core',  desc: 'Boosts every special effect: +15% blast radius, +1 lightning jump, +5% slow and +20% burn.', max: 3,
-    apply: t => { if (t.splash) t.splash *= 1.15; if (t.chain) t.chain += 1; if (t.slow) t.slow = Math.min(0.85, t.slow + 0.05); if (t.burn) t.burn += 0.2; } },
-  { id: 'fork',       name: 'Rift Fork',      desc: 'Shoots 1 more enemy at the same time.', max: 2, apply: t => t.multi += 1 },
-  { id: 'lens',       name: 'Rift Lens',      desc: '+12% range.', max: 2, apply: t => t.range *= 1.12 },
-];
-// Super tower names come from the base towers inside them.
+// Super towers: two level 12 hybrids merged together. Named after the base towers inside them.
 const SUPERS = {
   'arcane+frost+plasma+tesla': { name: 'Rift Singularity', color: 0xffffff, desc: 'Holds the power of all four towers: fast bolts, explosions, deep slows and chain lightning in every shot.' },
   'arcane+frost+plasma':       { name: 'Prism Reactor',    color: 0xffa8f0, desc: 'Rapid exploding ice bolts that shred and slow whole groups.' },
@@ -134,9 +162,10 @@ const SUPERS = {
   'arcane+plasma+tesla':       { name: 'Nova Battery',     color: 0xffe08a, desc: 'Heavy bolts that explode and throw lightning across the field.' },
   'frost+plasma+tesla':        { name: 'Tempest Engine',   color: 0xc8f5ff, desc: 'A storm of scalding, freezing, crackling blasts. Nothing in range moves fast.' },
 };
-const MERGE_COST = 100, SUPER_MERGE_MUL = 3, MAX_LVL = 10, MERGE_LVL = 10, SELL_RATE = 0.8;
+const MERGE_COST = 1000, MAX_LVL = 12, MERGE_LVL = 12, PATH_MAX = 4, SELL_RATE = 0.8;
 // Numeric tower traits; merges keep the stronger value of each.
-const TRAITS = ['splash', 'slow', 'slowDur', 'chain', 'chainMul', 'chainReach', 'multi', 'ramp', 'surge', 'burn', 'brittle', 'mark', 'cluster', 'orbital', 'freeze', 'zero', 'stun'];
+const TRAITS = ['splash', 'slow', 'slowDur', 'chain', 'chainMul', 'chainReach', 'multi', 'ramp', 'surge', 'burn', 'brittle', 'mark', 'cluster', 'orbital', 'freeze', 'zero', 'stun',
+  'prism', 'execute', 'nova', 'echo', 'deathBlast', 'gravity', 'timeLock', 'shatter', 'frostfire', 'storm', 'chainBlast', 'overload', 'pierce', 'loot', 'leech', 'tempo'];
 
 const ENEMIES = {
   grunt:  { hp: 40,   speed: 52, gold: 5,   lives: 1,  atk: 8,  r: 9,  color: 0xff5d6c },
@@ -158,7 +187,7 @@ const HEROES = {
     stats: { hp: 180, dmg: 12, rate: 0.5, range: 115, block: 1, armor: 0, regen: 2, speed: 165 },
     ability: { id: 'nova', name: 'Rift Nova', cd: 20, dmg: 40, r: 110 } },
   oracle:   { name: 'Oracle', role: 'Support', color: 0xb07cff, css: '#b07cff',
-    desc: 'Empowers towers. Nearby towers deal +15% damage, and Overclock Field makes them fire much faster.',
+    desc: 'Empowers towers. Nearby towers deal +15% damage, Overclock Field makes them fire much faster, and every tower can use 4 upgrade paths instead of 3.',
     stats: { hp: 210, dmg: 7, rate: 0.6, range: 100, block: 2, armor: 0, regen: 3, speed: 150, aura: 0.15 },
     ability: { id: 'overclock', name: 'Overclock Field', cd: 24, r: 170, dur: 6, power: 0.6 } },
   sniper:   { name: 'Sniper', role: 'Marksman', color: 0xffd36e, css: '#ffd36e', unlock: 250,
@@ -201,8 +230,8 @@ const PERKS = [
   { id: 'plate',   cls: 'any', name: 'Rune Plating',  m: 50,   desc: m => `+${Math.round(m)} max HP and a full heal.`, apply: (h, m) => { h.maxHp += Math.round(m); h.hp = h.maxHp; } },
   { id: 'mend',    cls: 'any', name: 'Nanite Mend',   m: 3,    desc: m => `+${m.toFixed(1)} HP regen per second.`, apply: (h, m) => h.regen += m },
   { id: 'reboot',  cls: 'any', name: 'Quick Reboot',  m: 0.15, desc: m => `Respawn ${pct(Math.min(0.7, m))} faster.`, apply: (h, m) => h.respawn = Math.max(2, h.respawn * (1 - Math.min(0.7, m))) },
-  { id: 'arch',    cls: 'any', name: 'Architect',     m: 0.07, desc: m => `Towers cost ${pct(Math.min(0.5, m))} less.`, apply: (h, m) => h.costMul *= 1 - Math.min(0.5, m) },
-  { id: 'engineer',cls: 'any', name: 'Engineer',      m: 0.08, desc: m => `Tower level-ups cost ${pct(Math.min(0.5, m))} less.`, apply: (h, m) => h.lvlMul *= 1 - Math.min(0.5, m) },
+  { id: 'arch',    cls: 'any', name: 'Architect',     m: 0.07, desc: m => `New towers cost ${pct(Math.min(0.5, m))} less to build.`, apply: (h, m) => h.costMul *= 1 - Math.min(0.5, m) },
+  { id: 'engineer',cls: 'any', name: 'Engineer',      m: 0.08, desc: m => `Tower upgrades (level-ups) cost ${pct(Math.min(0.5, m))} less.`, apply: (h, m) => h.lvlMul *= 1 - Math.min(0.5, m) },
   { id: 'reach',   cls: 'any', name: 'Long Reach',    m: 0.2,  desc: m => `+${pct(m)} build range.`, apply: (h, m) => h.buildRange *= 1 + m },
   { id: 'bounty',  cls: 'any', name: 'Bounty Sigil',  m: 1,    desc: m => `+${Math.max(1, Math.round(m))} gold for every kill.`, apply: (h, m) => h.bounty += Math.max(1, Math.round(m)) },
   { id: 'siphon',  cls: 'any', name: 'Siphon',        m: 3,    desc: m => `Heal ${Math.round(m)} HP for every kill.`, apply: (h, m) => h.siphon += Math.round(m) },
@@ -238,7 +267,7 @@ const PERKS = [
   { id: 'penetrate', cls: 'sniper', name: 'Penetrator',    m: 1,    desc: m => `Shots also hit ${Math.max(1, Math.round(m))} enemy near the target for 50% damage.`, apply: (h, m) => h.pierce += Math.max(1, Math.round(m)) },
   { id: 'apround', cls: 'sniper', name: 'Armor-Piercing Rounds', m: 0.3, desc: m => `Piercing Shot deals +${pct(m)} damage.`, apply: (h, m) => h.ab.mult *= 1 + m },
   { id: 'steady',  cls: 'sniper', name: 'Steady Aim',      m: 0.1,  desc: m => `Piercing Shot recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(5, h.ab.cd * (1 - Math.min(0.5, m))) },
-  { id: 'alchemy', cls: 'oracle', name: 'Alchemist',       m: 0.15, desc: m => `Merging costs ${pct(Math.min(0.8, m))} less.`, apply: (h, m) => h.mergeMul *= 1 - Math.min(0.8, m) },
+  { id: 'alchemy', cls: 'oracle', name: 'Alchemist',       m: 0.15, desc: m => `Tower merges cost ${pct(Math.min(0.8, m))} less.`, apply: (h, m) => h.mergeMul *= 1 - Math.min(0.8, m) },
 ];
 // Unique upgrades that only appear at Legendary (per hero) or Secret (any hero).
 const UNIQUES = [
@@ -246,7 +275,7 @@ const UNIQUES = [
   { id: 'unbreak',cls: 'vanguard', rarity: 'legendary', name: 'Unbreakable',    desc: 'Once per wave, a fatal blow leaves you at full HP instead.', apply: h => h.unbreakable = true },
   { id: 'exec',   cls: 'striker',  rarity: 'legendary', name: 'Executioner',    desc: '+20% damage. Your hits instantly finish non-boss enemies below 15% HP.', apply: h => { h.dmg *= 1.2; h.execute = 0.15; } },
   { id: 'storm',  cls: 'striker',  rarity: 'legendary', name: 'Bullet Storm',   desc: 'Every 3rd attack hits every enemy in range.', apply: h => h.bulletStorm = 3 },
-  { id: 'master', cls: 'oracle',   rarity: 'legendary', name: 'Master Architect', desc: 'All towers deal +25% damage and cost 20% less.', apply: h => { S.mod.towerDmg += 0.25; h.costMul *= 0.8; } },
+  { id: 'master', cls: 'oracle',   rarity: 'legendary', name: 'Master Architect', desc: 'All towers deal +25% damage, and new towers cost 20% less to build.', apply: h => { S.mod.towerDmg += 0.25; h.costMul *= 0.8; } },
   { id: 'warp',   cls: 'oracle',   rarity: 'legendary', name: 'Time Warp',      desc: 'Overclock Field also slows enemies inside it by 40%.', apply: h => h.timeWarp = 0.4 },
   { id: 'deadeye', cls: 'sniper', rarity: 'legendary', name: 'Deadeye',      desc: 'Every 3rd shot is a guaranteed crit, and crits deal +50% more damage.', apply: h => { h.deadeye = 3; h.critDmg += 0.5; } },
   { id: 'overwatch', cls: 'sniper', rarity: 'legendary', name: 'Overwatch',  desc: 'Your shots stun their target for 0.5s (bosses 0.2s).', apply: h => h.shotStun = 0.5 },
@@ -259,7 +288,7 @@ const CURSES = [
   { desc: k => `Enemies have ${Math.round(5 * k)}% more HP.`, apply: k => S.mod.enemyHp += 0.05 * k },
   { desc: k => `Lose ${Math.round(2 * k)} base HP.`, apply: k => S.lives = Math.max(1, S.lives - Math.round(2 * k)) },
   { desc: k => `Your hero loses ${Math.round(Math.min(50, 10 * k))}% max HP.`, apply: k => { const h = S.hero; h.maxHp = Math.round(h.maxHp * (1 - Math.min(0.5, 0.1 * k))); h.hp = Math.min(h.hp, h.maxHp); } },
-  { desc: k => `New towers cost ${Math.round(8 * k)}% more.`, apply: k => S.hero.costMul *= 1 + 0.08 * k },
+  { desc: k => `New towers cost ${Math.round(8 * k)}% more to build.`, apply: k => S.hero.costMul *= 1 + 0.08 * k },
   { desc: k => `Lose ${Math.round(60 * k)} gold.`, apply: k => S.gold = Math.max(0, S.gold - Math.round(60 * k)) },
   { desc: k => `Enemies move ${Math.round(4 * k)}% faster.`, apply: k => S.mod.enemySpeed += 0.04 * k },
 ];
@@ -301,6 +330,24 @@ const CHALLENGES = [
   { id: 'lone',   name: 'Lone Hero',   rule: 'Towers deal 40% less damage. Your hero deals double.' },
 ];
 
+// Boss shop: opens after every 10th wave. Items are only sold here. 1% of shops are demonic: half the items
+// are demonic versions (double strength, with a curse).
+const SHOP_ITEMS = [
+  { id: 'conduit',  kind: 'Tower', name: 'Rift Conduit',     cost: 300, m: 0.2,  desc: m => `All towers deal +${pct(m)} damage.`, apply: m => S.mod.towerDmg += m },
+  { id: 'hyper',    kind: 'Tower', name: 'Hyperclock Array', cost: 320, m: 0.12, desc: m => `All towers fire ${pct(m)} faster.`, apply: m => S.mod.towerRate *= 1 - Math.min(0.5, m) },
+  { id: 'matrix',   kind: 'Tower', name: 'Farsight Matrix',  cost: 220, m: 0.12, desc: m => `All towers get +${pct(m)} range.`, apply: m => S.hero.towerRange += m },
+  { id: 'codex',    kind: 'Tower', name: 'Mastery Codex',    cost: 450, m: 1,    desc: m => `Every tower can use ${m} more upgrade path${m > 1 ? 's' : ''}.`, apply: m => S.pathBonus += m },
+  { id: 'primer',   kind: 'Tower', name: 'Path Primer',      cost: 260, m: 3,    desc: m => `Your next ${m} tower upgrades are free.`, apply: m => S.freeLevels += m },
+  { id: 'catalyst', kind: 'Tower', name: 'Merge Catalyst',   cost: 500, m: 1,    desc: m => `Your next ${m} tower merge${m > 1 ? 's cost' : ' costs'} no gold.`, apply: m => S.freeMerges += m },
+  { id: 'lattice',  kind: 'Tower', name: 'Cryo Lattice',     cost: 280, m: 0.1,  desc: m => `Every tower hit also slows enemies by ${pct(m)}.`, apply: m => S.mod.allSlow += m },
+  { id: 'ember',    kind: 'Tower', name: 'Ember Coating',    cost: 280, m: 0.25, desc: m => `Every tower hit also burns for ${pct(m)} of its damage over 2s.`, apply: m => S.mod.allBurn += m },
+  { id: 'titan',    kind: 'Hero',  name: 'Titan Frame',      cost: 260, m: 0.4,  desc: m => `Hero +${pct(m)} max HP and takes ${pct(m / 2)} less damage.`, apply: m => { const h = S.hero; h.maxHp = Math.round(h.maxHp * (1 + m)); h.hp = h.maxHp; h.armor = Math.min(0.8, h.armor + m / 2); } },
+  { id: 'riftblade',kind: 'Hero',  name: 'Rift Blade',       cost: 280, m: 0.4,  desc: m => `Hero +${pct(m)} damage and +${pct(m / 4)} crit chance.`, apply: m => { S.hero.dmg *= 1 + m; S.hero.crit = Math.min(0.9, S.hero.crit + m / 4); } },
+  { id: 'chrono',   kind: 'Hero',  name: 'Chrono Battery',   cost: 240, m: 0.25, desc: m => `Your ability recharges ${pct(Math.min(0.6, m))} faster.`, apply: m => S.hero.ab.cd = Math.max(4, S.hero.ab.cd * (1 - Math.min(0.6, m))) },
+  { id: 'soul',     kind: 'Hero',  name: 'Soul Engine',      cost: 300, m: 2,    desc: m => `Pick ${m} hero upgrades right now.`, apply: m => S.pendingLevels += m },
+  { id: 'contract', kind: 'Hero',  name: 'Bounty Contract',  cost: 220, m: 3,    desc: m => `+${m} gold for every kill.`, apply: m => S.hero.bounty += m },
+  { id: 'bulwark',  kind: 'Hero',  name: 'Rift Bulwark',     cost: 200, m: 8,    desc: m => `Your base gains ${m} HP.`, apply: m => S.lives += m },
+];
 // Merging can awaken a hero upgrade inspired by the hybrid (35% chance, once per recipe per run).
 const BOONS = {
   'arcane+frost':  { name: 'Frostbitten Strikes', desc: 'Your hero’s attacks slow enemies by 30%.', apply: h => h.boonSlow = 0.3 },
@@ -547,7 +594,8 @@ function newRun(mapId) {
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    mod: { towerDmg: 1, slow: 0, gold: map.gold || 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false },
+    echoes: [], pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    mod: { towerDmg: 1, slow: 0, gold: map.gold || 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
     hero: null,
   };
   MAX_WAVE = map.waves;
@@ -595,10 +643,11 @@ function toast(msg) { $('toast').textContent = msg; $('toast').hidden = false; t
 
 function countType(type) { return S.towers.filter(t => t.type === type || (t.parents && t.parents.includes(type))).length; }
 function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul); }
-function levelCost(t) { return Math.round(t.baseCost * 0.5 * t.lvl * S.hero.lvlMul); }
-function mergeCost(t) { return Math.round(MERGE_COST * (t && t.hybrid ? SUPER_MERGE_MUL : 1) * S.hero.mergeMul); }
+function levelCost(t) { return S.freeLevels > 0 ? 0 : Math.round(t.baseCost * 0.5 * t.lvl * S.hero.lvlMul); }
+function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul); }
+function pathLimit() { return 3 + (S.hero.cls === 'oracle' ? 1 : 0) + (S.pathBonus || 0); }
 function tRange(t) { return t.range * (1 + S.hero.towerRange); }
-function towerName(t) { return t.super ? t.name : t.hybrid ? RECIPES[t.type].name : TOWERS[t.type].name; }
+function towerName(t) { return t.name || (t.hybrid ? RECIPES[t.type].name : TOWERS[t.type].name); }
 function towerBlurb(t) { return t.super ? t.desc : t.hybrid ? RECIPES[t.type].desc : TOWERS[t.type].info; }
 function towerKind(t) { return t.super ? 'Super ' : t.hybrid ? 'Hybrid ' : ''; }
 function baseTypes(t) { return t.parents || [t.type]; }
@@ -617,6 +666,22 @@ function traits(t) {
   if (t.freeze) out.push('Every ' + t.freeze + 'th shot freezes enemies for 1.2s.');
   if (t.zero) out.push('Constantly slows every enemy in range by ' + pct(t.zero) + '.');
   if (t.stun) out.push('Lightning jumps have a ' + pct(t.stun) + ' chance to stun.');
+  if (t.prism) out.push('Hits split to ' + t.prism.toFixed(0) + ' nearby enemies for 40% damage.');
+  if (t.execute) out.push('Finishes non-boss enemies below ' + pct(t.execute) + ' HP.');
+  if (t.nova) out.push('Every 6th shot blasts everything in range for ' + pct(t.nova) + ' damage.');
+  if (t.echo) out.push('Shots echo for ' + pct(t.echo) + ' damage.');
+  if (t.deathBlast) out.push('Kills explode for ' + pct(t.deathBlast) + ' of max HP.');
+  if (t.gravity) out.push('Every 5th shot drags enemies ' + t.gravity.toFixed(0) + ' back.');
+  if (t.timeLock) out.push('Every 8th shot stuns everything in range for ' + t.timeLock.toFixed(2) + 's.');
+  if (t.shatter) out.push('Stunned enemies take +' + pct(t.shatter) + ' damage from it.');
+  if (t.frostfire) out.push('Slowed enemies burn for ' + pct(t.frostfire) + ' of each hit.');
+  if (t.storm) out.push('Every 4th shot calls lightning on ' + t.storm.toFixed(0) + ' enemies.');
+  if (t.chainBlast) out.push('Lightning jumps explode for ' + pct(t.chainBlast) + ' damage.');
+  if (t.overload) out.push('Every 10th shot deals +' + pct(t.overload) + ' damage and stuns.');
+  if (t.pierce) out.push('Shots pierce ' + t.pierce.toFixed(0) + ' enemies behind the target.');
+  if (t.loot) out.push('Kills drop +' + t.loot.toFixed(0) + ' gold.');
+  if (t.leech) out.push('Kills heal your hero ' + t.leech.toFixed(0) + ' HP.');
+  if (t.tempo) out.push('Each shot speeds up the next by ' + pct(t.tempo) + ' (5 stacks).');
   return out;
 }
 
@@ -712,6 +777,32 @@ function endWave() {
   S.mode = { kind: 'normal', name: 'Normal' };
   renderBuildBar(); renderHero();
   if (S.wave >= CHOICE_FROM) S.needChoice = true;
+  if (S.wave % 10 === 0) S.needShop = true;
+}
+function showShop() {
+  S.needShop = false; S.paused = true; S.shops++;
+  const demonic = Math.random() < 0.01, scale = 1 + S.wave / 20;
+  const items = shuffle(SHOP_ITEMS.slice()).slice(0, 6).map((it, i) => {
+    const dem = demonic && i % 2 === 0, k = 3;
+    return { it, dem, m: it.m * (dem ? 2 : 1), cost: Math.round(it.cost * scale / 10) * 10, curse: dem ? pick(CURSES) : null, k, sold: false };
+  });
+  const render = () => {
+    openModal(`<h2 class="${demonic ? 'demonic-title' : ''}">${demonic ? '☠ Demonic Bazaar' : 'Rift Bazaar'}</h2>
+      <p>${demonic ? 'A demonic merchant has opened shop. Half of these are demonic: twice as strong, with a curse.' : 'The boss dropped a key to the Rift Bazaar. Everything here is sold only in this shop.'} You have <b style="color:var(--gold)">${Math.floor(S.gold)} gold</b>.</p>
+      <div class="choices">${items.map((x, i) => `<button class="choice shop-item ${x.dem ? 'is-demonic' : ''}" data-i="${i}" ${x.sold || S.gold < x.cost ? 'disabled' : ''}>
+        <small class="path">${x.dem ? 'Demonic ' : ''}${x.it.kind}</small><b>${x.it.name}</b><span>${x.it.desc(x.m)}</span>
+        ${x.curse ? `<em class="cost">Curse: ${x.curse.desc(x.k)}</em>` : ''}
+        <em class="reward">${x.sold ? 'Bought' : x.cost + ' gold'}</em></button>`).join('')}</div>
+      <div class="row" style="margin-top:12px"><button class="go" id="shopLeave">Leave shop</button></div>`);
+    $('modalBox').querySelectorAll('.shop-item').forEach(b => b.onclick = () => {
+      const x = items[+b.dataset.i];
+      if (x.sold || S.gold < x.cost) return;
+      S.gold -= x.cost; x.sold = true; x.it.apply(x.m); if (x.curse) x.curse.apply(x.k);
+      toast('Bought ' + x.it.name + '.'); sfx('level'); renderHero(); render();
+    });
+    $('shopLeave').onclick = () => { closeModal(); S.paused = false; renderBuildBar(); renderHero(); };
+  };
+  render();
 }
 function spawn(type) {
   const d = ENEMIES[type], m = S.mode;
@@ -747,6 +838,11 @@ function damage(e, amt, src) {
     if (h.siphon && !h.ko) h.hp = Math.min(h.maxHp, h.hp + h.siphon);
     while (h.xp >= h.next) { h.xp -= h.next; h.lvl++; h.next = Math.round(h.next * 1.3); S.pendingLevels++; }
     sfx('kill');
+    if (src && typeof src === 'object') {
+      if (src.loot) S.gold += src.loot;
+      if (src.leech && !h.ko) { h.hp = Math.min(h.maxHp, h.hp + src.leech); h.xp += 1; }
+      if (src.deathBlast) { S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 55, color: 0xff8a3d, t: 0.25, T: 0.25, fill: true }); for (const o of inRange(e.x, e.y, 55)) damage(o, e.max * src.deathBlast, src); }
+    }
     if (e.boss && e.type !== 'tyrant') { S.pendingHeroic++; toast(ENEMIES[e.type].name + ' defeated! It dropped a heroic power.'); }
     S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 6, color: e.color, t: 0.3, T: 0.3 });
   }
@@ -756,6 +852,12 @@ function inRange(x, y, r) { return S.enemies.filter(e => !e.dead && Math.hypot(e
 function nearAura(t) { const h = S.hero; return !h.ko && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange; }
 
 function applyHit(t, e, dmg, freeze) {
+  if (t.shatter && e.stunT > 0) dmg *= 1 + t.shatter;
+  if (t.execute && !e.boss && (e.hp - dmg) / e.max <= t.execute) dmg = e.hp + 1;
+  if (t.frostfire && e.slowT > 0) { e.burnDps = Math.max(e.burnDps, dmg * t.frostfire / 2); e.burnT = 2; e.burnSrc = t.src; }
+  if (t.frostfire && e.burnT > 0) slowEnemy(e, Math.min(0.5, t.frostfire / 3), 1);
+  if (S.mod.allSlow) slowEnemy(e, S.mod.allSlow, 1.2);
+  if (S.mod.allBurn) { e.burnDps = Math.max(e.burnDps, dmg * S.mod.allBurn / 2); e.burnT = 2; e.burnSrc = t.src; }
   damage(e, dmg, t.src);
   if (t.slow) slowEnemy(e, t.slow, t.slowDur);
   if (t.brittle) e.brittle = Math.max(e.brittle, t.brittle);
@@ -771,6 +873,8 @@ function fire(t, targets) {
   const aura = h.aura && nearAura(t);
   if (aura) dmg *= 1 + h.aura;
   if (t.surge && t.shots % t.surge === 0) dmg *= 3;
+  const over = t.overload && t.shots % 10 === 0;
+  if (over) dmg *= 1 + t.overload;
   const big = t.orbital && t.shots % t.orbital === 0;
   const freeze = t.freeze && t.shots % t.freeze === 0;
   if (t === S.drained) dmg *= 0.5;
@@ -783,7 +887,13 @@ function fire(t, targets) {
     S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.color, t: 0.12, T: 0.12, w: t.hybrid ? 3 : 2 });
     const hits = splash ? inRange(target.x, target.y, splash) : [target];
     if (splash) S.fx.push({ k: 'ring', x: target.x, y: target.y, r: splash, color: t.color, t: 0.25, T: 0.25, fill: big });
-    for (const e of hits) applyHit(hitT, e, d, freeze);
+    for (const e of hits) { applyHit(hitT, e, d, freeze); if (over) e.stunT = Math.max(e.stunT, 0.5); }
+    if (t.prism) for (const n of inRange(target.x, target.y, 90).filter(e => !hits.includes(e)).slice(0, Math.round(t.prism))) {
+      S.fx.push({ k: 'line', x1: target.x, y1: target.y, x2: n.x, y2: n.y, color: t.color, t: 0.12, T: 0.12, w: 1 }); applyHit(hitT, n, d * 0.4, false);
+    }
+    if (t.pierce) for (const n of S.enemies.filter(e => !e.dead && e !== target && e.d < target.d && e.d > target.d - 140).sort((a, b) => b.d - a.d).slice(0, Math.round(t.pierce))) applyHit(hitT, n, d * 0.6, false);
+    if (t.gravity && t.shots % 5 === 0) { for (const e of inRange(target.x, target.y, 60)) if (!e.boss) e.d = Math.max(0, e.d - t.gravity); S.fx.push({ k: 'ring', x: target.x, y: target.y, r: 60, color: 0x9a7cff, t: 0.3, T: 0.3 }); }
+    if (t.echo) S.echoes.push({ t: hitT, target, d: d * t.echo, at: S.time + 0.25 });
     if (t.cluster) {
       const near = shuffle(inRange(target.x, target.y, 90).filter(e => e !== target)).slice(0, t.cluster);
       for (const n of near) {
@@ -799,11 +909,19 @@ function fire(t, targets) {
         if (!best) break;
         S.fx.push({ k: 'line', x1: from.x, y1: from.y, x2: best.x, y2: best.y, color: t.color, t: 0.15, T: 0.15, w: 1.5 });
         applyHit(hitT, best, cd, false);
+        if (t.chainBlast) for (const o of inRange(best.x, best.y, 40)) if (o !== best) damage(o, cd * t.chainBlast, t);
         if (t.stun && Math.random() < t.stun) best.stunT = Math.max(best.stunT, 0.6);
         hit.add(best); from = best; cd *= 0.85;
       }
     }
   }
+}
+// Effects that trigger once per shot rather than per target.
+function shotEffects(t, dmg) {
+  const inR = () => inRange(t.x, t.y, tRange(t));
+  if (t.nova && t.shots % 6 === 0) { for (const e of inR()) applyHit(Object.assign({}, t, { src: t }), e, dmg * t.nova, false); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: tRange(t), color: t.color, t: 0.3, T: 0.3 }); }
+  if (t.timeLock && t.shots % 8 === 0) { for (const e of inR()) e.stunT = Math.max(e.stunT, t.timeLock); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: tRange(t), color: 0xb07cff, t: 0.3, T: 0.3, fill: true }); }
+  if (t.storm && t.shots % 4 === 0) for (const e of shuffle(inR()).slice(0, Math.round(t.storm))) { applyHit(Object.assign({}, t, { src: t }), e, dmg * 0.8, false); S.fx.push({ k: 'line', x1: e.x, y1: e.y - 200, x2: e.x, y2: e.y, color: 0x8affff, t: 0.2, T: 0.2, w: 2 }); }
 }
 function heroDmg() { return S.hero.dmg * (S.mode.challenge === 'lone' ? 2 : 1); }
 
@@ -853,6 +971,7 @@ function update(dt) {
   if (S.pendingBoon) return showBoon();
   if (S.pendingHeroic > 0) return showHeroic();
   if (S.pendingLevels > 0) return showLevelUp();
+  if (S.needShop) return showShop();
   if (S.needChoice) { S.needChoice = false; return offerWaveChoice(); }
   dt *= S.speed;
   S.time += dt;
@@ -980,8 +1099,17 @@ function update(dt) {
     t.cd -= dt * (overclocked(t) ? 1 + h.ab.power : 1);
     if (t.cd > 0) continue;
     const targets = inRange(t.x, t.y, tRange(t)).sort((a, b) => b.d - a.d).slice(0, 1 + t.multi);
-    if (targets.length) { t.cd = t.rate * S.mod.towerRate; fire(t, targets); }
+    if (targets.length) {
+      if (t.tempo) t.tempoStacks = Math.min(5, t.tempoStacks + 1);
+      t.cd = t.rate * S.mod.towerRate * (1 - (t.tempo || 0) * (t.tempoStacks || 0)); fire(t, targets);
+      shotEffects(t, t.dmg * S.mod.towerDmg);
+    } else t.tempoStacks = 0;
   }
+  for (const ec of S.echoes) if (S.time >= ec.at) {
+    ec.done = true;
+    if (!ec.target.dead) { applyHit(ec.t, ec.target, ec.d, false); S.fx.push({ k: 'ring', x: ec.target.x, y: ec.target.y, r: 8, color: ec.t.color, t: 0.15, T: 0.15 }); }
+  }
+  S.echoes = S.echoes.filter(ec => !ec.done);
   S.enemies = S.enemies.filter(e => !e.dead);
   for (const f of S.fx) f.t -= dt;
   S.fx = S.fx.filter(f => f.t > 0);
@@ -1102,7 +1230,8 @@ function newTower(type, c, r) {
   return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg, rate: d.rate, range: d.range,
     splash: d.splash || 0, slow: d.slow || 0, slowDur: 1.6, chain: d.chain || 0, chainMul: 0.7, chainReach: 95,
     multi: 0, ramp: 0, surge: 0, burn: 0, brittle: 0, mark: 0, cluster: 0, orbital: 0, freeze: 0, zero: 0, stun: 0,
-    color: d.color, cd: 0, shots: 0, stacks: 0, spent: 0, baseCost: d.cost, ups: {} };
+    prism: 0, execute: 0, nova: 0, echo: 0, deathBlast: 0, gravity: 0, timeLock: 0, shatter: 0, frostfire: 0, storm: 0, chainBlast: 0, overload: 0, pierce: 0, loot: 0, leech: 0, tempo: 0, tempoStacks: 0,
+    color: d.color, cd: 0, shots: 0, stacks: 0, spent: 0, baseCost: d.cost, ups: {}, order: [] };
 }
 function placeTower(c, r, type) {
   const cost = towerCost(type), t = newTower(type, c, r);
@@ -1110,22 +1239,41 @@ function placeTower(c, r, type) {
   if (S.build && S.gold < towerCost(S.build)) S.build = null;
   renderBuildBar(); renderInspector();
 }
-// The same 5 options every level. Picking one never removes the others; each stacks up to its max rank.
-const ALL_TOWER_UPS = Object.values(TOWER_UPS).flat();
-function towerOptions(t) {
-  if (t.super) return SUPER_UPS;
-  if (t.hybrid) return HYBRID_UPS[t.type].map(id => ALL_TOWER_UPS.find(u => u.id === id));
-  return TOWER_UPS[t.type];
+// Path options: base towers use their own 5 paths; merged towers use the fusion paths picked at merge time.
+function towerOptions(t) { return t.hybrid ? t.fusions.map(f => fusionPath(f, t.super ? 1.5 : 1)) : TOWER_PATHS[t.type]; }
+function fusionPath(f, m) {
+  return { id: f.id, name: (m > 1 ? 'Ascended ' : '') + f.name, desc: f.desc(1, m) + ' Grows with each point, plus +8% damage per point.',
+    rank: t => { f.apply(t, m); t.dmg *= 1.08; }, mastery: null, fusion: f, m };
 }
-function levelBonus(t, lvl) { return !t.hybrid && TOWER_CAPS[t.type][lvl]; }
-function levelTower(t, up) {
+function pathState(t, path) {
+  const n = t.ups[path.id] || 0, used = t.order.length;
+  if (n >= PATH_MAX) return 'maxed';
+  if (!n && used >= pathLimit()) return 'locked';
+  return 'open';
+}
+// Form name at level 12: adjective from the strongest path, noun from the second, then "of <third>" (and "and <fourth>").
+function formName(t) {
+  const paths = t.order.map(id => TOWER_PATHS[t.type].find(p => p.id === id)).sort((a, b) => (t.ups[b.id] - t.ups[a.id]) || (t.order.indexOf(a.id) - t.order.indexOf(b.id)));
+  const [a, b, c, d] = paths;
+  return `${a.adj} ${b ? b.noun : TOWERS[t.type].name}${c ? ' of ' + c.title : ''}${d ? ' and ' + d.title : ''}`;
+}
+function levelTower(t, path) {
   const lc = levelCost(t);
-  if (S.gold < lc || t.lvl >= MAX_LVL || (t.ups[up.id] || 0) >= up.max) return;
+  if (S.gold < lc || t.lvl >= MAX_LVL || pathState(t, path) !== 'open') return;
+  if (S.freeLevels > 0) S.freeLevels--;
   S.gold -= lc; t.spent += lc; t.lvl++; t.dmg *= 1.05;
-  up.apply(t); t.ups[up.id] = (t.ups[up.id] || 0) + 1;
-  const bonus = levelBonus(t, t.lvl);
-  if (bonus) { bonus.apply(t); t.ups[bonus.id] = 1; }
-  toast(towerName(t) + ' reached level ' + t.lvl + ': ' + up.name + (bonus ? ', and unlocked ' + bonus.name : '') + '.');
+  if (!t.ups[path.id]) t.order.push(path.id);
+  const r = t.ups[path.id] = (t.ups[path.id] || 0) + 1;
+  path.rank(t, r);
+  let msg = towerName(t) + ' reached level ' + t.lvl + ': ' + path.name + ' ' + r + '/' + PATH_MAX;
+  if (r === PATH_MAX && path.mastery) { path.mastery.apply(t); msg += ', mastered: ' + path.mastery.name; }
+  if (t.lvl === MAX_LVL) {
+    t.dmg *= 1.3; t.rate *= 0.87;
+    if (!t.hybrid) t.name = formName(t); else t.perfected = true;
+    msg = towerName(t) + (t.hybrid ? ' is perfected' : ' ascended') + ' at level ' + MAX_LVL + '!';
+    sfx('level');
+  }
+  toast(msg + '.');
   renderInspector(); renderBuildBar();
 }
 
@@ -1175,27 +1323,36 @@ function mergeProblem(a, b) {
   if (!a.hybrid && a.type === b.type) return 'Merge two different tower types.';
   return '';
 }
+// The tags a tower brings into a merge: its element plus the paths it actually chose.
+function towerTags(t) {
+  if (t.hybrid) return t.tags.concat(t.order.flatMap(id => (FUSIONS.find(f => f.id === id) || { tags: [] }).tags));
+  return [ELEMENT_TAG[t.type]].concat(t.order.flatMap(id => Array(t.ups[id]).fill(TOWER_PATHS[t.type].find(p => p.id === id).tag)));
+}
 function tryMerge(a, b) {
   S.mergeFrom = null;
-  const why = mergeProblem(a, b), cost = mergeCost(a);
+  const why = mergeProblem(a, b), cost = mergeCost();
   if (why) { toast(why); return renderInspector(); }
   if (S.gold < cost) { toast('Merging costs ' + cost + ' gold.'); return renderInspector(); }
-  S.gold -= cost;
-  const base = { lvl: 1, spent: a.spent + b.spent + cost, cd: 0, shots: 0, stacks: 0, ups: {}, baseCost: a.baseCost + b.baseCost,
-    range: Math.max(a.range, b.range) * 1.1 };
+  S.gold -= cost; if (S.freeMerges > 0) S.freeMerges--;
+  const tags = towerTags(a).concat(towerTags(b));
+  const base = { lvl: 1, spent: a.spent + b.spent + cost, cd: 0, shots: 0, stacks: 0, ups: {}, order: [], baseCost: a.baseCost + b.baseCost,
+    range: Math.max(a.range, b.range) * 1.1, tags, perfected: false, tempoStacks: 0 };
   let merged, label, color, key = '';
   if (a.hybrid) {
     const parents = [...new Set(a.parents.concat(b.parents))].sort(), info = SUPERS[parents.join('+')];
     const recipe = RECIPES[a.type];
     label = info ? info.name : 'Prime ' + recipe.name; color = info ? info.color : recipe.color;
     merged = Object.assign(base, { type: a.type, hybrid: true, super: true, parents, name: label, color,
-      desc: info ? info.desc : 'Two ' + recipe.name + 's fused into one. ' + recipe.desc,
+      desc: (info ? info.desc : 'Two ' + recipe.name + 's fused into one. ' + recipe.desc) + ' Its paths are ascended versions of fusion effects its hybrids never used.',
+      fusions: pickFusions(tags, parents.join('+') + a.order.join() + b.order.join(), a.order.concat(b.order)),
       dmg: Math.max(a.dmg, b.dmg) * 1.6, rate: Math.min(a.rate, b.rate) * 0.9 });
   } else {
     key = [a.type, b.type].sort().join('+');
-    const rec = RECIPES[key];
-    label = rec.name; color = rec.color;
-    merged = Object.assign(base, { type: key, hybrid: true, parents: [a.type, b.type], color,
+    const rec = RECIPES[key], [fa, fb] = [a, b].map(t => t.name ? t.name.split(' ')[0] : '');
+    label = (fa ? fa + ' ' : '') + rec.name; color = rec.color;
+    merged = Object.assign(base, { type: key, hybrid: true, parents: [a.type, b.type], color, name: label,
+      desc: rec.desc + ` Fused from ${towerName(a)} and ${towerName(b)}, so its paths come from what they used.`,
+      fusions: pickFusions(tags, key + a.order.join() + b.order.join(), []),
       dmg: Math.max(a.dmg, b.dmg) * 1.5, rate: Math.min(a.rate, b.rate) });
   }
   for (const k of TRAITS) merged[k] = Math.max(a[k], b[k]);
@@ -1209,6 +1366,7 @@ function tryMerge(a, b) {
     toast((isNew ? 'New recipe: ' : 'Merged into ') + label + '!');
     if (!S.boons[key] && Math.random() < 0.35) S.pendingBoon = key;
   } else toast('Super merge: ' + label + '!');
+  sfx('level');
   S.sel = b; renderInspector(); renderCodex(); renderBuildBar();
 }
 
@@ -1255,14 +1413,14 @@ function buildTipHtml(k) {
   return `<b>${d.name}</b> <span class="tip-c">${towerCost(k)} gold</span><p>${d.info}</p>
     <div class="tip-s">Damage ${d.dmg} · ${(1 / d.rate).toFixed(2)} shots/s · Range ${d.range}</div>
     <ul>${traits(t).slice(1).map(x => `<li>${x}</li>`).join('')}</ul>
-    <div class="tip-s">Upgrades: ${TOWER_UPS[k].map(u => u.name).join(', ')}. Level 5 unlocks ${TOWER_CAPS[k][5].name}, level 10 unlocks ${TOWER_CAPS[k][10].name}.</div>`;
+    <div class="tip-s">Paths: ${TOWER_PATHS[k].map(u => u.name).join(', ')}. Pick up to 3 of them (4 with the Oracle) as it levels to ${MAX_LVL}.</div>`;
 }
 function towerTipHtml(t) {
-  const ups = Object.entries(t.ups).map(([id, n]) => { const u = ALL_TOWER_UPS.concat(SUPER_UPS, Object.values(TOWER_CAPS).flatMap(c => Object.values(c))).find(x => x.id === id); return u ? u.name + (n > 1 ? ' ×' + n : '') : ''; }).filter(Boolean);
+  const opts = towerOptions(t), ups = t.order.map(id => { const u = opts.find(x => x.id === id); return u ? u.name + ' ' + t.ups[id] + '/' + PATH_MAX : ''; }).filter(Boolean);
   return `<b>${towerName(t)}</b> <span class="tip-c">Lv ${t.lvl}/${MAX_LVL}${t.super ? ' · Super' : t.hybrid ? ' · Hybrid' : ''}</span>${t === S.drained ? '<p style="color:var(--danger)">Drained: half damage this wave.</p>' : ''}<p>${towerBlurb(t)}</p>
     <div class="tip-s">Damage dealt: ${Math.round(t.dmgTotal || 0)} total, ${Math.round(t.dmgWave || 0)} this wave</div>
     <div class="tip-s">Damage ${(t.dmg * S.mod.towerDmg).toFixed(0)} · ${(1 / (t.rate * S.mod.towerRate)).toFixed(2)} shots/s · Range ${tRange(t).toFixed(0)}</div>
-    <ul>${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>${ups.length ? `<div class="tip-s">Upgrades: ${ups.join(', ')}</div>` : ''}`;
+    <ul>${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>${ups.length ? `<div class="tip-s">Paths: ${ups.join(', ')}</div>` : ''}`;
 }
 
 function renderInspector() {
@@ -1274,12 +1432,20 @@ function renderInspector() {
       el.innerHTML = `<h3>Placing</h3>${buildTipHtml(S.build)}<p class="help">Left-click a tile to build. Right-click or press R to cancel.</p>`;
       return;
     }
-    el.innerHTML = `<h3>Tower</h3><p>Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.</p><p>Towers level up to ${MAX_LVL}. Each level you pick one of the tower's 5 upgrades, and levels 5 and 10 unlock a bonus. Two different level ${MERGE_LVL} towers merge into a hybrid, and two level ${MERGE_LVL} hybrids merge into a super tower.</p>`;
+    el.innerHTML = `<h3>Tower</h3><p>Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.</p><p>Towers level up to ${MAX_LVL}. Each level adds a point to one of 5 paths, but a tower can only use 3 paths (4 with the Oracle). A path's 4th point unlocks its mastery, and at level ${MAX_LVL} the tower ascends into a form named after its paths. Two different level ${MERGE_LVL} towers merge into a hybrid (merging costs ${MERGE_COST} gold), and two level ${MERGE_LVL} hybrids merge into a super tower.</p>`;
     return;
   }
   const lc = levelCost(t), sell = Math.round(t.spent * SELL_RATE);
   const gc = v => `<span style="color:var(--gold)">${v}</span>`;
-  const opts = towerOptions(t), bonus = levelBonus(t, t.lvl + 1), canMerge = t.lvl >= MERGE_LVL && !t.super;
+  const opts = towerOptions(t), canMerge = t.lvl >= MERGE_LVL && !t.super, lim = pathLimit();
+  const btn = (u, i) => {
+    const n = t.ups[u.id] || 0, state = pathState(t, u);
+    const note = state === 'maxed' ? 'Maxed.' : state === 'locked' ? `Locked: this tower already uses ${lim} paths.` : u.desc;
+    const mastery = u.mastery ? `<em class="mastery">${n >= PATH_MAX ? '★ Mastered: ' : 'Mastery at 4: '}${u.mastery.name}. ${u.mastery.desc}</em>` : '';
+    return `<button class="up ${state}" data-u="${i}" ${S.gold < lc || state !== 'open' || t.lvl >= MAX_LVL ? 'disabled' : ''}>
+      <b>${u.name} <small>${n}/${PATH_MAX}</small></b><span>${note}</span>${mastery}
+      ${state === 'open' && t.lvl < MAX_LVL ? `<i class="price">${lc ? lc + ' gold' : 'Free'}</i>` : ''}</button>`;
+  };
   el.innerHTML = `<h3>${towerName(t)} · ${towerKind(t)}Lv ${t.lvl}/${MAX_LVL}</h3>
     <p>${towerBlurb(t)}${t.hybrid ? ' Contains ' + t.parents.map(p => TOWERS[p].name).join(' + ') + '.' : ''}</p>
     <div class="stats">
@@ -1288,12 +1454,10 @@ function renderInspector() {
     </div>
     <ul class="traits">${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>
     ${S.mergeFrom === t ? `<p>Tap another level ${MERGE_LVL} ${t.hybrid ? 'hybrid' : 'tower of a different type'} to merge with. Tap anywhere else to cancel.</p>` : ''}
-    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Level up to ${t.lvl + 1} for ${gc(lc)} gold. Every level also adds +5% damage.${bonus ? ` Level ${t.lvl + 1} also unlocks <b>★ ${bonus.name}</b>: ${bonus.desc}` : ''} Pick one:</p>
-      <div class="ups">${opts.map((u, i) => { const n = t.ups[u.id] || 0, full = n >= u.max;
-        return `<button class="up" data-u="${i}" ${S.gold < lc || full ? 'disabled' : ''}><b>${u.name} <small>${n}/${u.max}</small></b><span>${full ? 'Maxed.' : u.desc}</span></button>`; }).join('')}</div>`
-      : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
+    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}. Each level adds +5% damage; level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'}.</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
+    <div class="ups">${opts.map(btn).join('')}</div>
     <div class="row">
-      ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost(t) ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost(t))}</button>` : ''}
+      ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost() ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost() || 'Free')}</button>` : ''}
       <button id="sellBtn">Sell · ${gc('+' + sell)} <kbd>R</kbd></button>
     </div>`;
   el.querySelectorAll('.up').forEach(b => b.onclick = () => levelTower(t, opts[+b.dataset.u]));

@@ -30,14 +30,24 @@ jobs:
           npm pkg set version="$V"
           echo "version=$V" >> "$GITHUB_OUTPUT"
       - run: npm run dist:win
+      # Release notes: download instructions plus the newest section of CHANGELOG.md.
+      - name: Write release notes
+        shell: bash
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          {
+            echo "Download **Riftguard-$V-setup.exe** to install the game. The installed game updates itself when you open it."
+            echo "**Riftguard-$V-portable.exe** plays without installing, but does not update itself."
+            echo
+            awk '/^## /{n++} n==1' CHANGELOG.md
+            echo
+            echo "Full history: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md). Built from ${{ github.sha }}."
+          } > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: Riftguard ${{ steps.version.outputs.version }}
-          body: |
-            Download **Riftguard-${{ steps.version.outputs.version }}-setup.exe** to install the game. The installed game updates itself when you open it.
-            **Riftguard-${{ steps.version.outputs.version }}-portable.exe** plays without installing, but does not update itself.
-            Built from ${{ github.sha }}.
+          body_path: release-notes.md
           files: |
             release/*-setup.exe
             release/*-setup.exe.blockmap
