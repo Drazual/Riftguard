@@ -54,14 +54,14 @@ const TOWERS = {
   tesla:  { name: 'Tesla Coil', key: '4', cost: 90, dmg: 12, rate: 1.1, range: 105, chain: 3, color: 0x4fd8e8, css: '#4fd8e8',
     info: 'Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies.' },
 };
-// Each tower has its own upgrade pool. Level-ups offer two of these; levels 5 and 10 offer a capstone.
+// Each tower has the same 5 upgrade options at every level. Options stack up to their max rank.
+// Levels 5 and 10 also unlock the tower's bonus (TOWER_CAPS) automatically.
 const TOWER_UPS = {
   arcane: [
     { id: 'runes',  name: 'Sharpened Runes', desc: '+25% damage.', max: 5, apply: t => t.dmg *= 1.25 },
     { id: 'twin',   name: 'Twin Cast',       desc: 'Shoots 1 more enemy at the same time.', max: 2, apply: t => t.multi += 1 },
     { id: 'focus',  name: 'Arcane Focus',    desc: 'Each hit in a row on the same enemy deals +12% more damage, up to 5 stacks.', max: 2, apply: t => t.ramp += 0.12 },
     { id: 'surge',  name: 'Mana Surge',      desc: 'Every 5th shot deals triple damage.', max: 1, apply: t => t.surge = 5 },
-    { id: 'seeker', name: 'Seeker Glyphs',   desc: '+15% range.', max: 3, apply: t => t.range *= 1.15 },
     { id: 'quick',  name: 'Quickcast',       desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
   ],
   plasma: [
@@ -70,7 +70,6 @@ const TOWER_UPS = {
     { id: 'burn',   name: 'Burning Ground',  desc: 'Enemies hit burn for 40% of the hit’s damage over 2s.', max: 2, apply: t => t.burn += 0.4 },
     { id: 'auto',   name: 'Autoloader',      desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
     { id: 'concuss',name: 'Concussive Shells', desc: 'Blasts slow enemies by 25% for 1s.', max: 1, apply: t => { t.slow = Math.max(t.slow, 0.25); t.slowDur = Math.max(t.slowDur, 1); } },
-    { id: 'barrel', name: 'Long Barrel',     desc: '+15% range.', max: 3, apply: t => t.range *= 1.15 },
   ],
   frost: [
     { id: 'deep',   name: 'Deep Freeze',     desc: 'Slows 8% more (up to 85%).', max: 3, apply: t => t.slow = Math.min(0.85, t.slow + 0.08) },
@@ -78,7 +77,6 @@ const TOWER_UPS = {
     { id: 'linger', name: 'Lingering Cold',  desc: 'Slows last 0.8s longer.', max: 3, apply: t => t.slowDur += 0.8 },
     { id: 'shards', name: 'Ice Shards',      desc: '+50% damage.', max: 4, apply: t => t.dmg *= 1.5 },
     { id: 'brittle',name: 'Brittle',         desc: 'Slowed enemies take 10% more damage from everything.', max: 3, apply: t => t.brittle += 0.1 },
-    { id: 'reach',  name: 'Cold Reach',      desc: '+15% range.', max: 3, apply: t => t.range *= 1.15 },
   ],
   tesla: [
     { id: 'arcs',   name: 'More Arcs',       desc: 'Lightning jumps to 1 more enemy.', max: 4, apply: t => t.chain += 1 },
@@ -86,7 +84,6 @@ const TOWER_UPS = {
     { id: 'conduct',name: 'Conductive',      desc: 'Jumps lose less damage (+8% per jump).', max: 3, apply: t => t.chainMul = Math.min(0.95, t.chainMul + 0.08) },
     { id: 'bank',   name: 'Capacitor Bank',  desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
     { id: 'jump',   name: 'Arc Reach',       desc: 'Lightning can jump 25% farther.', max: 3, apply: t => t.chainReach *= 1.25 },
-    { id: 'coil',   name: 'Tall Coil',       desc: '+15% range.', max: 2, apply: t => t.range *= 1.15 },
   ],
 };
 const TOWER_CAPS = {
@@ -107,7 +104,33 @@ const RECIPES = {
   'frost+tesla':   { name: 'Cryo Coil',    color: 0x9af0ff, desc: 'Chain lightning that slows every enemy it jumps to. Locks down whole lines.' },
   'plasma+tesla':  { name: 'Ion Storm',    color: 0xffd36e, desc: 'Explosive shells whose blast also throws lightning outward. The best crowd clearer.' },
 };
-const MERGE_COST = 100, MAX_LVL = 10, MERGE_LVL = 3, SELL_RATE = 0.8;
+// Hybrids pick from a fixed 5 of their parents' upgrades (ranks start fresh after the merge).
+const HYBRID_UPS = {
+  'arcane+frost':  ['runes', 'quick', 'twin', 'deep', 'brittle'],
+  'arcane+plasma': ['runes', 'quick', 'twin', 'shells', 'burn'],
+  'arcane+tesla':  ['runes', 'quick', 'focus', 'arcs', 'conduct'],
+  'frost+plasma':  ['hot', 'auto', 'shells', 'deep', 'linger'],
+  'frost+tesla':   ['volt', 'bank', 'arcs', 'deep', 'brittle'],
+  'plasma+tesla':  ['hot', 'auto', 'shells', 'arcs', 'conduct'],
+};
+// Super towers: two level 10 hybrids merged together. They share one set of 5 upgrades.
+const SUPER_UPS = [
+  { id: 'overcharge', name: 'Overcharge',     desc: '+30% damage.', max: 4, apply: t => t.dmg *= 1.3 },
+  { id: 'hyper',      name: 'Hyperdrive',     desc: 'Fires 15% faster.', max: 4, apply: t => t.rate *= 0.85 },
+  { id: 'resonant',   name: 'Resonant Core',  desc: 'Boosts every special effect: +15% blast radius, +1 lightning jump, +5% slow and +20% burn.', max: 3,
+    apply: t => { if (t.splash) t.splash *= 1.15; if (t.chain) t.chain += 1; if (t.slow) t.slow = Math.min(0.85, t.slow + 0.05); if (t.burn) t.burn += 0.2; } },
+  { id: 'fork',       name: 'Rift Fork',      desc: 'Shoots 1 more enemy at the same time.', max: 2, apply: t => t.multi += 1 },
+  { id: 'lens',       name: 'Rift Lens',      desc: '+12% range.', max: 2, apply: t => t.range *= 1.12 },
+];
+// Super tower names come from the base towers inside them.
+const SUPERS = {
+  'arcane+frost+plasma+tesla': { name: 'Rift Singularity', color: 0xffffff, desc: 'Holds the power of all four towers: fast bolts, explosions, deep slows and chain lightning in every shot.' },
+  'arcane+frost+plasma':       { name: 'Prism Reactor',    color: 0xffa8f0, desc: 'Rapid exploding ice bolts that shred and slow whole groups.' },
+  'arcane+frost+tesla':        { name: 'Aurora Lance',     color: 0xa8e8ff, desc: 'Piercing frozen lightning that slows everything it jumps through.' },
+  'arcane+plasma+tesla':       { name: 'Nova Battery',     color: 0xffe08a, desc: 'Heavy bolts that explode and throw lightning across the field.' },
+  'frost+plasma+tesla':        { name: 'Tempest Engine',   color: 0xc8f5ff, desc: 'A storm of scalding, freezing, crackling blasts. Nothing in range moves fast.' },
+};
+const MERGE_COST = 100, SUPER_MERGE_MUL = 3, MAX_LVL = 10, MERGE_LVL = 10, SELL_RATE = 0.8;
 // Numeric tower traits; merges keep the stronger value of each.
 const TRAITS = ['splash', 'slow', 'slowDur', 'chain', 'chainMul', 'chainReach', 'multi', 'ramp', 'surge', 'burn', 'brittle', 'mark', 'cluster', 'orbital', 'freeze', 'zero', 'stun'];
 
@@ -399,10 +422,11 @@ function toast(msg) { $('toast').textContent = msg; $('toast').hidden = false; t
 function countType(type) { return S.towers.filter(t => t.type === type || (t.parents && t.parents.includes(type))).length; }
 function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul); }
 function levelCost(t) { return Math.round(t.baseCost * 0.5 * t.lvl * S.hero.lvlMul); }
-function mergeCost() { return Math.round(MERGE_COST * S.hero.mergeMul); }
+function mergeCost(t) { return Math.round(MERGE_COST * (t && t.hybrid ? SUPER_MERGE_MUL : 1) * S.hero.mergeMul); }
 function tRange(t) { return t.range * (1 + S.hero.towerRange); }
-function towerName(t) { return t.hybrid ? RECIPES[t.type].name : TOWERS[t.type].name; }
-function towerBlurb(t) { return t.hybrid ? RECIPES[t.type].desc : TOWERS[t.type].info; }
+function towerName(t) { return t.super ? t.name : t.hybrid ? RECIPES[t.type].name : TOWERS[t.type].name; }
+function towerBlurb(t) { return t.super ? t.desc : t.hybrid ? RECIPES[t.type].desc : TOWERS[t.type].info; }
+function towerKind(t) { return t.super ? 'Super ' : t.hybrid ? 'Hybrid ' : ''; }
 function baseTypes(t) { return t.parents || [t.type]; }
 function traits(t) {
   const out = ['Shoots the enemy closest to your base' + (t.multi ? `, plus ${t.multi} more at once.` : '.')];
@@ -676,7 +700,8 @@ function update(dt) {
       const why = buildProblem(pb.c, pb.r, pb.type);
       if (why) toast(why); else placeTower(pb.c, pb.r, pb.type);
     }
-    h.hp = Math.min(h.maxHp, h.hp + h.regen * dt);
+    // No healing between waves, so waiting it out isn't free.
+    if (S.waveActive) h.hp = Math.min(h.maxHp, h.hp + h.regen * dt);
     h.cd -= dt;
     if (h.cd <= 0) {
       const inR = inRange(h.x, h.y, h.range).sort((a, b) => b.d - a.d);
@@ -723,7 +748,7 @@ function update(dt) {
       }
     }
   }
-  if (h.ab.t > 0) h.ab.t = Math.max(0, h.ab.t - dt);
+  if (h.ab.t > 0 && S.waveActive) h.ab.t = Math.max(0, h.ab.t - dt);
   else if (h.autoCast && !h.ko && S.enemies.length && (h.ab.id === 'overclock' || inRange(h.x, h.y, h.ab.r).length)) useAbility();
 
   let blocking = 0;
@@ -883,7 +908,7 @@ function newTower(type, c, r) {
   return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg, rate: d.rate, range: d.range,
     splash: d.splash || 0, slow: d.slow || 0, slowDur: 1.6, chain: d.chain || 0, chainMul: 0.7, chainReach: 95,
     multi: 0, ramp: 0, surge: 0, burn: 0, brittle: 0, mark: 0, cluster: 0, orbital: 0, freeze: 0, zero: 0, stun: 0,
-    color: d.color, cd: 0, shots: 0, stacks: 0, spent: 0, baseCost: d.cost, ups: {}, offer: null };
+    color: d.color, cd: 0, shots: 0, stacks: 0, spent: 0, baseCost: d.cost, ups: {} };
 }
 function placeTower(c, r, type) {
   const cost = towerCost(type), t = newTower(type, c, r);
@@ -891,24 +916,22 @@ function placeTower(c, r, type) {
   if (S.build && S.gold < towerCost(S.build)) S.build = null;
   renderBuildBar(); renderInspector();
 }
-// Two random upgrades from the tower's pool(s); levels 5 and 10 offer capstones instead.
-function rollTowerOffer(t) {
-  const next = t.lvl + 1, types = baseTypes(t);
-  if (next === 5 || next === 10) {
-    const caps = types.map(k => TOWER_CAPS[k][next]).filter(x => !t.ups[x.id]);
-    if (caps.length > 1) return caps.slice(0, 2);
-    if (caps.length) return caps.concat(shuffle(regularUps(t)).slice(0, 1));
-  }
-  return shuffle(regularUps(t)).slice(0, 2);
+// The same 5 options every level. Picking one never removes the others; each stacks up to its max rank.
+const ALL_TOWER_UPS = Object.values(TOWER_UPS).flat();
+function towerOptions(t) {
+  if (t.super) return SUPER_UPS;
+  if (t.hybrid) return HYBRID_UPS[t.type].map(id => ALL_TOWER_UPS.find(u => u.id === id));
+  return TOWER_UPS[t.type];
 }
-function regularUps(t) { return baseTypes(t).flatMap(k => TOWER_UPS[k]).filter(u => (t.ups[u.id] || 0) < u.max); }
-function isCap(u) { return Object.values(TOWER_CAPS).some(c => c[5] === u || c[10] === u); }
+function levelBonus(t, lvl) { return !t.hybrid && TOWER_CAPS[t.type][lvl]; }
 function levelTower(t, up) {
   const lc = levelCost(t);
-  if (S.gold < lc || t.lvl >= MAX_LVL) return;
+  if (S.gold < lc || t.lvl >= MAX_LVL || (t.ups[up.id] || 0) >= up.max) return;
   S.gold -= lc; t.spent += lc; t.lvl++; t.dmg *= 1.05;
-  up.apply(t); t.ups[up.id] = (t.ups[up.id] || 0) + 1; t.offer = null;
-  toast(towerName(t) + ' reached level ' + t.lvl + ': ' + up.name + '.');
+  up.apply(t); t.ups[up.id] = (t.ups[up.id] || 0) + 1;
+  const bonus = levelBonus(t, t.lvl);
+  if (bonus) { bonus.apply(t); t.ups[bonus.id] = 1; }
+  toast(towerName(t) + ' reached level ' + t.lvl + ': ' + up.name + (bonus ? ', and unlocked ' + bonus.name : '') + '.');
   renderInspector(); renderBuildBar();
 }
 
@@ -950,26 +973,48 @@ function handleClick(x, y, touch) {
   if (touch) moveHero(x, y);
 }
 
+// Returns why two towers can't merge, or '' if they can.
+function mergeProblem(a, b) {
+  if (a.super || b.super) return 'Super towers are already fully merged.';
+  if (a.lvl < MERGE_LVL || b.lvl < MERGE_LVL) return 'Both towers need to be level ' + MERGE_LVL + '.';
+  if (a.hybrid !== b.hybrid) return 'Merge two basic towers into a hybrid, or two hybrids into a super tower.';
+  if (!a.hybrid && a.type === b.type) return 'Merge two different tower types.';
+  return '';
+}
 function tryMerge(a, b) {
   S.mergeFrom = null;
-  if (b.hybrid || a.hybrid) { toast('Hybrids can’t merge again yet.'); return renderInspector(); }
-  if (b.lvl < MERGE_LVL) { toast('Both towers need to be level ' + MERGE_LVL + ' or higher.'); return renderInspector(); }
-  if (a.type === b.type) { toast('Merge two different tower types.'); return renderInspector(); }
-  if (S.gold < mergeCost()) { toast('Merging costs ' + mergeCost() + ' gold.'); return renderInspector(); }
-  const key = [a.type, b.type].sort().join('+'), rec = RECIPES[key];
-  S.gold -= mergeCost();
-  const isNew = !codex[key]; codex[key] = true; saveCodex();
-  const merged = { type: key, hybrid: true, parents: [a.type, b.type], color: rec.color, lvl: 1,
-    baseCost: TOWERS[a.type].cost + TOWERS[b.type].cost,
-    dmg: Math.max(a.dmg, b.dmg) * 1.5, rate: Math.min(a.rate, b.rate), range: Math.max(a.range, b.range) * 1.1,
-    spent: a.spent + b.spent + mergeCost(), cd: 0, shots: 0, stacks: 0, offer: null, ups: Object.assign({}, a.ups, b.ups) };
+  const why = mergeProblem(a, b), cost = mergeCost(a);
+  if (why) { toast(why); return renderInspector(); }
+  if (S.gold < cost) { toast('Merging costs ' + cost + ' gold.'); return renderInspector(); }
+  S.gold -= cost;
+  const base = { lvl: 1, spent: a.spent + b.spent + cost, cd: 0, shots: 0, stacks: 0, ups: {}, baseCost: a.baseCost + b.baseCost,
+    range: Math.max(a.range, b.range) * 1.1 };
+  let merged, label, color, key = '';
+  if (a.hybrid) {
+    const parents = [...new Set(a.parents.concat(b.parents))].sort(), info = SUPERS[parents.join('+')];
+    const recipe = RECIPES[a.type];
+    label = info ? info.name : 'Prime ' + recipe.name; color = info ? info.color : recipe.color;
+    merged = Object.assign(base, { type: a.type, hybrid: true, super: true, parents, name: label, color,
+      desc: info ? info.desc : 'Two ' + recipe.name + 's fused into one. ' + recipe.desc,
+      dmg: Math.max(a.dmg, b.dmg) * 1.6, rate: Math.min(a.rate, b.rate) * 0.9 });
+  } else {
+    key = [a.type, b.type].sort().join('+');
+    const rec = RECIPES[key];
+    label = rec.name; color = rec.color;
+    merged = Object.assign(base, { type: key, hybrid: true, parents: [a.type, b.type], color,
+      dmg: Math.max(a.dmg, b.dmg) * 1.5, rate: Math.min(a.rate, b.rate) });
+  }
   for (const k of TRAITS) merged[k] = Math.max(a[k], b[k]);
   if (merged.chain) merged.chain += 1;
+  if (merged.super) merged.multi += 1;
   Object.assign(b, merged);
   S.towers = S.towers.filter(t => t !== a);
-  S.fx.push({ k: 'ring', x: b.x, y: b.y, r: 40, color: rec.color, t: 0.6, T: 0.6, fill: true });
-  toast((isNew ? 'New recipe: ' : 'Merged into ') + rec.name + '!');
-  if (!S.boons[key] && Math.random() < 0.35) S.pendingBoon = key;
+  S.fx.push({ k: 'ring', x: b.x, y: b.y, r: merged.super ? 60 : 40, color, t: 0.6, T: 0.6, fill: true });
+  if (key) {
+    const isNew = !codex[key]; codex[key] = true; saveCodex();
+    toast((isNew ? 'New recipe: ' : 'Merged into ') + label + '!');
+    if (!S.boons[key] && Math.random() < 0.35) S.pendingBoon = key;
+  } else toast('Super merge: ' + label + '!');
   S.sel = b; renderInspector(); renderCodex(); renderBuildBar();
 }
 
@@ -981,17 +1026,18 @@ function renderBuildBar() {
   bar.innerHTML = Object.entries(TOWERS).map(([k, d]) =>
     `<button class="tbtn ${S.build === k ? 'on' : ''}" data-k="${k}" ${S.gold < towerCost(k) ? 'disabled' : ''}>
       <span class="sw" style="background:${d.css}"></span>${d.name}<span class="c">${towerCost(k)}</span><kbd>${d.key}</kbd></button>`).join('') +
-    `<button id="abilityBtn">${S.hero.ab.name} <kbd>Q</kbd></button><span class="spacer"></span>
+    `<button id="abilityBtn" class="ability">${S.hero.ab.name} <kbd>Q</kbd></button><span class="spacer"></span>
      <button id="keysBtn" title="Move the hero with WASD or the arrow keys">Keys: ${keyMove ? 'On' : 'Off'}</button>
      <button id="speedBtn">${S.speed}×</button>
      <button id="menuBtn" title="Abandon the run and return to the menu">Menu</button>
-     <button class="go" id="waveBtn" ${S.waveActive || S.over ? 'disabled' : ''}>${S.waveActive ? 'Wave ' + S.wave + modeTag : 'Start wave ' + (S.wave + 1) + modeTag}</button>`;
+     <button class="go" id="waveBtn" ${S.waveActive || S.over ? 'disabled' : ''}>${S.waveActive ? 'Wave ' + S.wave + modeTag : 'Start wave ' + (S.wave + 1) + modeTag + ' <kbd>Space</kbd>'}</button>`;
   bar.querySelectorAll('.tbtn').forEach(b => {
     b.onclick = () => selectBuild(b.dataset.k);
     b.onmouseenter = () => showTip(buildTipHtml(b.dataset.k), b.getBoundingClientRect(), 'above');
     b.onmouseleave = hideTip;
   });
   $('abilityBtn').onclick = useAbility;
+  abilityMeter();
   $('keysBtn').onclick = toggleKeys;
   $('speedBtn').onclick = () => { S.speed = S.speed === 3 ? 1 : S.speed + 1; renderBuildBar(); };
   $('waveBtn').onclick = startWave;
@@ -1018,11 +1064,11 @@ function buildTipHtml(k) {
   return `<b>${d.name}</b> <span class="tip-c">${towerCost(k)} gold</span><p>${d.info}</p>
     <div class="tip-s">Damage ${d.dmg} · ${(1 / d.rate).toFixed(2)} shots/s · Range ${d.range}</div>
     <ul>${traits(t).slice(1).map(x => `<li>${x}</li>`).join('')}</ul>
-    <div class="tip-s">Unique upgrades: ${TOWER_UPS[k].map(u => u.name).join(', ')}. Capstones: ${TOWER_CAPS[k][5].name} (Lv 5), ${TOWER_CAPS[k][10].name} (Lv 10).</div>`;
+    <div class="tip-s">Upgrades: ${TOWER_UPS[k].map(u => u.name).join(', ')}. Level 5 unlocks ${TOWER_CAPS[k][5].name}, level 10 unlocks ${TOWER_CAPS[k][10].name}.</div>`;
 }
 function towerTipHtml(t) {
-  const ups = Object.entries(t.ups).map(([id, n]) => { const u = baseTypes(t).flatMap(k => TOWER_UPS[k].concat(Object.values(TOWER_CAPS[k]))).find(x => x.id === id); return u ? u.name + (n > 1 ? ' ×' + n : '') : ''; }).filter(Boolean);
-  return `<b>${towerName(t)}</b> <span class="tip-c">Lv ${t.lvl}/${MAX_LVL}${t.hybrid ? ' · Hybrid' : ''}</span>${t === S.drained ? '<p style="color:var(--danger)">Drained: half damage this wave.</p>' : ''}<p>${towerBlurb(t)}</p>
+  const ups = Object.entries(t.ups).map(([id, n]) => { const u = ALL_TOWER_UPS.concat(SUPER_UPS, Object.values(TOWER_CAPS).flatMap(c => Object.values(c))).find(x => x.id === id); return u ? u.name + (n > 1 ? ' ×' + n : '') : ''; }).filter(Boolean);
+  return `<b>${towerName(t)}</b> <span class="tip-c">Lv ${t.lvl}/${MAX_LVL}${t.super ? ' · Super' : t.hybrid ? ' · Hybrid' : ''}</span>${t === S.drained ? '<p style="color:var(--danger)">Drained: half damage this wave.</p>' : ''}<p>${towerBlurb(t)}</p>
     <div class="tip-s">Damage dealt: ${Math.round(t.dmgTotal || 0)} total, ${Math.round(t.dmgWave || 0)} this wave</div>
     <div class="tip-s">Damage ${(t.dmg * S.mod.towerDmg).toFixed(0)} · ${(1 / (t.rate * S.mod.towerRate)).toFixed(2)} shots/s · Range ${tRange(t).toFixed(0)}</div>
     <ul>${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>${ups.length ? `<div class="tip-s">Upgrades: ${ups.join(', ')}</div>` : ''}`;
@@ -1037,29 +1083,30 @@ function renderInspector() {
       el.innerHTML = `<h3>Placing</h3>${buildTipHtml(S.build)}<p class="help">Left-click a tile to build. Right-click or press R to cancel.</p>`;
       return;
     }
-    el.innerHTML = `<h3>Tower</h3><p>Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.</p><p>Towers level up to ${MAX_LVL}, choosing a unique upgrade each level, with big capstones at levels 5 and 10. Two different towers at level ${MERGE_LVL}+ merge into a hybrid, which keeps leveling and draws upgrades from both parents.</p>`;
+    el.innerHTML = `<h3>Tower</h3><p>Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.</p><p>Towers level up to ${MAX_LVL}. Each level you pick one of the tower's 5 upgrades, and levels 5 and 10 unlock a bonus. Two different level ${MERGE_LVL} towers merge into a hybrid, and two level ${MERGE_LVL} hybrids merge into a super tower.</p>`;
     return;
   }
   const lc = levelCost(t), sell = Math.round(t.spent * SELL_RATE);
   const gc = v => `<span style="color:var(--gold)">${v}</span>`;
-  if (t.lvl < MAX_LVL && !t.offer) t.offer = rollTowerOffer(t);
-  const cap = t.lvl + 1 === 5 || t.lvl + 1 === 10;
-  el.innerHTML = `<h3>${towerName(t)} · ${t.hybrid ? 'Hybrid ' : ''}Lv ${t.lvl}/${MAX_LVL}</h3>
-    <p>${towerBlurb(t)}${t.hybrid ? ' Made from ' + t.parents.map(p => TOWERS[p].name).join(' + ') + '.' : ''}</p>
+  const opts = towerOptions(t), bonus = levelBonus(t, t.lvl + 1), canMerge = t.lvl >= MERGE_LVL && !t.super;
+  el.innerHTML = `<h3>${towerName(t)} · ${towerKind(t)}Lv ${t.lvl}/${MAX_LVL}</h3>
+    <p>${towerBlurb(t)}${t.hybrid ? ' Contains ' + t.parents.map(p => TOWERS[p].name).join(' + ') + '.' : ''}</p>
     <div class="stats">
       <div><span>Damage</span>${(t.dmg * S.mod.towerDmg).toFixed(0)}</div><div><span>Shots/s</span>${(1 / (t.rate * S.mod.towerRate)).toFixed(2)}</div>
       <div><span>Range</span>${tRange(t).toFixed(0)}</div><div><span>Spent</span>${t.spent}</div>
     </div>
     <ul class="traits">${traits(t).map(x => `<li>${x}</li>`).join('')}</ul>
-    ${S.mergeFrom === t ? `<p>Tap another level ${MERGE_LVL}+ tower to merge with. Tap anywhere else to cancel.</p>` : ''}
-    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Level up to ${t.lvl + 1} for ${gc(lc)} gold${cap ? ' (capstone)' : ''}. Every level also adds +5% damage. Pick one:</p>
-      <div class="ups">${t.offer.map((u, i) => `<button class="up ${isCap(u) ? 'cap' : ''}" data-u="${i}" ${S.gold < lc ? 'disabled' : ''}><b>${isCap(u) ? '★ ' : ''}${u.name}</b><span>${u.desc}</span></button>`).join('')}</div>` : '<p class="help">Max level.</p>'}
+    ${S.mergeFrom === t ? `<p>Tap another level ${MERGE_LVL} ${t.hybrid ? 'hybrid' : 'tower of a different type'} to merge with. Tap anywhere else to cancel.</p>` : ''}
+    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Level up to ${t.lvl + 1} for ${gc(lc)} gold. Every level also adds +5% damage.${bonus ? ` Level ${t.lvl + 1} also unlocks <b>★ ${bonus.name}</b>: ${bonus.desc}` : ''} Pick one:</p>
+      <div class="ups">${opts.map((u, i) => { const n = t.ups[u.id] || 0, full = n >= u.max;
+        return `<button class="up" data-u="${i}" ${S.gold < lc || full ? 'disabled' : ''}><b>${u.name} <small>${n}/${u.max}</small></b><span>${full ? 'Maxed.' : u.desc}</span></button>`; }).join('')}</div>`
+      : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
     <div class="row">
-      ${!t.hybrid && t.lvl >= MERGE_LVL ? `<button id="mergeBtn" ${S.gold < mergeCost() ? 'disabled' : ''}>Merge · ${gc(mergeCost())}</button>` : ''}
+      ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost(t) ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost(t))}</button>` : ''}
       <button id="sellBtn">Sell · ${gc('+' + sell)} <kbd>R</kbd></button>
     </div>`;
-  el.querySelectorAll('.up').forEach(b => b.onclick = () => levelTower(t, t.offer[+b.dataset.u]));
-  if ($('mergeBtn')) $('mergeBtn').onclick = () => { S.mergeFrom = t; renderInspector(); toast('Pick a level ' + MERGE_LVL + '+ tower of another type.'); };
+  el.querySelectorAll('.up').forEach(b => b.onclick = () => levelTower(t, opts[+b.dataset.u]));
+  if ($('mergeBtn')) $('mergeBtn').onclick = () => { S.mergeFrom = t; renderInspector(); toast(t.hybrid ? 'Pick another level ' + MERGE_LVL + ' hybrid.' : 'Pick a level ' + MERGE_LVL + ' tower of another type.'); };
   $('sellBtn').onclick = sellSelected;
   lastInspGold = S.gold;
 }
@@ -1113,6 +1160,13 @@ function showTip(html, rect, where) {
 function hideTip() { $('tip').hidden = true; }
 
 let lastBarGold = -1, lastInspGold = -1, heroT = 0, tipTower = null;
+// The ability button empties when used and refills as the cooldown runs down.
+function abilityMeter() {
+  const b = $('abilityBtn'), a = S.hero && S.hero.ab; if (!b || !a) return;
+  const fill = a.t > 0 ? (1 - a.t / a.cd) * 100 : 100;
+  b.style.setProperty('--fill', fill.toFixed(1) + '%');
+  b.classList.toggle('ready', !(a.t > 0));
+}
 function updateHud() {
   const h = S && S.hero; if (!h) return;
   $('sWave').textContent = S.wave + '/' + MAX_WAVE;
@@ -1121,6 +1175,7 @@ function updateHud() {
   $('sLvl').textContent = h.ko ? 'KO ' + Math.ceil(h.ko) + 's' : 'Lv ' + h.lvl;
   $('mHp').style.width = (h.hp / h.maxHp * 100) + '%';
   $('mXp').style.width = (h.xp / h.next * 100) + '%';
+  abilityMeter();
   if (Math.floor(S.gold) !== Math.floor(lastBarGold)) renderBuildBar();
   if (S.sel && Math.floor(S.gold) !== Math.floor(lastInspGold) && !S.mergeFrom) renderInspector();
   if (--heroT <= 0) { heroT = 3; renderHero(); }
@@ -1154,7 +1209,7 @@ function draw(g) {
   if (S.pendingBuild) { const pb = S.pendingBuild; g.lineStyle(2, TOWERS[pb.type].color, 0.8).strokeRect(pb.c * C + 4, pb.r * C + 4, C - 8, C - 8); }
   const showR = S.sel || tipTower;
   if (showR) g.lineStyle(1, showR.color, 0.5).strokeCircle(showR.x, showR.y, tRange(showR));
-  if (S.mergeFrom) for (const t of S.towers) if (t !== S.mergeFrom && !t.hybrid && t.lvl >= MERGE_LVL && t.type !== S.mergeFrom.type)
+  if (S.mergeFrom) for (const t of S.towers) if (t !== S.mergeFrom && !mergeProblem(S.mergeFrom, t))
     g.lineStyle(2, 0xf2c14e, 0.8).strokeRect(t.x - 18, t.y - 18, 36, 36);
 
   for (const t of S.towers) {
@@ -1162,7 +1217,11 @@ function draw(g) {
     g.lineStyle(2, t.color, t === S.sel ? 1 : 0.6).strokeRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
     if (t === S.drained) { g.lineStyle(2, 0xff5d6c, 0.9).lineBetween(t.x - 14, t.y - 14, t.x + 14, t.y + 14); }
     if (overclocked(t)) g.lineStyle(1, 0xb07cff, 0.9).strokeRoundedRect(t.x - 19, t.y - 19, 38, 38, 6);
-    if (t.hybrid) {
+    if (t.super) {
+      g.fillStyle(t.color, 1).fillCircle(t.x, t.y - 3, 8);
+      g.lineStyle(2, t.color, 0.8).strokeCircle(t.x, t.y - 3, 11);
+      g.lineStyle(1, 0xf2c14e, 0.9).strokeCircle(t.x, t.y - 3, 14);
+    } else if (t.hybrid) {
       g.fillStyle(t.color, 1).fillCircle(t.x, t.y - 3, 7);
       g.lineStyle(2, t.color, 0.7).strokeCircle(t.x, t.y - 3, 11);
     } else {
@@ -1266,7 +1325,7 @@ window.addEventListener('keydown', e => {
   if (k) selectBuild(k);
   else if (lk === 'r') { if (!S.paused && !S.over && !cancelPlacing()) sellSelected(); }
   else if (lk === 'q') useAbility();
-  else if (e.key === ' ') { e.preventDefault(); startWave(); }
+  else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (!e.repeat) startWave(); }
   else if (e.key === 'Escape') { S.build = null; S.mergeFrom = null; S.sel = null; S.pendingBuild = null; renderBuildBar(); renderInspector(); }
 });
 

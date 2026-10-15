@@ -125,3 +125,7 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .log th, .log td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .log th { color: var(--muted); font-weight: 600; }
 #logText { width: 100%; height: 160px; margin-top: 8px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); font-size: 12px; }
+/* Ability button doubles as its cooldown meter: empties on use, refills as it recharges. */
+#abilityBtn.ability { --fill: 100%; background: linear-gradient(90deg, rgba(176,124,255,.35) var(--fill), var(--panel) var(--fill)); }
+#abilityBtn.ability.ready { border-color: var(--arcane); }
+.up small { font-family: var(--body, inherit); font-size: 11px; color: var(--muted); font-weight: normal; margin-left: 4px; }
