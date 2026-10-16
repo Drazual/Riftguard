@@ -283,20 +283,27 @@ const HEROES = {
   vanguard: { name: 'Vanguard', role: 'Defensive', cat: 'defensive', color: 0x5fe39a, css: '#5fe39a',
     desc: 'A walking fortress. Huge HP, blocks every enemy that reaches it and stuns crowds.',
     stats: { hp: 340, dmg: 8, rate: 0.7, range: 80, block: ALL_BLOCK, armor: 0.1, regen: 5, speed: 135 },
-    ability: { id: 'slam', name: 'Shield Slam', cd: 18, dmg: 30, r: 100, stun: 1.5 } },
+    ability: { id: 'slam', name: 'Shield Slam', cd: 18, dmg: 30, r: 100, stun: 1.5 },
+    alt: { id: 'bulwark', name: 'Bulwark Shield', cd: 18, dmg: 30, r: 110, dur: 5 } },
   striker:  { name: 'Striker', role: 'Offensive', cat: 'offensive', color: 0xff8a7a, css: '#ff8a7a',
     desc: 'Fast and deadly but fragile. Shreds enemies and blasts groups with Rift Nova.',
     stats: { hp: 180, dmg: 12, rate: 0.5, range: 115, block: 1, armor: 0, regen: 2, speed: 165 },
-    ability: { id: 'nova', name: 'Rift Nova', cd: 20, dmg: 40, r: 110 } },
+    ability: { id: 'nova', name: 'Rift Nova', cd: 20, dmg: 40, r: 110 },
+    alt: { id: 'overdrive', name: 'Overdrive', cd: 20, dur: 5, power: 1 } },
   oracle:   { name: 'Oracle', role: 'Support', cat: 'support', color: 0xb07cff, css: '#b07cff',
     desc: 'Empowers towers. Nearby towers deal +15% damage, Overclock Field makes them fire much faster, and towers use 4 upgrade paths of 3 bigger points instead of 3 paths of 4.',
     stats: { hp: 210, dmg: 7, rate: 0.6, range: 100, block: 2, armor: 0, regen: 3, speed: 150, aura: 0.15 },
-    ability: { id: 'overclock', name: 'Overclock Field', cd: 24, r: 170, dur: 6, power: 0.6 } },
+    ability: { id: 'overclock', name: 'Overclock Field', cd: 24, r: 170, dur: 6, power: 0.6 },
+    alt: { id: 'stasis', name: 'Stasis Field', cd: 24, r: 170, dur: 6, power: 0.6 } },
   sniper:   { name: 'Sniper', role: 'Offensive', cat: 'offensive', color: 0xffd36e, css: '#ffd36e', unlock: 250,
     desc: 'Hits anything on the map, but has to stand still and brace before every shot. Slow, heavy, precise.',
     stats: { hp: 170, dmg: 48, rate: 2.4, range: 9999, block: 1, armor: 0, regen: 2, speed: 140, brace: 1.2, crit: 0.1 },
-    ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 } },
+    ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 },
+    alt: { id: 'strike', name: 'Orbital Strike', cd: 16, mult: 5, r: 90 } },
 };
+// Each hero has two abilities to choose from on the Heroes page; the choice is saved in META.abilities.
+const heroAbility = k => (META.abilities && META.abilities[k] === 'alt' && HEROES[k].alt) || HEROES[k].ability;
+const abName = () => S && S.hero ? S.hero.ab.name : 'Your ability';
 const isUnlocked = id => !HEROES[id].unlock || !!META.unlocked[id];
 const CATEGORIES = [['offensive', 'Offensive'], ['defensive', 'Defensive'], ['support', 'Support'], ['special', 'Special']];
 const heroesIn = cat => Object.entries(HEROES).filter(([, h]) => h.cat === cat);
@@ -306,11 +313,16 @@ function abilityTipHtml(h) {
   if (a.id === 'slam') rows.push(['Damage', a.dmg.toFixed(0)], ['Radius', (a.r * (a.magnet ? 1.5 : 1)).toFixed(0)], ['Stun', a.stun.toFixed(1) + 's']);
   if (a.id === 'nova') rows.push(['Damage', a.dmg.toFixed(0)], ['Radius', a.r.toFixed(0)]);
   if (a.id === 'overclock') rows.push(['Radius', a.r.toFixed(0)], ['Towers fire faster', pct(a.power)], ['Lasts', a.dur.toFixed(1) + 's']);
+  if (a.id === 'bulwark') rows.push(['Shield', (a.dmg * 5 * (a.overflow ? 1.5 : 1)).toFixed(0)], ['Burst', a.dmg.toFixed(0) + ' + 60% soaked'], ['Lasts', a.dur.toFixed(1) + 's']);
+  if (a.id === 'overdrive') rows.push(['Attack speed', '+' + pct(a.power)], ['Lasts', a.dur.toFixed(1) + 's']);
+  if (a.id === 'strike') rows.push(['Damage', h.dmg ? (h.dmg * a.mult).toFixed(0) + ' (' + a.mult.toFixed(1) + '× hero damage)' : a.mult.toFixed(1) + '× hero damage'], ['Radius', a.r.toFixed(0)]);
+  if (a.id === 'stasis') rows.push(['Radius', a.r.toFixed(0)], ['Slow', pct(Math.min(0.85, a.power * 0.75))], ['Lasts', a.dur.toFixed(1) + 's']);
   if (a.id === 'pierce') rows.push(['Damage per enemy', h.dmg ? (h.dmg * a.mult).toFixed(0) + ' (' + a.mult.toFixed(1) + '× hero damage)' : a.mult.toFixed(1) + '× hero damage'], ['Width', (a.w * (a.rail ? 3 : 1)).toFixed(0)]);
   rows.push(['Cooldown', a.cd.toFixed(1) + 's']);
   const mods = ABILITY_MODS.filter(m => a[m.id]);
   const extra = { slam: h.taunt ? `After the slam, enemies within 120 attack you for ${h.taunt.toFixed(1)}s (bosses half).` : '',
     pierce: 'Press F to set an aim point and it always fires that way. Press F on the point to clear it.',
+    strike: 'Press F to set an aim point and the strike always lands there.',
     overclock: '', nova: '' }[a.id];
   return `<b>${a.name}</b> <span class="tip-c">Q</span><p>${abilityText(h)}</p>
     <div class="tip-s">${rows.map(([k, v]) => `${k}: <b>${v}</b>`).join(' · ')}</div>
@@ -319,7 +331,7 @@ function abilityTipHtml(h) {
 }
 function tipFor(key) {
   if (key === 'ability' && S && S.hero) return abilityTipHtml(S.hero);
-  if (key.startsWith('ability:')) { const d = HEROES[key.slice(8)]; return abilityTipHtml({ ab: Object.assign({}, d.ability), dmg: d.stats.dmg, taunt: 0 }); }
+  if (key.startsWith('ability:')) { const parts = key.split(':'), d = HEROES[parts[1]], ab = parts[2] === 'alt' ? d.alt : parts[2] === 'base' ? d.ability : heroAbility(parts[1]); return abilityTipHtml({ ab: Object.assign({}, ab), dmg: d.stats.dmg, taunt: 0 }); }
   if (key.startsWith('mod:')) { const m = ABILITY_MODS.find(x => x.id === key.slice(4)); return m ? `<b>${m.name}</b><p>${m.desc}</p>` : ''; }
   if (key === 'hold') return `<b>Hold position</b> <span class="tip-c">H</span><p>Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.</p>`;
   if (key === 'aim') return `<b>Aim point</b> <span class="tip-c">F</span><p>Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.</p>`;
@@ -337,6 +349,10 @@ function abilityText(h) {
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
   if (a.id === 'nova') return `Deals ${a.dmg.toFixed(0)} damage to every enemy within ${a.r.toFixed(0)}.`;
   if (a.id === 'pierce') return `Fires a round through every enemy in a line toward your aim point (or the lead enemy) for ${a.mult.toFixed(1)}× damage.`;
+  if (a.id === 'bulwark') return `Raises a shield that soaks ${(a.dmg * 5 * (a.overflow ? 1.5 : 1)).toFixed(0)} damage for ${a.dur.toFixed(1)}s. When it breaks or ends it bursts, hitting enemies within ${a.r.toFixed(0)} for ${a.dmg.toFixed(0)} plus 60% of what it soaked.`;
+  if (a.id === 'overdrive') return `For ${a.dur.toFixed(1)}s you attack ${pct(a.power)} faster.`;
+  if (a.id === 'strike') return `Calls a strike on your aim point (or the toughest enemy). After 0.8s it hits everything within ${a.r.toFixed(0)} for ${a.mult.toFixed(1)}× damage.`;
+  if (a.id === 'stasis') return `Enemies within ${a.r.toFixed(0)} of where you cast it are slowed ${pct(Math.min(0.85, a.power * 0.75))} for ${a.dur.toFixed(1)}s.`;
   return `Towers within ${a.r.toFixed(0)} fire ${pct(a.power)} faster for ${a.dur.toFixed(1)}s.`;
 }
 
@@ -378,9 +394,9 @@ const PERKS = [
   { id: 'taunt',   cls: 'vanguard', name: 'Taunt',         m: 2,    desc: m => `After Shield Slam, enemies within 120 stop and attack you for ${m.toFixed(1)}s.`, apply: (h, m) => h.taunt += m },
   { id: 'shell',   cls: 'vanguard', name: 'Hardlight Shell', m: 0.08, desc: m => `Take ${pct(m)} less damage (up to 75%).`, apply: (h, m) => h.armor = Math.min(0.75, h.armor + m) },
   { id: 'thorns',  cls: 'vanguard', name: 'Thorn Field',   m: 8,    desc: m => `Enemies you block take ${Math.round(m)} damage per second.`, apply: (h, m) => h.thorns += m },
-  { id: 'seismic', cls: 'vanguard', name: 'Seismic Slam',  m: 0.3,  desc: m => `Shield Slam deals +${pct(m)} damage.`, apply: (h, m) => h.ab.dmg *= 1 + m },
-  { id: 'after',   cls: 'vanguard', name: 'Aftershock',    m: 0.1,  desc: m => `Shield Slam recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(6, h.ab.cd * (1 - Math.min(0.5, m))) },
-  { id: 'daze',    cls: 'vanguard', name: 'Concussion',    m: 0.4,  desc: m => `Shield Slam stuns ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.stun += m },
+  { id: 'seismic', cls: 'vanguard', name: 'Seismic Power',  m: 0.3,  desc: m => `${abName()} is +${pct(m)} stronger (damage${S && S.hero && S.hero.ab.id === 'bulwark' ? ', shield size' : ''}).`, apply: (h, m) => h.ab.dmg *= 1 + m },
+  { id: 'after',   cls: 'vanguard', name: 'Aftershock',    m: 0.1,  desc: m => `${abName()} recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(6, h.ab.cd * (1 - Math.min(0.5, m))) },
+  { id: 'daze',    cls: 'vanguard', ab: 'slam', name: 'Concussion',    m: 0.4,  desc: m => `Shield Slam stuns ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.stun += m },
   { id: 'fort',    cls: 'defensive', name: 'Fortify',       m: 0.15, desc: m => `+${pct(m)} max HP.`, apply: (h, m) => { h.maxHp = Math.round(h.maxHp * (1 + m)); h.hp = h.maxHp; } },
   // Striker
   { id: 'crit',    cls: 'offensive', name: 'Weak Point', m: 0.08, desc: m => `+${pct(m)} crit chance.`, apply: (h, m) => h.crit = Math.min(0.75, h.crit + m) },
@@ -388,16 +404,16 @@ const PERKS = [
   { id: 'split',   cls: 'striker', name: 'Split Shot',     m: 1,    desc: m => `Attacks hit ${Math.max(1, Math.round(m))} more enemy.`, apply: (h, m) => h.multi = Math.min(6, h.multi + Math.max(1, Math.round(m))) },
   { id: 'scope',   cls: 'striker', name: 'Long Barrel',    m: 0.12, desc: m => `+${pct(m)} attack range.`, apply: (h, m) => h.range *= 1 + m },
   { id: 'clock',   cls: 'striker', name: 'Overclock',      m: 0.15, desc: m => `+${pct(m)} attack speed.`, apply: (h, m) => h.rate /= 1 + m },
-  { id: 'core',    cls: 'striker', name: 'Nova Core',      m: 0.3,  desc: m => `Rift Nova deals +${pct(m)} damage.`, apply: (h, m) => h.ab.dmg *= 1 + m },
-  { id: 'nfocus',  cls: 'striker', name: 'Rift Focus',     m: 0.1,  desc: m => `Rift Nova recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(6, h.ab.cd * (1 - Math.min(0.5, m))) },
-  { id: 'wide',    cls: 'striker', name: 'Wide Nova',      m: 0.12, desc: m => `Rift Nova radius +${pct(m)}.`, apply: (h, m) => h.ab.r *= 1 + m },
+  { id: 'core',    cls: 'striker', ab: 'nova', name: 'Nova Core',      m: 0.3,  desc: m => `Rift Nova deals +${pct(m)} damage.`, apply: (h, m) => h.ab.dmg *= 1 + m },
+  { id: 'nfocus',  cls: 'striker', name: 'Rift Focus',     m: 0.1,  desc: m => `${abName()} recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(6, h.ab.cd * (1 - Math.min(0.5, m))) },
+  { id: 'wide',    cls: 'striker', ab: 'nova', name: 'Wide Nova',      m: 0.12, desc: m => `Rift Nova radius +${pct(m)}.`, apply: (h, m) => h.ab.r *= 1 + m },
   { id: 'momentum',cls: 'striker', name: 'Momentum',      m: 0.03, desc: m => `Each kill by your hero gives +${pct(m)} attack speed for 4s, stacking up to 10 times.`, apply: (h, m) => h.momentum += m },
   // Oracle
   { id: 'rapid',   cls: 'oracle', name: 'Rapid Construction', m: 0.6, desc: m => `Towers you build within your aura get their first ${Math.max(1, Math.round(m))} level-up${Math.round(m) > 1 ? 's' : ''} free.`, apply: (h, m) => h.rapid += Math.max(1, Math.round(m)) },
   { id: 'aura',    cls: 'oracle', name: 'Commander Aura',  m: 0.08, desc: m => `Towers near you deal +${pct(m)} more damage.`, apply: (h, m) => h.aura += m },
   { id: 'signal',  cls: 'oracle', name: 'Signal Boost',    m: 0.15, desc: m => `Aura reaches ${pct(m)} farther and all towers get +${pct(m / 3)} range.`, apply: (h, m) => { h.auraRange *= 1 + m; h.towerRange += m / 3; } },
-  { id: 'surge',   cls: 'oracle', name: 'Power Surge',     m: 0.15, desc: m => `Overclock Field speeds towers up ${pct(m)} more.`, apply: (h, m) => h.ab.power += m },
-  { id: 'extend',  cls: 'oracle', name: 'Extended Field',  m: 1.5,  desc: m => `Overclock Field lasts ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.dur += m },
+  { id: 'surge',   cls: 'oracle', name: 'Power Surge',     m: 0.15, desc: m => S && S.hero && S.hero.ab.id === 'stasis' ? `Stasis Field slows ${pct(m * 0.75)} more.` : `Overclock Field speeds towers up ${pct(m)} more.`, apply: (h, m) => h.ab.power += m },
+  { id: 'extend',  cls: 'oracle', name: 'Extended Field',  m: 1.5,  desc: m => `${abName()} lasts ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.dur += m },
   { id: 'chill',   cls: 'oracle', name: 'Chilling Presence', m: 0.08, desc: m => `Towers near you also slow enemies by ${pct(m)}.`, apply: (h, m) => h.auraSlow = Math.min(0.6, h.auraSlow + m) },
   { id: 'interest',cls: 'oracle', name: 'Investments',     m: 0.03, desc: m => `Earn ${pct(m)} interest on your gold after each wave.`, apply: (h, m) => h.interest += m },
   // Sniper
@@ -405,10 +421,14 @@ const PERKS = [
   { id: 'caliber', cls: 'sniper', name: 'Heavy Caliber',   m: 0.25, desc: m => `+${pct(m)} hero damage.`, apply: (h, m) => h.dmg *= 1 + m },
   { id: 'chamber', cls: 'sniper', name: 'Fast Chamber',    m: 0.12, desc: m => `+${pct(m)} attack speed.`, apply: (h, m) => h.rate /= 1 + m },
   { id: 'penetrate', cls: 'sniper', name: 'Penetrator',    m: 1,    desc: m => `Shots also hit ${Math.max(1, Math.round(m))} enemy near the target for 50% damage.`, apply: (h, m) => h.pierce += Math.max(1, Math.round(m)) },
-  { id: 'apround', cls: 'sniper', name: 'Armor-Piercing Rounds', m: 0.3, desc: m => `Piercing Shot deals +${pct(m)} damage.`, apply: (h, m) => h.ab.mult *= 1 + m },
+  { id: 'apround', cls: 'sniper', name: 'Armor-Piercing Rounds', m: 0.3, desc: m => `${abName()} deals +${pct(m)} damage.`, apply: (h, m) => h.ab.mult *= 1 + m },
   { id: 'spotter', cls: 'sniper', name: 'Spotter',         m: 0.1,  desc: m => `Your target takes +${pct(m)} damage from towers for 3s.`, apply: (h, m) => h.spotter += m },
   { id: 'headhunter', cls: 'sniper', name: 'Headhunter',  m: 0.25, desc: m => `+${pct(m)} hero damage to bosses.`, apply: (h, m) => h.headhunter += m },
-  { id: 'steady',  cls: 'sniper', name: 'Steady Aim',      m: 0.1,  desc: m => `Piercing Shot recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(5, h.ab.cd * (1 - Math.min(0.5, m))) },
+  { id: 'steady',  cls: 'sniper', name: 'Steady Aim',      m: 0.1,  desc: m => `${abName()} recharges ${pct(Math.min(0.5, m))} faster.`, apply: (h, m) => h.ab.cd = Math.max(5, h.ab.cd * (1 - Math.min(0.5, m))) },
+  { id: 'barrier', cls: 'vanguard', ab: 'bulwark', name: 'Hardened Barrier', m: 1, desc: m => `Bulwark Shield lasts ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.dur += m },
+  { id: 'adren',   cls: 'striker', ab: 'overdrive', name: 'Adrenaline', m: 1, desc: m => `Overdrive lasts ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.dur += m },
+  { id: 'redline', cls: 'striker', ab: 'overdrive', name: 'Redline', m: 0.25, desc: m => `Overdrive gives +${pct(m)} more attack speed.`, apply: (h, m) => h.ab.power += m },
+  { id: 'payload', cls: 'sniper', ab: 'strike', name: 'Bigger Payload', m: 0.15, desc: m => `Orbital Strike blast is ${pct(m)} wider.`, apply: (h, m) => h.ab.r *= 1 + m },
   { id: 'alchemy', cls: 'support', name: 'Alchemist',       m: 0.15, desc: m => `Tower merges cost ${pct(Math.min(0.8, m))} less.`, apply: (h, m) => h.mergeMul *= 1 - Math.min(0.8, m) },
 ];
 // Every hero level also grows the hero's core stats, by role. Damage heroes hit harder, reach farther and
@@ -424,7 +444,8 @@ function levelHero(h) {
   const r = ROLE_LEVEL[HEROES[h.cls].cat]; if (r) r.apply(h);
 }
 // Ability upgrades: they change what the hero's ability does. Offered at Rare or better, never Demonic.
-const AM = (cls, id, name, desc) => ({ id, cls, name, desc, fixed: true, mod: true, apply: h => { h.ab[id] = true; } });
+const BASE_AB = { vanguard: 'slam', striker: 'nova', oracle: 'overclock', sniper: 'pierce' };
+const AM = (cls, id, name, desc, ab) => ({ id, cls, ab: ab || BASE_AB[cls], name, desc, fixed: true, mod: true, apply: h => { h.ab[id] = true; } });
 const ABILITY_MODS = [
   AM('vanguard', 'rings',   'Shockwave Rings', 'Shield Slam sends out 3 expanding rings that each hit for 40% damage and push enemies back.'),
   AM('vanguard', 'magnet',  'Magnetic Slam',   'Shield Slam reaches 50% farther and drags every enemy it hits back along the path.'),
@@ -441,6 +462,14 @@ const ABILITY_MODS = [
   AM('sniper',   'rail',    'Railgun',         'Piercing Shot is 3× wider and leaves a burning line for 3s.'),
   AM('sniper',   'bounce',  'Ricochet Round',  'Piercing Shot bounces through 5 more enemies after its line.'),
   AM('sniper',   'cluster', 'Cluster Round',   'Every enemy Piercing Shot hits explodes for 40% damage around it.'),
+  AM('vanguard', 'spiked',  'Spiked Barrier',  'While Bulwark Shield is up, enemies you block take 40 damage per second.', 'bulwark'),
+  AM('vanguard', 'overflow','Overflowing Shield', 'Bulwark Shield is 50% bigger, and whatever is left of it when it ends heals you.', 'bulwark'),
+  AM('striker',  'bloodrush','Blood Rush',     'Each kill during Overdrive extends it by 0.4s (up to 4s more).', 'overdrive'),
+  AM('striker',  'afterimg','Afterimage',      'During Overdrive your attacks hit 2 more enemies.', 'overdrive'),
+  AM('oracle',   'shatterS','Shattering Stasis', 'Enemies inside Stasis Field take +25% damage from everything.', 'stasis'),
+  AM('oracle',   'anchor',  'Rift Anchor',     'Casting Stasis Field freezes every enemy inside it solid for 1.5s (bosses 0.5s).', 'stasis'),
+  AM('sniper',   'carpet',  'Carpet Strike',   'Orbital Strike drops 3 more blasts around the target for 50% damage.', 'strike'),
+  AM('sniper',   'scorch',  'Scorched Earth',  'Orbital Strike leaves burning ground for 4s.', 'strike'),
   AM('sniper',   'execR',   'Execution Round', 'Piercing Shot kills non-boss enemies below 30% HP, and each kill refunds 10% of its cooldown (up to 40% per shot).'),
 ];
 // Unique upgrades that only appear at Legendary (per hero) or Secret (any hero).
@@ -448,9 +477,10 @@ const UNIQUES = [
   { id: 'aegis',  cls: 'vanguard', rarity: 'legendary', name: 'Aegis Core',     desc: 'Take 20% less damage and gain 150 max HP.', apply: h => { h.maxHp += 50; h.armor = Math.min(0.75, h.armor + 0.2); h.maxHp += 100; h.hp = h.maxHp; } },
   { id: 'unbreak',cls: 'vanguard', rarity: 'legendary', name: 'Unbreakable',    desc: 'Once per wave, a fatal blow leaves you at full HP instead.', apply: h => h.unbreakable = true },
   { id: 'exec',   cls: 'striker',  rarity: 'legendary', name: 'Executioner',    desc: '+20% damage. Your hits instantly finish non-boss enemies below 15% HP.', apply: h => { h.dmg *= 1.2; h.execute = 0.15; } },
+  { id: 'stasisL', cls: 'oracle', ab: 'stasis', rarity: 'legendary', name: 'Frozen Moment', desc: 'Stasis Field is 30% wider and every tower inside it fires 30% faster.', apply: h => { h.ab.r *= 1.3; h.ab.haste = 0.3; } },
   { id: 'storm',  cls: 'striker',  rarity: 'legendary', name: 'Bullet Storm',   desc: 'Every 3rd attack hits every enemy in range.', apply: h => h.bulletStorm = 3 },
   { id: 'master', cls: 'oracle',   rarity: 'legendary', name: 'Master Architect', desc: 'All towers deal +25% damage, and new towers cost 20% less to build.', apply: h => { S.mod.towerDmg += 0.25; h.costMul *= 0.8; } },
-  { id: 'warp',   cls: 'oracle',   rarity: 'legendary', name: 'Time Warp',      desc: 'Overclock Field also slows enemies inside it by 40%.', apply: h => h.timeWarp = 0.4 },
+  { id: 'warp',   cls: 'oracle', ab: 'overclock', rarity: 'legendary', name: 'Time Warp',      desc: 'Overclock Field also slows enemies inside it by 40%.', apply: h => h.timeWarp = 0.4 },
   { id: 'deadeye', cls: 'sniper', rarity: 'legendary', name: 'Deadeye',      desc: 'Every 3rd shot is a guaranteed crit, and crits deal +50% more damage.', apply: h => { h.deadeye = 3; h.critDmg += 0.5; } },
   { id: 'overwatch', cls: 'sniper', rarity: 'legendary', name: 'Overwatch',  desc: 'Your shots stun their target for 0.5s (bosses 0.2s).', apply: h => h.shotStun = 0.5 },
   { id: 'sun',    cls: 'any', rarity: 'secret', name: 'Second Sun',     desc: 'Your ability casts itself whenever it is ready, and recharges 25% faster.', apply: h => { h.autoCast = true; h.ab.cd = Math.max(5, h.ab.cd * 0.75); } },
@@ -762,7 +792,7 @@ function showTowers(sel) {
         <div class="stats">${d.support ? `<div><span>Buff</span>+15% damage</div>` : `<div><span>Damage</span>${d.dmg}</div><div><span>Shots/s</span>${(1 / d.rate).toFixed(2)}</div>`}
           <div><span>Range</span>${d.range}</div><div><span>Cost</span>${d.cost}</div></div>
         <p class="help">Paths: ${TOWER_PATHS[sel].map(p => p.name).join(', ')}. Each level adds ${LEVEL_BONUS[d.lvl || 'dmg'].text}.</p>
-        <details class="forms"><summary>Ascended forms found: ${formsFound(sel).length}/${Object.keys(FORM_NAMES[sel]).length}</summary>
+        <details class="forms"><summary>Named forms found: ${formsFound(sel).length}/${Object.keys(FORM_NAMES[sel]).length}</summary>
           <ul>${Object.keys(FORM_NAMES[sel]).map(k => { const got = META.forms && META.forms[sel + ':' + k];
             return `<li class="${got ? 'found' : ''}"><b>${got ? FORM_NAMES[sel][k] : '???'}</b><span>${k.split('').map(i => TOWER_PATHS[sel][+i].name).join(' + ')}</span></li>`; }).join('')}</ul></details>
         ${open ? `<h3 class="meta-h">${d.name} upgrades ${refundBtn('tower', sel)}</h3>${TOWER_META.map(x => metaRow(x, M, 'tower', sel)).join('')}
@@ -795,7 +825,7 @@ function showHeroes(sel) {
   showScreen(`<div class="screen-head"><h2>Heroes</h2>${shardsTag()}<button id="mBack">Back</button></div>
     <div class="heroes">
       <div class="roster">${CATEGORIES.map(([c, label]) => `<h4 class="cat">${label}</h4>` + (heroesIn(c).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''} ${isUnlocked(k) ? '' : 'locked'}" style="border-left-color:${h.css}">
-        <small>${h.ability.name}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
+        <small>${heroAbility(k).name}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
       <div class="card herodetail">
         <h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
         <p>${d.desc}</p>
@@ -805,7 +835,9 @@ function showHeroes(sel) {
           <div><span>Blocks</span>${blockText(st.block)}</div><div><span>Move speed</span>${st.speed}</div>
           ${st.brace ? `<div><span>Brace time</span>${st.brace}s</div>` : ''}${st.crit ? `<div><span>Crit chance</span>${pct(st.crit)}</div>` : ''}
         </div>
-        <p class="help"><b class="tipname" data-tip="ability:${sel}" style="color:var(--text)">${d.ability.name}</b> (${d.ability.cd}s): ${abilityText({ ab: d.ability })}</p>
+        <h3 class="meta-h">Ability · pick one</h3>
+        <div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].map(([v, ab]) => `<button class="choice ${heroAbility(sel) === ab ? 'picked' : ''}" data-ab-pick="${v}">
+          <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>
         ${open ? `<h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
           <h3 class="meta-h special-h">Special upgrades · Boss Cores ${refundBtn('special', sel)}</h3>
           <p class="help">Bought once with Boss Cores, which bosses drop. Game-changing, and expensive.</p>
@@ -817,6 +849,7 @@ function showHeroes(sel) {
     <div class="card"><h3 class="meta-h">All heroes ${refundBtn('global')}</h3>${GLOBAL_META.map(x => metaRow(x, META.global, 'global')).join('')}
       <h3 class="meta-h special-h">Special upgrades for all heroes ${refundBtn('special')}</h3>${SPECIALS.filter(x => !x.hero).map(specialRow).join('')}</div>`);
   $('screen').querySelectorAll('[data-hero-tab]').forEach(b => b.onclick = () => showHeroes(b.dataset.heroTab));
+  $('screen').querySelectorAll('[data-ab-pick]').forEach(b => b.onclick = () => { META.abilities = META.abilities || {}; META.abilities[sel] = b.dataset.abPick; saveMeta(); showHeroes(sel); });
   $('screen').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
     const isHero = b.dataset.meta === 'hero', defs = isHero ? HERO_META[b.dataset.hero] : GLOBAL_META, def = defs.find(x => x.id === b.dataset.id);
     const obj = isHero ? META.heroes[b.dataset.hero] : META.global;
@@ -911,7 +944,7 @@ function makeHero(id) {
     costMul: 1, lvlMul: 1, mergeMul: 1, crit: s.crit || 0, critDmg: 2, multi: 0, bounty: 0, towerRange: 0, interest: 0,
     brace: s.brace || 0, braceT: 0, pierce: 0, deadeye: 0, shotStun: 0,
     grounded: 0, execute: 0, bulletStorm: 0, attacks: 0, unbreakable: false, unbreakLeft: 1, unbreakMax: 1, tithe: 0, taunt: 0, momentum: 0, momStacks: 0, momT: 0, rapid: 0, spotter: 0, headhunter: 0, danceKills: 0, timeWarp: 0, autoCast: false,
-    ab: Object.assign({ t: 0 }, d.ability),
+    ab: Object.assign({ t: 0 }, heroAbility(id)), shield: 0, shieldMax: 0, shieldT: 0, odT: 0,
     boonSlow: 0, boonSplash: 0, boonRail: 0, boonVent: 0, boonChain: 0, boonIon: 0,
     xpGain: 0, retStore: 0, retT: 4, barrageT: 5,
   };
@@ -926,7 +959,7 @@ function applyHeroMeta(h) {
 function applySpecials(h) {
   const sp = S.specials, give = u => { u.apply(h); S.picks.push({ perk: u, rarity: RAR.legendary, demonic: false }); };
   if (sp.bulwarkS && h.cls === 'vanguard') { give(UNIQUES.find(x => x.id === 'aegis')); give(UNIQUES.find(x => x.id === 'unbreak')); h.unbreakMax = h.unbreakLeft = 2; }
-  if (sp.sovereign) { const u = pick(UNIQUES.filter(x => x.rarity === 'legendary' && x.cls === h.cls && !owns(x.id))); if (u) give(u); }
+  if (sp.sovereign) { const u = pick(UNIQUES.filter(x => x.rarity === 'legendary' && x.cls === h.cls && (!x.ab || x.ab === h.ab.id) && !owns(x.id))); if (u) give(u); }
   h.hp = h.maxHp;
 }
 const LOADOUT_SIZE = 5;
@@ -943,7 +976,7 @@ function showHeroSelect() {
         <small class="path" style="color:${d.css}">${d.role}</small><b style="color:${d.css}">${d.name}</b><span>${d.desc}</span>
         <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase()}</span>
         <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? ROLE_LEVEL[d.cat].text : ''}</span>
-        ${open ? `<em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${d.ability.name}</span></em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('');
+        ${open ? `<em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span></em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('');
   const towerCards = () => `<div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const open = towerUnlocked(k), on = picks.includes(k);
         return `<button class="choice mapcard tower-pick ${open ? '' : 'locked'} ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
         <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${d.info}</span>
@@ -1379,6 +1412,7 @@ function damage(e, amt, src, pierce) {
     if (h.siphon && !h.ko) h.hp = Math.min(h.maxHp, h.hp + h.siphon);
     if (byHero) {
       if (h.momentum) { h.momStacks = Math.min(10, h.momStacks + 1); h.momT = 4; }
+      if (h.odT > 0 && h.ab.bloodrush && (h.odBonus || 0) < 4) { h.odT += 0.4; h.odBonus = (h.odBonus || 0) + 0.4; }
       if (S.specials.oneshot && h.brace) h.braceT = Math.max(h.braceT, h.brace * 0.5);
       if (S.specials.dancer && h.cls === 'striker' && ++h.danceKills % 8 === 0) S.delayed.push({ at: S.time + 0.05, fn: () => { if (!h.ko) castAbility(true); } });
     }
@@ -1576,7 +1610,7 @@ function heroDmg() { return S.hero.dmg * (S.mode.challenge === 'lone' ? 2 : 1); 
 function useAbility() {
   const h = S && S.hero, a = h && h.ab;
   if (!h || h.ko > 0 || a.t > 0 || S.over || S.paused) return;
-  if (a.id === 'pierce' && !S.aim && !S.enemies.some(e => !e.dead)) return toast('No target for Piercing Shot. Press F to set an aim point.');
+  if ((a.id === 'pierce' || a.id === 'strike') && !S.aim && !S.enemies.some(e => !e.dead)) return toast('No target for ' + a.name + '. Press F to set an aim point.');
   a.t = a.cd;
   castAbility(false);
 }
@@ -1587,10 +1621,53 @@ function castAbility(free) {
   sfx('ability');
   if (a.id === 'slam') slam(h, a, 1);
   else if (a.id === 'nova') riftNova(h, a);
-  else {
+  else if (a.id === 'bulwark') bulwarkShield(h, a);
+  else if (a.id === 'overdrive') { h.odT = a.dur; h.odBonus = 0; S.fx.push({ k: 'ring', x: h.x, y: h.y, r: 60, color: 0xff6f6f, t: 0.6, T: 0.6, fill: true }); shake(0.004, 120); }
+  else if (a.id === 'strike') orbitalStrike(h, a);
+  else if (a.id === 'stasis') {
+    S.stasisT = a.dur; S.stasisAt = { x: h.x, y: h.y };
+    if (a.anchor) for (const e of inRange(h.x, h.y, a.r)) e.stunT = Math.max(e.stunT, e.boss ? 0.5 : 1.5);
+    S.fx.push({ k: 'ring', x: h.x, y: h.y, r: a.r, color: 0x7fd4ff, t: 0.7, T: 0.7, fill: true });
+  } else {
     S.overclockT = a.dur; S.overclockAt = { x: h.x, y: h.y };
     S.fx.push({ k: 'ring', x: h.x, y: h.y, r: a.r, color: 0xb07cff, t: 0.6, T: 0.6, fill: true });
   }
+}
+// Vanguard alt: a shield that soaks damage, then bursts for part of what it soaked.
+function bulwarkShield(h, a) {
+  h.shieldMax = h.shield = a.dmg * 5 * (a.overflow ? 1.5 : 1); h.shieldT = a.dur; h.soaked = 0;
+  S.fx.push({ k: 'ring', x: h.x, y: h.y, r: 34, color: 0x9af0ff, t: 0.6, T: 0.6, fill: true }); shake(0.004, 120);
+}
+function endShield(h) {
+  const a = h.ab, dmg = a.dmg + (h.soaked || 0) * 0.6;
+  for (const e of inRange(h.x, h.y, a.r)) damage(e, dmg);
+  if (a.overflow && h.shield > 0) h.hp = Math.min(h.maxHp, h.hp + h.shield);
+  S.fx.push({ k: 'ring', x: h.x, y: h.y, r: a.r, color: 0x9af0ff, t: 0.45, T: 0.45, fill: true }); shake(0.006, 160);
+  h.shield = 0; h.shieldT = 0; h.soaked = 0;
+}
+// Damage to the hero goes through the Bulwark Shield first.
+function hurtHero(h, loss) {
+  if (h.shield > 0) { const soak = Math.min(h.shield, loss); h.shield -= soak; h.soaked = (h.soaked || 0) + soak; loss -= soak; if (h.shield <= 0) endShield(h); }
+  h.hp -= loss; if (S.heroics.retribution) h.retStore += loss;
+}
+// Sniper alt: a heavy blast at the aim point (F) or the toughest enemy, after a short delay.
+function orbitalStrike(h, a) {
+  const tough = S.enemies.filter(e => !e.dead).sort((p, q) => (q.boss - p.boss) || (q.hp - p.hp))[0];
+  const at = S.aim ? { x: S.aim.x, y: S.aim.y } : tough ? { x: tough.x, y: tough.y } : null;
+  if (!at) return;
+  sfx('snipe');
+  S.fx.push({ k: 'line', x1: at.x, y1: 0, x2: at.x, y2: at.y, color: 0xffd36e, t: 0.8, T: 0.8, w: 2 });
+  S.fx.push({ k: 'ring', x: at.x, y: at.y, r: a.r, color: 0xff5d6c, t: 0.8, T: 0.8 });
+  const boom = (x, y, r, mult) => {
+    for (const e of inRange(x, y, r)) damage(e, heroDmg() * a.mult * mult * (e.boss ? 1 + h.headhunter : 1));
+    S.fx.push({ k: 'line', x1: x, y1: 0, x2: x, y2: y, color: 0xffffff, t: 0.25, T: 0.25, w: 10 * mult });
+    S.fx.push({ k: 'ring', x, y, r, color: 0xffd36e, t: 0.5, T: 0.5, fill: true });
+    if (a.scorch) S.zones.push({ x, y, r: r * 0.8, t: 4, T: 4, dps: heroDmg() * 0.6, slow: 0, color: 0xff8a3d });
+  };
+  S.delayed.push({ at: S.time + 0.8, fn: () => {
+    boom(at.x, at.y, a.r, 1); shake(0.014, 280); sfx('boom');
+    if (a.carpet) for (let i = 0; i < 3; i++) { const ang = Math.random() * Math.PI * 2, d = a.r * 0.9; S.delayed.push({ at: S.time + 0.15 * (i + 1), fn: () => boom(at.x + Math.cos(ang) * d, at.y + Math.sin(ang) * d, a.r * 0.7, 0.5) }); }
+  } });
 }
 function slam(h, a, mult) {
   const x = h.x, y = h.y, r = a.r * (a.magnet ? 1.5 : 1);
@@ -1697,6 +1774,9 @@ function overclocked(t) { return S.overclockT > 0 && Math.hypot(S.overclockAt.x 
 function knockOut(h) {
   if (h.unbreakable && h.unbreakLeft > 0) { h.unbreakLeft--; h.hp = h.maxHp; S.fx.push({ k: 'ring', x: h.x, y: h.y, r: 90, color: 0x5fe39a, t: 0.7, T: 0.7, fill: true }); shake(0.01, 250); toast('Unbreakable! Back to full HP.'); return; }
   h.hp = 0; h.ko = h.respawn; h.tx = null; S.pendingBuild = null; if (S.ws) S.ws.heroKOs++;
+  h.shield = 0; h.shieldT = 0; h.odT = 0;
+  // Respawning at the base with Hold on would pin the hero there, so Hold always turns off.
+  if (h.hold) { h.hold = false; renderBuildBar(); }
   if (S.heroics.phoenix) {
     h.ko = 2;
     for (const e of inRange(h.x, h.y, 150)) damage(e, 150 * S.heroics.phoenix);
@@ -1728,6 +1808,9 @@ function update(dt) {
     if (S.overclockT <= 0 && h.ab.burst) overchargeBurst();
   }
   if (h.momT > 0) { h.momT -= dt; if (h.momT <= 0) h.momStacks = 0; }
+  if (h.shieldT > 0) { h.shieldT -= dt; if (h.shieldT <= 0) endShield(h); }
+  if (h.odT > 0) h.odT -= dt;
+  if (S.stasisT > 0) S.stasisT -= dt;
   if (HX.timestop && S.waveActive) {
     S.timeStopT -= dt;
     if (S.timeStopT <= 0) { S.timeStopT = 25; for (const e of S.enemies) e.stunT = Math.max(e.stunT, 1 + HX.timestop); toast('Time Stop!'); }
@@ -1762,8 +1845,8 @@ function update(dt) {
     if (h.cd <= 0 && (!h.brace || h.braceT >= h.brace)) {
       const inR = inRange(h.x, h.y, h.range).sort((a, b) => (h.brace ? b.boss - a.boss : 0) || b.d - a.d);
       if (inR.length) {
-        h.cd = h.rate / (1 + h.momentum * h.momStacks); h.attacks++; sfx(h.brace ? 'snipe' : 'shot');
-        const ts = h.bulletStorm && h.attacks % h.bulletStorm === 0 ? inR : inR.slice(0, 1 + h.multi);
+        h.cd = h.rate / (1 + h.momentum * h.momStacks) / (h.odT > 0 ? 1 + h.ab.power : 1); h.attacks++; sfx(h.brace ? 'snipe' : 'shot');
+        const ts = h.bulletStorm && h.attacks % h.bulletStorm === 0 ? inR : inR.slice(0, 1 + h.multi + (h.odT > 0 && h.ab.afterimg ? 2 : 0));
         for (const t of ts) {
           const crit = Math.random() < h.crit || (h.deadeye && h.attacks % h.deadeye === 0);
           let dmg = heroDmg() * (crit ? h.critDmg : 1);
@@ -1844,7 +1927,7 @@ function update(dt) {
     }
   }
   if (h.ab.t > 0 && S.waveActive) h.ab.t = Math.max(0, h.ab.t - dt);
-  else if (h.autoCast && !h.ko && S.enemies.length && (h.ab.id === 'overclock' || inRange(h.x, h.y, h.ab.r).length)) useAbility();
+  else if (h.autoCast && !h.ko && S.enemies.length && (h.ab.id === 'slam' || h.ab.id === 'nova' || h.ab.id === 'stasis' ? inRange(h.x, h.y, h.ab.r).length : true)) useAbility();
 
   let blocking = 0;
   const order = S.enemies.slice().sort((a, b) => b.d - a.d), tank = HEROES[h.cls].cat === 'defensive';
@@ -1883,15 +1966,17 @@ function update(dt) {
     if (e.stunT > 0 || e.blocked || e.tauntT > 0) e.stillT += dt; else e.stillT = S.tide ? Math.max(0, e.stillT - dt * 2) : 0;
     if (e.markT > 0) e.markT -= dt;
     if (e.spotT > 0) e.spotT -= dt;
+    if (S.stasisT > 0 && Math.hypot(e.x - S.stasisAt.x, e.y - S.stasisAt.y) <= h.ab.r) { slowEnemy(e, Math.min(0.85, h.ab.power * 0.75), 0.3); if (h.ab.shatterS) { e.mark = Math.max(e.mark, 0.25); e.markT = Math.max(e.markT, 0.3); } }
     if (S.overclockT > 0 && h.ab.chrono && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, 0.3, 0.3);
     if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burnDps * dt, e.burnSrc, true); if (e.dead) continue; }
     if (S.overclockT > 0 && h.timeWarp && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, h.timeWarp, 0.3);
     if (e.stunT > 0) { e.stunT -= dt; }
-    else if (e.tauntT > 0 && !h.ko) { e.tauntT -= dt; const loss = e.atk * (1 - h.armor) * dt * 0.5; h.hp -= loss; if (S.heroics.retribution) h.retStore += loss; }
+    else if (e.tauntT > 0 && !h.ko) { e.tauntT -= dt; hurtHero(h, e.atk * (1 - h.armor) * dt * 0.5); }
     else if (e.blocked) {
       let guard = 0;
       for (const t of anvils) if (t.guard && Math.hypot(t.x - e.x, t.y - e.y) <= tRange(t)) guard = Math.max(guard, t.guard);
-      const loss = e.atk * (1 - h.armor) * (1 - Math.min(0.6, guard)) * dt; h.hp -= loss; if (S.heroics.retribution) h.retStore += loss;
+      hurtHero(h, e.atk * (1 - h.armor) * (1 - Math.min(0.6, guard)) * dt);
+      if (h.shield > 0 && h.ab.spiked) damage(e, 40 * dt);
       if (h.thorns) damage(e, h.thorns * dt);
     } else {
       e.d += e.speed * (1 - e.slow) * dt;
@@ -1938,6 +2023,7 @@ function update(dt) {
     if (t.support) continue;
     if (t.zero) for (const e of inRange(t.x, t.y, tRange(t))) slowEnemy(e, t.zero, 0.2);
     let spd = overclocked(t) ? 1 + h.ab.power : conductor ? 1 + h.ab.power * 0.5 : 1;
+    if (h.ab.haste && S.stasisT > 0 && Math.hypot(S.stasisAt.x - t.x, S.stasisAt.y - t.y) <= h.ab.r) spd *= 1 + h.ab.haste;
     if (t.buff) spd *= (1 + t.buff.rate) * (t.buff.tempo ? 2 : 1);
     if (t.pact && S.enemies.some(e => e.blocked && Math.hypot(e.x - t.x, e.y - t.y) <= tRange(t))) spd *= 2;
     t.cd -= dt * spd;
@@ -1992,12 +2078,12 @@ function rollPerks() {
     let perk = null, rar = rarity;
     if (rarity.id === 'secret') perk = pick(UNIQUES.filter(u => u.rarity === 'secret' && !owns(u.id) && !taken.has(u.id))) || null;
     if (!perk && (rarity.id === 'legendary' || rarity.id === 'secret') && Math.random() < 0.5) {
-      perk = pick(UNIQUES.filter(u => u.rarity === 'legendary' && u.cls === h.cls && !owns(u.id) && !taken.has(u.id))) || null;
+      perk = pick(UNIQUES.filter(u => u.rarity === 'legendary' && u.cls === h.cls && (!u.ab || u.ab === h.ab.id) && !owns(u.id) && !taken.has(u.id))) || null;
       if (perk) rar = RAR.legendary;
     }
     if (!perk && slot === 'hero' && rarity.mult >= RAR.rare.mult && Math.random() < 0.45)
-      perk = pick(ABILITY_MODS.filter(m => m.cls === h.cls && !h.ab[m.id] && !taken.has(m.id))) || null;
-    if (!perk) perk = pick(weighted(PERKS.filter(p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && !taken.has(p.id))));
+      perk = pick(ABILITY_MODS.filter(m => m.cls === h.cls && m.ab === h.ab.id && !h.ab[m.id] && !taken.has(m.id))) || null;
+    if (!perk) perk = pick(weighted(PERKS.filter(p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && (!p.ab || p.ab === h.ab.id) && !taken.has(p.id))));
     out.push(makeOffer(perk, rar, demonic && !perk.fixed));
   }
   return out;
@@ -2168,14 +2254,18 @@ function levelTower(t, path) {
   if (t.freeUps > 0) t.freeUps--; else if (S.freeLevels > 0) S.freeLevels--;
   S.gold -= lc; t.spent += lc;
   const { pts, max, mastered } = applyLevel(t, path);
+  const oldName = towerName(t);
+  // Once a tower has 3 paths it takes the name of that combination (and renames if a 4th or 5th is added).
+  if (!t.hybrid && t.order.length >= 3) { t.name = formName(t); discoverForm(t); }
   let msg = towerName(t) + ' reached level ' + t.lvl + ': ' + path.name + ' ' + pts + '/' + max;
+  if (towerName(t) !== oldName) { msg = oldName + ' became the ' + towerName(t) + '!'; S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 50, color: t.color, t: 0.7, T: 0.7, fill: true }); sfx('level'); }
   if (mastered) msg += ', mastered: ' + path.mastery.name;
   if (t.lvl === MAX_LVL) {
     if (!t.hybrid) { t.name = formName(t); discoverForm(t); } else t.perfected = true;
     msg = towerName(t) + (t.hybrid ? ' is perfected' : ' ascended') + ' at level ' + MAX_LVL + '!';
     sfx('level');
   }
-  toast(msg + '.');
+  toast(/[!.]$/.test(msg) ? msg : msg + '.');
   renderInspector(); renderBuildBar();
 }
 
@@ -2389,7 +2479,7 @@ function renderInspector() {
     </div>
     <ul class="traits">${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>
     ${S.mergeFrom === t ? `<p>Tap another level ${MERGE_LVL} ${t.hybrid ? 'hybrid' : 'tower of a different type'} to merge with. Tap anywhere else to cancel.</p>` : ''}
-    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${!t.hybrid && t.order.length >= 3 ? ` · Ascends into <b>${formName(t)}</b>` : ''}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level adds ${levelBonus(t).text}; level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'} (${levelBonus(t).asc}).</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
+    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${!t.hybrid && t.order.length === 2 && t.lvl < MAX_LVL ? ' · A 3rd path gives it a new name' : ''}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level adds ${levelBonus(t).text}; level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'} (${levelBonus(t).asc}).</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
     <div class="ups">${opts.map(shown).join('')}</div>
     <div class="row">
       ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost() ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost() || 'Free')}</button>` : ''}
@@ -2501,6 +2591,7 @@ function draw(g) {
   const h = S && S.hero; if (!h) return;
   const hc = HEROES[h.cls].color;
 
+  if (S.stasisT > 0) { g.fillStyle(0x7fd4ff, 0.08).fillCircle(S.stasisAt.x, S.stasisAt.y, h.ab.r); g.lineStyle(2, 0x7fd4ff, 0.6).strokeCircle(S.stasisAt.x, S.stasisAt.y, h.ab.r); }
   if (S.overclockT > 0) { g.fillStyle(0xb07cff, 0.06).fillCircle(S.overclockAt.x, S.overclockAt.y, h.ab.r); g.lineStyle(1, 0xb07cff, 0.5).strokeCircle(S.overclockAt.x, S.overclockAt.y, h.ab.r); }
   if (h.aura && !h.ko) g.lineStyle(1, 0xb07cff, 0.12).strokeCircle(h.x, h.y, h.auraRange);
   if (S.build && !h.ko) {
@@ -2589,6 +2680,8 @@ function draw(g) {
     if (h.range < 9999) g.lineStyle(1, hc, 0.15).strokeCircle(h.x, h.y, h.range);
     if (h.brace) { const ready = h.braceT >= h.brace; g.lineStyle(ready ? 3 : 2, ready ? 0xffd36e : 0x8d95b8, ready ? 0.95 : 0.6).beginPath(); g.arc(h.x, h.y, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (h.braceT / h.brace)); g.strokePath(); }
     if (h.hold) { g.lineStyle(2, 0xf2c14e, 0.9).strokeRect(h.x - 17, h.y - 17, 34, 34); }
+    if (h.shield > 0) { g.fillStyle(0x9af0ff, 0.15).fillCircle(h.x, h.y, 28); g.lineStyle(3, 0x9af0ff, 0.9).beginPath(); g.arc(h.x, h.y, 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * h.shield / h.shieldMax); g.strokePath(); }
+    if (h.odT > 0) g.lineStyle(2, 0xff6f6f, 0.5 + 0.4 * Math.sin(S.time * 20)).strokeCircle(h.x, h.y, 24);
     g.fillStyle(hc, 0.2).fillCircle(h.x, h.y, 18);
     g.fillStyle(hc, 1).fillCircle(h.x, h.y, 12);
     g.fillStyle(0x0b0f1c, 1).fillCircle(h.x, h.y, 5);
