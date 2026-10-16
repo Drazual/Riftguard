@@ -1554,7 +1554,9 @@ function fire(t, targets, mult = 1) {
       if (t.melt && t.stacks >= t.rampMax) d *= 2;
     }
     const splash = t.splash * (big ? 2 : 1); if (big) d *= 3;
-    if (t.beam) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.stacks >= t.rampMax ? 0xffffff : t.color, t: 0.22, T: 0.22, w: 2 + t.stacks * 0.2 });
+    const art = spriteTower(t), arrive = art ? Math.hypot(target.x - muzzle(t).x, target.y - muzzle(t).y) / SHOT_SPEED : 0;
+    if (art) { if (!t.beam && !t.lob) launchShot(t.type, muzzle(t), target); }
+    else if (t.beam) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.stacks >= t.rampMax ? 0xffffff : t.color, t: 0.22, T: 0.22, w: 2 + t.stacks * 0.2 });
     else if (!t.lob) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.color, t: 0.12, T: 0.12, w: t.hybrid ? 3 : 2 });
     const hits = splash ? inRange(target.x, target.y, splash) : [target];
     if (splash) S.fx.push({ k: 'ring', x: target.x, y: target.y, r: splash, color: t.color, t: 0.25, T: 0.25, fill: big });
@@ -1576,12 +1578,14 @@ function fire(t, targets, mult = 1) {
     const chainN = t.chain + (oc && h.ab.chrono ? 1 : 0);
     if (chainN) {
       const keep = (S.sig.tesla && baseTypes(t).includes('tesla')) || t.chainKeep;
-      const hit = new Set(hits); let from = target, cd = d * (keep ? 1 : t.chainMul);
+      const hit = new Set(hits); let from = target, cd = d * (keep ? 1 : t.chainMul), wait = arrive;
       for (let i = 0; i < chainN; i++) {
         let best = null, bd = t.chainReach;
         for (const e of S.enemies) { if (e.dead || hit.has(e)) continue; const dd = Math.hypot(e.x - from.x, e.y - from.y); if (dd < bd) { bd = dd; best = e; } }
         if (!best) break;
-        S.fx.push({ k: 'line', x1: from.x, y1: from.y, x2: best.x, y2: best.y, color: t.color, t: 0.15, T: 0.15, w: 1.5 });
+        if (art && t.beam) { if (beams.length < 60) beams.push({ x0: from.x, y0: from.y, e: best, t: 0.22 }); }
+        else if (art) { launchShot(t.type, { x: from.x, y: from.y }, best, wait); wait += bd / SHOT_SPEED; }
+        else S.fx.push({ k: 'line', x1: from.x, y1: from.y, x2: best.x, y2: best.y, color: t.color, t: 0.15, T: 0.15, w: 1.5 });
         applyHit(hitT, best, cd, false);
         if (t.chainBlast) for (const o of inRange(best.x, best.y, 40)) if (o !== best) damage(o, cd * t.chainBlast, t);
         if (t.stun && Math.random() < t.stun) best.stunT = Math.max(best.stunT, 0.6);
@@ -2687,20 +2691,34 @@ const shadow = (g, x, y, w) => g.fillStyle(0x101223, 0.6).fillEllipse(x, y, w, w
 // anchors the hit effect (bolts and lightning strike down onto the target). Merged towers keep their shapes.
 const ART_URLS = import.meta.glob('./assets/*.png', { eager: true, import: 'default' });
 const FRAME = 48;
+// Shots: the first frame of the hit-effect row flies from the tower's muzzle (my: its height in the frame) to the
+// target, and the other five frames play where it lands. pa is the projectile's anchor in its frame; turn rotates
+// it to face its flight (those are drawn heading down the frame). The laser's row is a beam stretched to its
+// target, the mortar's shell flies its arc, and the anvil and beacon play the whole row on themselves.
 const ART = {
-  arcane: { oy: 38 / 48, fy: 0.75 }, plasma: { oy: 40 / 48 }, frost: { oy: 41 / 48 }, tesla: { oy: 38 / 48, fy: 0.75 },
-  beacon: { oy: 37 / 48 }, anvil: { oy: 39 / 48 }, laser: { oy: 36 / 48 }, mortar: { oy: 40 / 48 },
+  arcane: { oy: 38 / 48, my: 14, pa: [24, 31], turn: true, fy: 0.75 }, plasma: { oy: 40 / 48, my: 10, pa: [24, 24] },
+  frost: { oy: 41 / 48, my: 16, pa: [25, 25] }, tesla: { oy: 38 / 48, my: 13, pa: [23.5, 16.5], fy: 0.75 },
+  beacon: { oy: 37 / 48, my: 22 }, anvil: { oy: 39 / 48, my: 22 }, laser: { oy: 36 / 48, my: 14 },
+  mortar: { oy: 40 / 48, my: 20, pa: [24, 25], turn: true },
 };
+const SHOT_SPEED = 800, BEAM_LEN = 29; // world units per second; beam length in its frame
+const muzzle = t => ({ x: t.x, y: t.y + 15 - (ART[t.type].oy * FRAME - ART[t.type].my) / PX });
+const shots = [], beams = []; // beams: the Chain Laser's short hops between enemies
+function launchShot(k, from, target, wait = 0) {
+  if (shots.length < 200) shots.push({ k, x0: from.x, y0: from.y, target, x1: target.x, y1: target.y, t: 0, T: Math.max(0.05, Math.hypot(target.x - from.x, target.y - from.y) / SHOT_SPEED), wait });
+}
 const spriteTower = t => !t.hybrid && !!ART[t.type];
 const towerSprites = new Map();
 function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: FRAME, frameHeight: FRAME }); }
 function makeAnims(sc) {
   for (const k in ART) {
     const a = (name, start, frameRate, repeat) => sc.anims.create({ key: k + '-' + name, frames: sc.anims.generateFrameNumbers(k, { start, end: start + 5 }), frameRate, repeat });
-    a('idle', 0, 8, -1); a('attack', 6, 24, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0);
+    a('idle', 0, 8, -1); a('attack', 6, 24, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0); a('hit', 19, 20, 0);
   }
+  sc.anims.create({ key: 'laser-beam', frames: sc.anims.generateFrameNumbers('laser', { frames: [20, 21, 22, 21] }), frameRate: 16, repeat: -1 });
 }
-function syncSprites(sc) {
+const shellSprites = new Map();
+function syncSprites(sc, dt) {
   const live = new Set(), speed = !S || S.paused || S.over ? 0 : S.speed;
   if (S && S.hero) for (const t of S.towers) {
     if (!spriteTower(t)) continue;
@@ -2723,17 +2741,64 @@ function syncSprites(sc) {
     }
     if (t.firedAt !== s.hit) {
       s.hit = t.firedAt;
-      if (t.hitAt && !(S.time - (s.burstAt || -9) < 0.3)) { s.burstAt = S.time; burst(sc, k, t.hitAt.x, t.hitAt.y, speed); }
+      if (t.hitAt && (k === 'mortar' || k === 'anvil' || k === 'beacon')) burst(sc, k, t.hitAt.x, t.hitAt.y, speed, k === 'mortar' ? 'hit' : 'fx');
     }
+    if (k === 'laser') beam(sc, t, s);
   }
-  for (const [t, s] of towerSprites) if (!live.has(t)) { s.destroy(); towerSprites.delete(t); }
+  for (const [t, s] of towerSprites) if (!live.has(t)) { if (s.beam) s.beam.destroy(); s.destroy(); towerSprites.delete(t); }
+  flyShots(sc, dt * speed, speed);
+}
+// The laser's beam runs from its orb to its target, turning and stretching as the target moves, and
+// thickens as it heats up on one target.
+function beam(sc, t, s) {
+  const e = t.lastTarget, on = e && !e.dead && !(t.stunT > 0) && S.time - (t.firedAt || -9) < 0.35 && S.enemies.includes(e);
+  if (!on) { if (s.beam) s.beam.setVisible(false); return; }
+  if (!s.beam) s.beam = sc.add.sprite(0, 0, 'laser').setOrigin(0.5, 25.5 / 48).setDepth(2.5).play('laser-beam');
+  const m = muzzle(t), d = Math.hypot(e.x - m.x, e.y - m.y);
+  s.beam.setVisible(true).setPosition((m.x + e.x) / 2, (m.y + e.y) / 2).setRotation(Math.atan2(e.y - m.y, e.x - m.x) - Math.PI / 2)
+    .setScale((1 + 0.6 * Math.min(1, (t.stacks || 0) / (t.rampMax || 1))) / PX, d / BEAM_LEN);
+}
+function flyShots(sc, dt, speed) {
+  if (!S || !S.hero) { for (const s of shots) if (s.spr) s.spr.destroy(); shots.length = 0; }
+  for (const s of shots) {
+    if (s.wait > 0) { s.wait -= dt; continue; }
+    const art = ART[s.k];
+    if (!s.spr) s.spr = sc.add.sprite(s.x0, s.y0, s.k, 18).setOrigin(art.pa[0] / FRAME, art.pa[1] / FRAME).setScale(1 / PX).setDepth(3);
+    s.t += dt;
+    if (s.target && !s.target.dead) { s.x1 = s.target.x; s.y1 = s.target.y; }
+    const u = Math.min(1, s.t / s.T), x = s.x0 + (s.x1 - s.x0) * u, y = s.y0 + (s.y1 - s.y0) * u;
+    s.spr.setPosition(x, y);
+    if (art.turn) s.spr.setRotation(Math.atan2(s.y1 - s.y0, s.x1 - s.x0) - Math.PI / 2);
+    if (u >= 1) { s.spr.destroy(); s.done = true; burst(sc, s.k, x, y, speed, 'hit'); }
+  }
+  for (let i = shots.length - 1; i >= 0; i--) if (shots[i].done) shots.splice(i, 1);
+  for (const b of beams) {
+    if (!S || !S.hero) b.t = 0;
+    if (!b.spr) b.spr = sc.add.sprite(0, 0, 'laser').setOrigin(0.5, 25.5 / 48).setDepth(2.5).play('laser-beam');
+    const x1 = b.e.x, y1 = b.e.y, d = Math.hypot(x1 - b.x0, y1 - b.y0);
+    b.spr.setPosition((b.x0 + x1) / 2, (b.y0 + y1) / 2).setRotation(Math.atan2(y1 - b.y0, x1 - b.x0) - Math.PI / 2).setScale(0.7 / PX, d / BEAM_LEN);
+    if ((b.t -= dt) <= 0) b.spr.destroy();
+  }
+  for (let i = beams.length - 1; i >= 0; i--) if (beams[i].t <= 0) beams.splice(i, 1);
+  // mortar shells: the shell frame rides the arc, nose along its flight
+  const live = new Set(S && S.hero ? S.shells : []);
+  for (const sh of live) {
+    if (!spriteTower(sh.tw)) continue;
+    let sp = shellSprites.get(sh);
+    if (!sp) { sp = sc.add.sprite(0, 0, 'mortar', 18).setOrigin(24 / FRAME, 25 / FRAME).setScale(1 / PX).setDepth(3); shellSprites.set(sh, sp); sp.lift = sh.tw.y - muzzle(sh.tw).y; }
+    const u = sh.t / sh.T, A = Math.min(140, Math.hypot(sh.x1 - sh.x0, sh.y1 - sh.y0) * 0.4);
+    const x = sh.x0 + (sh.x1 - sh.x0) * u, y = sh.y0 + (sh.y1 - sh.y0) * u - A * Math.sin(Math.PI * u) - sp.lift * (1 - u);
+    const vx = sh.x1 - sh.x0, vy = sh.y1 - sh.y0 - A * Math.PI * Math.cos(Math.PI * u) + sp.lift;
+    sp.setPosition(x, y).setRotation(Math.atan2(vy, vx) - Math.PI / 2);
+  }
+  for (const [sh, sp] of shellSprites) if (!live.has(sh) || sh.done) { sp.destroy(); shellSprites.delete(sh); }
 }
 let bursts = 0;
-function burst(sc, k, x, y, speed) {
-  if (bursts >= 40 || !speed) return;
+function burst(sc, k, x, y, speed, anim = 'fx') {
+  if (bursts >= 60 || !speed) return;
   bursts++;
   const art = ART[k], f = sc.add.sprite(x, y, k).setOrigin(0.5, art.fy || 0.5).setScale(1 / PX).setDepth(3);
-  f.anims.timeScale = speed; f.play(k + '-fx');
+  f.anims.timeScale = speed; f.play(k + '-' + anim);
   f.once('animationcomplete', () => { f.destroy(); bursts--; });
 }
 
@@ -2881,7 +2946,7 @@ function draw(g, o) {
     const arc = Math.min(140, Math.hypot(sh.x1 - sh.x0, sh.y1 - sh.y0) * 0.4) * Math.sin(Math.PI * u);
     g.lineStyle(1, 0xff5d6c, 0.25 + 0.4 * u).strokeCircle(sh.x1, sh.y1, sh.tw.splash * (1.1 - 0.3 * u));
     g.fillStyle(0x000000, 0.35).fillCircle(gx, gy, 4);
-    g.fillStyle(sh.tw.color, 1).fillCircle(gx, gy - arc, 5 + 2 * sh.mult);
+    if (!spriteTower(sh.tw)) g.fillStyle(sh.tw.color, 1).fillCircle(gx, gy - arc, 5 + 2 * sh.mult);
   }
   for (const f of S.fx) {
     const a = f.t / f.T;
@@ -2924,7 +2989,7 @@ class Main extends Phaser.Scene {
     const dt = Math.min(delta / 1000, 0.05);
     update(dt);
     if (groundFor !== pathCells) drawGround(this);
-    syncSprites(this); draw(this.g, this.o);
+    syncSprites(this, dt); draw(this.g, this.o);
     hudT -= dt; if (hudT <= 0) { hudT = 0.1; updateHud(); }
   }
 }
