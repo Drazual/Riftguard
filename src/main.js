@@ -1467,7 +1467,7 @@ function applyHit(t, e, dmg, freeze) {
 }
 function fire(t, targets, mult = 1) {
   const h = S.hero, oc = overclocked(t);
-  t.shots++;
+  t.shots++; if (!t.lob) t.shotAt = S.time; t.firedAt = S.time; t.hitAt = targets[0] ? { x: targets[0].x, y: targets[0].y } : null;
   let dmg = t.dmg * mult * S.mod.towerDmg * (S.mode.challenge === 'lone' ? 0.6 : 1);
   const aura = h.aura && nearAura(t);
   if (aura) dmg *= 1 + h.aura;
@@ -1536,6 +1536,7 @@ function lobShell(t, e, mult) {
   const lead = e.stunT > 0 || e.blocked ? 0 : e.speed * (1 - e.slow) * T;
   const p = posAt(Math.min(PATH_LEN, e.d + lead));
   T = Math.max(0.6, Math.hypot(p.x - t.x, p.y - t.y) / speed);
+  t.shotAt = S.time;
   S.shells.push({ tw: t, x0: t.x, y0: t.y, x1: p.x, y1: p.y, t: 0, T, mult });
 }
 function landShell(sh) {
@@ -1579,7 +1580,7 @@ function computeBuffs() {
 // Grave Anvil: crushes enemies that aren't moving; moving ones take 30%.
 function anvilSlam(t, area, mult) {
   const h = S.hero;
-  t.shots++;
+  t.shots++; t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y };
   let base = t.dmg * S.mod.towerDmg * mult * (S.mode.challenge === 'lone' ? 0.6 : 1);
   if (h.aura && nearAura(t)) base *= 1 + h.aura;
   if (t.buff) { base *= 1 + t.buff.dmg; if (t.buff.overdrive && Math.random() < 0.1) base *= 3; }
@@ -2577,14 +2578,88 @@ function updateHud() {
   if (--heroT <= 0) { heroT = 3; renderHero(); }
 }
 
-function draw(g) {
-  g.clear();
-  g.lineStyle(1, 0x141a2e, 1);
-  for (let c = 0; c <= COLS; c++) g.lineBetween(c * C, 0, c * C, H);
-  for (let r = 0; r <= ROWS; r++) g.lineBetween(0, r * C, W, r * C);
-  for (const k of pathCells) { const [c, r] = k.split(',').map(Number); g.fillStyle(0x1a2140, 1).fillRect(c * C, r * C, C, C); }
-  g.lineStyle(2, 0x2a3459, 1);
-  g.beginPath(); g.moveTo(WP[0].x, WP[0].y); for (const p of WP) g.lineTo(p.x, p.y); g.strokePath();
+// The board uses the same 3/4 top-down view as the tower art: the ground is a raised floor of tiles and the
+// path is a sunken lane, so the ground's south-facing edge shows as a lit wall along the lane's north side.
+// Redrawn only when the map changes.
+let groundFor = null;
+function drawGround(b) {
+  b.clear(); groundFor = pathCells;
+  const lane = (c, r) => pathCells.has(c + ',' + r);
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const x = c * C, y = r * C;
+    if (lane(c, r)) {
+      b.fillStyle(0x1a2140, 1).fillRect(x, y, C, C);
+      if (r > 0 && !lane(c, r - 1)) { b.fillStyle(0x2a3360, 1).fillRect(x, y, C, 10); b.fillStyle(0x3d4a82, 1).fillRect(x, y, C, 2); }
+      if (c > 0 && !lane(c - 1, r)) b.fillStyle(0x121833, 1).fillRect(x, y, 3, C);
+      if (c < COLS - 1 && !lane(c + 1, r)) b.fillStyle(0x121833, 1).fillRect(x + C - 3, y, 3, C);
+    } else {
+      b.fillStyle(0x070a13, 1).fillRect(x, y, C, C);
+      b.fillStyle(0x0f1426, 1).fillRect(x + 1, y + 1, C - 2, C - 5);
+      b.fillStyle(0x131a30, 1).fillRect(x + 1, y + 1, C - 2, 1);
+    }
+  }
+  if (WP[0].x < 0) { b.fillStyle(0x1a2140, 1).fillRect(0, Math.floor(WP[0].y / C) * C, 4, C); }
+}
+const shadow = (g, x, y, w) => g.fillStyle(0x000000, 0.35).fillEllipse(x, y, w, w * 0.35);
+
+// Tower art: one sheet per tower, 4 rows of 6 frames (idle, attack, recover, hit effect), 64px frames.
+// s scales the body to fit a tile; oy is where the base sits in the frame. fx sets the hit effect's size
+// and anchor (bolts and lightning strike down onto the target). Merged towers keep their shapes.
+const ART_URLS = import.meta.glob('./assets/*.png', { eager: true, import: 'default' });
+const ART = {
+  arcane: { s: 0.94, oy: 0.86, fx: 0.55, fy: 0.85 }, plasma: { s: 0.82, oy: 0.93, fx: 0.6 }, frost: { s: 0.85, oy: 0.92, fx: 0.5 },
+  tesla: { s: 0.9, oy: 0.91, fx: 0.6, fy: 0.85 }, beacon: { s: 0.74, oy: 0.89, fx: 0.9 }, anvil: { s: 0.82, oy: 0.89, fx: 0.9 },
+  laser: { s: 0.75, oy: 0.89, fx: 0.45 }, mortar: { s: 0.74, oy: 0.89, fx: 0.8 },
+};
+const spriteTower = t => !t.hybrid && !!ART[t.type];
+const towerSprites = new Map();
+function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: 64, frameHeight: 64 }); }
+function makeAnims(sc) {
+  for (const k in ART) {
+    const a = (name, start, frameRate, repeat) => sc.anims.create({ key: k + '-' + name, frames: sc.anims.generateFrameNumbers(k, { start, end: start + 5 }), frameRate, repeat });
+    a('idle', 0, 8, -1); a('attack', 6, 24, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0);
+  }
+}
+function syncSprites(sc) {
+  const live = new Set(), speed = !S || S.paused || S.over ? 0 : S.speed;
+  if (S && S.hero) for (const t of S.towers) {
+    if (!spriteTower(t)) continue;
+    live.add(t);
+    const k = t.type, art = ART[k];
+    let s = towerSprites.get(t);
+    if (!s) {
+      s = sc.add.sprite(0, 0, k).setOrigin(0.5, art.oy).setScale(art.s);
+      s.shot = t.shotAt; s.hit = t.firedAt; s.play(k + '-idle');
+      s.on('animationcomplete', an => s.play(an.key === k + '-attack' ? k + '-recover' : k + '-idle'));
+      towerSprites.set(t, s);
+    }
+    // the beacon has no shots: it pulses while a wave is on
+    if (t.support && S.waveActive && S.time - (t.firedAt || -9) > 3) { t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y }; }
+    s.setPosition(t.x, t.y + 18).setDepth(1 + t.y / 1000).setTint(t.stunT > 0 ? 0x666677 : 0xffffff);
+    s.anims.timeScale = speed;
+    if (t.shotAt !== s.shot) {
+      s.shot = t.shotAt;
+      if (!(s.anims.isPlaying && s.anims.currentAnim.key === k + '-attack')) s.play(k + '-attack');
+    }
+    if (t.firedAt !== s.hit) {
+      s.hit = t.firedAt;
+      if (t.hitAt && !(S.time - (s.burstAt || -9) < 0.3)) { s.burstAt = S.time; burst(sc, k, t.hitAt.x, t.hitAt.y, speed); }
+    }
+  }
+  for (const [t, s] of towerSprites) if (!live.has(t)) { s.destroy(); towerSprites.delete(t); }
+}
+let bursts = 0;
+function burst(sc, k, x, y, speed) {
+  if (bursts >= 40 || !speed) return;
+  bursts++;
+  const art = ART[k], f = sc.add.sprite(x, y, k).setOrigin(0.5, art.fy || 0.5).setScale(art.fx).setDepth(3).setAlpha(0.9);
+  f.anims.timeScale = speed; f.play(k + '-fx');
+  f.once('animationcomplete', () => { f.destroy(); bursts--; });
+}
+
+// g draws under the tower art, o over it.
+function draw(g, o) {
+  g.clear(); o.clear();
   g.fillStyle(0x4fd8e8, 0.15).fillCircle(BASE.x, BASE.y, 26);
   g.lineStyle(2, 0x4fd8e8, 1).strokeCircle(BASE.x, BASE.y, 18);
   g.fillStyle(0x4fd8e8, 1).fillCircle(BASE.x, BASE.y, 7);
@@ -2612,8 +2687,15 @@ function draw(g) {
   for (const t of S.towers) if (t.buff) for (const b of t.buff.from) g.lineStyle(1, 0xfff0a0, 0.18 + 0.1 * Math.sin(S.time * 4)).lineBetween(b.x, b.y, t.x, t.y);
   for (const t of S.towers) {
     if (t.warnT > 0) g.fillStyle(0xff2e4d, 0.25 + 0.25 * Math.sin(S.time * 30)).fillRoundedRect(t.x - 20, t.y - 20, 40, 40, 6);
-    g.fillStyle(0x141a2e, 1).fillRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
-    g.lineStyle(2, t.color, t === S.sel ? 1 : 0.6).strokeRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
+    const art = spriteTower(t);
+    shadow(g, t.x, t.y + 15, 42);
+    if (art) g.lineStyle(2, t.color, t === S.sel ? 1 : 0.35).strokeEllipse(t.x, t.y + 12, 46, 20);
+    else {
+      // plinth: top face plus a darker front face, matching the 3/4 view
+      g.fillStyle(0x0a0d18, 1).fillRoundedRect(t.x - 16, t.y - 12, 32, 28, 5);
+      g.fillStyle(0x141a2e, 1).fillRoundedRect(t.x - 16, t.y - 16, 32, 26, 5);
+      g.lineStyle(2, t.color, t === S.sel ? 1 : 0.6).strokeRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
+    }
     if (t === S.drained) { g.lineStyle(2, 0xff5d6c, 0.9).lineBetween(t.x - 14, t.y - 14, t.x + 14, t.y + 14); }
     if (overclocked(t)) g.lineStyle(1, 0xb07cff, 0.9).strokeRoundedRect(t.x - 19, t.y - 19, 38, 38, 6);
     if (t.super) {
@@ -2623,7 +2705,7 @@ function draw(g) {
     } else if (t.hybrid) {
       g.fillStyle(t.color, 1).fillCircle(t.x, t.y - 3, 7);
       g.lineStyle(2, t.color, 0.7).strokeCircle(t.x, t.y - 3, 11);
-    } else {
+    } else if (!art) {
       g.fillStyle(t.color, 1);
       if (t.type === 'arcane') g.fillTriangle(t.x, t.y - 12, t.x - 8, t.y + 4, t.x + 8, t.y + 4);
       else if (t.type === 'plasma') g.fillCircle(t.x, t.y - 3, 8);
@@ -2635,14 +2717,15 @@ function draw(g) {
       else g.fillRect(t.x - 4, t.y - 12, 8, 16);
     }
     if (t.stunT > 0) {
-      g.fillStyle(0x000000, 0.45).fillRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
+      if (!art) o.fillStyle(0x000000, 0.45).fillRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
       const a0 = S.time * 6;
-      g.lineStyle(2, 0xffffff, 0.8).beginPath(); g.arc(t.x, t.y, 20, a0, a0 + 1.4); g.strokePath();
-      g.lineStyle(3, 0xff2e4d, 0.9).beginPath(); g.arc(t.x, t.y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (t.stunT / (t.stunMax || 1))); g.strokePath();
+      o.lineStyle(2, 0xffffff, 0.8).beginPath(); o.arc(t.x, t.y, 20, a0, a0 + 1.4); o.strokePath();
+      o.lineStyle(3, 0xff2e4d, 0.9).beginPath(); o.arc(t.x, t.y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (t.stunT / (t.stunMax || 1))); o.strokePath();
     }
     // level pips: 10 small dots in two rows of 5
-    for (let i = 0; i < t.lvl; i++) g.fillStyle(i >= 5 ? 0xff6fd8 : 0xf2c14e, 1).fillCircle(t.x - 10 + (i % 5) * 5, t.y + 10 + (i >= 5 ? 0 : 3), 1.6);
+    for (let i = 0; i < t.lvl; i++) o.fillStyle(i >= 5 ? 0xff6fd8 : 0xf2c14e, 1).fillCircle(t.x - 10 + (i % 5) * 5, t.y + (art ? 16 : 10) + (i >= 5 ? 0 : 3), 1.6);
   }
+  g = o; // everything below draws over the tower art
 
   for (const c of S.coins) { g.fillStyle(0xf2c14e, 1).fillCircle(c.x, c.y, 6); g.lineStyle(1, 0xffffff, 0.8).strokeCircle(c.x, c.y, 8 + 2 * Math.sin(S.time * 6)); }
   for (const e of S.enemies) {
@@ -2650,6 +2733,7 @@ function draw(g) {
     if (e.heal) g.lineStyle(2, 0x7dffb0, 0.15 + 0.15 * Math.sin(S.time * 5)).strokeCircle(e.x, e.y, e.r + 6 + 4 * Math.sin(S.time * 5));
     if (e.unslow) { const back = posAt(Math.max(0, e.d - 18)); g.lineStyle(e.r, 0x4fa8ff, 0.35).lineBetween(back.x, back.y, e.x, e.y); }
     if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; g.lineStyle(1.5, 0xd08a5a, 0.7).lineBetween(e.x, e.y, e.x + Math.cos(a) * (e.r + 4 + e.stillT * 3), e.y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
+    shadow(g, e.x, e.y + e.r * 0.85, e.r * 2.2);
     g.fillStyle(e.color, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r);
     const arm = armorOf(e);
     if (arm > 0) g.lineStyle(1 + arm * 8, 0xb8c0d8, 0.85).strokeCircle(e.x, e.y, e.r);
@@ -2682,6 +2766,7 @@ function draw(g) {
     if (h.hold) { g.lineStyle(2, 0xf2c14e, 0.9).strokeRect(h.x - 17, h.y - 17, 34, 34); }
     if (h.shield > 0) { g.fillStyle(0x9af0ff, 0.15).fillCircle(h.x, h.y, 28); g.lineStyle(3, 0x9af0ff, 0.9).beginPath(); g.arc(h.x, h.y, 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * h.shield / h.shieldMax); g.strokePath(); }
     if (h.odT > 0) g.lineStyle(2, 0xff6f6f, 0.5 + 0.4 * Math.sin(S.time * 20)).strokeCircle(h.x, h.y, 24);
+    shadow(g, h.x, h.y + 12, 30);
     g.fillStyle(hc, 0.2).fillCircle(h.x, h.y, 18);
     g.fillStyle(hc, 1).fillCircle(h.x, h.y, 12);
     g.fillStyle(0x0b0f1c, 1).fillCircle(h.x, h.y, 5);
@@ -2728,8 +2813,11 @@ function draw(g) {
 let hudT = 0, SCENE = null;
 function shake(intensity, ms) { if (SCENE) SCENE.cameras.main.shake(ms, intensity); }
 class Main extends Phaser.Scene {
+  preload() { loadArt(this); }
   create() {
-    this.g = this.add.graphics(); SCENE = this;
+    this.ground = this.add.graphics().setDepth(-1);
+    this.g = this.add.graphics(); this.o = this.add.graphics().setDepth(2); SCENE = this;
+    makeAnims(this);
     this.input.mouse.disableContextMenu();
     this.input.on('pointerdown', p => { hideTip(); if (!S || !S.hero) return; p.rightButtonDown() ? handleRight(p.worldX, p.worldY) : handleClick(p.worldX, p.worldY, p.wasTouch); });
     this.input.on('pointermove', p => {
@@ -2748,7 +2836,9 @@ class Main extends Phaser.Scene {
   }
   update(time, delta) {
     const dt = Math.min(delta / 1000, 0.05);
-    update(dt); draw(this.g);
+    update(dt);
+    if (groundFor !== pathCells) drawGround(this.ground);
+    syncSprites(this); draw(this.g, this.o);
     hudT -= dt; if (hudT <= 0) { hudT = 0.1; updateHud(); }
   }
 }
