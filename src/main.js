@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import './style.css';
-import frostSheet from './assets/frost_pylon.png';
 
 (() => {
 const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, CHOICE_FROM = 5;
@@ -1468,7 +1467,7 @@ function applyHit(t, e, dmg, freeze) {
 }
 function fire(t, targets, mult = 1) {
   const h = S.hero, oc = overclocked(t);
-  t.shots++; t.firedAt = S.time; t.hitAt = targets[0] ? { x: targets[0].x, y: targets[0].y } : null;
+  t.shots++; if (!t.lob) t.shotAt = S.time; t.firedAt = S.time; t.hitAt = targets[0] ? { x: targets[0].x, y: targets[0].y } : null;
   let dmg = t.dmg * mult * S.mod.towerDmg * (S.mode.challenge === 'lone' ? 0.6 : 1);
   const aura = h.aura && nearAura(t);
   if (aura) dmg *= 1 + h.aura;
@@ -1537,6 +1536,7 @@ function lobShell(t, e, mult) {
   const lead = e.stunT > 0 || e.blocked ? 0 : e.speed * (1 - e.slow) * T;
   const p = posAt(Math.min(PATH_LEN, e.d + lead));
   T = Math.max(0.6, Math.hypot(p.x - t.x, p.y - t.y) / speed);
+  t.shotAt = S.time;
   S.shells.push({ tw: t, x0: t.x, y0: t.y, x1: p.x, y1: p.y, t: 0, T, mult });
 }
 function landShell(sh) {
@@ -1580,7 +1580,7 @@ function computeBuffs() {
 // Grave Anvil: crushes enemies that aren't moving; moving ones take 30%.
 function anvilSlam(t, area, mult) {
   const h = S.hero;
-  t.shots++;
+  t.shots++; t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y };
   let base = t.dmg * S.mod.towerDmg * mult * (S.mode.challenge === 'lone' ? 0.6 : 1);
   if (h.aura && nearAura(t)) base *= 1 + h.aura;
   if (t.buff) { base *= 1 + t.buff.dmg; if (t.buff.overdrive && Math.random() < 0.1) base *= 3; }
@@ -2602,37 +2602,58 @@ function drawGround(b) {
 }
 const shadow = (g, x, y, w) => g.fillStyle(0x000000, 0.35).fillEllipse(x, y, w, w * 0.35);
 
-// Towers with drawn art. Merged towers keep their shapes.
-const spriteTower = t => t.type === 'frost' && !t.hybrid;
+// Tower art: one sheet per tower, 4 rows of 6 frames (idle, attack, recover, hit effect), 64px frames.
+// s scales the body to fit a tile; oy is where the base sits in the frame. fx sets the hit effect's size
+// and anchor (bolts and lightning strike down onto the target). Merged towers keep their shapes.
+const ART_URLS = import.meta.glob('./assets/*.png', { eager: true, import: 'default' });
+const ART = {
+  arcane: { s: 0.94, oy: 0.86, fx: 0.55, fy: 0.85 }, plasma: { s: 0.82, oy: 0.93, fx: 0.6 }, frost: { s: 0.85, oy: 0.92, fx: 0.5 },
+  tesla: { s: 0.9, oy: 0.91, fx: 0.6, fy: 0.85 }, beacon: { s: 0.74, oy: 0.89, fx: 0.9 }, anvil: { s: 0.82, oy: 0.89, fx: 0.9 },
+  laser: { s: 0.75, oy: 0.89, fx: 0.45 }, mortar: { s: 0.74, oy: 0.89, fx: 0.8 },
+};
+const spriteTower = t => !t.hybrid && !!ART[t.type];
 const towerSprites = new Map();
+function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: 64, frameHeight: 64 }); }
 function makeAnims(sc) {
-  const a = (key, start, frameRate, repeat) => sc.anims.create({ key, frames: sc.anims.generateFrameNumbers('frost', { start, end: start + 5 }), frameRate, repeat });
-  a('frost-idle', 0, 8, -1); a('frost-attack', 6, 24, 0); a('frost-recover', 12, 16, 0); a('frost-fx', 18, 24, 0);
+  for (const k in ART) {
+    const a = (name, start, frameRate, repeat) => sc.anims.create({ key: k + '-' + name, frames: sc.anims.generateFrameNumbers(k, { start, end: start + 5 }), frameRate, repeat });
+    a('idle', 0, 8, -1); a('attack', 6, 24, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0);
+  }
 }
 function syncSprites(sc) {
   const live = new Set(), speed = !S || S.paused || S.over ? 0 : S.speed;
   if (S && S.hero) for (const t of S.towers) {
     if (!spriteTower(t)) continue;
     live.add(t);
+    const k = t.type, art = ART[k];
     let s = towerSprites.get(t);
     if (!s) {
-      s = sc.add.sprite(0, 0, 'frost').setOrigin(0.5, 57 / 64).setScale(0.85);
-      s.fired = t.firedAt; s.play('frost-idle');
-      s.on('animationcomplete', an => s.play(an.key === 'frost-attack' ? 'frost-recover' : 'frost-idle'));
+      s = sc.add.sprite(0, 0, k).setOrigin(0.5, art.oy).setScale(art.s);
+      s.shot = t.shotAt; s.hit = t.firedAt; s.play(k + '-idle');
+      s.on('animationcomplete', an => s.play(an.key === k + '-attack' ? k + '-recover' : k + '-idle'));
       towerSprites.set(t, s);
     }
+    // the beacon has no shots: it pulses while a wave is on
+    if (t.support && S.waveActive && S.time - (t.firedAt || -9) > 3) { t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y }; }
     s.setPosition(t.x, t.y + 18).setDepth(1 + t.y / 1000).setTint(t.stunT > 0 ? 0x666677 : 0xffffff);
     s.anims.timeScale = speed;
-    if (t.firedAt !== s.fired) { s.fired = t.firedAt; s.play('frost-attack'); if (t.hitAt) frostBurst(sc, t.hitAt.x, t.hitAt.y, speed); }
+    if (t.shotAt !== s.shot) {
+      s.shot = t.shotAt;
+      if (!(s.anims.isPlaying && s.anims.currentAnim.key === k + '-attack')) s.play(k + '-attack');
+    }
+    if (t.firedAt !== s.hit) {
+      s.hit = t.firedAt;
+      if (t.hitAt && !(S.time - (s.burstAt || -9) < 0.3)) { s.burstAt = S.time; burst(sc, k, t.hitAt.x, t.hitAt.y, speed); }
+    }
   }
   for (const [t, s] of towerSprites) if (!live.has(t)) { s.destroy(); towerSprites.delete(t); }
 }
 let bursts = 0;
-function frostBurst(sc, x, y, speed) {
-  if (bursts >= 24 || !speed) return;
+function burst(sc, k, x, y, speed) {
+  if (bursts >= 40 || !speed) return;
   bursts++;
-  const f = sc.add.sprite(x, y, 'frost').setScale(0.5).setDepth(3).setAlpha(0.85);
-  f.anims.timeScale = speed; f.play('frost-fx');
+  const art = ART[k], f = sc.add.sprite(x, y, k).setOrigin(0.5, art.fy || 0.5).setScale(art.fx).setDepth(3).setAlpha(0.9);
+  f.anims.timeScale = speed; f.play(k + '-fx');
   f.once('animationcomplete', () => { f.destroy(); bursts--; });
 }
 
@@ -2792,7 +2813,7 @@ function draw(g, o) {
 let hudT = 0, SCENE = null;
 function shake(intensity, ms) { if (SCENE) SCENE.cameras.main.shake(ms, intensity); }
 class Main extends Phaser.Scene {
-  preload() { this.load.spritesheet('frost', frostSheet, { frameWidth: 64, frameHeight: 64 }); }
+  preload() { loadArt(this); }
   create() {
     this.ground = this.add.graphics().setDepth(-1);
     this.g = this.add.graphics(); this.o = this.add.graphics().setDepth(2); SCENE = this;
