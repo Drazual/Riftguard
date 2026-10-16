@@ -2,6 +2,11 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.15: Pixel-art board and music fix
+
+- **The whole board is now pixel art in the same view as the tower art.** The game draws at the art's own pixel size (one tile is 32 art pixels) with hard pixel edges, and the ground is raised metal plating in the art's palette, lit from the upper left. The path is a sunken lane with the plating's wall along its far side. Tower art is redrawn pixel for pixel in the art bible's 16 colors, and enemies and the hero get dark outlines and a highlight to match.
+- **Music starts as soon as the desktop game opens.** In a browser it starts on your first click or key press, since browsers block sound until then.
+
 ## 0.14: Music and tower colors
 
 - **Background music.** The first song, **Riftwalker**, plays on the menus and during runs. A new **Music** button on the main menu lets you pick a song, play, pause, skip and seek, set the music volume, and choose a play mode (repeat one, play all, shuffle). Settings also has a music on/off switch and a music volume slider, separate from the sound effects.

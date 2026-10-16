@@ -51,7 +51,7 @@ function checkForUpdates() {
 function createWindow() {
   // Opens fullscreen by default; the game's settings can switch it off (and remember that).
   const win = new BrowserWindow({ width: 1280, height: 800, minWidth: 800, minHeight: 600, fullscreen: true, backgroundColor: '#0b0f1c', title: 'Riftguard', autoHideMenuBar: true, show: false,
-    webPreferences: { contextIsolation: true, preload: path.join(__dirname, 'preload.cjs') } });
+    webPreferences: { contextIsolation: true, autoplayPolicy: 'no-user-gesture-required', preload: path.join(__dirname, 'preload.cjs') } });
   ipcMain.removeAllListeners('fullscreen');
   ipcMain.removeAllListeners('quit');
   ipcMain.on('fullscreen', (_e, on) => win.setFullScreen(on));

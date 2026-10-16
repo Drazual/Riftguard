@@ -700,7 +700,8 @@ function nextSong(step = 1) {
 }
 bgm.addEventListener('ended', () => nextSong());
 // browsers only allow audio after the player interacts with the page
-const startMusic = () => { if (!bgmStarted) playSong(SETTINGS.song); };
+const startMusic = () => { if (!bgm.dataset.song) playSong(SETTINGS.song); else applyMusic(); };
+playSong(SETTINGS.song);
 window.addEventListener('pointerdown', startMusic, { once: true });
 window.addEventListener('keydown', startMusic, { once: true });
 
@@ -2642,42 +2643,57 @@ function updateHud() {
   if (--heroT <= 0) { heroT = 3; renderHero(); }
 }
 
-// The board uses the same 3/4 top-down view as the tower art: the ground is a raised floor of tiles and the
-// path is a sunken lane, so the ground's south-facing edge shows as a lit wall along the lane's north side.
-// Redrawn only when the map changes.
+// The board is pixel art in the same 3/4 top-down view, palette and light (from the upper left) as the
+// tower art. The game renders at PX canvas pixels per world unit, so one 40-unit tile is 32 art pixels,
+// the size the art was drawn for. The ground is raised metal plating; the path is a sunken lane, so the
+// plating's south face shows as a wall along the lane's north side. Redrawn only when the map changes.
+const PX = 0.8, TILE = C * PX;
+const PAL = { ink: '#101223', deep: '#24243D', dusk: '#3B3561', violet: '#625080', mist: '#9B8BA5' };
 let groundFor = null;
-function drawGround(b) {
-  b.clear(); groundFor = pathCells;
-  const lane = (c, r) => pathCells.has(c + ',' + r);
+function drawGround(sc) {
+  groundFor = pathCells;
+  if (!sc.textures.exists('ground')) sc.ground = sc.add.image(0, 0, sc.textures.createCanvas('ground', COLS * TILE, ROWS * TILE)).setOrigin(0).setScale(1 / PX).setDepth(-1);
+  const tex = sc.textures.get('ground'), x2 = tex.getContext(), lane = (c, r) => pathCells.has(c + ',' + r);
+  const px = (x, y, w, h, col) => { x2.fillStyle = col; x2.fillRect(x, y, w, h); };
+  const hash = (c, r, i) => { let v = (c * 73856093) ^ (r * 19349663) ^ (i * 83492791); v = (v ^ (v >>> 13)) * 1274126177; return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const x = c * C, y = r * C;
+    const x = c * TILE, y = r * TILE, T = TILE;
     if (lane(c, r)) {
-      b.fillStyle(0x1a2140, 1).fillRect(x, y, C, C);
-      if (r > 0 && !lane(c, r - 1)) { b.fillStyle(0x2a3360, 1).fillRect(x, y, C, 10); b.fillStyle(0x3d4a82, 1).fillRect(x, y, C, 2); }
-      if (c > 0 && !lane(c - 1, r)) b.fillStyle(0x121833, 1).fillRect(x, y, 3, C);
-      if (c < COLS - 1 && !lane(c + 1, r)) b.fillStyle(0x121833, 1).fillRect(x + C - 3, y, 3, C);
+      px(x, y, T, T, PAL.ink);
+      for (let i = 0; i < 5; i++) px(x + Math.floor(hash(c, r, i) * T), y + Math.floor(hash(c, r, i + 9) * T), 1, 1, PAL.deep);
+      px(x, y + T / 2 - 1, T, 1, PAL.deep); // worn centre track
+      if (r > 0 && !lane(c, r - 1)) { // the plating's south face
+        px(x, y, T, 8, PAL.dusk); px(x, y, T, 1, PAL.violet);
+        for (let i = 4; i < T; i += 8) px(x + i, y + 1, 1, 7, PAL.deep);
+        px(x, y + 8, T, 2, PAL.deep);
+      }
+      if (c > 0 && !lane(c - 1, r)) px(x, y, 2, T, PAL.deep); // shadow cast by the plating to the left
     } else {
-      b.fillStyle(0x070a13, 1).fillRect(x, y, C, C);
-      b.fillStyle(0x0f1426, 1).fillRect(x + 1, y + 1, C - 2, C - 5);
-      b.fillStyle(0x131a30, 1).fillRect(x + 1, y + 1, C - 2, 1);
+      px(x, y, T, T, PAL.deep);
+      px(x, y, T - 1, 1, PAL.dusk); px(x, y, 1, T - 1, PAL.dusk); // lit top and left bevel
+      px(x, y + T - 1, T, 1, PAL.ink); px(x + T - 1, y, 1, T, PAL.ink); // shaded seam
+      if (hash(c, r, 1) < 0.5) for (const [dx, dy] of [[3, 3], [T - 5, 3], [3, T - 5], [T - 5, T - 5]]) { px(x + dx, y + dy, 2, 2, PAL.ink); px(x + dx, y + dy, 1, 1, PAL.violet); }
+      else if (hash(c, r, 2) < 0.4) { px(x + 6, y + T / 2, T - 12, 1, PAL.ink); px(x + 6, y + T / 2 + 1, T - 12, 1, PAL.dusk); }
+      for (let i = 0; i < 3; i++) px(x + 2 + Math.floor(hash(c, r, i + 20) * (T - 4)), y + 2 + Math.floor(hash(c, r, i + 30) * (T - 4)), 1, 1, PAL.dusk);
     }
   }
-  if (WP[0].x < 0) { b.fillStyle(0x1a2140, 1).fillRect(0, Math.floor(WP[0].y / C) * C, 4, C); }
+  if (WP[0].x < 0) px(0, Math.floor(WP[0].y / C) * TILE, 3, TILE, PAL.dusk);
+  tex.refresh();
 }
-const shadow = (g, x, y, w) => g.fillStyle(0x000000, 0.35).fillEllipse(x, y, w, w * 0.35);
+const shadow = (g, x, y, w) => g.fillStyle(0x101223, 0.6).fillEllipse(x, y, w, w * 0.35);
 
-// Tower art: one sheet per tower, 4 rows of 6 frames (idle, attack, recover, hit effect), 64px frames.
-// s scales the body to fit a tile; oy is where the base sits in the frame. fx sets the hit effect's size
-// and anchor (bolts and lightning strike down onto the target). Merged towers keep their shapes.
+// Tower art: one sheet per tower, 4 rows of 6 frames (idle, attack, recover, hit effect). Frames are 48px
+// at the art's own pixel size and drawn 1:1 on the pixel grid. oy is where the base sits in the frame; fy
+// anchors the hit effect (bolts and lightning strike down onto the target). Merged towers keep their shapes.
 const ART_URLS = import.meta.glob('./assets/*.png', { eager: true, import: 'default' });
+const FRAME = 48;
 const ART = {
-  arcane: { s: 0.94, oy: 0.86, fx: 0.55, fy: 0.85 }, plasma: { s: 0.82, oy: 0.93, fx: 0.6 }, frost: { s: 0.85, oy: 0.92, fx: 0.5 },
-  tesla: { s: 0.9, oy: 0.91, fx: 0.6, fy: 0.85 }, beacon: { s: 0.74, oy: 0.89, fx: 0.9 }, anvil: { s: 0.82, oy: 0.89, fx: 0.9 },
-  laser: { s: 0.75, oy: 0.89, fx: 0.45 }, mortar: { s: 0.74, oy: 0.89, fx: 0.8 },
+  arcane: { oy: 38 / 48, fy: 0.75 }, plasma: { oy: 40 / 48 }, frost: { oy: 41 / 48 }, tesla: { oy: 38 / 48, fy: 0.75 },
+  beacon: { oy: 37 / 48 }, anvil: { oy: 39 / 48 }, laser: { oy: 36 / 48 }, mortar: { oy: 40 / 48 },
 };
 const spriteTower = t => !t.hybrid && !!ART[t.type];
 const towerSprites = new Map();
-function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: 64, frameHeight: 64 }); }
+function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: FRAME, frameHeight: FRAME }); }
 function makeAnims(sc) {
   for (const k in ART) {
     const a = (name, start, frameRate, repeat) => sc.anims.create({ key: k + '-' + name, frames: sc.anims.generateFrameNumbers(k, { start, end: start + 5 }), frameRate, repeat });
@@ -2692,14 +2708,14 @@ function syncSprites(sc) {
     const k = t.type, art = ART[k];
     let s = towerSprites.get(t);
     if (!s) {
-      s = sc.add.sprite(0, 0, k).setOrigin(0.5, art.oy).setScale(art.s);
+      s = sc.add.sprite(0, 0, k).setOrigin(0.5, art.oy).setScale(1 / PX);
       s.shot = t.shotAt; s.hit = t.firedAt; s.play(k + '-idle');
       s.on('animationcomplete', an => s.play(an.key === k + '-attack' ? k + '-recover' : k + '-idle'));
       towerSprites.set(t, s);
     }
     // the beacon has no shots: it pulses while a wave is on
     if (t.support && S.waveActive && S.time - (t.firedAt || -9) > 3) { t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y }; }
-    s.setPosition(t.x, t.y + 18).setDepth(1 + t.y / 1000).setTint(t.stunT > 0 ? 0x666677 : 0xffffff);
+    s.setPosition(t.x, t.y + 15).setDepth(1 + t.y / 1000).setTint(t.stunT > 0 ? 0x666677 : 0xffffff);
     s.anims.timeScale = speed;
     if (t.shotAt !== s.shot) {
       s.shot = t.shotAt;
@@ -2716,7 +2732,7 @@ let bursts = 0;
 function burst(sc, k, x, y, speed) {
   if (bursts >= 40 || !speed) return;
   bursts++;
-  const art = ART[k], f = sc.add.sprite(x, y, k).setOrigin(0.5, art.fy || 0.5).setScale(art.fx).setDepth(3).setAlpha(0.9);
+  const art = ART[k], f = sc.add.sprite(x, y, k).setOrigin(0.5, art.fy || 0.5).setScale(1 / PX).setDepth(3);
   f.anims.timeScale = speed; f.play(k + '-fx');
   f.once('animationcomplete', () => { f.destroy(); bursts--; });
 }
@@ -2798,7 +2814,9 @@ function draw(g, o) {
     if (e.unslow) { const back = posAt(Math.max(0, e.d - 18)); g.lineStyle(e.r, 0x4fa8ff, 0.35).lineBetween(back.x, back.y, e.x, e.y); }
     if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; g.lineStyle(1.5, TOWERS.anvil.color, 0.7).lineBetween(e.x, e.y, e.x + Math.cos(a) * (e.r + 4 + e.stillT * 3), e.y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
     shadow(g, e.x, e.y + e.r * 0.85, e.r * 2.2);
+    g.fillStyle(0x101223, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r + 1.25);
     g.fillStyle(e.color, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r);
+    g.fillStyle(0xffffff, e.phase ? 0.15 : 0.35).fillCircle(e.x - e.r * 0.35, e.y - e.r * 0.35, e.r * 0.35);
     const arm = armorOf(e);
     if (arm > 0) g.lineStyle(1 + arm * 8, 0xb8c0d8, 0.85).strokeCircle(e.x, e.y, e.r);
     if (e.hexT > 0) { const a0 = S.time * 4; g.lineStyle(2, 0xb07cff, 0.9).beginPath(); g.arc(e.x, e.y, e.r + 5, a0, a0 + 4); g.strokePath(); }
@@ -2832,7 +2850,9 @@ function draw(g, o) {
     if (h.odT > 0) g.lineStyle(2, 0xff6f6f, 0.5 + 0.4 * Math.sin(S.time * 20)).strokeCircle(h.x, h.y, 24);
     shadow(g, h.x, h.y + 12, 30);
     g.fillStyle(hc, 0.2).fillCircle(h.x, h.y, 18);
+    g.fillStyle(0x101223, 1).fillCircle(h.x, h.y, 13.25);
     g.fillStyle(hc, 1).fillCircle(h.x, h.y, 12);
+    g.fillStyle(0xffffff, 0.35).fillCircle(h.x - 4, h.y - 4, 4);
     g.fillStyle(0x0b0f1c, 1).fillCircle(h.x, h.y, 5);
     g.fillStyle(0x000000, 0.6).fillRect(h.x - 16, h.y - 24, 32, 4);
     g.fillStyle(0x5fe39a, 1).fillRect(h.x - 16, h.y - 24, 32 * h.hp / h.maxHp, 4);
@@ -2875,11 +2895,13 @@ function draw(g, o) {
 }
 
 let hudT = 0, SCENE = null;
+const lineStyle0 = Phaser.GameObjects.Graphics.prototype.lineStyle;
+Phaser.GameObjects.Graphics.prototype.lineStyle = function (w, c, a) { return lineStyle0.call(this, Math.max(w, 1 / PX), c, a); };
 function shake(intensity, ms) { if (SCENE) SCENE.cameras.main.shake(ms, intensity); }
 class Main extends Phaser.Scene {
   preload() { loadArt(this); }
   create() {
-    this.ground = this.add.graphics().setDepth(-1);
+    this.cameras.main.setZoom(PX).centerOn(W / 2, H / 2);
     this.g = this.add.graphics(); this.o = this.add.graphics().setDepth(2); SCENE = this;
     makeAnims(this);
     this.input.mouse.disableContextMenu();
@@ -2901,7 +2923,7 @@ class Main extends Phaser.Scene {
   update(time, delta) {
     const dt = Math.min(delta / 1000, 0.05);
     update(dt);
-    if (groundFor !== pathCells) drawGround(this.ground);
+    if (groundFor !== pathCells) drawGround(this);
     syncSprites(this); draw(this.g, this.o);
     hudT -= dt; if (hudT <= 0) { hudT = 0.1; updateHud(); }
   }
@@ -2936,9 +2958,9 @@ window.addEventListener('keydown', e => {
   }
 });
 
-window.riftguard = { get state() { return S; } };
+window.riftguard = { get state() { return S; }, music: bgm };
 new Phaser.Game({
-  type: Phaser.AUTO, parent: 'board', width: W, height: H, backgroundColor: '#080b15',
+  type: Phaser.AUTO, parent: 'board', width: W * PX, height: H * PX, backgroundColor: '#101223', pixelArt: true, roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   scene: Main, banner: false,
 });
