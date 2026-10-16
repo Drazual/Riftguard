@@ -2,6 +2,11 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.17: Seamless music loop and a smarter Piercing Shot
+
+- **Riftwalker loops seamlessly.** Music now plays through the game's audio engine instead of a basic audio player, which left a gap every time a song repeated. The song's silent lead-in and end are trimmed so it loops exactly on the bar, and the echo that rings past the end is blended into the start.
+- **Piercing Shot holds fire with nothing to hit.** With an aim point set, pressing the ability (or Second Sun casting it) does nothing until an enemy is on the line toward the aim point, so the cooldown isn't wasted.
+
 ## 0.16.1: Version on the main menu
 
 - The main menu shows which version of the game you're running, so it's easy to check an update has installed.
