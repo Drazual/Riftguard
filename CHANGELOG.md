@@ -2,6 +2,20 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.12: Two abilities per hero, path names and Hold fix
+
+### Heroes
+- **Every hero has two abilities.** Pick one on the Heroes page (main menu); the choice is saved and used in every run.
+  - **Vanguard:** Shield Slam (area stun), or **Bulwark Shield**: a shield that soaks damage for 5s, then bursts for part of what it soaked.
+  - **Striker:** Rift Nova (area blast), or **Overdrive**: attack twice as fast for 5s.
+  - **Oracle:** Overclock Field (towers fire faster), or **Stasis Field**: enemies in the area are slowed for 6s.
+  - **Sniper:** Piercing Shot (line shot), or **Orbital Strike**: a heavy blast on your aim point or the toughest enemy.
+- Each new ability has its own upgrades (two ability upgrades each, plus a few hero upgrades). Upgrades for the other ability no longer show up.
+- **Hold** turns off when your hero is knocked out, so it never respawns stuck at the base.
+
+### Towers
+- **Names after 3 paths:** once a tower has 3 paths picked, it takes the name of that combination right away, without waiting for level 13. A Plasma Cannon with Bigger Shells, Hot Plasma and Burning Ground becomes an Inferno Mortar. The Towers page counts these named forms as found.
+
 ## 0.11: Laser and Mortar towers, role level bonuses, pricier upgrades
 
 ### Pre-run screens
