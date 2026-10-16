@@ -2,6 +2,11 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.13: Frost Pylon art and a 3/4 view board
+
+- **The Frost Pylon has real art.** It idles with a floating crystal, flares when it fires, settles back, and each shot bursts into ice shards on the target. Merged towers that include a Frost Pylon keep their shapes for now.
+- **The board now matches the art's 3/4 top-down view.** The ground is a raised tile floor and the path is a sunken lane with a wall along its far side. Towers, enemies and the hero cast shadows, and tower art stands up out of its tile.
+
 ## 0.12: Two abilities per hero, path names and Hold fix
 
 ### Heroes
