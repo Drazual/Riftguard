@@ -2,10 +2,14 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.10.1: Skill point tuning
+
+- Hero levels give **2 skill points** instead of 3. Heroes level up fast enough that 3 points stacked milestones too quickly.
+
 ## 0.10: Skill points, ascended forms and a new Frost path
 
 ### Hero
-- **Skill points:** every hero level still gives an upgrade pick, and now also 3 skill points. Spend them right after the pick, or any time with **K** (or the Skills button). Unspent points are saved.
+- **Skill points:** every hero level still gives an upgrade pick, and now also skill points (2 per level as of 0.10.1). Spend them right after the pick, or any time with **K** (or the Skills button). Unspent points are saved.
 - Seven stats: **Might** (damage), **Haste** (attack speed), **Vitality** (max HP), **Toughness** (damage reduction), **Focus** (ability cooldown), **Precision** (crit) and **Command** (damage for towers near your hero).
 - **Milestones:** every 10 points in one stat adds a big bonus to that stat, for example Might 10 gives +15% hero damage.
 - **Orbiting Blades** is retired for now and saved for a future melee hero. In its place:

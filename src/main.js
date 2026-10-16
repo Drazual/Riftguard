@@ -386,7 +386,7 @@ const PERKS = [
 ];
 // Skill points: every hero level also gives SP_PER_LEVEL points to spend on stats. Every 10 points in one
 // stat hits a milestone that adds a big bonus to that same stat.
-const SP_PER_LEVEL = 3, SKILL_MILESTONE = 10;
+const SP_PER_LEVEL = 2, SKILL_MILESTONE = 10;
 const SKILLS = [
   { id: 'might',  name: 'Might',     per: '+3% hero damage', ms: '+15% hero damage', apply: h => h.dmg *= 1.03, mile: h => h.dmg *= 1.15 },
   { id: 'haste',  name: 'Haste',     per: '+2.5% attack speed', ms: '+12% attack speed', apply: h => h.rate /= 1.025, mile: h => h.rate /= 1.12 },
