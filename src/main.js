@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import './style.css';
+import riftwalkerUrl from './music/riftwalker.mp3';
 
 (() => {
 const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, CHOICE_FROM = 5;
@@ -52,21 +53,21 @@ const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = Ma
 
 // ---------- towers ----------
 const TOWERS = {
-  arcane: { name: 'Arcane Bolt', key: '1', cost: 50, dmg: 14, rate: 0.5, range: 120, color: 0xb07cff, css: '#b07cff',
+  arcane: { name: 'Arcane Bolt', key: '1', cost: 50, dmg: 14, rate: 0.5, range: 120, color: 0xff4fc0, css: '#ff4fc0',
     info: 'Fires quick magic bolts at one enemy at a time. Steady, reliable damage that is good against anything.' },
-  plasma: { name: 'Plasma Cannon', key: '2', cost: 80, dmg: 24, rate: 1.4, range: 110, splash: 50, color: 0xff8a3d, css: '#ff8a3d',
+  plasma: { name: 'Plasma Cannon', key: '2', cost: 80, dmg: 24, rate: 1.4, range: 110, splash: 50, color: 0x2fd6b0, css: '#2fd6b0',
     info: 'Lobs slow plasma shells that explode on impact and hurt every enemy in the blast. Best against tight groups.' },
-  frost:  { name: 'Frost Pylon', key: '3', cost: 60, dmg: 6, rate: 0.9, range: 100, slow: 0.45, lvl: 'rate', color: 0x7fd4ff, css: '#7fd4ff',
+  frost:  { name: 'Frost Pylon', key: '3', cost: 60, dmg: 6, rate: 0.9, range: 100, slow: 0.45, lvl: 'rate', color: 0x9cf4dd, css: '#9cf4dd',
     info: 'Hits weakly but slows enemies down, so the rest of your towers get more time to shoot. Pairs with everything.' },
-  tesla:  { name: 'Tesla Coil', key: '4', cost: 90, dmg: 12, rate: 1.1, range: 105, chain: 3, color: 0x4fd8e8, css: '#4fd8e8',
+  tesla:  { name: 'Tesla Coil', key: '4', cost: 90, dmg: 12, rate: 1.1, range: 105, chain: 3, color: 0x4fd8ff, css: '#4fd8ff',
     info: 'Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies.' },
-  beacon: { name: 'Rift Beacon', key: '5', cost: 100, dmg: 0, rate: 1, range: 130, support: true, lvl: 'range', unlock: 200, color: 0xfff0a0, css: '#fff0a0',
+  beacon: { name: 'Rift Beacon', key: '5', cost: 100, dmg: 0, rate: 1, range: 130, support: true, lvl: 'range', unlock: 200, color: 0xffa0e0, css: '#ffa0e0',
     info: 'Never attacks. Every tower in its range deals +15% damage. Beacons don’t stack on the same tower (the strongest wins), so spread them out.' },
-  anvil:  { name: 'Grave Anvil', key: '6', cost: 90, dmg: 40, rate: 1.6, range: 70, unlock: 200, color: 0xd08a5a, css: '#d08a5a',
+  anvil:  { name: 'Grave Anvil', key: '6', cost: 90, dmg: 40, rate: 1.6, range: 70, unlock: 200, color: 0xf6a14a, css: '#f6a14a',
     info: 'Slams the ground, crushing enemies that are not moving: blocked by your hero, stunned or frozen. The longer they stay still, the harder it hits. Moving enemies only take 30%.' },
-  laser:  { name: 'Prism Laser', key: '7', cost: 110, dmg: 5, rate: 0.2, range: 115, beam: true, unlock: 250, color: 0xff3d6e, css: '#ff3d6e',
+  laser:  { name: 'Prism Laser', key: '7', cost: 110, dmg: 5, rate: 0.2, range: 115, beam: true, unlock: 250, color: 0xff5f6f, css: '#ff5f6f',
     info: 'Holds a steady beam on one enemy. Every tick on the same target heats the beam up for more damage (up to +160%). Switching targets cools it down. Melts bosses and tanks.' },
-  mortar: { name: 'Siege Mortar', key: '8', cost: 130, dmg: 110, rate: 4.5, range: 320, splash: 60, lob: true, unlock: 250, color: 0xc8a060, css: '#c8a060',
+  mortar: { name: 'Siege Mortar', key: '8', cost: 130, dmg: 110, rate: 4.5, range: 320, splash: 60, lob: true, unlock: 250, color: 0xf9e6a2, css: '#f9e6a2',
     info: 'Very long range. Lobs a slow, heavy shell that lands a few moments later and wrecks everything in the blast. Fires rarely, so pair it with towers that cover the gaps.' },
 };
 // What each level-up adds on top of the path point. Damage towers hit harder; utility and support towers
@@ -656,7 +657,7 @@ META.unlocked = META.unlocked || {};
 const rank = (obj, id) => (obj && obj[id]) || 0;
 
 // ---------- settings (saved in this browser) ----------
-let SETTINGS = { volume: 0.6, muted: false, fullscreen: true };
+let SETTINGS = { volume: 0.6, muted: false, fullscreen: true, musicOn: true, musicVolume: 0.5, song: 'riftwalker', musicMode: 'all' };
 try { Object.assign(SETTINGS, JSON.parse(localStorage.getItem('riftguard-settings') || '{}')); } catch (e) {}
 function saveSettings() { try { localStorage.setItem('riftguard-settings', JSON.stringify(SETTINGS)); } catch (e) {} }
 const desktop = window.desktop || null; // set by the desktop app's preload script
@@ -677,6 +678,32 @@ function audio() {
   if (actx.state === 'suspended') actx.resume();
   return actx;
 }
+// ---------- music: background songs, picked on the Music screen ----------
+const SONGS = [{ id: 'riftwalker', name: 'Riftwalker', url: riftwalkerUrl }];
+const MUSIC_MODES = { one: 'Repeat this song', all: 'Play all in order', shuffle: 'Shuffle' };
+const bgm = new Audio(); bgm.preload = 'auto';
+let bgmStarted = false;
+const songIdx = () => Math.max(0, SONGS.findIndex(s => s.id === SETTINGS.song));
+function applyMusic() {
+  bgm.volume = SETTINGS.musicVolume; bgm.loop = SETTINGS.musicMode === 'one' || SONGS.length === 1;
+  if (!SETTINGS.musicOn) bgm.pause(); else if (bgmStarted && bgm.paused) bgm.play().catch(() => {});
+}
+function playSong(id) {
+  SETTINGS.song = id; saveSettings();
+  const s = SONGS[songIdx()];
+  if (bgm.dataset.song !== s.id) { bgm.dataset.song = s.id; bgm.src = s.url; }
+  bgmStarted = true; applyMusic();
+}
+function nextSong(step = 1) {
+  const n = SONGS.length, i = songIdx();
+  playSong(SONGS[SETTINGS.musicMode === 'shuffle' && n > 1 ? (i + 1 + Math.floor(Math.random() * (n - 1))) % n : (i + step + n) % n].id);
+}
+bgm.addEventListener('ended', () => nextSong());
+// browsers only allow audio after the player interacts with the page
+const startMusic = () => { if (!bgmStarted) playSong(SETTINGS.song); };
+window.addEventListener('pointerdown', startMusic, { once: true });
+window.addEventListener('keydown', startMusic, { once: true });
+
 const SFX = {
   shot:    { f: 900, f2: 450, d: 0.05, type: 'square', v: 0.035, gap: 0.07 },
   boom:    { noise: true, f: 500, d: 0.25, v: 0.16, gap: 0.09 },
@@ -744,11 +771,12 @@ function showMenu() {
       <button class="go" id="mStart">Play</button>
       <button id="mUpgrades">Heroes</button>
       <button id="mTowers">Towers</button>
+      <button id="mMusic">Music</button>
       <button id="mSettings">Settings</button>
       <button id="mLog">Stats log</button>
       ${desktop ? '<button id="mQuit">Quit</button>' : ''}
     </div></div>`);
-  $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = () => showHeroes(); $('mTowers').onclick = () => showTowers(); $('mLog').onclick = showLog; $('mSettings').onclick = showSettings;
+  $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = () => showHeroes(); $('mTowers').onclick = () => showTowers(); $('mLog').onclick = showLog; $('mSettings').onclick = showSettings; $('mMusic').onclick = showMusic;
   if ($('mQuit')) $('mQuit').onclick = () => desktop.quit();
 }
 function showMapSelect() {
@@ -875,6 +903,38 @@ function showHeroes(sel) {
   };
   $('mBack').onclick = showMenu;
 }
+const clock = t => isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '0:00';
+function showMusic() {
+  const cur = SONGS[songIdx()], playing = !bgm.paused && SETTINGS.musicOn;
+  showScreen(`<div class="screen-head"><h2>Music</h2><button id="mBack">Back</button></div>
+    <p class="lead">Pick the background music. It plays on the menus and during runs.</p>
+    <div class="card music-now"><small class="path">${playing ? 'Now playing' : 'Paused'}</small><b>${cur.name}</b>
+      <div class="music-seek"><span id="muTime">${clock(bgm.currentTime)}</span><input type="range" id="muSeek" min="0" max="1" step="0.001" value="${bgm.duration ? bgm.currentTime / bgm.duration : 0}"><span id="muDur">${clock(bgm.duration)}</span></div>
+      <div class="row"><button id="muPrev">Previous</button><button class="go" id="muPlay">${playing ? 'Pause' : 'Play'}</button><button id="muNext">Next</button></div></div>
+    <h3 class="music-h">Songs</h3>
+    <div class="cards songs">${SONGS.map((s, i) => `<button class="choice song-pick ${s.id === cur.id ? 'picked' : ''}" data-song="${s.id}"><small class="path">Track ${i + 1}</small><b>${s.name}</b><span>${s.id === cur.id ? (playing ? 'Playing' : 'Selected') : 'Click to play'}</span></button>`).join('')}</div>
+    <div class="settings music-set">
+      <label>Music <input type="checkbox" id="muOn" ${SETTINGS.musicOn ? 'checked' : ''}></label>
+      <label>Music volume <input type="range" id="muVol" min="0" max="1" step="0.05" value="${SETTINGS.musicVolume}"></label>
+      <label>Play mode <select id="muMode">${Object.entries(MUSIC_MODES).map(([k, v]) => `<option value="${k}" ${SETTINGS.musicMode === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+    </div>`);
+  const redraw = () => setTimeout(() => { if ($('muPlay')) showMusic(); }, 50);
+  $('mBack').onclick = showMenu;
+  $('muPlay').onclick = () => { if (playing) { SETTINGS.musicOn = false; saveSettings(); bgm.pause(); } else { SETTINGS.musicOn = true; playSong(cur.id); } redraw(); };
+  $('muPrev').onclick = () => { if (bgm.currentTime > 3) bgm.currentTime = 0; else nextSong(-1); SETTINGS.musicOn = true; applyMusic(); redraw(); };
+  $('muNext').onclick = () => { SETTINGS.musicOn = true; nextSong(); redraw(); };
+  $('muSeek').oninput = e => { if (bgm.duration) bgm.currentTime = +e.target.value * bgm.duration; };
+  $('muOn').onchange = e => { SETTINGS.musicOn = e.target.checked; saveSettings(); playSong(cur.id); redraw(); };
+  $('muVol').oninput = e => { SETTINGS.musicVolume = +e.target.value; saveSettings(); applyMusic(); };
+  $('muMode').onchange = e => { SETTINGS.musicMode = e.target.value; saveSettings(); applyMusic(); };
+  document.querySelectorAll('.song-pick').forEach(b => b.onclick = () => { SETTINGS.musicOn = true; playSong(b.dataset.song); redraw(); });
+}
+function musicTick() {
+  if (!$('muSeek')) return;
+  $('muTime').textContent = clock(bgm.currentTime); $('muDur').textContent = clock(bgm.duration);
+  if (bgm.duration && document.activeElement !== $('muSeek')) $('muSeek').value = bgm.currentTime / bgm.duration;
+}
+bgm.addEventListener('timeupdate', musicTick); bgm.addEventListener('loadedmetadata', musicTick);
 function showLog() {
   const runs = META.runs.slice().reverse();
   showScreen(`<div class="screen-head"><h2>Stats log</h2><button id="mCopy">Copy full log</button><button id="mBack">Back</button></div>
@@ -896,8 +956,10 @@ function showSettings() {
   if (inRun) { if (!$('modal').hidden) return; S.paused = true; }
   openModal(`<h2>${inRun ? 'Paused' : 'Settings'}</h2>
     <div class="settings">
-      <label>Volume <input type="range" id="setVol" min="0" max="1" step="0.05" value="${SETTINGS.volume}"></label>
-      <label>Mute sound <input type="checkbox" id="setMute" ${SETTINGS.muted ? 'checked' : ''}></label>
+      <label>Music <input type="checkbox" id="setMusic" ${SETTINGS.musicOn ? 'checked' : ''}></label>
+      <label>Music volume <input type="range" id="setMusicVol" min="0" max="1" step="0.05" value="${SETTINGS.musicVolume}"></label>
+      <label>Sound effects volume <input type="range" id="setVol" min="0" max="1" step="0.05" value="${SETTINGS.volume}"></label>
+      <label>Mute sound effects <input type="checkbox" id="setMute" ${SETTINGS.muted ? 'checked' : ''}></label>
       <label>Fullscreen <input type="checkbox" id="setFs" ${SETTINGS.fullscreen ? 'checked' : ''}></label>
       <label>Move the hero with WASD / arrow keys <input type="checkbox" id="setKeys" ${keyMove ? 'checked' : ''}></label>
     </div>
@@ -908,6 +970,8 @@ function showSettings() {
     </div>`);
   $('setVol').oninput = e => { SETTINGS.volume = +e.target.value; saveSettings(); audio(); };
   $('setVol').onchange = () => sfx('level');
+  $('setMusic').onchange = e => { SETTINGS.musicOn = e.target.checked; saveSettings(); bgmStarted = true; if (!bgm.dataset.song) playSong(SETTINGS.song); else applyMusic(); };
+  $('setMusicVol').oninput = e => { SETTINGS.musicVolume = +e.target.value; saveSettings(); applyMusic(); };
   $('setMute').onchange = e => { SETTINGS.muted = e.target.checked; saveSettings(); audio(); };
   $('setFs').onchange = e => setFullscreen(e.target.checked);
   $('setKeys').onchange = e => { if (e.target.checked !== keyMove) toggleKeys(); };
@@ -2684,7 +2748,7 @@ function draw(g, o) {
   if (S.mergeFrom) for (const t of S.towers) if (t !== S.mergeFrom && !mergeProblem(S.mergeFrom, t))
     g.lineStyle(2, 0xf2c14e, 0.8).strokeRect(t.x - 18, t.y - 18, 36, 36);
 
-  for (const t of S.towers) if (t.buff) for (const b of t.buff.from) g.lineStyle(1, 0xfff0a0, 0.18 + 0.1 * Math.sin(S.time * 4)).lineBetween(b.x, b.y, t.x, t.y);
+  for (const t of S.towers) if (t.buff) for (const b of t.buff.from) g.lineStyle(1, TOWERS.beacon.color, 0.18 + 0.1 * Math.sin(S.time * 4)).lineBetween(b.x, b.y, t.x, t.y);
   for (const t of S.towers) {
     if (t.warnT > 0) g.fillStyle(0xff2e4d, 0.25 + 0.25 * Math.sin(S.time * 30)).fillRoundedRect(t.x - 20, t.y - 20, 40, 40, 6);
     const art = spriteTower(t);
@@ -2732,14 +2796,14 @@ function draw(g, o) {
     if (e.shieldAura) g.lineStyle(1, 0xd8b84a, 0.25).strokeCircle(e.x, e.y, 70);
     if (e.heal) g.lineStyle(2, 0x7dffb0, 0.15 + 0.15 * Math.sin(S.time * 5)).strokeCircle(e.x, e.y, e.r + 6 + 4 * Math.sin(S.time * 5));
     if (e.unslow) { const back = posAt(Math.max(0, e.d - 18)); g.lineStyle(e.r, 0x4fa8ff, 0.35).lineBetween(back.x, back.y, e.x, e.y); }
-    if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; g.lineStyle(1.5, 0xd08a5a, 0.7).lineBetween(e.x, e.y, e.x + Math.cos(a) * (e.r + 4 + e.stillT * 3), e.y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
+    if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; g.lineStyle(1.5, TOWERS.anvil.color, 0.7).lineBetween(e.x, e.y, e.x + Math.cos(a) * (e.r + 4 + e.stillT * 3), e.y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
     shadow(g, e.x, e.y + e.r * 0.85, e.r * 2.2);
     g.fillStyle(e.color, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r);
     const arm = armorOf(e);
     if (arm > 0) g.lineStyle(1 + arm * 8, 0xb8c0d8, 0.85).strokeCircle(e.x, e.y, e.r);
     if (e.hexT > 0) { const a0 = S.time * 4; g.lineStyle(2, 0xb07cff, 0.9).beginPath(); g.arc(e.x, e.y, e.r + 5, a0, a0 + 4); g.strokePath(); }
     if (e.stunT > 0) g.lineStyle(2, 0xffffff, 0.9).strokeCircle(e.x, e.y, e.r + 2);
-    else if (e.slow) g.lineStyle(2, 0x7fd4ff, 0.9).strokeCircle(e.x, e.y, e.r + 2);
+    else if (e.slow) g.lineStyle(2, TOWERS.frost.color, 0.9).strokeCircle(e.x, e.y, e.r + 2);
     if (e.burnT > 0) g.fillStyle(0xff8a3d, 0.8).fillCircle(e.x, e.y - e.r, 2.5);
     if (e.boss) g.lineStyle(2, 0xf2c14e, 1).strokeCircle(e.x, e.y, e.r + 4);
     const w = e.r * 2 + 4;
