@@ -225,10 +225,3 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .forms li span { color: var(--muted); font-size: 12px; }
 .forms li b { color: var(--muted); }
 .forms li.found b { color: var(--gold); }
-.skill-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line, #232a45); border-radius: 8px; margin-bottom: 6px; text-align: left; }
-.skill-row .pips { display: flex; gap: 2px; margin: 4px 0; }
-.skill-row .pips i { width: 10px; height: 6px; border-radius: 2px; background: #232a45; }
-.skill-row .pips i.on { background: var(--gold); }
-.skill-row .btns { display: flex; gap: 6px; }
-.skill-row .ms { color: var(--gold); font-size: 12px; }
-.bar button.has-sp { box-shadow: 0 0 0 2px var(--gold); }

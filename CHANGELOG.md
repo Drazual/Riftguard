@@ -2,6 +2,25 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.11: Laser and Mortar towers, role level bonuses, pricier upgrades
+
+### Pre-run screens
+- Picking a loadout is now two pages: choose your hero first, then your towers. **Back** on the tower page returns to the hero page.
+
+### Hero
+- **Skill points are gone.** Each level still gives an upgrade pick, and now also a small automatic bonus based on the hero's role:
+  - **Damage heroes** (Striker, Sniper): +2% damage, +1% range and +1.5% attack speed per level.
+  - **Tanks** (Vanguard): +3% max HP, +0.5% damage reduction and regen equal to 0.2% of max HP per second, per level.
+  - **Support** (Oracle): +1% range and aura reach, and +1% XP gain per level (0% at level 1).
+- The hero panel and the hero cards show the role's level bonus.
+
+### Towers
+- **Upgrade prices doubled:** a level-up now costs the tower's build cost × its level.
+- **Merged towers cost more to upgrade:** a hybrid's first level-up costs double the last level-up of its priciest parent (build cost × 12 × 2), and the price rises 10% per level after that. Super towers start at 1.5× that.
+- **New: Prism Laser** (unlock for ◆ 250). Holds a beam on one enemy, and every tick on the same target heats it up for more damage (up to +160%). Switching targets cools it down. Paths: **Chain Laser** (the beam jumps to more enemies; its mastery, Prism Web, keeps full damage on every jump), Focusing Lens, Heat Sink, Amplifier and Long Lens.
+- **New: Siege Mortar** (unlock for ◆ 250). Very long range (320). It fires rarely, and its slow shells arc across the map, leading their target, before landing in a heavy blast. Paths: Heavy Payload, Wide Blast, Napalm, Quick Reload and Shockwave.
+- Both new towers have signatures (Overheat and Rocket Shells) and 16 ascended forms each, for 128 forms in total.
+
 ## 0.10.1: Skill point tuning
 
 - Hero levels give **2 skill points** instead of 3. Heroes level up fast enough that 3 points stacked milestones too quickly.
