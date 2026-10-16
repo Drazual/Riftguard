@@ -679,28 +679,82 @@ function audio() {
   return actx;
 }
 // ---------- music: background songs, picked on the Music screen ----------
-const SONGS = [{ id: 'riftwalker', name: 'Riftwalker', url: riftwalkerUrl }];
+// loop: for songs written to loop, the length of the loop in seconds from the first beat (Riftwalker is
+// 104 bars at 100 BPM). The file's silent lead-in and its tail are trimmed off, and the reverb tail that
+// rings past the loop is laid over its start, so it repeats seamlessly.
+const SONGS = [{ id: 'riftwalker', name: 'Riftwalker', url: riftwalkerUrl, loop: 249.6 }];
 const MUSIC_MODES = { one: 'Repeat this song', all: 'Play all in order', shuffle: 'Shuffle' };
-const bgm = new Audio(); bgm.preload = 'auto';
+// Plays through Web Audio: an <audio> element leaves a gap every time it loops.
+const bgm = {
+  song: null, buf: null, src: null, gain: null, paused: true, loop: true, offset: 0, startedAt: 0, want: false, onended: null,
+  ctx() { const c = audio(); if (c && !this.gain) { this.gain = c.createGain(); this.gain.connect(c.destination); } return c; },
+  get duration() { return this.buf ? this.buf.duration : NaN; },
+  get currentTime() {
+    if (!this.buf) return 0;
+    if (this.paused) return this.offset;
+    const t = this.ctx().currentTime - this.startedAt;
+    return this.loop ? t % this.buf.duration : Math.min(t, this.buf.duration);
+  },
+  set currentTime(t) { const was = !this.paused; this.stop(); this.offset = t; if (was) this.play(); },
+  set volume(v) { if (this.ctx()) this.gain.gain.value = v; },
+  setLoop(on) { this.loop = on; if (this.src) this.src.loop = on; },
+  setSong(song) {
+    if (this.song === song) return;
+    this.stop(); this.song = song; this.buf = null; this.offset = 0;
+    const c = this.ctx(); if (!c) return;
+    // XHR rather than fetch: the desktop app loads the game from files, which fetch refuses.
+    const x = new XMLHttpRequest(); x.open('GET', song.url); x.responseType = 'arraybuffer';
+    x.onload = () => c.decodeAudioData(x.response).then(buf => {
+      if (this.song !== song) return;
+      this.buf = loopBuffer(c, buf, song.loop);
+      if (this.want) { this.paused = true; this.play(); }
+      musicTick();
+    }).catch(() => {});
+    x.send();
+  },
+  play() {
+    this.want = true;
+    const c = this.ctx(); if (!c || !this.buf || !this.paused) return;
+    if (c.state === 'suspended') c.resume();
+    const src = this.src = c.createBufferSource();
+    src.buffer = this.buf; src.loop = this.loop; src.connect(this.gain);
+    const at = this.offset % this.buf.duration;
+    src.start(0, at); this.startedAt = c.currentTime - at; this.paused = false;
+    src.onended = () => { if (this.src === src) { this.src = null; this.paused = true; this.offset = 0; if (this.onended) this.onended(); } };
+  },
+  pause() { this.want = false; if (this.paused) return; this.offset = this.currentTime; this.stop(); },
+  stop() { if (this.src) { this.src.onended = null; try { this.src.stop(); } catch (e) {} this.src = null; } this.paused = true; },
+};
+function loopBuffer(c, buf, loop) {
+  const sr = buf.sampleRate, L = Math.round((loop || 0) * sr), ch = [...Array(buf.numberOfChannels)].map((_, i) => buf.getChannelData(i));
+  let on = 0; // first beat: the first clearly audible sample
+  while (on < Math.min(buf.length, sr) && !ch.some(d => Math.abs(d[on]) > 0.02)) on++;
+  if (!L || on + L > buf.length) return buf;
+  const out = c.createBuffer(ch.length, L, sr);
+  ch.forEach((d, i) => {
+    const o = out.getChannelData(i); o.set(d.subarray(on, on + L));
+    const tail = d.subarray(on + L); for (let j = 0; j < tail.length && j < L; j++) o[j] += tail[j];
+  });
+  return out;
+}
 let bgmStarted = false;
 const songIdx = () => Math.max(0, SONGS.findIndex(s => s.id === SETTINGS.song));
 function applyMusic() {
-  bgm.volume = SETTINGS.musicVolume; bgm.loop = SETTINGS.musicMode === 'one' || SONGS.length === 1;
-  if (!SETTINGS.musicOn) bgm.pause(); else if (bgmStarted && bgm.paused) bgm.play().catch(() => {});
+  bgm.volume = SETTINGS.musicVolume; bgm.setLoop(SETTINGS.musicMode === 'one' || SONGS.length === 1);
+  if (!SETTINGS.musicOn) bgm.pause(); else if (bgmStarted && bgm.paused) bgm.play();
 }
 function playSong(id) {
   SETTINGS.song = id; saveSettings();
-  const s = SONGS[songIdx()];
-  if (bgm.dataset.song !== s.id) { bgm.dataset.song = s.id; bgm.src = s.url; }
+  bgm.setSong(SONGS[songIdx()]);
   bgmStarted = true; applyMusic();
 }
 function nextSong(step = 1) {
   const n = SONGS.length, i = songIdx();
   playSong(SONGS[SETTINGS.musicMode === 'shuffle' && n > 1 ? (i + 1 + Math.floor(Math.random() * (n - 1))) % n : (i + step + n) % n].id);
 }
-bgm.addEventListener('ended', () => nextSong());
+bgm.onended = () => nextSong();
 // browsers only allow audio after the player interacts with the page
-const startMusic = () => { if (!bgm.dataset.song) playSong(SETTINGS.song); else applyMusic(); };
+const startMusic = () => { if (!bgm.song) playSong(SETTINGS.song); else applyMusic(); };
 playSong(SETTINGS.song);
 window.addEventListener('pointerdown', startMusic, { once: true });
 window.addEventListener('keydown', startMusic, { once: true });
@@ -935,7 +989,7 @@ function musicTick() {
   $('muTime').textContent = clock(bgm.currentTime); $('muDur').textContent = clock(bgm.duration);
   if (bgm.duration && document.activeElement !== $('muSeek')) $('muSeek').value = bgm.currentTime / bgm.duration;
 }
-bgm.addEventListener('timeupdate', musicTick); bgm.addEventListener('loadedmetadata', musicTick);
+setInterval(musicTick, 250);
 function showLog() {
   const runs = META.runs.slice().reverse();
   showScreen(`<div class="screen-head"><h2>Stats log</h2><button id="mCopy">Copy full log</button><button id="mBack">Back</button></div>
@@ -971,7 +1025,7 @@ function showSettings() {
     </div>`);
   $('setVol').oninput = e => { SETTINGS.volume = +e.target.value; saveSettings(); audio(); };
   $('setVol').onchange = () => sfx('level');
-  $('setMusic').onchange = e => { SETTINGS.musicOn = e.target.checked; saveSettings(); bgmStarted = true; if (!bgm.dataset.song) playSong(SETTINGS.song); else applyMusic(); };
+  $('setMusic').onchange = e => { SETTINGS.musicOn = e.target.checked; saveSettings(); bgmStarted = true; if (!bgm.song) playSong(SETTINGS.song); else applyMusic(); };
   $('setMusicVol').oninput = e => { SETTINGS.musicVolume = +e.target.value; saveSettings(); applyMusic(); };
   $('setMute').onchange = e => { SETTINGS.muted = e.target.checked; saveSettings(); audio(); };
   $('setFs').onchange = e => setFullscreen(e.target.checked);
@@ -1681,6 +1735,8 @@ function useAbility() {
   const h = S && S.hero, a = h && h.ab;
   if (!h || h.ko > 0 || a.t > 0 || S.over || S.paused) return;
   if ((a.id === 'pierce' || a.id === 'strike') && !S.aim && !S.enemies.some(e => !e.dead)) return toast('No target for ' + a.name + '. Press F to set an aim point.');
+  // with an aim point set, Piercing Shot holds fire (and keeps its charge) until an enemy is on its line
+  if (a.id === 'pierce' && S.aim && !pierceLine(h, a, S.aim).length) return toast('No enemy on the aim line yet. Piercing Shot holds its fire.');
   a.t = a.cd;
   castAbility(false);
 }
@@ -1783,16 +1839,21 @@ function riftNova(h, a) {
   }
 }
 // A round through every enemy on the line from the hero toward the aim point (F), or the lead enemy if none is set.
+// Enemies the shot from the hero toward goal would pass through.
+function pierceLine(h, a, goal) {
+  const dx = goal.x - h.x, dy = goal.y - h.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, w = a.w * (a.rail ? 3 : 1);
+  return S.enemies.filter(e => {
+    if (e.dead) return false;
+    const along = (e.x - h.x) * ux + (e.y - h.y) * uy, off = Math.abs((e.x - h.x) * uy - (e.y - h.y) * ux);
+    return along > 0 && off <= w + e.r;
+  });
+}
 function piercingShot(h, a) {
   const lead = S.enemies.filter(e => !e.dead).sort((x, y) => (y.boss - x.boss) || (y.d - x.d))[0];
   const goal = S.aim || lead;
   if (!goal) return;
   const dx = goal.x - h.x, dy = goal.y - h.y, len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len;
-  const w = a.w * (a.rail ? 3 : 1), base = heroDmg() * a.mult, hit = [];
-  for (const e of S.enemies.filter(e => !e.dead)) {
-    const along = (e.x - h.x) * ux + (e.y - h.y) * uy, off = Math.abs((e.x - h.x) * uy - (e.y - h.y) * ux);
-    if (along > 0 && off <= w + e.r) hit.push(e);
-  }
+  const w = a.w * (a.rail ? 3 : 1), base = heroDmg() * a.mult, hit = pierceLine(h, a, goal);
   let kills = 0;
   for (const e of hit) {
     let d = base * (e.boss ? 1 + h.headhunter : 1);
@@ -1997,7 +2058,7 @@ function update(dt) {
     }
   }
   if (h.ab.t > 0 && S.waveActive) h.ab.t = Math.max(0, h.ab.t - dt);
-  else if (h.autoCast && !h.ko && S.enemies.length && (h.ab.id === 'slam' || h.ab.id === 'nova' || h.ab.id === 'stasis' ? inRange(h.x, h.y, h.ab.r).length : true)) useAbility();
+  else if (h.autoCast && !h.ko && S.enemies.length && (h.ab.id === 'slam' || h.ab.id === 'nova' || h.ab.id === 'stasis' ? inRange(h.x, h.y, h.ab.r).length : h.ab.id === 'pierce' && S.aim ? pierceLine(h, h.ab, S.aim).length : true)) useAbility();
 
   let blocking = 0;
   const order = S.enemies.slice().sort((a, b) => b.d - a.d), tank = HEROES[h.cls].cat === 'defensive';
