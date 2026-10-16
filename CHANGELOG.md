@@ -2,8 +2,10 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
-## 0.13: Tower art and a 3/4 view board
+## 0.13: Tower art, music and a 3/4 view board
 
+- **Background music.** The first song, **Riftwalker**, plays on the menus and during runs. A new **Music** button on the main menu lets you pick a song, play, pause, skip and seek, set the music volume, and choose a play mode (repeat one, play all, shuffle). Settings also has a music on/off switch and a music volume slider, separate from the sound effects.
+- **Tower colors match the art.** Arcane Bolt is now pink, Plasma Cannon teal, Frost Pylon ice mint, Tesla Coil electric blue, Rift Beacon rose, Grave Anvil amber, Prism Laser coral and Siege Mortar cream. Shots, range circles and the build bar use the new colors.
 - **Every tower has real art.** Arcane Bolt, Plasma Cannon, Frost Pylon, Tesla Coil, Rift Beacon, Grave Anvil, Prism Laser and Siege Mortar each idle, play an attack and recover animation when they fire, and throw a hit effect on the target: bolts strike down, plasma bursts, ice shatters, lightning lands, mortar shells explode where they fall, and the anvil slams around itself. The Rift Beacon pulses every few seconds during a wave. Merged towers keep their shapes for now.
 - **The board now matches the art's 3/4 top-down view.** The ground is a raised tile floor and the path is a sunken lane with a wall along its far side. Towers, enemies and the hero cast shadows, and tower art stands up out of its tile.
 
