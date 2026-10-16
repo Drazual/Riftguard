@@ -776,7 +776,7 @@ function showMenu() {
       <button id="mSettings">Settings</button>
       <button id="mLog">Stats log</button>
       ${desktop ? '<button id="mQuit">Quit</button>' : ''}
-    </div></div>`);
+    </div><p class="version">Version ${__APP_VERSION__}</p></div>`);
   $('mStart').onclick = showMapSelect; $('mUpgrades').onclick = () => showHeroes(); $('mTowers').onclick = () => showTowers(); $('mLog').onclick = showLog; $('mSettings').onclick = showSettings; $('mMusic').onclick = showMusic;
   if ($('mQuit')) $('mQuit').onclick = () => desktop.quit();
 }

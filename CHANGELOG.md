@@ -2,6 +2,10 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.16.1: Version on the main menu
+
+- The main menu shows which version of the game you're running, so it's easy to check an update has installed.
+
 ## 0.16: Tower projectiles from the art
 
 - **Towers fire their own art instead of lines.** Each shot is the first frame of the tower's effect row, flying from the tower's muzzle (the crystal, barrel or coil tip, not the tile centre) to the enemy and following it as it moves. The rest of the row plays as the explosion where it lands. Long shots such as the Arcane Bolt turn to face where they fly.

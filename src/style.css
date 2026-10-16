@@ -235,3 +235,4 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .songs .choice.picked { border-color: var(--tech); }
 .music-set { max-width: 520px; margin-top: 16px; }
 .settings select { background: var(--panel, #10162b); color: inherit; border: 1px solid var(--line); padding: 4px 8px; font: inherit; }
+.title .version { margin-top: 18px; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
