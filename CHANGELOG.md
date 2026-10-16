@@ -2,6 +2,29 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.10: Skill points, ascended forms and a new Frost path
+
+### Hero
+- **Skill points:** every hero level still gives an upgrade pick, and now also 3 skill points. Spend them right after the pick, or any time with **K** (or the Skills button). Unspent points are saved.
+- Seven stats: **Might** (damage), **Haste** (attack speed), **Vitality** (max HP), **Toughness** (damage reduction), **Focus** (ability cooldown), **Precision** (crit) and **Command** (damage for towers near your hero).
+- **Milestones:** every 10 points in one stat adds a big bonus to that stat, for example Might 10 gives +15% hero damage.
+- **Orbiting Blades** is retired for now and saved for a future melee hero. In its place:
+  - **Retribution** (Vanguard): every 4s, a shockwave hits nearby enemies for flat damage plus part of the damage you took.
+  - **Rift Barrage** (Striker): every 5s, fires a volley of homing missiles at nearby enemies.
+- Weaker picks got stronger: **Rift Boots** also adds attack speed, **Long Reach** also adds tower range, and **Quick Reboot** also adds max HP.
+
+### Towers
+- **Fewer towers:** you can start a run with fewer than 5 towers as a challenge. The game asks you to confirm so it never happens by accident.
+- **Level-up bonus by tower type:** damage towers still get +5% damage per level. The Frost Pylon gets +4% attack speed per level instead, and the Rift Beacon gets +3 range. Their level 13 bonus matches: Frost fires 20% faster and slows harder, and the Beacon gets +10% range and +5% to its damage buff.
+- **Frost Pylon:** the Ice Shards damage path is replaced by **Hypothermia**. Each hit adds a chill stack, and at enough stacks the enemy freezes solid. Its mastery, **Cold Snap**, makes the freeze burst out to every enemy nearby.
+- **Ascended forms:** every combination of paths now ascends into its own named form, 16 per tower and 96 in total. The inspector shows the name a tower is heading for, and the Towers page tracks which forms you have found.
+- **Balance:**
+  - Speed paths (Quickcast, Autoloader, Capacitor Bank) fire 14% faster per point, up from 12%.
+  - Lingering Cold adds 0.8s per point, up from 0.6s.
+  - Beacon Empower gives +8% per point, up from 6%, to make up for the level bonus moving to range.
+  - Beacon Tithe gives +10% gold per point, up from 6%, and Gold Rush drops coins 8% of the time, up from 5%.
+  - Anvil Guardian cuts hero damage by 6% per point, up from 4%.
+
 ## 0.9.1: Sniper aim point, hold position and ability tooltips
 
 - **Sniper aim point:** point at the board and press **F**. Piercing Shot then always fires toward that spot, wherever the Sniper stands. Press F on the point (or click the Aim button) to clear it.

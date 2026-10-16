@@ -218,3 +218,17 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .codex.enemies li em { color: var(--muted); font-size: 12px; font-style: normal; }
 .tipname { cursor: help; text-decoration: underline dotted; text-underline-offset: 3px; }
 .bar button.on { border-color: var(--gold); color: var(--gold); }
+.forms { margin: 8px 0 12px; }
+.forms summary { cursor: pointer; color: var(--gold); font-size: 14px; }
+.forms ul { list-style: none; padding: 0; margin: 8px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; }
+.forms li { display: flex; flex-direction: column; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line, #232a45); border-radius: 6px; }
+.forms li span { color: var(--muted); font-size: 12px; }
+.forms li b { color: var(--muted); }
+.forms li.found b { color: var(--gold); }
+.skill-row { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line, #232a45); border-radius: 8px; margin-bottom: 6px; text-align: left; }
+.skill-row .pips { display: flex; gap: 2px; margin: 4px 0; }
+.skill-row .pips i { width: 10px; height: 6px; border-radius: 2px; background: #232a45; }
+.skill-row .pips i.on { background: var(--gold); }
+.skill-row .btns { display: flex; gap: 6px; }
+.skill-row .ms { color: var(--gold); font-size: 12px; }
+.bar button.has-sp { box-shadow: 0 0 0 2px var(--gold); }
