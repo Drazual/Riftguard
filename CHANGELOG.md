@@ -2,6 +2,14 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.16: Tower projectiles from the art
+
+- **Towers fire their own art instead of lines.** Each shot is the first frame of the tower's effect row, flying from the tower's muzzle (the crystal, barrel or coil tip, not the tile centre) to the enemy and following it as it moves. The rest of the row plays as the explosion where it lands. Long shots such as the Arcane Bolt turn to face where they fly.
+- **Tesla Coil lightning hops between enemies** as sparks that leave from the last enemy hit, one after another.
+- **Prism Laser fires its beam art.** The beam runs from the laser's orb to its target, turning and stretching as the target moves, and grows thicker as it heats up on one target. Chain Laser hops use the same beam.
+- **Siege Mortar shells are the shell art**, leaving the barrel and tipping over as they climb and fall along the arc, then exploding where they land.
+- Merged towers still use lines until they get art.
+
 ## 0.15: Pixel-art board and music fix
 
 - **The whole board is now pixel art in the same view as the tower art.** The game draws at the art's own pixel size (one tile is 32 art pixels) with hard pixel edges, and the ground is raised metal plating in the art's palette, lit from the upper left. The path is a sunken lane with the plating's wall along its far side. Tower art is redrawn pixel for pixel in the art bible's 16 colors, and enemies and the hero get dark outlines and a highlight to match.
