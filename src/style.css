@@ -141,7 +141,7 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 @media (max-width: 820px), (max-height: 520px) {
   body { overflow: auto; }
   .wrap { height: auto; grid-template-columns: 1fr; grid-template-rows: auto auto auto auto; grid-template-areas: "top" "stage" "bar" "side"; }
-  #board { aspect-ratio: 16 / 10; }
+  #board { aspect-ratio: 96 / 49; }
 }
 .codexcard summary { cursor: pointer; list-style: none; }
 .codexcard summary::-webkit-details-marker { display: none; }
@@ -236,3 +236,13 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .music-set { max-width: 520px; margin-top: 16px; }
 .settings select { background: var(--panel, #10162b); color: inherit; border: 1px solid var(--line); padding: 4px 8px; font: inherit; }
 .title .version { margin-top: 18px; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+/* mastery and the tower info page */
+.mastery-box { margin: 10px 0 4px; padding: 8px 10px; border: 1px solid var(--line, #232a45); border-radius: 8px; }
+.mastery-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.mastery-top b { color: var(--gold); }
+.meter.mastery { height: 8px; }
+.meter.mastery i { background: var(--gold); }
+.pathlist { list-style: none; padding: 0; margin: 6px 0 10px; display: grid; gap: 6px; }
+.pathlist li { font-size: 13px; padding: 6px 8px; border: 1px solid var(--line, #232a45); border-radius: 6px; }
+.pathlist li span { color: var(--muted); }
+.pathlist .mastery { display: block; margin-top: 2px; font-size: 12px; }

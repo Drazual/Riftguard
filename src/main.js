@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import riftwalkerUrl from './music/riftwalker.mp3';
+import { SIMPLE } from './simple.js';
 
 (() => {
 const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, CHOICE_FROM = 5;
@@ -78,7 +79,10 @@ const LEVEL_BONUS = {
   rate:  { text: '+4% attack speed', asc: 'fires 20% faster and slows 10% harder', apply: t => t.rate *= 0.96, ascend: t => { t.rate *= 0.8; t.slow = Math.min(0.85, t.slow + 0.1); } },
   range: { text: '+3 range', asc: '+10% range and +5% to its damage buff', apply: t => t.range += 3, ascend: t => { t.range *= 1.1; t.bDmg += 0.05; } },
 };
-const levelBonus = t => LEVEL_BONUS[(!t.hybrid && TOWERS[t.type] && TOWERS[t.type].lvl) || 'dmg'];
+const levelKey = t => (!t.hybrid && TOWERS[t.type] && TOWERS[t.type].lvl) || 'dmg';
+const levelBonus = t => LEVEL_BONUS[levelKey(t)];
+const dot = s => /[.!]$/.test(s) ? s : s + '.';
+const levelText = t => dot(tx('level:' + levelKey(t), levelBonus(t).text)), ascText = t => dot(tx('ascend:' + levelKey(t), levelBonus(t).asc));
 const towerUnlocked = k => !TOWERS[k].unlock || !!(META.towerUnlocked && META.towerUnlocked[k]);
 // Tower paths. Every tower shows the same 5 paths. Each level-up puts a point into one path. A tower uses
 // 3 paths of 4 points; with the Oracle it uses 4 paths of 3 bigger points (ranks 2/3/4), so a maxed path is
@@ -326,14 +330,14 @@ function abilityTipHtml(h) {
     strike: 'Press F to set an aim point and the strike always lands there.',
     overclock: '', nova: '' }[a.id];
   return `<b>${a.name}</b> <span class="tip-c">Q</span><p>${abilityText(h)}</p>
-    <div class="tip-s">${rows.map(([k, v]) => `${k}: <b>${v}</b>`).join(' · ')}</div>
-    ${mods.length ? `<ul>${mods.map(m => `<li><b class="rar-mythic">${m.name}:</b> ${m.desc}</li>`).join('')}</ul>` : ''}
+    ${simple() ? '' : `<div class="tip-s">${rows.map(([k, v]) => `${k}: <b>${v}</b>`).join(' · ')}</div>`}
+    ${mods.length ? `<ul>${mods.map(m => `<li><b class="rar-mythic">${m.name}:</b> ${tx('mod:' + m.id, m.desc)}</li>`).join('')}</ul>` : ''}
     ${extra ? `<div class="tip-s">${extra}</div>` : ''}`;
 }
 function tipFor(key) {
   if (key === 'ability' && S && S.hero) return abilityTipHtml(S.hero);
   if (key.startsWith('ability:')) { const parts = key.split(':'), d = HEROES[parts[1]], ab = parts[2] === 'alt' ? d.alt : parts[2] === 'base' ? d.ability : heroAbility(parts[1]); return abilityTipHtml({ ab: Object.assign({}, ab), dmg: d.stats.dmg, taunt: 0 }); }
-  if (key.startsWith('mod:')) { const m = ABILITY_MODS.find(x => x.id === key.slice(4)); return m ? `<b>${m.name}</b><p>${m.desc}</p>` : ''; }
+  if (key.startsWith('mod:')) { const m = ABILITY_MODS.find(x => x.id === key.slice(4)); return m ? `<b>${m.name}</b><p>${tx(key, m.desc)}</p>` : ''; }
   if (key === 'hold') return `<b>Hold position</b> <span class="tip-c">H</span><p>Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.</p>`;
   if (key === 'aim') return `<b>Aim point</b> <span class="tip-c">F</span><p>Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.</p>`;
   return '';
@@ -347,6 +351,7 @@ document.addEventListener('mouseover', e => {
 });
 function abilityText(h) {
   const a = h.ab;
+  if (simple() && SIMPLE['ability:' + a.id]) return SIMPLE['ability:' + a.id];
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
   if (a.id === 'nova') return `Deals ${a.dmg.toFixed(0)} damage to every enemy within ${a.r.toFixed(0)}.`;
   if (a.id === 'pierce') return `Fires a round through every enemy in a line toward your aim point (or the lead enemy) for ${a.mult.toFixed(1)}× damage.`;
@@ -382,14 +387,14 @@ const PERKS = [
   { id: 'blade',   cls: 'offensive', name: 'Plasma Blade',  m: 0.2,  desc: m => `+${pct(m)} hero damage.`, apply: (h, m) => h.dmg *= 1 + m },
   { id: 'plate',   cls: 'defensive', name: 'Rune Plating',  m: 50,   desc: m => `+${Math.round(m)} max HP and a full heal.`, apply: (h, m) => { h.maxHp += Math.round(m); h.hp = h.maxHp; } },
   { id: 'mend',    cls: 'defensive', name: 'Nanite Mend',   m: 3,    desc: m => `+${m.toFixed(1)} HP regen per second.`, apply: (h, m) => h.regen += m },
-  { id: 'reboot',  cls: 'any', name: 'Quick Reboot',  m: 0.15, desc: m => `Respawn ${pct(Math.min(0.7, m))} faster and +${pct(m)} max HP.`, apply: (h, m) => { h.respawn = Math.max(2, h.respawn * (1 - Math.min(0.7, m))); h.maxHp = Math.round(h.maxHp * (1 + m)); h.hp = Math.min(h.maxHp, h.hp + h.maxHp * m); } },
+  { id: 'reboot',  cls: 'defensive', name: 'Quick Reboot',  m: 0.15, desc: m => `Respawn ${pct(Math.min(0.7, m))} faster and +${pct(m)} max HP.`, apply: (h, m) => { h.respawn = Math.max(2, h.respawn * (1 - Math.min(0.7, m))); h.maxHp = Math.round(h.maxHp * (1 + m)); h.hp = Math.min(h.maxHp, h.hp + h.maxHp * m); } },
   { id: 'arch',    cls: 'support', name: 'Architect',     m: 0.07, desc: m => `New towers cost ${pct(Math.min(0.5, m))} less to build.`, apply: (h, m) => h.costMul *= 1 - Math.min(0.5, m) },
   { id: 'engineer',cls: 'support', name: 'Engineer',      m: 0.08, desc: m => `Tower upgrades (level-ups) cost ${pct(Math.min(0.5, m))} less.`, apply: (h, m) => h.lvlMul *= 1 - Math.min(0.5, m) },
   { id: 'reach',   cls: 'support', name: 'Long Reach',    m: 0.2,  desc: m => `+${pct(m)} build range and all towers get +${pct(m / 4)} range.`, apply: (h, m) => { h.buildRange *= 1 + m; h.towerRange += m / 4; } },
   { id: 'bounty',  cls: 'offensive', name: 'Bounty Sigil', m: 2, desc: m => `Enemies your hero kills drop +${Math.max(1, Math.round(m))} gold.`, apply: (h, m) => h.bounty += Math.max(1, Math.round(m)) },
   { id: 'tithe',   cls: 'defensive', also: ['support'], name: 'War Tithe', m: 0.6, desc: m => `Every enemy killed by your towers or your hero drops +${Math.max(1, Math.round(m))} gold.`, apply: (h, m) => h.tithe += Math.max(1, Math.round(m)) },
   { id: 'siphon',  cls: 'defensive', name: 'Siphon',        m: 3,    desc: m => `Heal ${Math.round(m)} HP for every kill.`, apply: (h, m) => h.siphon += Math.round(m) },
-  { id: 'grounded', cls: 'any', name: 'Grounded', m: 0.5, desc: m => `Boss stuns on your towers last ${pct(Math.min(0.8, m))} less (up to 80%).`, apply: (h, m) => h.grounded = 1 - (1 - h.grounded) * (1 - Math.min(0.8, m)) },
+  { id: 'grounded', cls: 'any', util: true, name: 'Grounded', m: 0.5, desc: m => `Boss stuns on your towers last ${pct(Math.min(0.8, m))} less (up to 80%).`, apply: (h, m) => h.grounded = 1 - (1 - h.grounded) * (1 - Math.min(0.8, m)) },
   { id: 'boots',   cls: 'any', name: 'Rift Boots',    m: 0.15, desc: m => `+${pct(m)} move speed and +${pct(m / 2)} attack speed.`, apply: (h, m) => { h.speed *= 1 + m; h.rate /= 1 + m / 2; } },
   // Vanguard
   { id: 'taunt',   cls: 'vanguard', name: 'Taunt',         m: 2,    desc: m => `After Shield Slam, enemies within 120 stop and attack you for ${m.toFixed(1)}s.`, apply: (h, m) => h.taunt += m },
@@ -618,12 +623,15 @@ const GLOBAL_META = [
   { id: 'vet',     name: 'Veteran',         max: 2, cost: r => 120 + 100 * r, desc: r => `Start each run with ${r} free hero upgrade${r > 1 ? 's' : ''}`, stat: ['Free hero upgrades at the start', r => r] },
   { id: 'fortune', name: 'Fortune’s Favor', max: 3, cost: r => 300 + 250 * r, desc: r => `Much better upgrade odds: Rare and above ${30 * r}% more likely, Common ${15 * r}% less likely`, stat: ['Rare and above odds', r => '+' + 30 * r + '%'] },
 ];
-// Each tower has its own permanent upgrades on the Towers page: 3 basics and a unique Signature.
-const TOWER_META = [
-  { id: 'power',  name: 'Power',        max: 5, cost: r => 30 + 25 * r, desc: (r, k) => k === 'beacon' ? `Beacon buff +${2 * r}% damage` : `+${4 * r}% damage`,
-    stat: ['Damage', (r, k) => k === 'beacon' ? '+' + (15 + 2 * r) + '% buff' : Math.round(TOWERS[k].dmg * (1 + 0.04 * r))] },
-  { id: 'supply', name: 'Supply Line',  max: 4, cost: r => 40 + 30 * r, desc: r => `Builds ${5 * r}% cheaper`, stat: ['Build cost', (r, k) => Math.round(TOWERS[k].cost * (1 - 0.05 * r))] },
-  { id: 'vet',    name: 'Veteran Crew', max: 2, cost: r => 120 + 100 * r, desc: r => `New copies start with ${r} free level-up${r > 1 ? 's' : ''}`, stat: ['Free level-ups', r => r] },
+// Upgrades for every tower, bought with Rift Shards on the Towers page. Main Effect boosts each tower's main job:
+// damage for the attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon.
+const mainEffect = k => k === 'frost' ? 'slow strength' : k === 'beacon' ? 'damage buff' : 'damage';
+const TOWER_GLOBAL = [
+  { id: 'main',  name: 'Main Effect',            max: 10, cost: r => 40 + 30 * r, desc: r => `Every tower's main effect is ${4 * r}% stronger: damage for attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon`,
+    simple: 'Every tower is better at its main job.', stat: ['Main effect', r => '+' + 4 * r + '%'] },
+  { id: 'cost',  name: 'Upgrade Cost Reduction', max: 5,  cost: r => 40 + 35 * r, desc: r => `Tower level-ups cost ${4 * r}% less`, simple: 'Tower upgrades cost less.', stat: ['Level-up cost', r => '-' + 4 * r + '%'] },
+  { id: 'range', name: 'Attack Range',           max: 5,  cost: r => 40 + 35 * r, desc: r => `All towers get +${3 * r}% range`, simple: 'Towers reach farther.', stat: ['Tower range', r => '+' + 3 * r + '%'] },
+  { id: 'speed', name: 'Attack Speed',           max: 5,  cost: r => 50 + 40 * r, desc: r => `All towers attack ${3 * r}% faster`, simple: 'Towers attack faster.', stat: ['Tower attack speed', r => '+' + 3 * r + '%'] },
 ];
 const SIGNATURES = {
   arcane: { name: 'Spellweave',    desc: 'Every 5th bolt also applies Hex Brand, even without points in it.' },
@@ -635,14 +643,28 @@ const SIGNATURES = {
   laser:  { name: 'Overheat',      desc: 'The beam heats up twice as fast.' },
   mortar: { name: 'Rocket Shells', desc: 'Shells fly 40% faster and their blast is 20% wider.' },
 };
-const SIG_COST = 250;
+// Signatures are each tower's Boss Core upgrade (Mythic): bought once, and on whenever that tower is in your loadout.
+const SIG_CORES = 20, OLD_SIG_COST = 250;
+const OLD_TOWER_META = { power: r => 30 + 25 * r, supply: r => 40 + 30 * r, vet: r => 120 + 100 * r };
 let META = { v: 2, shards: 0, cores: 0, specials: {}, heroes: { vanguard: {}, striker: {}, oracle: {}, sniper: {} }, unlocked: {}, global: {}, best: {}, runs: [],
   towers: {}, towerUnlocked: {}, loadout: null, seen: {} };
 try { const m = JSON.parse(localStorage.getItem('riftguard-meta') || 'null'); if (m) META = Object.assign(META, m, { v: m.v || 1 }); } catch (e) {}
 if (!META.specials) META.specials = {}; if (!META.cores) META.cores = 0;
 META.towers = META.towers || {}; META.towerUnlocked = META.towerUnlocked || {}; META.seen = META.seen || {};
 for (const k of Object.keys(TOWERS)) META.towers[k] = META.towers[k] || {};
+META.towerGlobal = META.towerGlobal || {};
+// Kills and maps won, per tower type and per hero, for mastery and the stats pages.
+META.kills = META.kills || { towers: {}, heroes: {} }; META.wins = META.wins || { towers: {}, heroes: {} };
 function saveMeta() { try { localStorage.setItem('riftguard-meta', JSON.stringify(META)); } catch (e) {} }
+// The per-tower Power / Supply Line / Veteran Crew upgrades were replaced by the all-tower upgrades: refund them.
+// Signatures bought with shards stay owned.
+if (!META.towerMetaV3) {
+  for (const k of Object.keys(META.towers)) {
+    const M = META.towers[k];
+    for (const [id, cost] of Object.entries(OLD_TOWER_META)) { for (let r = 0; r < (M[id] || 0); r++) META.shards += cost(r); delete M[id]; }
+  }
+  META.towerMetaV3 = true; saveMeta();
+}
 // Older saves used one shared upgrade list for every hero: refund those shards so they can be spent on the new hero upgrades.
 if (META.v < 2) {
   const old = { hp: r => 30 + 25 * r, dmg: r => 30 + 25 * r, cd: r => 40 + 30 * r, vet: r => 90 + 70 * r };
@@ -655,11 +677,30 @@ if (META.v < 2) {
 for (const k of Object.keys(HEROES)) META.heroes[k] = META.heroes[k] || {};
 META.unlocked = META.unlocked || {};
 const rank = (obj, id) => (obj && obj[id]) || 0;
+// Mastery: each tower type and hero levels up with kills (level L needs 5 x L x (L + 1) kills in total). It can't
+// pass level 10 until it has beaten the first map, 20 until the second, and so on up to 50 on the last map.
+const MASTERY_MAX = 50, masteryKills = L => 5 * L * (L + 1);
+function masteryOf(kind, k) {
+  const kills = META.kills[kind][k] || 0, won = META.wins[kind][k] || {};
+  let beaten = 0; while (beaten < MAP_ORDER.length && won[MAP_ORDER[beaten]]) beaten++;
+  const cap = Math.min(MASTERY_MAX, 10 * (beaten + 1)), raw = Math.floor((Math.sqrt(1 + 0.8 * kills) - 1) / 2), lvl = Math.min(raw, cap);
+  return { kills, lvl, cap, capped: raw >= cap && cap < MASTERY_MAX, prev: masteryKills(lvl), next: lvl < MASTERY_MAX ? masteryKills(lvl + 1) : null, nextMap: MAP_ORDER[beaten] };
+}
+function masteryHtml(kind, k) {
+  const m = masteryOf(kind, k), fill = m.next ? Math.min(1, (m.kills - m.prev) / (m.next - m.prev)) : 1;
+  const note = m.capped ? `Capped at ${m.cap}: beat ${MAPS[m.nextMap].name} with ${kind === 'towers' ? 'this tower built' : 'this hero'} to keep leveling.`
+    : m.next ? `${m.next - m.kills} more kill${m.next - m.kills === 1 ? '' : 's'} to level ${m.lvl + 1}.` : 'Max mastery.';
+  return `<div class="mastery-box"><div class="mastery-top"><b>Mastery ${m.lvl}</b><span class="help">Cap ${m.cap}/${MASTERY_MAX}</span></div>
+    <div class="meter mastery"><i style="width:${(fill * 100).toFixed(1)}%"></i></div><p class="help">${note}</p></div>`;
+}
 
 // ---------- settings (saved in this browser) ----------
-let SETTINGS = { volume: 0.6, muted: false, fullscreen: true, musicOn: true, musicVolume: 0.5, song: 'riftwalker', musicMode: 'all' };
+let SETTINGS = { volume: 0.6, muted: false, fullscreen: true, musicOn: true, musicVolume: 0.5, song: 'riftwalker', musicMode: 'all', simple: false };
 try { Object.assign(SETTINGS, JSON.parse(localStorage.getItem('riftguard-settings') || '{}')); } catch (e) {}
 function saveSettings() { try { localStorage.setItem('riftguard-settings', JSON.stringify(SETTINGS)); } catch (e) {} }
+// Explanations: Detailed shows exact numbers; Simple shows just the idea (from simple.js). Toggled in Settings.
+const tx = (key, detailed) => SETTINGS.simple && SIMPLE[key] ? SIMPLE[key] : detailed;
+const simple = () => !!SETTINGS.simple;
 const desktop = window.desktop || null; // set by the desktop app's preload script
 function setFullscreen(on) {
   SETTINGS.fullscreen = on; saveSettings();
@@ -804,7 +845,7 @@ function spentOn(defs, obj) { let n = 0; for (const d of defs) for (let r = 0; r
 function refundValue(kind, hero) {
   if (kind === 'hero') return spentOn(HERO_META[hero], META.heroes[hero]);
   if (kind === 'global') return spentOn(GLOBAL_META, META.global);
-  if (kind === 'tower') return spentOn(TOWER_META, META.towers[hero]) + (META.towers[hero].sig ? SIG_COST : 0);
+  if (kind === 'towerglobal') return spentOn(TOWER_GLOBAL, META.towerGlobal);
   return SPECIALS.filter(x => (x.hero || null) === (hero || null) && META.specials[x.id]).reduce((a, x) => a + x.cost, 0);
 }
 // Refunds are free: they give back everything spent in that tab.
@@ -814,7 +855,7 @@ function refundBtn(kind, hero) {
 }
 function specialRow(x) {
   const own = !!META.specials[x.id];
-  return `<div class="meta-row special"><div><b class="rar-${x.rarity}">${x.name}</b> <small class="path rar-${x.rarity}">${RAR[x.rarity].name}</small><br><span class="help">${x.desc}</span></div>
+  return `<div class="meta-row special"><div><b class="rar-${x.rarity}">${x.name}</b> <small class="path rar-${x.rarity}">${RAR[x.rarity].name}</small><br><span class="help">${tx('special:' + x.id, x.desc)}</span></div>
     <button data-special="${x.id}" ${own || META.cores < x.cost ? 'disabled' : ''}>${own ? 'Owned' : '⬢ ' + x.cost}</button></div>`;
 }
 function showMenu() {
@@ -839,7 +880,7 @@ function showMapSelect() {
     <p class="lead">Beat a map to unlock the next one. Harder maps have more waves and pay more Rift Shards.</p>
     <div class="cards">${MAP_ORDER.map((k, i) => { const m = MAPS[k], open = mapUnlocked(k), best = META.best[k];
       return `<button class="choice mapcard map-pick ${open ? '' : 'locked'}" data-k="${k}" ${open ? '' : 'disabled'}>
-      <small class="path">${m.tier} · ${m.waves} waves · ×${m.shardMul} shards</small><b>${m.name}</b><span>${m.desc}</span>
+      <small class="path">${m.tier} · ${m.waves} waves · ×${m.shardMul} shards</small><b>${m.name}</b><span>${tx('map:' + k, m.desc)}</span>
       ${open ? `<em class="reward">${best ? 'Best: wave ' + best.wave + (best.won ? ' (beaten)' : '') : 'Not played yet'}</em>`
              : `<span class="lock">Locked: beat ${MAPS[MAP_ORDER[i - 1]].name} to unlock</span>`}</button>`; }).join('')}</div>`);
   $('screen').querySelectorAll('.map-pick').forEach(b => b.onclick = () => newRun(b.dataset.k));
@@ -857,44 +898,61 @@ function metaDelta(def, key, id, r) {
 }
 function metaRow(def, obj, key, id) {
   const r = rank(obj, def.id), maxed = r >= def.max, cost = def.cost(r);
-  return `<div class="meta-row"><div><b>${def.name}</b> <span class="help">${r}/${def.max}</span><br><span class="help">${r ? def.desc(r, id) : 'Not bought'}</span>${maxed ? '' : `<br><span class="delta">${metaDelta(def, key, id, r)}</span>`}</div>
+  const easy = def.simple || SIMPLE[key === 'hero' ? 'herometa:' + id + ':' + def.id : 'global:' + def.id];
+  const info = simple() && easy ? `<br><span class="help">${easy}</span>`
+    : `<br><span class="help">${r ? def.desc(r, id) : 'Not bought'}</span>${maxed ? '' : `<br><span class="delta">${metaDelta(def, key, id, r)}</span>`}`;
+  return `<div class="meta-row"><div><b>${def.name}</b> <span class="help">${r}/${def.max}</span>${info}</div>
     <button data-meta="${key}" data-id="${def.id}" ${id ? `data-hero="${id}"` : ''} ${maxed || META.shards < cost ? 'disabled' : ''}>${maxed ? 'Maxed' : '◆ ' + cost}</button></div>`;
 }
-// Towers page: unlock towers and buy their permanent upgrades.
+// Towers page: what each tower does, its stats and mastery, its Boss Core upgrade, the things you've discovered
+// about it by playing (merges and path combinations), and the upgrades shared by every tower.
 function showTowers(sel) {
   sel = sel || 'arcane';
   const d = TOWERS[sel], open = towerUnlocked(sel), M = META.towers[sel], sig = SIGNATURES[sel], hasSig = !!M.sig;
+  const recipes = Object.entries(RECIPES).filter(([key]) => key.split('+').includes(sel));
+  const recipeRow = ([key, r]) => { const other = key.split('+').find(x => x !== sel), got = codex[key];
+    return `<li class="${got ? 'found' : ''}"><b>${got ? r.name : '???'}</b><span>${got ? d.name + ' + ' + TOWERS[other].name + '. ' + tx('recipe:' + key, r.desc) : 'Merge a level ' + MERGE_LVL + ' ' + d.name + ' with another tower type to discover this.'}</span></li>`; };
+  const forms = Object.keys(FORM_NAMES[sel]);
   showScreen(`<div class="screen-head"><h2>Towers</h2>${shardsTag()}<button id="mBack">Back</button></div>
-    <p class="lead">Before each run you bring your hero and 5 towers. Upgrades here are permanent and apply every time you build that tower.</p>
+    <p class="lead">Before each run you bring your hero and 5 towers. Upgrades here are permanent.</p>
     <div class="heroes">
       <div class="roster">${Object.entries(TOWERS).map(([k, t]) => `<button data-tower-tab="${k}" class="${k === sel ? 'on' : ''} ${towerUnlocked(k) ? '' : 'locked'}" style="border-left-color:${t.css}">
-        <small>${t.support ? 'Support' : t.cost + ' gold'}</small><b style="color:${t.css}">${t.name}</b>${towerUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${t.unlock}</span>`}</button>`).join('')}</div>
+        <small>${t.support ? 'Support' : t.cost + ' gold'} · Mastery ${masteryOf('towers', k).lvl}</small><b style="color:${t.css}">${t.name}</b>${towerUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${t.unlock}</span>`}</button>`).join('')}</div>
       <div class="card herodetail">
         <h3 style="color:${d.css}">${d.name}</h3>
-        <p>${d.info}</p>
+        <p>${tx('tower:' + sel, d.info)}</p>
         <div class="stats">${d.support ? `<div><span>Buff</span>+15% damage</div>` : `<div><span>Damage</span>${d.dmg}</div><div><span>Shots/s</span>${(1 / d.rate).toFixed(2)}</div>`}
-          <div><span>Range</span>${d.range}</div><div><span>Cost</span>${d.cost}</div></div>
-        <p class="help">Paths: ${TOWER_PATHS[sel].map(p => p.name).join(', ')}. Each level adds ${LEVEL_BONUS[d.lvl || 'dmg'].text}.</p>
-        <details class="forms"><summary>Named forms found: ${formsFound(sel).length}/${Object.keys(FORM_NAMES[sel]).length}</summary>
-          <ul>${Object.keys(FORM_NAMES[sel]).map(k => { const got = META.forms && META.forms[sel + ':' + k];
-            return `<li class="${got ? 'found' : ''}"><b>${got ? FORM_NAMES[sel][k] : '???'}</b><span>${k.split('').map(i => TOWER_PATHS[sel][+i].name).join(' + ')}</span></li>`; }).join('')}</ul></details>
-        ${open ? `<h3 class="meta-h">${d.name} upgrades ${refundBtn('tower', sel)}</h3>${TOWER_META.map(x => metaRow(x, M, 'tower', sel)).join('')}
-          <div class="meta-row special"><div><b class="rar-mythic">Signature: ${sig.name}</b><br><span class="help">${sig.desc}</span></div>
-          <button data-sig="${sel}" ${hasSig || META.shards < SIG_COST ? 'disabled' : ''}>${hasSig ? 'Owned' : '◆ ' + SIG_COST}</button></div>`
-          : `<div class="row"><button class="go" id="unlockTower" ${META.shards < d.unlock ? 'disabled' : ''}>Unlock ${d.name} · ◆ ${d.unlock}</button></div>`}
+          <div><span>Range</span>${d.range}</div><div><span>Cost</span>${d.cost}</div><div><span>Main effect</span>${mainEffect(sel)}</div></div>
+        <h3 class="meta-h">Stats</h3>
+        <div class="stats"><div><span>Total kills</span>${META.kills.towers[sel] || 0}</div><div><span>Maps beaten with it</span>${MAP_ORDER.filter(m => (META.wins.towers[sel] || {})[m]).length}/${MAP_ORDER.length}</div></div>
+        ${masteryHtml('towers', sel)}
+        <h3 class="meta-h">Paths</h3>
+        <ul class="pathlist">${TOWER_PATHS[sel].map(u => `<li><b>${u.name}</b> <span>${tx('path:' + sel + ':' + u.id, u.desc)}</span><br><em class="mastery">Mastery: ${u.mastery.name}. ${tx('mastery:' + sel + ':' + u.id, u.mastery.desc)}</em></li>`).join('')}</ul>
+        <h3 class="meta-h special-h">Boss Core upgrade</h3>
+        <div class="meta-row special"><div><b class="rar-mythic">Signature: ${sig.name}</b> <small class="path rar-mythic">Mythic</small><br><span class="help">${tx('sig:' + sel, sig.desc)}</span></div>
+          <button data-sig="${sel}" ${hasSig || !open || META.cores < SIG_CORES ? 'disabled' : ''}>${hasSig ? 'Owned' : '⬢ ' + SIG_CORES}</button></div>
+        <h3 class="meta-h">Discoveries</h3>
+        <p class="help">Hidden until you find them in a run.</p>
+        <details class="forms" open><summary>Merges: ${MERGEABLE[sel] ? recipes.filter(([key]) => codex[key]).length + '/' + recipes.length + ' found' : 'none'}</summary>
+          ${MERGEABLE[sel] ? `<ul>${recipes.map(recipeRow).join('')}</ul>` : `<p class="help">The ${d.name} can’t merge.</p>`}</details>
+        <details class="forms"><summary>Path combinations: ${formsFound(sel).length}/${forms.length} found</summary>
+          <ul>${forms.map(k => { const got = META.forms && META.forms[sel + ':' + k];
+            return `<li class="${got ? 'found' : ''}"><b>${got ? FORM_NAMES[sel][k] : '???'}</b><span>${got ? k.split('').map(i => TOWER_PATHS[sel][+i].name).join(' + ') : 'Level a ' + d.name + ' with ' + k.length + ' paths to discover this form.'}</span></li>`; }).join('')}</ul></details>
+        ${open ? '' : `<div class="row"><button class="go" id="unlockTower" ${META.shards < d.unlock ? 'disabled' : ''}>Unlock ${d.name} · ◆ ${d.unlock}</button></div>`}
       </div>
-    </div>`);
+    </div>
+    <div class="card"><h3 class="meta-h">All towers ${refundBtn('towerglobal')}</h3>${TOWER_GLOBAL.map(x => metaRow(x, META.towerGlobal, 'towerglobal')).join('')}</div>`);
   $('screen').querySelectorAll('[data-tower-tab]').forEach(b => b.onclick = () => showTowers(b.dataset.towerTab));
   $('screen').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
-    const def = TOWER_META.find(x => x.id === b.dataset.id), cost = def.cost(rank(M, def.id));
-    if (META.shards < cost || rank(M, def.id) >= def.max) return;
-    META.shards -= cost; M[def.id] = rank(M, def.id) + 1; saveMeta(); showTowers(sel);
+    const def = TOWER_GLOBAL.find(x => x.id === b.dataset.id), G = META.towerGlobal, cost = def.cost(rank(G, def.id));
+    if (META.shards < cost || rank(G, def.id) >= def.max) return;
+    META.shards -= cost; G[def.id] = rank(G, def.id) + 1; saveMeta(); showTowers(sel);
   });
   $('screen').querySelectorAll('[data-sig]').forEach(b => b.onclick = () => {
-    if (M.sig || META.shards < SIG_COST) return;
-    META.shards -= SIG_COST; M.sig = 1; saveMeta(); sfx('level'); showTowers(sel);
+    if (M.sig || META.cores < SIG_CORES) return;
+    META.cores -= SIG_CORES; M.sig = 1; saveMeta(); sfx('level'); showTowers(sel);
   });
-  $('screen').querySelectorAll('[data-refund]').forEach(b => b.onclick = () => { META.shards += refundValue('tower', sel); META.towers[sel] = {}; saveMeta(); showTowers(sel); });
+  $('screen').querySelectorAll('[data-refund]').forEach(b => b.onclick = () => { META.shards += refundValue('towerglobal'); META.towerGlobal = {}; saveMeta(); showTowers(sel); });
   if ($('unlockTower')) $('unlockTower').onclick = () => {
     if (META.shards < d.unlock) return;
     META.shards -= d.unlock; META.towerUnlocked[sel] = true; saveMeta(); sfx('level'); showTowers(sel);
@@ -908,16 +966,21 @@ function showHeroes(sel) {
   showScreen(`<div class="screen-head"><h2>Heroes</h2>${shardsTag()}<button id="mBack">Back</button></div>
     <div class="heroes">
       <div class="roster">${CATEGORIES.map(([c, label]) => `<h4 class="cat">${label}</h4>` + (heroesIn(c).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''} ${isUnlocked(k) ? '' : 'locked'}" style="border-left-color:${h.css}">
-        <small>${heroAbility(k).name}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
+        <small>${heroAbility(k).name} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
       <div class="card herodetail">
         <h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
-        <p>${d.desc}</p>
+        <p>${tx('hero:' + sel, d.desc)}</p>
         <div class="stats">
           <div><span>HP</span>${st.hp}</div><div><span>Damage</span>${st.dmg}</div>
           <div><span>Attacks/s</span>${(1 / st.rate).toFixed(2)}</div><div><span>Range</span>${st.range >= 9999 ? 'Whole map' : st.range}</div>
           <div><span>Blocks</span>${blockText(st.block)}</div><div><span>Move speed</span>${st.speed}</div>
           ${st.brace ? `<div><span>Brace time</span>${st.brace}s</div>` : ''}${st.crit ? `<div><span>Crit chance</span>${pct(st.crit)}</div>` : ''}
+          <div><span>Crit damage</span>150%</div>
         </div>
+        <h3 class="meta-h">Stats</h3>
+        <div class="stats"><div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
+          <div><span>Maps beaten</span>${MAP_ORDER.filter(m => (META.wins.heroes[sel] || {})[m]).length}/${MAP_ORDER.length}</div></div>
+        ${masteryHtml('heroes', sel)}
         <h3 class="meta-h">Ability · pick one</h3>
         <div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].map(([v, ab]) => `<button class="choice ${heroAbility(sel) === ab ? 'picked' : ''}" data-ab-pick="${v}">
           <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>
@@ -1017,6 +1080,7 @@ function showSettings() {
       <label>Mute sound effects <input type="checkbox" id="setMute" ${SETTINGS.muted ? 'checked' : ''}></label>
       <label>Fullscreen <input type="checkbox" id="setFs" ${SETTINGS.fullscreen ? 'checked' : ''}></label>
       <label>Move the hero with WASD / arrow keys <input type="checkbox" id="setKeys" ${keyMove ? 'checked' : ''}></label>
+      <label>Explanations <select id="setSimple"><option value="detailed" ${simple() ? '' : 'selected'}>Detailed: exact numbers</option><option value="simple" ${simple() ? 'selected' : ''}>Simple: just the idea</option></select></label>
     </div>
     <div class="row" style="margin-top:14px">
       <button class="go" id="setClose">${inRun ? 'Resume' : 'Done'}</button>
@@ -1030,6 +1094,7 @@ function showSettings() {
   $('setMute').onchange = e => { SETTINGS.muted = e.target.checked; saveSettings(); audio(); };
   $('setFs').onchange = e => setFullscreen(e.target.checked);
   $('setKeys').onchange = e => { if (e.target.checked !== keyMove) toggleKeys(); };
+  $('setSimple').onchange = e => { SETTINGS.simple = e.target.value === 'simple'; saveSettings(); if (inRun) { renderInspector(); renderHero(); renderEnemyCodex(); } };
   $('setClose').onclick = closeSettings;
   if ($('setRestart')) $('setRestart').onclick = () => { const id = S.map; S.paused = false; endRun(false, true, true); newRun(id); };
   if ($('setMenu')) $('setMenu').onclick = confirmQuit;
@@ -1046,7 +1111,7 @@ function newRun(mapId) {
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    echoes: [], zones: [], delayed: [], shells: [], cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).filter(towerUnlocked).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    echoes: [], zones: [], delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, built: {}, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).filter(towerUnlocked).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
     mod: { towerDmg: 1, slow: 0, gold: map.gold || 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
     hero: null,
   };
@@ -1060,7 +1125,7 @@ function makeHero(id) {
     cls: id, x: BASE.x - 80, y: BASE.y > 120 ? BASE.y - 60 : BASE.y + 60, tx: null, ty: null, hp: s.hp, maxHp: s.hp, dmg: s.dmg, rate: s.rate, cd: 0,
     range: s.range, block: s.block, regen: s.regen, armor: s.armor, speed: s.speed, ko: 0, lvl: 1, xp: 0, next: 30,
     buildRange: 170, respawn: 8, thorns: 0, aura: s.aura || 0, auraRange: 130, auraSlow: 0, siphon: 0,
-    costMul: 1, lvlMul: 1, mergeMul: 1, crit: s.crit || 0, critDmg: 2, multi: 0, bounty: 0, towerRange: 0, interest: 0,
+    costMul: 1, lvlMul: 1, mergeMul: 1, crit: s.crit || 0, critDmg: 1.5, multi: 0, bounty: 0, towerRange: 0, interest: 0,
     brace: s.brace || 0, braceT: 0, pierce: 0, deadeye: 0, shotStun: 0,
     grounded: 0, execute: 0, bulletStorm: 0, attacks: 0, unbreakable: false, unbreakLeft: 1, unbreakMax: 1, tithe: 0, taunt: 0, momentum: 0, momStacks: 0, momT: 0, rapid: 0, spotter: 0, headhunter: 0, danceKills: 0, timeWarp: 0, autoCast: false,
     ab: Object.assign({ t: 0 }, heroAbility(id)), shield: 0, shieldMax: 0, shieldT: 0, odT: 0,
@@ -1092,13 +1157,13 @@ function showHeroSelect() {
   let step = 'hero';
   const heroCards = () => CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => { const open = isUnlocked(k);
         return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'} ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
-        <small class="path" style="color:${d.css}">${d.role}</small><b style="color:${d.css}">${d.name}</b><span>${d.desc}</span>
+        <small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
         <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase()}</span>
-        <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? ROLE_LEVEL[d.cat].text : ''}</span>
+        <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text) : ''}</span>
         ${open ? `<em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span></em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('');
   const towerCards = () => `<div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const open = towerUnlocked(k), on = picks.includes(k);
         return `<button class="choice mapcard tower-pick ${open ? '' : 'locked'} ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
-        <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${d.info}</span>
+        <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${tx('tower:' + k, d.info)}</span>
         ${open ? '' : `<span class="lock">Locked: unlock on the Towers page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`;
   // Two pages: pick the hero first, then the towers.
   const render = () => {
@@ -1151,13 +1216,13 @@ let toastT = 0;
 function toast(msg) { $('toast').textContent = msg; $('toast').hidden = false; toastT = 3; }
 
 function countType(type) { return S.towers.filter(t => t.type === type || (t.parents && t.parents.includes(type))).length; }
-function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul * (1 - 0.05 * rank(META.towers[type], 'supply'))); }
+function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul); }
 // Level-up price: build cost × current level. Merged towers start at double the last level-up of their
 // priciest parent (cost × 12 × 2; super towers 1.5× that) and rise 10% per level.
 function levelCost(t) {
   if (S.freeLevels > 0 || t.freeUps > 0) return 0;
   const base = t.hybrid ? t.upStart * (1 + 0.1 * (t.lvl - 1)) : t.baseCost * t.lvl;
-  return Math.round(base * S.hero.lvlMul);
+  return Math.round(base * S.hero.lvlMul * (1 - 0.04 * rank(META.towerGlobal, 'cost')));
 }
 const hybridUpStart = (parents, sup) => Math.round(2 * (MAX_LVL - 1) * Math.max(...parents.map(k => TOWERS[k].cost)) * (sup ? 1.5 : 1));
 function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul); }
@@ -1165,7 +1230,7 @@ function pathLimit() { return 3 + (S.hero.cls === 'oracle' ? 1 : 0) + (S.pathBon
 function pathMax() { return S.hero && S.hero.cls === 'oracle' ? 3 : PATH_MAX; }
 function tRange(t) { return t.range * (1 + S.hero.towerRange) * (t.buff ? (1 + t.buff.range) * (t.buff.light ? 2 : 1) : 1); }
 function towerName(t) { return t.name || (t.hybrid ? RECIPES[t.type].name : TOWERS[t.type].name); }
-function towerBlurb(t) { return t.super ? t.desc : t.hybrid ? RECIPES[t.type].desc : TOWERS[t.type].info; }
+function towerBlurb(t) { return t.super ? tx('super:' + t.parents.join('+'), t.desc) : t.hybrid ? tx('recipe:' + t.type, RECIPES[t.type].desc) : tx('tower:' + t.type, TOWERS[t.type].info); }
 function towerKind(t) { return t.super ? 'Super ' : t.hybrid ? 'Hybrid ' : ''; }
 function baseTypes(t) { return t.parents || [t.type]; }
 function traits(t) {
@@ -1306,26 +1371,26 @@ function waveReward(n, kind) {
     const pool = (kind === 'secret' ? SECRET_RELICS : LEGENDARY_RELICS).filter(r => r.repeat || !owned.has(r.id));
     const relic = pool.length ? pick(pool) : RELICS[5];
     const gold = (kind === 'secret' ? 250 : 150) + 15 * n;
-    return { gold, relic, label: `${RAR[kind].name} relic: ${relic.name} (${relic.desc.replace(/\.$/, '')}) and +${gold} gold` };
+    return { gold, relic, label: `${RAR[kind].name} relic: ${relic.name} (${tx('relic:' + relic.id, relic.desc).replace(/\.$/, '')}) and +${gold} gold` };
   }
   const gold = (kind === 'hard' ? 60 : 90) + 10 * n;
   if (kind === 'hard') return { gold, perk: true, label: `+${gold} gold and a free hero upgrade` };
   const owned = new Set(S.relics.map(r => r.id));
   const relic = pick(RELICS.filter(r => (r.repeat || !owned.has(r.id)) && (!r.offensive || HEROES[S.hero.cls].cat === 'offensive')));
-  return { gold, relic, label: `${relic.name} relic (${relic.desc.replace(/\.$/, '')}) and +${gold} gold` };
+  return { gold, relic, label: `${relic.name} relic (${tx('relic:' + relic.id, relic.desc).replace(/\.$/, '')}) and +${gold} gold` };
 }
 function offerWaveChoice() {
   const n = S.wave + 1, ch = pick(CHALLENGES);
   const opts = [
     { kind: 'normal', name: 'Normal', rule: 'A standard wave.', reward: null },
-    { kind: 'hard', name: 'Hard', rule: 'Enemies have 40% more HP and there are 25% more of them.', reward: waveReward(n, 'hard') },
-    { kind: 'challenge', name: 'Challenge: ' + ch.name, challenge: ch.id, rule: ch.rule, reward: waveReward(n, 'challenge') },
+    { kind: 'hard', name: 'Hard', rule: simple() ? 'More enemies, and they are tougher.' : 'Enemies have 40% more HP and there are 25% more of them.', reward: waveReward(n, 'hard') },
+    { kind: 'challenge', name: 'Challenge: ' + ch.name, challenge: ch.id, rule: tx('challenge:' + ch.id, ch.rule), reward: waveReward(n, 'challenge') },
   ];
   const roll = Math.random();
   if (roll < 0.03) opts[2] = { kind: 'secret', rarity: 'secret', name: 'Secret: Gilded Breach', gilded: true, hpMul: 2,
     rule: 'Golden enemies with double HP. Every kill drops triple gold.', reward: waveReward(n, 'secret') };
   else if (roll < 0.13) opts[2] = { kind: 'legendary', rarity: 'legendary', name: 'Legendary: ' + ch.name, challenge: ch.id, hpMul: 1.3,
-    rule: ch.rule + ' Enemies also have 30% more HP.', reward: waveReward(n, 'legendary') };
+    rule: tx('challenge:' + ch.id, ch.rule) + (simple() ? ' Enemies are also tougher.' : ' Enemies also have 30% more HP.'), reward: waveReward(n, 'legendary') };
   S.paused = true;
   const boss = !!bossFor(n);
   openModal(`<h2>Choose wave ${n}</h2><p>${boss ? 'A boss leads this wave. ' : ''}Harder waves pay out when you clear them.</p>
@@ -1411,8 +1476,8 @@ function showShop() {
     openModal(`<h2 class="${demonic ? 'demonic-title' : ''}">${demonic ? '☠ Demonic Bazaar' : 'Rift Bazaar'}</h2>
       <p>${demonic ? 'A demonic merchant has opened shop. Half of these are demonic: twice as strong, with a curse.' : 'The boss dropped a key to the Rift Bazaar. Everything here is sold only in this shop.'} You have <b style="color:var(--gold)">${Math.floor(S.gold)} gold</b>.</p>
       <div class="choices">${items.map((x, i) => `<button class="choice shop-item ${x.dem ? 'is-demonic' : ''}" data-i="${i}" ${x.sold || (S.gold < x.cost && !freeLeft) ? 'disabled' : ''}>
-        <small class="path">${x.dem ? 'Demonic ' : ''}${x.it.kind}</small><b>${x.it.name}</b><span>${x.it.desc(x.m)}</span>${x.sold ? '' : `<span class="delta">${previewRun(() => x.it.apply(x.m), x.it.name)}</span>`}
-        ${x.curse ? `<em class="cost">Curse: ${x.curse.desc(x.k)}</em>` : ''}
+        <small class="path">${x.dem ? 'Demonic ' : ''}${x.it.kind}</small><b>${x.it.name}</b><span>${tx('shop:' + x.it.id, x.it.desc(x.m))}</span>${x.sold || simple() ? '' : `<span class="delta">${previewRun(() => x.it.apply(x.m), x.it.name)}</span>`}
+        ${x.curse ? `<em class="cost">Curse: ${curseDesc(x)}</em>` : ''}
         <em class="reward">${x.sold ? 'Bought' : freeLeft ? 'Free' : x.cost + ' gold'}</em></button>`).join('')}</div>
       <div class="row" style="margin-top:12px"><button class="go" id="shopLeave">Leave shop</button></div>`);
     $('modalBox').querySelectorAll('.shop-item').forEach(b => b.onclick = () => {
@@ -1437,7 +1502,7 @@ function spawn(type, atD) {
   if (m.challenge === 'swarm') scale *= 0.65;
   const speed = d.speed * S.mod.enemySpeed * (m.challenge === 'blitz' ? 1.4 : 1);
   const at = atD || 0, p = posAt(at);
-  if (!META.seen[type]) { META.seen[type] = true; saveMeta(); renderEnemyCodex(); toast('New enemy: ' + d.name + '. ' + ENEMY_INFO[type][0]); }
+  if (!META.seen[type]) { META.seen[type] = true; saveMeta(); renderEnemyCodex(); toast('New enemy: ' + d.name + '. ' + tx('enemy:' + type, ENEMY_INFO[type][0])); }
   S.enemies.push({ type, boss: !!d.boss, hp: d.hp * scale, max: d.hp * scale, speed, d: at, x: atD ? p.x : p.x - 30, y: p.y,
     slow: 0, slowT: 0, stunT: 0, burnT: 0, burnDps: 0, markT: 0, mark: 0, brittle: 0, brittleT: 0, brk: 0, brkT: 0,
     armor: d.armor ? d.armor + (map.armorBonus || 0) : 0, auraArmor: 0, unslow: !!d.unslow, phase: !!d.phase, split: d.split || 0, heal: d.heal || 0, shieldAura: d.shieldAura || 0,
@@ -1521,6 +1586,8 @@ function damage(e, amt, src, pierce) {
     if (S.heroics.goldrush && Math.random() < 0.08 * S.heroics.goldrush) { g += 15; S.fx.push({ k: 'ring', x: e.x, y: e.y, r: 14, color: 0xf2c14e, t: 0.5, T: 0.5, fill: true }); }
     S.gold += g; h.xp += e.gold * (1 + h.xpGain);
     if (S.ws) { S.ws.kills++; S.ws.gold += g; }
+    if (byHero) S.kills.hero++;
+    else { src.kills = (src.kills || 0) + 1; for (const k of baseTypes(src)) S.kills.towers[k] = (S.kills.towers[k] || 0) + 1; }
     if (e.split) for (let i = 0; i < e.split; i++) spawn('runner', Math.max(0, e.d - 8 + 16 * i));
     if (e.hexT > 0 && e.hexNova) {
       const boom = (e.taken || 0) * e.hexNova;
@@ -1608,44 +1675,51 @@ function fire(t, targets, mult = 1) {
       if (t.melt && t.stacks >= t.rampMax) d *= 2;
     }
     const splash = t.splash * (big ? 2 : 1); if (big) d *= 3;
-    const art = spriteTower(t), arrive = art ? Math.hypot(target.x - muzzle(t).x, target.y - muzzle(t).y) / SHOT_SPEED : 0;
-    if (art) { if (!t.beam && !t.lob) launchShot(t.type, muzzle(t), target); }
-    else if (t.beam) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.stacks >= t.rampMax ? 0xffffff : t.color, t: 0.22, T: 0.22, w: 2 + t.stacks * 0.2 });
-    else if (!t.lob) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.color, t: 0.12, T: 0.12, w: t.hybrid ? 3 : 2 });
-    const hits = splash ? inRange(target.x, target.y, splash) : [target];
-    if (splash) S.fx.push({ k: 'ring', x: target.x, y: target.y, r: splash, color: t.color, t: 0.25, T: 0.25, fill: big });
-    if (splash && S.sig.plasma && baseTypes(t).includes('plasma')) S.zones.push({ x: target.x, y: target.y, r: splash * 0.7, t: 2, T: 2, dps: d * 0.25, slow: 0, color: 0xff8a3d, src: t });
-    for (const e of hits) { applyHit(hitT, e, d, freeze); if (over) e.stunT = Math.max(e.stunT, 0.5); }
-    if (t.prism) for (const n of inRange(target.x, target.y, 90).filter(e => !hits.includes(e)).slice(0, Math.round(t.prism))) {
-      S.fx.push({ k: 'line', x1: target.x, y1: target.y, x2: n.x, y2: n.y, color: t.color, t: 0.12, T: 0.12, w: 1 }); applyHit(hitT, n, d * 0.4, false);
-    }
-    if (t.pierce) for (const n of S.enemies.filter(e => !e.dead && e !== target && e.d < target.d && e.d > target.d - 140).sort((a, b) => b.d - a.d).slice(0, Math.round(t.pierce))) applyHit(hitT, n, d * 0.6, false);
-    if (t.gravity && t.shots % 5 === 0) { for (const e of inRange(target.x, target.y, 60)) if (!e.boss) e.d = Math.max(0, e.d - t.gravity); S.fx.push({ k: 'ring', x: target.x, y: target.y, r: 60, color: 0x9a7cff, t: 0.3, T: 0.3 }); }
-    if (t.echo && !target.fake) S.echoes.push({ t: hitT, target, d: d * t.echo, at: S.time + 0.25 });
-    if (t.cluster) {
-      const near = shuffle(inRange(target.x, target.y, 90).filter(e => e !== target)).slice(0, t.cluster);
-      for (const n of near) {
-        S.fx.push({ k: 'ring', x: n.x, y: n.y, r: (t.splash || 30) * 0.6, color: t.color, t: 0.2, T: 0.2 });
-        for (const e of inRange(n.x, n.y, (t.splash || 30) * 0.6)) applyHit(hitT, e, d * 0.5, false);
+    const art = spriteTower(t);
+    if (!art && t.beam) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.stacks >= t.rampMax ? 0xffffff : t.color, t: 0.22, T: 0.22, w: 2 + t.stacks * 0.2 });
+    else if (!art && !t.lob) S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: target.x, y2: target.y, color: t.color, t: 0.12, T: 0.12, w: t.hybrid ? 3 : 2 });
+    // Everything the shot does happens when it lands: sprite towers fire a projectile and the hit waits for it.
+    const land = () => {
+      const hits = splash ? inRange(target.x, target.y, splash) : [target];
+      if (splash) S.fx.push({ k: 'ring', x: target.x, y: target.y, r: splash, color: t.color, t: 0.25, T: 0.25, fill: big });
+      if (splash && S.sig.plasma && baseTypes(t).includes('plasma')) S.zones.push({ x: target.x, y: target.y, r: splash * 0.7, t: 2, T: 2, dps: d * 0.25, slow: 0, color: 0xff8a3d, src: t });
+      for (const e of hits) { applyHit(hitT, e, d, freeze); if (over) e.stunT = Math.max(e.stunT, 0.5); }
+      if (t.prism) for (const n of inRange(target.x, target.y, 90).filter(e => !hits.includes(e)).slice(0, Math.round(t.prism))) {
+        S.fx.push({ k: 'line', x1: target.x, y1: target.y, x2: n.x, y2: n.y, color: t.color, t: 0.12, T: 0.12, w: 1 }); applyHit(hitT, n, d * 0.4, false);
       }
-    }
-    const chainN = t.chain + (oc && h.ab.chrono ? 1 : 0);
-    if (chainN) {
-      const keep = (S.sig.tesla && baseTypes(t).includes('tesla')) || t.chainKeep;
-      const hit = new Set(hits); let from = target, cd = d * (keep ? 1 : t.chainMul), wait = arrive;
-      for (let i = 0; i < chainN; i++) {
-        let best = null, bd = t.chainReach;
-        for (const e of S.enemies) { if (e.dead || hit.has(e)) continue; const dd = Math.hypot(e.x - from.x, e.y - from.y); if (dd < bd) { bd = dd; best = e; } }
-        if (!best) break;
-        if (art && t.beam) { if (beams.length < 60) beams.push({ x0: from.x, y0: from.y, e: best, t: 0.22 }); }
-        else if (art) { launchShot(t.type, { x: from.x, y: from.y }, best, wait); wait += bd / SHOT_SPEED; }
-        else S.fx.push({ k: 'line', x1: from.x, y1: from.y, x2: best.x, y2: best.y, color: t.color, t: 0.15, T: 0.15, w: 1.5 });
-        applyHit(hitT, best, cd, false);
-        if (t.chainBlast) for (const o of inRange(best.x, best.y, 40)) if (o !== best) damage(o, cd * t.chainBlast, t);
-        if (t.stun && Math.random() < t.stun) best.stunT = Math.max(best.stunT, 0.6);
-        hit.add(best); from = best; if (!keep) cd *= 0.85;
+      if (t.pierce) for (const n of S.enemies.filter(e => !e.dead && e !== target && e.d < target.d && e.d > target.d - 140).sort((a, b) => b.d - a.d).slice(0, Math.round(t.pierce))) applyHit(hitT, n, d * 0.6, false);
+      if (t.gravity && t.shots % 5 === 0) { for (const e of inRange(target.x, target.y, 60)) if (!e.boss) e.d = Math.max(0, e.d - t.gravity); S.fx.push({ k: 'ring', x: target.x, y: target.y, r: 60, color: 0x9a7cff, t: 0.3, T: 0.3 }); }
+      if (t.echo && !target.fake) S.echoes.push({ t: hitT, target, d: d * t.echo, at: S.time + 0.25 });
+      if (t.cluster) {
+        const near = shuffle(inRange(target.x, target.y, 90).filter(e => e !== target)).slice(0, t.cluster);
+        for (const n of near) {
+          S.fx.push({ k: 'ring', x: n.x, y: n.y, r: (t.splash || 30) * 0.6, color: t.color, t: 0.2, T: 0.2 });
+          for (const e of inRange(n.x, n.y, (t.splash || 30) * 0.6)) applyHit(hitT, e, d * 0.5, false);
+        }
       }
-    }
+      const chainN = t.chain + (oc && h.ab.chrono ? 1 : 0);
+      if (chainN) {
+        const keep = (S.sig.tesla && baseTypes(t).includes('tesla')) || t.chainKeep;
+        const hit = new Set(hits); let from = target, cd = d * (keep ? 1 : t.chainMul), wait = 0;
+        for (let i = 0; i < chainN; i++) {
+          let best = null, bd = t.chainReach;
+          for (const e of S.enemies) { if (e.dead || hit.has(e)) continue; const dd = Math.hypot(e.x - from.x, e.y - from.y); if (dd < bd) { bd = dd; best = e; } }
+          if (!best) break;
+          const n = best, hd = cd;
+          const jump = () => {
+            applyHit(hitT, n, hd, false);
+            if (t.chainBlast) for (const o of inRange(n.x, n.y, 40)) if (o !== n) damage(o, hd * t.chainBlast, t);
+            if (t.stun && Math.random() < t.stun) n.stunT = Math.max(n.stunT, 0.6);
+          };
+          if (art && t.beam) { if (beams.length < 60) beams.push({ x0: from.x, y0: from.y, e: n, t: 0.22 }); jump(); }
+          else if (art) { launchShot(t.type, { x: from.x, y: from.y }, n, wait, jump, bodyLift(from)); wait += bd / SHOT_SPEED; }
+          else { S.fx.push({ k: 'line', x1: from.x, y1: from.y, x2: n.x, y2: n.y, color: t.color, t: 0.15, T: 0.15, w: 1.5 }); jump(); }
+          hit.add(n); from = n; if (!keep) cd *= 0.85;
+        }
+      }
+    };
+    if (art && !t.beam && !t.lob && !target.fake) launchShot(t.type, { x: t.x, y: t.y }, target, fireLead(t), land, muzzleLift(t));
+    else land();
   }
   if (oc && h.ab.prismF) {
     const extra = inRange(t.x, t.y, tRange(t)).find(e => !targets.includes(e));
@@ -1655,12 +1729,14 @@ function fire(t, targets, mult = 1) {
 // Siege Mortar: shells fly slowly toward where the target will be (leading it along the path) and blast on landing.
 function lobShell(t, e, mult) {
   const fast = S.sig.mortar ? 1.4 : 1, speed = 170 * fast;
+  // the shell leaves when the firing frame of the attack animation plays
+  const wait = fireLead(t);
   let T = Math.max(0.6, Math.hypot(e.x - t.x, e.y - t.y) / speed);
-  const lead = e.stunT > 0 || e.blocked ? 0 : e.speed * (1 - e.slow) * T;
+  const lead = e.stunT > 0 || e.blocked ? 0 : e.speed * (1 - e.slow) * (T + wait);
   const p = posAt(Math.min(PATH_LEN, e.d + lead));
   T = Math.max(0.6, Math.hypot(p.x - t.x, p.y - t.y) / speed);
   t.shotAt = S.time;
-  S.shells.push({ tw: t, x0: t.x, y0: t.y, x1: p.x, y1: p.y, t: 0, T, mult });
+  S.shells.push({ tw: t, x0: t.x, y0: t.y, x1: p.x, y1: p.y, t: 0, T, mult, wait });
 }
 function landShell(sh) {
   const t = sh.tw;
@@ -1703,7 +1779,7 @@ function computeBuffs() {
 // Grave Anvil: crushes enemies that aren't moving; moving ones take 30%.
 function anvilSlam(t, area, mult) {
   const h = S.hero;
-  t.shots++; t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y };
+  t.shots++; t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y };
   let base = t.dmg * S.mod.towerDmg * mult * (S.mode.challenge === 'lone' ? 0.6 : 1);
   if (h.aura && nearAura(t)) base *= 1 + h.aura;
   if (t.buff) { base *= 1 + t.buff.dmg; if (t.buff.overdrive && Math.random() < 0.1) base *= 3; }
@@ -1894,7 +1970,7 @@ function segDist(px, py, z) {
 // Second Chance: the current wave starts over instead of the run ending.
 function restartWave(reason) {
   S.secondChance = false;
-  S.enemies = []; S.zones = []; S.delayed = []; S.echoes = []; S.shells = [];
+  S.enemies = []; S.zones = []; S.delayed = []; S.echoes = []; S.shells = []; S.proj = [];
   S.spawnQ = makeWave(S.wave, S.mode); S.spawnT = 1.5; S.lives = Math.max(S.lives, 10); S.bossWarned = false;
   for (const t of S.towers) { t.warnT = 0; t.stunT = 0; }
   S.fx.push({ k: 'ring', x: BASE.x, y: BASE.y, r: 220, color: 0xf2c14e, t: 1.2, T: 1.2, fill: true }); shake(0.015, 500);
@@ -2144,7 +2220,8 @@ function update(dt) {
   S.zones = S.zones.filter(z => z.t > 0);
   for (const d of S.delayed) if (!S.over && S.time >= d.at) { d.done = true; d.fn(); }
   S.delayed = S.delayed.filter(d => !d.done);
-  for (const sh of S.shells) if ((sh.t += dt) >= sh.T) { sh.done = true; landShell(sh); }
+  for (const sh of S.shells) { if (sh.wait > 0) { sh.wait -= dt; continue; } if ((sh.t += dt) >= sh.T) { sh.done = true; landShell(sh); } }
+  moveShots(dt);
   S.shells = S.shells.filter(sh => !sh.done);
 
   const conductor = S.specials.conductor && h.cls === 'oracle';
@@ -2161,7 +2238,11 @@ function update(dt) {
     if (t.cd > 0) continue;
     if (t.type === 'anvil') {
       const area = inRange(t.x, t.y, tRange(t));
-      if (area.length) { t.cd = t.rate * S.mod.towerRate; anvilSlam(t, area, 1); }
+      // the hammer winds up, and the slam lands on the animation's impact frame
+      if (area.length) {
+        t.cd = t.rate * S.mod.towerRate; t.shotAt = S.time;
+        S.delayed.push({ at: S.time + fireLead(t), fn: () => { if (!S.towers.includes(t) || t.stunT > 0) return; const a = inRange(t.x, t.y, tRange(t)); if (a.length) anvilSlam(t, a, 1); } });
+      }
       continue;
     }
     const targets = inRange(t.x, t.y, tRange(t)).sort((a, b) => b.d - a.d).slice(0, 1 + t.multi);
@@ -2202,6 +2283,8 @@ function rollPerks() {
   const h = S.hero, cat = HEROES[h.cls].cat, out = [];
   const weighted = list => { const bag = []; for (const p of list) { bag.push(p); if (owns(p.id)) bag.push(p, p); } return bag; };
   const shared = p => p.cls === 'any' || p.cls === cat || (p.also && p.also.includes(cat));
+  // Offensive heroes rarely see utility picks (boss-stun reduction), and crit damage needs some crit chance first.
+  const fits = p => (!p.util || cat !== 'offensive' || Math.random() < 0.2) && (p.id !== 'critdmg' || h.crit > 0);
   const slots = shuffle(['hero', 'hero', Math.random() < 0.3 ? 'hero' : 'shared']);
   for (const slot of slots) {
     const rarity = rollRarity(), demonic = Math.random() < DEMONIC_CHANCE;
@@ -2214,19 +2297,21 @@ function rollPerks() {
     }
     if (!perk && slot === 'hero' && rarity.mult >= RAR.rare.mult && Math.random() < 0.45)
       perk = pick(ABILITY_MODS.filter(m => m.cls === h.cls && m.ab === h.ab.id && !h.ab[m.id] && !taken.has(m.id))) || null;
-    if (!perk) perk = pick(weighted(PERKS.filter(p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && (!p.ab || p.ab === h.ab.id) && !taken.has(p.id))));
+    if (!perk) perk = pick(weighted(PERKS.filter(p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && (!p.ab || p.ab === h.ab.id) && !taken.has(p.id) && fits(p))));
     out.push(makeOffer(perk, rar, demonic && !perk.fixed));
   }
   return out;
 }
-const perkDesc = o => typeof o.perk.desc === 'string' ? o.perk.desc : o.perk.desc(o.m);
+const perkKey = p => (p.mod ? 'mod:' : p.rarity ? 'unique:' : 'perk:') + p.id;
+const perkDesc = o => tx(perkKey(o.perk), typeof o.perk.desc === 'string' ? o.perk.desc : o.perk.desc(o.m));
+const curseDesc = o => tx('curse:' + CURSES.indexOf(o.curse), o.curse.desc(o.k));
 const poolName = p => p.mod ? S.hero.ab.name + ' upgrade' : p.cls === 'any' ? 'Shared' : HEROES[p.cls] ? HEROES[p.cls].name : p.cls[0].toUpperCase() + p.cls.slice(1);
 function offerHtml(o, i) {
   const p = o.perk, r = o.rarity;
   const desc = perkDesc(o);
   const label = (o.demonic ? 'Demonic ' : '') + r.name + ' · ' + poolName(p);
   return `<button class="choice rarity-${r.id} ${o.demonic ? 'is-demonic' : ''}" data-i="${i}"><small class="path rar-${r.id}">${label}</small>
-    <b>${p.name}</b><span>${desc}</span><span class="delta">${previewRun(() => (p.rarity || p.fixed) ? p.apply(S.hero) : p.apply(S.hero, o.m), p.name)}</span>${o.demonic ? `<em class="cost">Curse: ${o.curse.desc(o.k)}</em>` : ''}
+    <b>${p.name}</b><span>${desc}</span>${simple() ? '' : `<span class="delta">${previewRun(() => (p.rarity || p.fixed) ? p.apply(S.hero) : p.apply(S.hero, o.m), p.name)}</span>`}${o.demonic ? `<em class="cost">Curse: ${curseDesc(o)}</em>` : ''}
     ${owns(p.id) ? `<em class="reward">Owned ×${S.picks.filter(x => x.perk.id === p.id).length}</em>` : ''}</button>`;
 }
 function showLevelUp(offers) {
@@ -2251,7 +2336,7 @@ function showBoon() {
   S.paused = true;
   const key = S.pendingBoon, b = BOONS[key];
   openModal(`<h2>Resonance</h2><p>Your new ${RECIPES[key].name} resonates with your hero and awakens a power.</p>
-    <div class="choices"><button class="choice rarity-heroic" id="takeBoon"><small class="path rar-heroic">Inspired by ${RECIPES[key].name}</small><b>${b.name}</b><span>${b.desc}</span></button></div>`);
+    <div class="choices"><button class="choice rarity-heroic" id="takeBoon"><small class="path rar-heroic">Inspired by ${RECIPES[key].name}</small><b>${b.name}</b><span>${tx('boon:' + key, b.desc)}</span></button></div>`);
   $('takeBoon').onclick = () => { b.apply(S.hero); S.boons[key] = true; S.pendingBoon = null; closeModal(); S.paused = false; renderHero(); toast('Awakened: ' + b.name + '.'); };
 }
 function showHeroic() {
@@ -2260,8 +2345,8 @@ function showHeroic() {
   const owned = HEROICS.filter(x => S.heroics[x.id] && S.heroics[x.id] < 3);
   if (!fresh.length && !owned.length) { S.pendingHeroic--; S.gold += 250; S.paused = false; toast('Every heroic power is maxed, so the boss dropped 250 gold instead.'); return; }
   openModal(`<h2>Heroic power</h2><p>The boss dropped a heroic power. Take a new one, or empower one you already have (up to rank 3).</p>
-    <div class="choices">${fresh.map((x, i) => `<button class="choice rarity-heroic" data-new="${i}"><small class="path rar-heroic">Heroic · New</small><b>${x.name}</b><span>${x.desc(1)}</span></button>`).join('')}</div>
-    ${owned.length ? `<p style="margin-top:14px">Or empower:</p><div class="choices">${owned.map((x, i) => `<button class="choice rarity-heroic" data-up="${i}"><small class="path rar-heroic">Rank ${S.heroics[x.id]} → ${S.heroics[x.id] + 1}</small><b>${x.name}</b><span>${x.desc(S.heroics[x.id] + 1)}</span></button>`).join('')}</div>` : ''}`);
+    <div class="choices">${fresh.map((x, i) => `<button class="choice rarity-heroic" data-new="${i}"><small class="path rar-heroic">Heroic · New</small><b>${x.name}</b><span>${tx('heroic:' + x.id, x.desc(1))}</span></button>`).join('')}</div>
+    ${owned.length ? `<p style="margin-top:14px">Or empower:</p><div class="choices">${owned.map((x, i) => `<button class="choice rarity-heroic" data-up="${i}"><small class="path rar-heroic">Rank ${S.heroics[x.id]} → ${S.heroics[x.id] + 1}</small><b>${x.name}</b><span>${simple() ? 'Makes it stronger.' : x.desc(S.heroics[x.id] + 1)}</span></button>`).join('')}</div>` : ''}`);
   const done = (x) => { S.pendingHeroic--; closeModal(); S.paused = false; renderHero(); toast('Heroic power: ' + x.name + ' rank ' + S.heroics[x.id] + '.'); };
   $('modalBox').querySelectorAll('[data-new]').forEach(b => b.onclick = () => { const x = fresh[+b.dataset.new]; S.heroics[x.id] = 1; done(x); });
   $('modalBox').querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const x = owned[+b.dataset.up]; S.heroics[x.id]++; done(x); });
@@ -2272,6 +2357,17 @@ function endRun(won, quit) {
   const map = MAPS[S.map], cleared = won ? MAX_WAVE : (S.waveActive ? S.wave - 1 : S.wave);
   const shards = Math.round((cleared * 4 + S.bossKills * 15 + (won ? 60 : 0)) * map.shardMul);
   META.shards += shards; META.cores = (META.cores || 0) + S.cores;
+  META.played = META.played || {}; META.played[S.hero.cls] = (META.played[S.hero.cls] || 0) + 1;
+  // kills and wins feed mastery: report what moved
+  const was = [['heroes', S.hero.cls]].concat(Object.keys(TOWERS).filter(k => S.kills.towers[k] || S.built[k]).map(k => ['towers', k])).map(([kind, k]) => [kind, k, masteryOf(kind, k).lvl]);
+  META.kills.heroes[S.hero.cls] = (META.kills.heroes[S.hero.cls] || 0) + S.kills.hero;
+  for (const [k, n] of Object.entries(S.kills.towers)) META.kills.towers[k] = (META.kills.towers[k] || 0) + n;
+  if (won) {
+    (META.wins.heroes[S.hero.cls] = META.wins.heroes[S.hero.cls] || {})[S.map] = true;
+    for (const k of Object.keys(S.built)) (META.wins.towers[k] = META.wins.towers[k] || {})[S.map] = true;
+  }
+  const mastery = was.map(([kind, k, lvl]) => [kind, k, lvl, masteryOf(kind, k).lvl]).filter(x => x[3] > x[2])
+    .map(([kind, k, a, b]) => `<span class="tag">${kind === 'heroes' ? HEROES[k].name : TOWERS[k].name}: mastery ${a} → ${b}</span>`).join('');
   const best = META.best[S.map];
   if (!best || cleared > best.wave) META.best[S.map] = { wave: cleared, won };
   const top = S.towers.slice().sort((a, b) => (b.dmgTotal || 0) - (a.dmgTotal || 0))[0];
@@ -2285,6 +2381,8 @@ function endRun(won, quit) {
     <p>${won ? 'You held all ' + MAX_WAVE + ' waves' : 'You reached wave ' + S.wave} on ${map.name} as a level ${S.hero.lvl} ${HEROES[S.hero.cls].name}.</p>
 ${!won && S.loseReason ? `<p class="lose-reason">${S.loseReason}</p>` : ''}
     <p class="shards">+◆ ${shards} Rift Shards (${META.shards} total)${S.cores ? ` · <span class="cores">+⬢ ${S.cores} Boss Cores (${META.cores} total)</span>` : ''}</p>
+    <p class="help">Kills this run: your hero ${S.kills.hero}, towers ${Object.values(S.kills.towers).reduce((a, b) => a + b, 0)}.</p>
+    ${mastery ? `<div class="tags">${mastery}</div>` : ''}
     <div class="logwrap"><table class="log"><thead><tr><th>Wave</th><th>Mode</th><th>Lives lost</th><th>Hero dmg</th><th>Top tower</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="row" style="margin-top:12px"><button class="go" id="again">Play again</button><button id="toMenu">Main menu</button></div>`);
   const mapId = S.map;
@@ -2297,6 +2395,8 @@ function closeModal() { $('modal').hidden = true; }
 // ---------- building ----------
 function cellAt(x, y) { return { c: Math.floor(x / C), r: Math.floor(y / C) }; }
 function towerAt(c, r) { return S.towers.find(t => t.c === c && t.r === r); }
+// Towers stand up out of their tile, so pointing at the top of one (the tile above it) picks it too.
+function pickTower(c, r) { return towerAt(c, r) || (!pathCells.has(c + ',' + r) && towerAt(c, r + 1)) || null; }
 function inBuildRange(c, r) { const h = S.hero; return Math.hypot(c * C + C / 2 - h.x, r * C + C / 2 - h.y) <= h.buildRange; }
 function buildProblem(c, r, type) {
   if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return 'Out of bounds.';
@@ -2307,11 +2407,12 @@ function buildProblem(c, r, type) {
   return null;
 }
 function newTower(type, c, r) {
-  const d = TOWERS[type], pw = rank(META.towers[type], 'power');
-  return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg * (1 + 0.04 * pw), rate: d.rate, range: d.range, support: !!d.support,
-    hex: 0, hexNova: 0, bDmg: d.support ? 0.15 + 0.02 * pw : 0, bRate: 0, bRange: 0, bSunder: 0, bGold: 0, bOverdrive: false, bTempo: false, bLight: false, bBreak: false, bRush: false,
+  const d = TOWERS[type], G = META.towerGlobal, main = 1 + 0.04 * rank(G, 'main');
+  // the all-tower upgrades: main effect, range and attack speed (cheaper level-ups are in levelCost)
+  return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg * (type === 'frost' ? 1 : main), rate: d.rate / (1 + 0.03 * rank(G, 'speed')), range: d.range * (1 + 0.03 * rank(G, 'range')), support: !!d.support,
+    hex: 0, hexNova: 0, bDmg: d.support ? 0.15 * main : 0, bRate: 0, bRange: 0, bSunder: 0, bGold: 0, bOverdrive: false, bTempo: false, bLight: false, bBreak: false, bRush: false,
     press: 0.25, pressCap: 1.5, pin: 0, shackle: false, after: false, tide: false, guard: 0, pact: false, crushExec: 0, stunT: 0, stunMax: 0, warnT: 0, buff: null,
-    splash: d.splash || 0, slow: d.slow || 0, slowDur: 1.6, chain: d.chain || 0, chainMul: 0.7, chainReach: 95,
+    splash: d.splash || 0, slow: Math.min(0.85, (d.slow || 0) * (type === 'frost' ? main : 1)), slowDur: 1.6, chain: d.chain || 0, chainMul: 0.7, chainReach: 95,
     multi: 0, ramp: d.beam ? 0.08 : 0, surge: 0, burn: 0, brittle: 0, mark: 0, cluster: 0, orbital: 0, freeze: 0, zero: 0, stun: 0,
     prism: 0, execute: 0, nova: 0, echo: 0, deathBlast: 0, gravity: 0, timeLock: 0, shatter: 0, frostfire: 0, storm: 0, chainBlast: 0, overload: 0, pierce: 0, loot: 0, leech: 0, tempo: 0, tempoStacks: 0, hypo: 0, coldSnap: false,
     beam: !!d.beam, rampMax: d.beam ? 20 : 5, retain: false, melt: false, chainKeep: false, lob: !!d.lob, firestorm: false, salvo: 0, quakeStun: false,
@@ -2319,12 +2420,13 @@ function newTower(type, c, r) {
 }
 function placeTower(c, r, type) {
   const cost = towerCost(type), t = newTower(type, c, r), h = S.hero;
-  S.gold -= cost; t.spent = cost; S.towers.push(t);
-  t.freeUps = (S.specials.foundry ? 2 : 0) + (h.rapid && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange ? h.rapid : 0) + rank(META.towers[type], 'vet');
+  S.gold -= cost; t.spent = cost; S.towers.push(t); S.built[type] = true;
+  t.freeUps = (S.specials.foundry ? 2 : 0) + (h.rapid && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange ? h.rapid : 0);
   if (t.freeUps) S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 30, color: 0xb07cff, t: 0.5, T: 0.5, fill: true });
   if (S.build && S.gold < towerCost(S.build)) S.build = null;
   renderBuildBar(); renderInspector();
 }
+const pathDesc = (t, u) => u.fusion ? (simple() && SIMPLE['fusion:' + u.fusion.id] ? SIMPLE['fusion:' + u.fusion.id] + ' Also hits harder.' : u.desc) : tx('path:' + t.type + ':' + u.id, u.desc);
 // Path options: base towers use their own 5 paths; merged towers use the fusion paths picked at merge time.
 function towerOptions(t) { return t.hybrid ? t.fusions.map(f => fusionPath(f, t.super ? 1.5 : 1)) : TOWER_PATHS[t.type]; }
 function fusionPath(f, m) {
@@ -2437,7 +2539,7 @@ function handleRight(x, y) {
 }
 function handleClick(x, y, touch) {
   if (S.paused || S.over) return;
-  const { c, r } = cellAt(x, y), t = towerAt(c, r);
+  const { c, r } = cellAt(x, y), t = S.build ? towerAt(c, r) : pickTower(c, r);
   if (S.mergeFrom) {
     if (t && t !== S.mergeFrom) tryMerge(S.mergeFrom, t);
     else { S.mergeFrom = null; toast('Merge cancelled.'); renderInspector(); }
@@ -2560,18 +2662,18 @@ function selectBuild(k) {
 function previewTower(k) { return newTower(k, 0, 0); }
 function buildTipHtml(k) {
   const d = TOWERS[k], t = previewTower(k);
-  return `<b>${d.name}</b> <span class="tip-c">${towerCost(k)} gold</span><p>${d.info}</p>
+  return `<b>${d.name}</b> <span class="tip-c">${towerCost(k)} gold</span><p>${tx('tower:' + k, d.info)}</p>
     <div class="tip-s">${d.support ? 'Buff +' + pct(beaconDmg(t)) : 'Damage ' + t.dmg.toFixed(0) + ' · ' + (1 / d.rate).toFixed(2) + ' shots/s'} · Range ${d.range}</div>
-    <ul>${(d.support || k === 'anvil' ? towerTraits(t) : traits(t).slice(1)).map(x => `<li>${x}</li>`).join('')}</ul>
-    ${S.sig[k] ? `<div class="tip-s rar-mythic">Signature: ${SIGNATURES[k].name}. ${SIGNATURES[k].desc}</div>` : ''}
+    ${simple() ? '' : `<ul>${(d.support || k === 'anvil' ? towerTraits(t) : traits(t).slice(1)).map(x => `<li>${x}</li>`).join('')}</ul>`}
+    ${S.sig[k] ? `<div class="tip-s rar-mythic">Signature: ${SIGNATURES[k].name}. ${tx('sig:' + k, SIGNATURES[k].desc)}</div>` : ''}
     <div class="tip-s">Paths: ${TOWER_PATHS[k].map(u => u.name).join(', ')}. Pick up to 3 of them (4 with the Oracle) as it levels to ${MAX_LVL}.</div>`;
 }
 function towerTipHtml(t) {
   const opts = towerOptions(t), ups = t.order.map(id => { const u = opts.find(x => x.id === id); return u ? u.name + ' ' + t.ups[id] + '/' + PATH_MAX : ''; }).filter(Boolean);
   return `<b>${towerName(t)}</b> <span class="tip-c">Lv ${t.lvl}/${MAX_LVL}${t.super ? ' · Super' : t.hybrid ? ' · Hybrid' : ''}</span>${t === S.drained ? '<p style="color:var(--danger)">Drained: half damage this wave.</p>' : ''}<p>${towerBlurb(t)}</p>
-    <div class="tip-s">Damage dealt: ${Math.round(t.dmgTotal || 0)} total, ${Math.round(t.dmgWave || 0)} this wave</div>
+    <div class="tip-s">Damage dealt: ${Math.round(t.dmgTotal || 0)} total, ${Math.round(t.dmgWave || 0)} this wave · Kills: ${t.kills || 0}</div>
     <div class="tip-s">${t.support ? 'Buff +' + pct(beaconDmg(t)) : 'Damage ' + dmgWithBuff(t) + ' · ' + (1 / (t.rate * S.mod.towerRate)).toFixed(2) + ' shots/s'} · Range ${tRange(t).toFixed(0)}</div>
-    <ul>${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>${ups.length ? `<div class="tip-s">Paths: ${ups.join(', ')}</div>` : ''}`;
+    ${simple() ? '' : `<ul>${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>`}${ups.length ? `<div class="tip-s">Paths: ${ups.join(', ')}</div>` : ''}`;
 }
 
 // "82 → 94 (Beacon)" when a Beacon buffs this tower.
@@ -2593,10 +2695,10 @@ function renderInspector() {
   const opts = towerOptions(t), canMerge = t.lvl >= MERGE_LVL && !t.super, lim = pathLimit();
   const btn = (u, i) => {
     const n = t.ups[u.id] || 0, state = pathState(t, u);
-    const note = state === 'maxed' ? 'Maxed.' : state === 'locked' ? `Locked: this tower already uses ${lim} paths.` : u.desc;
-    const mastery = u.mastery ? `<em class="mastery">${n >= pathMax() ? '★ Mastered: ' : 'Mastery at ' + pathMax() + ': '}${u.mastery.name}. ${u.mastery.desc}</em>` : '';
+    const note = state === 'maxed' ? 'Maxed.' : state === 'locked' ? `Locked: this tower already uses ${lim} paths.` : pathDesc(t, u);
+    const mastery = u.mastery ? `<em class="mastery">${n >= pathMax() ? '★ Mastered: ' : 'Mastery at ' + pathMax() + ': '}${u.mastery.name}. ${tx('mastery:' + t.type + ':' + u.id, u.mastery.desc)}</em>` : '';
     return `<button class="up ${state}" data-u="${i}" ${S.gold < lc || state !== 'open' || t.lvl >= MAX_LVL ? 'disabled' : ''}>
-      <b>${u.name} <small>${n}/${pathMax()}</small></b><span>${note}</span>${state === 'open' && t.lvl < MAX_LVL ? `<span class="delta">${previewLevel(t, u)}</span>` : ''}${mastery}
+      <b>${u.name} <small>${n}/${pathMax()}</small></b><span>${note}</span>${state === 'open' && t.lvl < MAX_LVL && !simple() ? `<span class="delta">${previewLevel(t, u)}</span>` : ''}${mastery}
       ${state === 'open' && t.lvl < MAX_LVL ? `<i class="price">${lc ? lc + ' gold' : 'Free'}</i>` : ''}</button>`;
   };
   // Once a tower has picked all its paths, the unused ones are hidden.
@@ -2606,11 +2708,11 @@ function renderInspector() {
     ${t.stunT > 0 ? `<p style="color:var(--danger)">Stunned by a boss: ${t.stunT.toFixed(1)}s left.</p>` : ''}
     <div class="stats">
       ${t.support ? `<div><span>Buff</span>+${pct(beaconDmg(t))}</div>` : `<div><span>Damage</span>${dmgWithBuff(t)}</div><div><span>${t.type === 'anvil' ? 'Slams/s' : 'Shots/s'}</span>${(1 / (t.rate * S.mod.towerRate)).toFixed(2)}</div>`}
-      <div><span>Range</span>${tRange(t).toFixed(0)}</div><div><span>Spent</span>${t.spent}</div>
+      <div><span>Range</span>${tRange(t).toFixed(0)}</div><div><span>Spent</span>${t.spent}</div><div><span>Kills</span>${t.kills || 0}</div>
     </div>
-    <ul class="traits">${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>
+    ${simple() ? '' : `<ul class="traits">${towerTraits(t).map(x => `<li>${x}</li>`).join('')}</ul>`}
     ${S.mergeFrom === t ? `<p>Tap another level ${MERGE_LVL} ${t.hybrid ? 'hybrid' : 'tower of a different type'} to merge with. Tap anywhere else to cancel.</p>` : ''}
-    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${!t.hybrid && t.order.length === 2 && t.lvl < MAX_LVL ? ' · A 3rd path gives it a new name' : ''}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level adds ${levelBonus(t).text}; level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'} (${levelBonus(t).asc}).</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
+    ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${!t.hybrid && t.order.length === 2 && t.lvl < MAX_LVL ? ' · A 3rd path gives it a new name' : ''}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level: ${levelText(t)} Level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'}: ${ascText(t)}</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
     <div class="ups">${opts.map(shown).join('')}</div>
     <div class="row">
       ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost() ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost() || 'Free')}</button>` : ''}
@@ -2637,19 +2739,19 @@ function renderCodex() {
 // Enemies tab: each enemy you have met, what it does and how to beat it.
 function renderEnemyCodex() {
   $('enemyCodex').innerHTML = Object.entries(ENEMIES).map(([k, d]) => META.seen[k]
-    ? `<li class="found"><div><b style="color:#${d.color.toString(16).padStart(6, '0')}">${d.name}</b><span>${ENEMY_INFO[k][0]}</span><em>Counter: ${ENEMY_INFO[k][1]}</em></div></li>`
+    ? `<li class="found"><div><b style="color:#${d.color.toString(16).padStart(6, '0')}">${d.name}</b><span>${tx('enemy:' + k, ENEMY_INFO[k][0])}</span><em>Counter: ${ENEMY_INFO[k][1]}</em></div></li>`
     : `<li><b>???</b><span>Not met yet</span></li>`).join('');
 }
 function renderHero() {
   const h = S.hero; if (!h) return;
   const f = v => v.toFixed(0), d = HEROES[h.cls];
-  const picks = S.picks.map(o => `<span class="tag rar-${o.rarity.id} ${o.demonic ? 'is-demonic' : ''}" title="${perkDesc(o)}${o.demonic ? ' Curse: ' + o.curse.desc(o.k) : ''}">${o.demonic ? '☠ ' : ''}${o.perk.name}</span>`).join('');
-  const heroics = HEROICS.filter(x => S.heroics[x.id]).map(x => `<span class="tag rar-heroic" title="${x.desc(S.heroics[x.id])}">${x.name} ${'I'.repeat(S.heroics[x.id])}</span>`).join('');
-  const relics = S.relics.map(r => `<span class="tag relic ${r.rarity ? 'rar-' + r.rarity : ''}" title="${r.desc}">${r.name}</span>`).join('');
+  const picks = S.picks.map(o => `<span class="tag rar-${o.rarity.id} ${o.demonic ? 'is-demonic' : ''}" title="${perkDesc(o)}${o.demonic ? ' Curse: ' + curseDesc(o) : ''}">${o.demonic ? '☠ ' : ''}${o.perk.name}</span>`).join('');
+  const heroics = HEROICS.filter(x => S.heroics[x.id]).map(x => `<span class="tag rar-heroic" title="${tx('heroic:' + x.id, x.desc(S.heroics[x.id]))}">${x.name} ${'I'.repeat(S.heroics[x.id])}</span>`).join('');
+  const relics = S.relics.map(r => `<span class="tag relic ${r.rarity ? 'rar-' + r.rarity : ''}" title="${tx('relic:' + r.id, r.desc)}">${r.name}</span>`).join('');
   $('heroCard').innerHTML = `<h3 style="color:${d.css}">${d.name} · ${d.role} · Lv ${h.lvl}${h.ko ? ' · Knocked out' : ''}</h3>
     <p class="help"><b class="tipname" data-tip="ability" style="color:var(--text)">${h.ab.name}</b> (${h.ab.cd.toFixed(0)}s): ${abilityText(h)}${ABILITY_MODS.some(m => h.ab[m.id]) ? `<br><b class="rar-mythic">Upgrades:</b> ${ABILITY_MODS.filter(m => h.ab[m.id]).map(m => `<span class="tipname" data-tip="mod:${m.id}">${m.name}</span>`).join(', ')}` : ''}${h.hold ? '<br><b style="color:var(--gold)">Holding position (H)</b>' : ''}</p>
     <div class="stats">
-      <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div>
+      <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div><div><span>Kills</span>${S.kills.hero}</div>
       <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${h.range >= 9999 ? 'Whole map' : f(h.range)}</div>
       <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit chance</span>${pct(h.crit)}</div>
       <div><span>Crit damage</span>${pct(h.critDmg)}</div>${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}
@@ -2661,9 +2763,9 @@ function renderHero() {
       ${h.momStacks ? `<div><span>Momentum</span>${h.momStacks}×</div>` : ''}
       ${h.interest ? `<div><span>Interest</span>${pct(h.interest)}</div>` : ''}
     </div>
-    <p class="help"><b style="color:var(--gold)">Level bonus</b> (${h.lvl - 1} level${h.lvl === 2 ? '' : 's'} so far): ${ROLE_LEVEL[d.cat] ? ROLE_LEVEL[d.cat].text + ' per level' : 'none'}.${h.xpGain ? ` XP gain +${pct(h.xpGain)}.` : ''}</p>
+    <p class="help"><b style="color:var(--gold)">Level bonus</b> (${h.lvl - 1} level${h.lvl === 2 ? '' : 's'} so far): ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text + ' per level.') : 'none.'}${h.xpGain ? ` XP gain +${pct(h.xpGain)}.` : ''}</p>
     ${heroics ? `<div class="tags">${heroics}</div>` : ''}
-    ${Object.keys(S.boons).length ? `<div class="tags">${Object.keys(S.boons).map(k => `<span class="tag rar-heroic" title="${BOONS[k].desc}">✦ ${BOONS[k].name}</span>`).join('')}</div>` : ''}
+    ${Object.keys(S.boons).length ? `<div class="tags">${Object.keys(S.boons).map(k => `<span class="tag rar-heroic" title="${tx('boon:' + k, BOONS[k].desc)}">✦ ${BOONS[k].name}</span>`).join('')}</div>` : ''}
     <div class="tags">${picks || '<span class="help">No upgrades yet. Kill enemies to level up.</span>'}${relics}</div>`;
 }
 
@@ -2708,44 +2810,63 @@ function updateHud() {
   if (--heroT <= 0) { heroT = 3; renderHero(); }
 }
 
-// The board is pixel art in the same 3/4 top-down view, palette and light (from the upper left) as the
-// tower art. The game renders at PX canvas pixels per world unit, so one 40-unit tile is 32 art pixels,
-// the size the art was drawn for. The ground is raised metal plating; the path is a sunken lane, so the
-// plating's south face shows as a wall along the lane's north side. Redrawn only when the map changes.
-const PX = 0.8, TILE = C * PX;
+// The board is pixel art in the same 3/4 view, palette and light (from the upper left) as the tower art.
+// The game logic stays on a flat 960x600 field; only the drawing is tilted. The ground plane is seen at an
+// angle, so it is foreshortened: a 40-unit tile is 32 art pixels wide and 24 tall (K = 0.75), the same squash
+// as the tops of the tower bases. Things standing on the ground (towers, enemies, the hero, shots) stay
+// upright and are drawn above their foot point. TOP is headroom for the back wall and the top row's towers; BOT
+// shows the front face of the whole platform.
+const PX = 0.8, TILE = C * PX, K = 0.75, TH = TILE * K, TOP = 40, BOT = 30, VH = H * K + TOP + BOT;
+const SY = y => TOP + y * K; // screen y of a point on the ground
 const PAL = { ink: '#101223', deep: '#24243D', dusk: '#3B3561', violet: '#625080', mist: '#9B8BA5' };
 let groundFor = null;
 function drawGround(sc) {
   groundFor = pathCells;
-  if (!sc.textures.exists('ground')) sc.ground = sc.add.image(0, 0, sc.textures.createCanvas('ground', COLS * TILE, ROWS * TILE)).setOrigin(0).setScale(1 / PX).setDepth(-1);
+  const top = TOP * PX, WALL = 7; // art pixels: headroom, height of the lane's north wall
+  if (!sc.textures.exists('ground')) sc.ground = sc.add.image(0, 0, sc.textures.createCanvas('ground', COLS * TILE, top + ROWS * TH + BOT * PX)).setOrigin(0).setScale(1 / PX).setDepth(-1);
   const tex = sc.textures.get('ground'), x2 = tex.getContext(), lane = (c, r) => pathCells.has(c + ',' + r);
   const px = (x, y, w, h, col) => { x2.fillStyle = col; x2.fillRect(x, y, w, h); };
   const hash = (c, r, i) => { let v = (c * 73856093) ^ (r * 19349663) ^ (i * 83492791); v = (v ^ (v >>> 13)) * 1274126177; return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
+  // back wall: the far edge of the plating rises into a panelled wall
+  px(0, 0, COLS * TILE, top, PAL.ink);
+  for (let c = 0; c < COLS; c++) {
+    const x = c * TILE;
+    px(x + 1, 6, TILE - 2, top - 8, PAL.deep); px(x + 1, 6, TILE - 2, 1, PAL.dusk); px(x + 1, 6, 1, top - 8, PAL.dusk);
+    px(x + 6, 12, TILE - 12, 3, PAL.ink); if (hash(c, 0, 7) < 0.35) px(x + 8, 13, 4, 1, PAL.violet);
+    px(x, top - 2, TILE, 2, PAL.ink);
+  }
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const x = c * TILE, y = r * TILE, T = TILE;
+    const x = c * TILE, y = top + r * TH, T = TILE;
     if (lane(c, r)) {
-      px(x, y, T, T, PAL.ink);
-      for (let i = 0; i < 5; i++) px(x + Math.floor(hash(c, r, i) * T), y + Math.floor(hash(c, r, i + 9) * T), 1, 1, PAL.deep);
-      px(x, y + T / 2 - 1, T, 1, PAL.deep); // worn centre track
-      if (r > 0 && !lane(c, r - 1)) { // the plating's south face
-        px(x, y, T, 8, PAL.dusk); px(x, y, T, 1, PAL.violet);
-        for (let i = 4; i < T; i += 8) px(x + i, y + 1, 1, 7, PAL.deep);
-        px(x, y + 8, T, 2, PAL.deep);
+      px(x, y, T, TH, PAL.ink);
+      for (let i = 0; i < 4; i++) px(x + Math.floor(hash(c, r, i) * T), y + Math.floor(hash(c, r, i + 9) * TH), 1, 1, PAL.deep);
+      px(x, y + TH / 2, T, 1, PAL.deep); // worn centre track
+      if (c > 0 && !lane(c - 1, r)) px(x, y, 2, TH, '#0b0c19'); // shadow cast by the plating to the left
+      if (r > 0 && !lane(c, r - 1)) { // the plating's south face drops down into the lane
+        px(x, y, T, WALL, PAL.dusk); px(x, y, T, 1, PAL.mist); px(x, y + 1, T, 1, PAL.violet);
+        for (let i = 6; i < T; i += 10) px(x + i, y + 2, 1, WALL - 2, PAL.deep);
+        px(x, y + WALL, T, 2, '#0b0c19');
       }
-      if (c > 0 && !lane(c - 1, r)) px(x, y, 2, T, PAL.deep); // shadow cast by the plating to the left
+      if (r === 0) px(x, y, T, 3, '#0b0c19');
     } else {
-      px(x, y, T, T, PAL.deep);
-      px(x, y, T - 1, 1, PAL.dusk); px(x, y, 1, T - 1, PAL.dusk); // lit top and left bevel
-      px(x, y + T - 1, T, 1, PAL.ink); px(x + T - 1, y, 1, T, PAL.ink); // shaded seam
-      if (hash(c, r, 1) < 0.5) for (const [dx, dy] of [[3, 3], [T - 5, 3], [3, T - 5], [T - 5, T - 5]]) { px(x + dx, y + dy, 2, 2, PAL.ink); px(x + dx, y + dy, 1, 1, PAL.violet); }
-      else if (hash(c, r, 2) < 0.4) { px(x + 6, y + T / 2, T - 12, 1, PAL.ink); px(x + 6, y + T / 2 + 1, T - 12, 1, PAL.dusk); }
-      for (let i = 0; i < 3; i++) px(x + 2 + Math.floor(hash(c, r, i + 20) * (T - 4)), y + 2 + Math.floor(hash(c, r, i + 30) * (T - 4)), 1, 1, PAL.dusk);
+      px(x, y, T, TH, PAL.deep);
+      px(x, y, T - 1, 1, PAL.dusk); px(x, y, 1, TH - 1, PAL.dusk); // lit far and left edges
+      px(x, y + TH - 1, T, 1, PAL.ink); px(x + T - 1, y, 1, TH, PAL.ink); // shaded seam
+      if (hash(c, r, 1) < 0.5) for (const [dx, dy] of [[3, 2], [T - 5, 2], [3, TH - 4], [T - 5, TH - 4]]) { px(x + dx, y + dy, 2, 1, PAL.ink); px(x + dx, y + dy, 1, 1, PAL.violet); }
+      else if (hash(c, r, 2) < 0.4) { px(x + 6, y + TH / 2, T - 12, 1, PAL.ink); px(x + 6, y + TH / 2 + 1, T - 12, 1, PAL.dusk); }
+      for (let i = 0; i < 3; i++) px(x + 2 + Math.floor(hash(c, r, i + 20) * (T - 4)), y + 2 + Math.floor(hash(c, r, i + 30) * (TH - 4)), 1, 1, PAL.dusk);
+      if (r > 0 && lane(c, r - 1)) px(x, y, T, 1, PAL.violet); // the lip where the lane climbs back up
     }
   }
-  if (WP[0].x < 0) px(0, Math.floor(WP[0].y / C) * TILE, 3, TILE, PAL.dusk);
+  // front face of the platform, lit along its top edge
+  const fy = top + ROWS * TH;
+  px(0, fy, COLS * TILE, BOT * PX, PAL.dusk); px(0, fy, COLS * TILE, 1, PAL.mist); px(0, fy + 1, COLS * TILE, 1, PAL.violet);
+  for (let c = 0; c < COLS; c++) { const x = c * TILE; px(x, fy + 2, 1, BOT * PX - 2, PAL.deep); px(x + 4, fy + 8, TILE - 8, 3, PAL.deep); if (hash(c, 99, 3) < 0.3) px(x + 6, fy + 9, 3, 1, PAL.mist); }
+  px(0, fy + BOT * PX - 3, COLS * TILE, 3, PAL.ink);
   tex.refresh();
 }
-const shadow = (g, x, y, w) => g.fillStyle(0x101223, 0.6).fillEllipse(x, y, w, w * 0.35);
+// Shadows are drawn on the ground layer, which already squashes them by K.
+const shadow = (g, x, y, w) => g.fillStyle(0x101223, 0.6).fillEllipse(x, y, w, w * 0.45);
 
 // Tower art: one sheet per tower, 4 rows of 6 frames (idle, attack, recover, hit effect). Frames are 48px
 // at the art's own pixel size and drawn 1:1 on the pixel grid. oy is where the base sits in the frame; fy
@@ -2756,17 +2877,36 @@ const FRAME = 48;
 // target, and the other five frames play where it lands. pa is the projectile's anchor in its frame; turn rotates
 // it to face its flight (those are drawn heading down the frame). The laser's row is a beam stretched to its
 // target, the mortar's shell flies its arc, and the anvil and beacon play the whole row on themselves.
+// fire: the frame of the attack row (0-5) where the shot leaves the muzzle (the anvil's: where the hammer lands).
 const ART = {
-  arcane: { oy: 38 / 48, my: 14, pa: [24, 31], turn: true, fy: 0.75 }, plasma: { oy: 40 / 48, my: 10, pa: [24, 24] },
-  frost: { oy: 41 / 48, my: 16, pa: [25, 25] }, tesla: { oy: 38 / 48, my: 13, pa: [23.5, 16.5], fy: 0.75 },
-  beacon: { oy: 37 / 48, my: 22 }, anvil: { oy: 39 / 48, my: 22 }, laser: { oy: 36 / 48, my: 14 },
-  mortar: { oy: 40 / 48, my: 20, pa: [24, 25], turn: true },
+  arcane: { oy: 38 / 48, my: 14, pa: [24, 31], turn: true, fy: 0.75, fire: 1 }, plasma: { oy: 40 / 48, my: 10, pa: [24, 24], fire: 2 },
+  frost: { oy: 41 / 48, my: 16, pa: [25, 25], fire: 2 }, tesla: { oy: 38 / 48, my: 13, pa: [23.5, 16.5], fy: 0.75, fire: 3 },
+  beacon: { oy: 37 / 48, my: 22 }, anvil: { oy: 39 / 48, my: 22, fire: 3 }, laser: { oy: 36 / 48, my: 14 },
+  mortar: { oy: 40 / 48, my: 20, pa: [24, 25], turn: true, fire: 3 },
 };
-const SHOT_SPEED = 800, BEAM_LEN = 29; // world units per second; beam length in its frame
-const muzzle = t => ({ x: t.x, y: t.y + 15 - (ART[t.type].oy * FRAME - ART[t.type].my) / PX });
-const shots = [], beams = []; // beams: the Chain Laser's short hops between enemies
-function launchShot(k, from, target, wait = 0) {
-  if (shots.length < 200) shots.push({ k, x0: from.x, y0: from.y, target, x1: target.x, y1: target.y, t: 0, T: Math.max(0.05, Math.hypot(target.x - from.x, target.y - from.y) / SHOT_SPEED), wait });
+const SHOT_SPEED = 800, BEAM_LEN = 29, ATK_FPS = 24; // world units per second; beam length in its frame; attack row speed
+const FOOT = 9; // a tower's base sits this far below its tile's centre on screen
+const towerFoot = t => SY(t.y) + FOOT;
+// How high above the ground things are drawn: a tower's muzzle, an enemy's or the hero's middle.
+const muzzleLift = t => ART[t.type] ? (ART[t.type].oy * FRAME - ART[t.type].my) / PX - FOOT : 14;
+const bodyLift = e => e && e.r ? e.r * 0.9 - 4 : 12; // enemies walk a little south of the lane's centre line, clear of its wall
+const fireLead = t => spriteTower(t) ? (ART[t.type].fire || 0) / ATK_FPS : 0;
+const beams = []; // the Chain Laser's short hops between enemies
+// Shots fly in game time, so the hit lands exactly when the projectile reaches its target (onHit).
+function launchShot(k, from, target, wait = 0, onHit = null, lift = 0) {
+  if (S.proj.length >= 300) { if (onHit) onHit(); return; }
+  S.proj.push({ k, x: from.x, y: from.y, x0: from.x, y0: from.y, target, x1: target.x, y1: target.y, t: 0, T: 0, u: 0, wait, onHit, lift });
+}
+function moveShots(dt) {
+  for (const p of S.proj) {
+    if (p.wait > 0 && (p.wait -= dt) > 0) continue;
+    if (!p.T) p.T = Math.max(0.05, Math.hypot(p.target.x - p.x0, p.target.y - p.y0) / SHOT_SPEED);
+    p.t += dt;
+    if (!p.target.dead) { p.x1 = p.target.x; p.y1 = p.target.y; }
+    const u = p.u = Math.min(1, p.t / p.T); p.x = p.x0 + (p.x1 - p.x0) * u; p.y = p.y0 + (p.y1 - p.y0) * u;
+    if (u >= 1) { p.done = true; if (p.onHit) p.onHit(); }
+  }
+  S.proj = S.proj.filter(p => !p.done);
 }
 const spriteTower = t => !t.hybrid && !!ART[t.type];
 const towerSprites = new Map();
@@ -2774,7 +2914,7 @@ function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./a
 function makeAnims(sc) {
   for (const k in ART) {
     const a = (name, start, frameRate, repeat) => sc.anims.create({ key: k + '-' + name, frames: sc.anims.generateFrameNumbers(k, { start, end: start + 5 }), frameRate, repeat });
-    a('idle', 0, 8, -1); a('attack', 6, 24, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0); a('hit', 19, 20, 0);
+    a('idle', 0, 8, -1); a('attack', 6, ATK_FPS, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0); a('hit', 19, 20, 0);
   }
   sc.anims.create({ key: 'laser-beam', frames: sc.anims.generateFrameNumbers('laser', { frames: [20, 21, 22, 21] }), frameRate: 16, repeat: -1 });
 }
@@ -2794,7 +2934,7 @@ function syncSprites(sc, dt) {
     }
     // the beacon has no shots: it pulses while a wave is on
     if (t.support && S.waveActive && S.time - (t.firedAt || -9) > 3) { t.shotAt = t.firedAt = S.time; t.hitAt = { x: t.x, y: t.y }; }
-    s.setPosition(t.x, t.y + 15).setDepth(1 + t.y / 1000).setTint(t.stunT > 0 ? 0x666677 : 0xffffff);
+    s.setPosition(t.x, towerFoot(t)).setDepth(1 + t.y / 1000).setTint(t.stunT > 0 ? 0x666677 : 0xffffff);
     s.anims.timeScale = speed;
     if (t.shotAt !== s.shot) {
       s.shot = t.shotAt;
@@ -2802,12 +2942,18 @@ function syncSprites(sc, dt) {
     }
     if (t.firedAt !== s.hit) {
       s.hit = t.firedAt;
-      if (t.hitAt && (k === 'mortar' || k === 'anvil' || k === 'beacon')) burst(sc, k, t.hitAt.x, t.hitAt.y, speed, k === 'mortar' ? 'hit' : 'fx');
+      if (t.hitAt && k === 'mortar') burst(sc, k, t.hitAt.x, SY(t.hitAt.y), speed, 'hit');
+      else if (k === 'anvil' || k === 'beacon') burst(sc, k, t.x, towerFoot(t) - 4, speed, 'fx');
     }
     if (k === 'laser') beam(sc, t, s);
   }
   for (const [t, s] of towerSprites) if (!live.has(t)) { if (s.beam) s.beam.destroy(); s.destroy(); towerSprites.delete(t); }
   flyShots(sc, dt * speed, speed);
+}
+// A beam sprite stretched and turned between two screen points.
+function stretchBeam(spr, x0, y0, x1, y1, width) {
+  spr.setVisible(true).setPosition((x0 + x1) / 2, (y0 + y1) / 2).setRotation(Math.atan2(y1 - y0, x1 - x0) - Math.PI / 2)
+    .setScale(width / PX, Math.hypot(x1 - x0, y1 - y0) / BEAM_LEN);
 }
 // The laser's beam runs from its orb to its target, turning and stretching as the target moves, and
 // thickens as it heats up on one target.
@@ -2815,41 +2961,42 @@ function beam(sc, t, s) {
   const e = t.lastTarget, on = e && !e.dead && !(t.stunT > 0) && S.time - (t.firedAt || -9) < 0.35 && S.enemies.includes(e);
   if (!on) { if (s.beam) s.beam.setVisible(false); return; }
   if (!s.beam) s.beam = sc.add.sprite(0, 0, 'laser').setOrigin(0.5, 25.5 / 48).setDepth(2.5).play('laser-beam');
-  const m = muzzle(t), d = Math.hypot(e.x - m.x, e.y - m.y);
-  s.beam.setVisible(true).setPosition((m.x + e.x) / 2, (m.y + e.y) / 2).setRotation(Math.atan2(e.y - m.y, e.x - m.x) - Math.PI / 2)
-    .setScale((1 + 0.6 * Math.min(1, (t.stacks || 0) / (t.rampMax || 1))) / PX, d / BEAM_LEN);
+  stretchBeam(s.beam, t.x, SY(t.y) - muzzleLift(t), e.x, SY(e.y) - bodyLift(e), 1 + 0.6 * Math.min(1, (t.stacks || 0) / (t.rampMax || 1)));
 }
+const projSprites = new Map();
 function flyShots(sc, dt, speed) {
-  if (!S || !S.hero) { for (const s of shots) if (s.spr) s.spr.destroy(); shots.length = 0; }
-  for (const s of shots) {
-    if (s.wait > 0) { s.wait -= dt; continue; }
-    const art = ART[s.k];
-    if (!s.spr) s.spr = sc.add.sprite(s.x0, s.y0, s.k, 18).setOrigin(art.pa[0] / FRAME, art.pa[1] / FRAME).setScale(1 / PX).setDepth(3);
-    s.t += dt;
-    if (s.target && !s.target.dead) { s.x1 = s.target.x; s.y1 = s.target.y; }
-    const u = Math.min(1, s.t / s.T), x = s.x0 + (s.x1 - s.x0) * u, y = s.y0 + (s.y1 - s.y0) * u;
-    s.spr.setPosition(x, y);
-    if (art.turn) s.spr.setRotation(Math.atan2(s.y1 - s.y0, s.x1 - s.x0) - Math.PI / 2);
-    if (u >= 1) { s.spr.destroy(); s.done = true; burst(sc, s.k, x, y, speed, 'hit'); }
+  const flying = new Set(S && S.hero ? S.proj : []);
+  for (const p of flying) {
+    if (p.wait > 0) continue;
+    const art = ART[p.k];
+    // height eases from where the shot left (a muzzle, or the enemy a lightning jump left from) to the target's middle
+    const lift = p.lift * (1 - p.u) + bodyLift(p.target) * p.u, x = p.x, y = SY(p.y) - lift;
+    let sp = projSprites.get(p);
+    if (!sp) { sp = sc.add.sprite(x, y, p.k, 18).setOrigin(art.pa[0] / FRAME, art.pa[1] / FRAME).setScale(1 / PX).setDepth(3); projSprites.set(p, sp); }
+    sp.setPosition(x, y); sp.last = { x, y };
+    if (art.turn) sp.setRotation(Math.atan2(SY(p.y1) - bodyLift(p.target) - (SY(p.y0) - p.lift), p.x1 - p.x0) - Math.PI / 2);
   }
-  for (let i = shots.length - 1; i >= 0; i--) if (shots[i].done) shots.splice(i, 1);
+  // a shot that has landed plays the rest of its row where it hit, on the same frame its damage lands
+  for (const [p, sp] of projSprites) if (!flying.has(p)) {
+    sp.destroy(); projSprites.delete(p);
+    if (p.done && S && S.hero) burst(sc, p.k, p.x, SY(p.y) - bodyLift(p.target), speed, 'hit');
+  }
   for (const b of beams) {
     if (!S || !S.hero) b.t = 0;
     if (!b.spr) b.spr = sc.add.sprite(0, 0, 'laser').setOrigin(0.5, 25.5 / 48).setDepth(2.5).play('laser-beam');
-    const x1 = b.e.x, y1 = b.e.y, d = Math.hypot(x1 - b.x0, y1 - b.y0);
-    b.spr.setPosition((b.x0 + x1) / 2, (b.y0 + y1) / 2).setRotation(Math.atan2(y1 - b.y0, x1 - b.x0) - Math.PI / 2).setScale(0.7 / PX, d / BEAM_LEN);
+    stretchBeam(b.spr, b.x0, SY(b.y0) - 10, b.e.x, SY(b.e.y) - bodyLift(b.e), 0.7);
     if ((b.t -= dt) <= 0) b.spr.destroy();
   }
   for (let i = beams.length - 1; i >= 0; i--) if (beams[i].t <= 0) beams.splice(i, 1);
   // mortar shells: the shell frame rides the arc, nose along its flight
   const live = new Set(S && S.hero ? S.shells : []);
   for (const sh of live) {
-    if (!spriteTower(sh.tw)) continue;
+    if (!spriteTower(sh.tw) || sh.wait > 0) continue;
     let sp = shellSprites.get(sh);
-    if (!sp) { sp = sc.add.sprite(0, 0, 'mortar', 18).setOrigin(24 / FRAME, 25 / FRAME).setScale(1 / PX).setDepth(3); shellSprites.set(sh, sp); sp.lift = sh.tw.y - muzzle(sh.tw).y; }
-    const u = sh.t / sh.T, A = Math.min(140, Math.hypot(sh.x1 - sh.x0, sh.y1 - sh.y0) * 0.4);
-    const x = sh.x0 + (sh.x1 - sh.x0) * u, y = sh.y0 + (sh.y1 - sh.y0) * u - A * Math.sin(Math.PI * u) - sp.lift * (1 - u);
-    const vx = sh.x1 - sh.x0, vy = sh.y1 - sh.y0 - A * Math.PI * Math.cos(Math.PI * u) + sp.lift;
+    if (!sp) { sp = sc.add.sprite(0, 0, 'mortar', 18).setOrigin(24 / FRAME, 25 / FRAME).setScale(1 / PX).setDepth(3); shellSprites.set(sh, sp); sp.lift = muzzleLift(sh.tw); }
+    const u = sh.t / sh.T, y0 = SY(sh.y0), y1 = SY(sh.y1), A = Math.min(140, Math.hypot(sh.x1 - sh.x0, y1 - y0) * 0.4);
+    const x = sh.x0 + (sh.x1 - sh.x0) * u, y = y0 + (y1 - y0) * u - A * Math.sin(Math.PI * u) - sp.lift * (1 - u);
+    const vx = sh.x1 - sh.x0, vy = y1 - y0 - A * Math.PI * Math.cos(Math.PI * u) + sp.lift;
     sp.setPosition(x, y).setRotation(Math.atan2(vy, vx) - Math.PI / 2);
   }
   for (const [sh, sp] of shellSprites) if (!live.has(sh) || sh.done) { sp.destroy(); shellSprites.delete(sh); }
@@ -2863,12 +3010,15 @@ function burst(sc, k, x, y, speed, anim = 'fx') {
   f.once('animationcomplete', () => { f.destroy(); bursts--; });
 }
 
-// g draws under the tower art, o over it.
+// Two layers: g is the ground (scaled by K, so it takes world coordinates and circles lie flat as ellipses) and
+// sits under the tower art; o holds upright things and is drawn over it at projected screen points.
 function draw(g, o) {
   g.clear(); o.clear();
+  const P = (x, y, lift = 0) => [x, SY(y) - lift];
+  // the base: a glowing pad on the ground with a crystal standing on it
   g.fillStyle(0x4fd8e8, 0.15).fillCircle(BASE.x, BASE.y, 26);
   g.lineStyle(2, 0x4fd8e8, 1).strokeCircle(BASE.x, BASE.y, 18);
-  g.fillStyle(0x4fd8e8, 1).fillCircle(BASE.x, BASE.y, 7);
+  { const [bx, by] = P(BASE.x, BASE.y); o.fillStyle(0x101223, 1).fillRect(bx - 5, by - 22, 10, 22); o.fillStyle(0x4fd8e8, 1).fillTriangle(bx, by - 30, bx - 6, by - 14, bx + 6, by - 14).fillTriangle(bx - 6, by - 14, bx + 6, by - 14, bx, by - 4); o.fillStyle(0xffffff, 0.6).fillTriangle(bx - 1, by - 27, bx - 4, by - 15, bx, by - 15); }
   const h = S && S.hero; if (!h) return;
   const hc = HEROES[h.cls].color;
 
@@ -2893,66 +3043,58 @@ function draw(g, o) {
   for (const t of S.towers) if (t.buff) for (const b of t.buff.from) g.lineStyle(1, TOWERS.beacon.color, 0.18 + 0.1 * Math.sin(S.time * 4)).lineBetween(b.x, b.y, t.x, t.y);
   for (const t of S.towers) {
     if (t.warnT > 0) g.fillStyle(0xff2e4d, 0.25 + 0.25 * Math.sin(S.time * 30)).fillRoundedRect(t.x - 20, t.y - 20, 40, 40, 6);
-    const art = spriteTower(t);
-    shadow(g, t.x, t.y + 15, 42);
-    if (art) g.lineStyle(2, t.color, t === S.sel ? 1 : 0.35).strokeEllipse(t.x, t.y + 12, 46, 20);
+    const art = spriteTower(t), [tx, ty] = P(t.x, t.y);
+    shadow(g, t.x, t.y + FOOT / K, 42);
+    if (art) g.lineStyle(2, t.color, t === S.sel ? 1 : 0.35).strokeEllipse(t.x, t.y + 4, 46, 34);
     else {
-      // plinth: top face plus a darker front face, matching the 3/4 view
-      g.fillStyle(0x0a0d18, 1).fillRoundedRect(t.x - 16, t.y - 12, 32, 28, 5);
-      g.fillStyle(0x141a2e, 1).fillRoundedRect(t.x - 16, t.y - 16, 32, 26, 5);
-      g.lineStyle(2, t.color, t === S.sel ? 1 : 0.6).strokeRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
+      // plinth: top face plus a darker front face
+      o.fillStyle(0x0a0d18, 1).fillRoundedRect(tx - 16, ty - 8, 32, 18, 5);
+      o.fillStyle(0x141a2e, 1).fillRoundedRect(tx - 16, ty - 14, 32, 18, 5);
+      o.lineStyle(2, t.color, t === S.sel ? 1 : 0.6).strokeRoundedRect(tx - 16, ty - 14, 32, 24, 5);
     }
-    if (t === S.drained) { g.lineStyle(2, 0xff5d6c, 0.9).lineBetween(t.x - 14, t.y - 14, t.x + 14, t.y + 14); }
+    if (t === S.drained) { o.lineStyle(2, 0xff5d6c, 0.9).lineBetween(tx - 14, ty - 24, tx + 14, ty + 4); }
     if (overclocked(t)) g.lineStyle(1, 0xb07cff, 0.9).strokeRoundedRect(t.x - 19, t.y - 19, 38, 38, 6);
+    const cy = ty - 12;
     if (t.super) {
-      g.fillStyle(t.color, 1).fillCircle(t.x, t.y - 3, 8);
-      g.lineStyle(2, t.color, 0.8).strokeCircle(t.x, t.y - 3, 11);
-      g.lineStyle(1, 0xf2c14e, 0.9).strokeCircle(t.x, t.y - 3, 14);
+      o.fillStyle(t.color, 1).fillCircle(tx, cy, 8);
+      o.lineStyle(2, t.color, 0.8).strokeCircle(tx, cy, 11);
+      o.lineStyle(1, 0xf2c14e, 0.9).strokeCircle(tx, cy, 14);
     } else if (t.hybrid) {
-      g.fillStyle(t.color, 1).fillCircle(t.x, t.y - 3, 7);
-      g.lineStyle(2, t.color, 0.7).strokeCircle(t.x, t.y - 3, 11);
-    } else if (!art) {
-      g.fillStyle(t.color, 1);
-      if (t.type === 'arcane') g.fillTriangle(t.x, t.y - 12, t.x - 8, t.y + 4, t.x + 8, t.y + 4);
-      else if (t.type === 'plasma') g.fillCircle(t.x, t.y - 3, 8);
-      else if (t.type === 'frost') g.fillPoints([{ x: t.x, y: t.y - 13 }, { x: t.x + 7, y: t.y - 3 }, { x: t.x, y: t.y + 7 }, { x: t.x - 7, y: t.y - 3 }], true);
-      else if (t.type === 'beacon') { g.fillCircle(t.x, t.y - 3, 5); g.lineStyle(2, t.color, 0.5 + 0.3 * Math.sin(S.time * 3)).strokeCircle(t.x, t.y - 3, 10); }
-      else if (t.type === 'anvil') { g.fillRect(t.x - 10, t.y - 11, 20, 7); g.fillRect(t.x - 4, t.y - 4, 8, 6); g.fillRect(t.x - 8, t.y + 2, 16, 3); }
-      else if (t.type === 'laser') { g.fillPoints([{ x: t.x - 9, y: t.y + 5 }, { x: t.x + 9, y: t.y + 5 }, { x: t.x, y: t.y - 9 }], true); g.fillStyle(0xffffff, 0.5 + 0.5 * Math.min(1, t.stacks / t.rampMax)).fillCircle(t.x, t.y - 1, 3); }
-      else if (t.type === 'mortar') { g.fillRect(t.x - 10, t.y + 1, 20, 6); g.fillCircle(t.x, t.y - 1, 7); g.fillStyle(0x0b0f1c, 1).fillCircle(t.x, t.y - 3, 3); }
-      else g.fillRect(t.x - 4, t.y - 12, 8, 16);
+      o.fillStyle(t.color, 1).fillCircle(tx, cy, 7);
+      o.lineStyle(2, t.color, 0.7).strokeCircle(tx, cy, 11);
     }
     if (t.stunT > 0) {
-      if (!art) o.fillStyle(0x000000, 0.45).fillRoundedRect(t.x - 16, t.y - 16, 32, 32, 5);
+      if (!art) o.fillStyle(0x000000, 0.45).fillRoundedRect(tx - 16, ty - 14, 32, 24, 5);
       const a0 = S.time * 6;
-      o.lineStyle(2, 0xffffff, 0.8).beginPath(); o.arc(t.x, t.y, 20, a0, a0 + 1.4); o.strokePath();
-      o.lineStyle(3, 0xff2e4d, 0.9).beginPath(); o.arc(t.x, t.y, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (t.stunT / (t.stunMax || 1))); o.strokePath();
+      o.lineStyle(2, 0xffffff, 0.8).beginPath(); o.arc(tx, ty - 14, 20, a0, a0 + 1.4); o.strokePath();
+      o.lineStyle(3, 0xff2e4d, 0.9).beginPath(); o.arc(tx, ty - 14, 24, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (t.stunT / (t.stunMax || 1))); o.strokePath();
     }
-    // level pips: 10 small dots in two rows of 5
-    for (let i = 0; i < t.lvl; i++) o.fillStyle(i >= 5 ? 0xff6fd8 : 0xf2c14e, 1).fillCircle(t.x - 10 + (i % 5) * 5, t.y + (art ? 16 : 10) + (i >= 5 ? 0 : 3), 1.6);
+    // level pips: up to 13 small dots under the base, gold then pink past level 5
+    for (let i = 0; i < t.lvl; i++) o.fillStyle(i >= 5 ? 0xff6fd8 : 0xf2c14e, 1).fillCircle(tx - 10 + (i % 5) * 5, ty + FOOT + 4 + (i >= 5 ? 0 : 3), 1.6);
   }
-  g = o; // everything below draws over the tower art
 
-  for (const c of S.coins) { g.fillStyle(0xf2c14e, 1).fillCircle(c.x, c.y, 6); g.lineStyle(1, 0xffffff, 0.8).strokeCircle(c.x, c.y, 8 + 2 * Math.sin(S.time * 6)); }
+  for (const c of S.coins) { const [x, y] = P(c.x, c.y, 6); shadow(g, c.x, c.y, 12); o.fillStyle(0xf2c14e, 1).fillCircle(x, y, 6); o.lineStyle(1, 0xffffff, 0.8).strokeCircle(x, y, 8 + 2 * Math.sin(S.time * 6)); }
   for (const e of S.enemies) {
     if (e.shieldAura) g.lineStyle(1, 0xd8b84a, 0.25).strokeCircle(e.x, e.y, 70);
     if (e.heal) g.lineStyle(2, 0x7dffb0, 0.15 + 0.15 * Math.sin(S.time * 5)).strokeCircle(e.x, e.y, e.r + 6 + 4 * Math.sin(S.time * 5));
     if (e.unslow) { const back = posAt(Math.max(0, e.d - 18)); g.lineStyle(e.r, 0x4fa8ff, 0.35).lineBetween(back.x, back.y, e.x, e.y); }
-    if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; g.lineStyle(1.5, TOWERS.anvil.color, 0.7).lineBetween(e.x, e.y, e.x + Math.cos(a) * (e.r + 4 + e.stillT * 3), e.y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
-    shadow(g, e.x, e.y + e.r * 0.85, e.r * 2.2);
-    g.fillStyle(0x101223, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r + 1.25);
-    g.fillStyle(e.color, e.phase ? 0.45 : 1).fillCircle(e.x, e.y, e.r);
-    g.fillStyle(0xffffff, e.phase ? 0.15 : 0.35).fillCircle(e.x - e.r * 0.35, e.y - e.r * 0.35, e.r * 0.35);
+    shadow(g, e.x, e.y + 4 / K, e.r * 2.2);
+    const [x, y] = P(e.x, e.y, bodyLift(e));
+    if (e.stillT > 0.5 && S.towers.some(t => t.type === 'anvil')) { const n = Math.min(6, 2 + Math.floor(e.stillT)); for (let i = 0; i < n; i++) { const a = i * 2.4; o.lineStyle(1.5, TOWERS.anvil.color, 0.7).lineBetween(x, y, x + Math.cos(a) * (e.r + 4 + e.stillT * 3), y + Math.sin(a) * (e.r + 4 + e.stillT * 3)); } }
+    o.fillStyle(0x101223, e.phase ? 0.45 : 1).fillCircle(x, y, e.r + 1.25);
+    o.fillStyle(e.color, e.phase ? 0.45 : 1).fillCircle(x, y, e.r);
+    o.fillStyle(0xffffff, e.phase ? 0.15 : 0.35).fillCircle(x - e.r * 0.35, y - e.r * 0.35, e.r * 0.35);
     const arm = armorOf(e);
-    if (arm > 0) g.lineStyle(1 + arm * 8, 0xb8c0d8, 0.85).strokeCircle(e.x, e.y, e.r);
-    if (e.hexT > 0) { const a0 = S.time * 4; g.lineStyle(2, 0xb07cff, 0.9).beginPath(); g.arc(e.x, e.y, e.r + 5, a0, a0 + 4); g.strokePath(); }
-    if (e.stunT > 0) g.lineStyle(2, 0xffffff, 0.9).strokeCircle(e.x, e.y, e.r + 2);
-    else if (e.slow) g.lineStyle(2, TOWERS.frost.color, 0.9).strokeCircle(e.x, e.y, e.r + 2);
-    if (e.burnT > 0) g.fillStyle(0xff8a3d, 0.8).fillCircle(e.x, e.y - e.r, 2.5);
-    if (e.boss) g.lineStyle(2, 0xf2c14e, 1).strokeCircle(e.x, e.y, e.r + 4);
+    if (arm > 0) o.lineStyle(1 + arm * 8, 0xb8c0d8, 0.85).strokeCircle(x, y, e.r);
+    if (e.hexT > 0) { const a0 = S.time * 4; o.lineStyle(2, 0xb07cff, 0.9).beginPath(); o.arc(x, y, e.r + 5, a0, a0 + 4); o.strokePath(); }
+    if (e.stunT > 0) o.lineStyle(2, 0xffffff, 0.9).strokeCircle(x, y, e.r + 2);
+    else if (e.slow) o.lineStyle(2, TOWERS.frost.color, 0.9).strokeCircle(x, y, e.r + 2);
+    if (e.burnT > 0) o.fillStyle(0xff8a3d, 0.8).fillCircle(x, y - e.r, 2.5);
+    if (e.boss) o.lineStyle(2, 0xf2c14e, 1).strokeCircle(x, y, e.r + 4);
+    if (e.markT > 0 || e.spotT > 0) o.lineStyle(1.5, 0xff2e4d, 0.9).strokeCircle(x, y, e.r + 7);
     const w = e.r * 2 + 4;
-    g.fillStyle(0x000000, 0.6).fillRect(e.x - w / 2, e.y - e.r - 7, w, 3);
-    g.fillStyle(0x5fe39a, 1).fillRect(e.x - w / 2, e.y - e.r - 7, w * Math.max(0, e.hp / e.max), 3);
+    o.fillStyle(0x000000, 0.6).fillRect(x - w / 2, y - e.r - 7, w, 3);
+    o.fillStyle(0x5fe39a, 1).fillRect(x - w / 2, y - e.r - 7, w * Math.max(0, e.hp / e.max), 3);
   }
 
   if (h.tx !== null && !h.ko) g.lineStyle(1, hc, 0.5).strokeCircle(h.tx, h.ty, 6);
@@ -2962,33 +3104,34 @@ function draw(g, o) {
     g.lineStyle(2, 0xffd36e, 0.95).strokeCircle(a.x, a.y, 10);
     g.lineBetween(a.x - 15, a.y, a.x - 5, a.y); g.lineBetween(a.x + 5, a.y, a.x + 15, a.y); g.lineBetween(a.x, a.y - 15, a.x, a.y - 5); g.lineBetween(a.x, a.y + 5, a.x, a.y + 15);
   }
+  const [hx, hy] = P(h.x, h.y, 12);
   if (h.ko) {
-    g.fillStyle(0x8d95b8, 0.3).fillCircle(h.x, h.y, 13);
-    g.lineStyle(3, hc, 0.8).beginPath();
-    g.arc(h.x, h.y, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - h.ko / h.respawn)); g.strokePath();
+    o.fillStyle(0x8d95b8, 0.3).fillCircle(hx, hy, 13);
+    o.lineStyle(3, hc, 0.8).beginPath();
+    o.arc(hx, hy, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - h.ko / h.respawn)); o.strokePath();
   } else {
     const HX = S.heroics;
     if (HX.wither) g.fillStyle(0x7a2e5a, 0.12).fillCircle(h.x, h.y, 90 + 20 * HX.wither);
     if (h.range < 9999) g.lineStyle(1, hc, 0.15).strokeCircle(h.x, h.y, h.range);
-    if (h.brace) { const ready = h.braceT >= h.brace; g.lineStyle(ready ? 3 : 2, ready ? 0xffd36e : 0x8d95b8, ready ? 0.95 : 0.6).beginPath(); g.arc(h.x, h.y, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (h.braceT / h.brace)); g.strokePath(); }
-    if (h.hold) { g.lineStyle(2, 0xf2c14e, 0.9).strokeRect(h.x - 17, h.y - 17, 34, 34); }
-    if (h.shield > 0) { g.fillStyle(0x9af0ff, 0.15).fillCircle(h.x, h.y, 28); g.lineStyle(3, 0x9af0ff, 0.9).beginPath(); g.arc(h.x, h.y, 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * h.shield / h.shieldMax); g.strokePath(); }
-    if (h.odT > 0) g.lineStyle(2, 0xff6f6f, 0.5 + 0.4 * Math.sin(S.time * 20)).strokeCircle(h.x, h.y, 24);
-    shadow(g, h.x, h.y + 12, 30);
-    g.fillStyle(hc, 0.2).fillCircle(h.x, h.y, 18);
-    g.fillStyle(0x101223, 1).fillCircle(h.x, h.y, 13.25);
-    g.fillStyle(hc, 1).fillCircle(h.x, h.y, 12);
-    g.fillStyle(0xffffff, 0.35).fillCircle(h.x - 4, h.y - 4, 4);
-    g.fillStyle(0x0b0f1c, 1).fillCircle(h.x, h.y, 5);
-    g.fillStyle(0x000000, 0.6).fillRect(h.x - 16, h.y - 24, 32, 4);
-    g.fillStyle(0x5fe39a, 1).fillRect(h.x - 16, h.y - 24, 32 * h.hp / h.maxHp, 4);
-    if (h.ab.t > 0) { g.lineStyle(2, 0xb07cff, 0.7).beginPath(); g.arc(h.x, h.y, 21, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - h.ab.t / h.ab.cd)); g.strokePath(); }
-    else g.lineStyle(2, 0xb07cff, 0.9).strokeCircle(h.x, h.y, 21);
+    if (h.hold) g.lineStyle(2, 0xf2c14e, 0.9).strokeRect(h.x - 17, h.y - 17, 34, 34);
+    shadow(g, h.x, h.y, 30);
+    if (h.brace) { const ready = h.braceT >= h.brace; o.lineStyle(ready ? 3 : 2, ready ? 0xffd36e : 0x8d95b8, ready ? 0.95 : 0.6).beginPath(); o.arc(hx, hy, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (h.braceT / h.brace)); o.strokePath(); }
+    if (h.shield > 0) { o.fillStyle(0x9af0ff, 0.15).fillCircle(hx, hy, 28); o.lineStyle(3, 0x9af0ff, 0.9).beginPath(); o.arc(hx, hy, 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * h.shield / h.shieldMax); o.strokePath(); }
+    if (h.odT > 0) o.lineStyle(2, 0xff6f6f, 0.5 + 0.4 * Math.sin(S.time * 20)).strokeCircle(hx, hy, 24);
+    o.fillStyle(hc, 0.2).fillCircle(hx, hy, 18);
+    o.fillStyle(0x101223, 1).fillCircle(hx, hy, 13.25);
+    o.fillStyle(hc, 1).fillCircle(hx, hy, 12);
+    o.fillStyle(0xffffff, 0.35).fillCircle(hx - 4, hy - 4, 4);
+    o.fillStyle(0x0b0f1c, 1).fillCircle(hx, hy, 5);
+    o.fillStyle(0x000000, 0.6).fillRect(hx - 16, hy - 24, 32, 4);
+    o.fillStyle(0x5fe39a, 1).fillRect(hx - 16, hy - 24, 32 * h.hp / h.maxHp, 4);
+    if (h.ab.t > 0) { o.lineStyle(2, 0xb07cff, 0.7).beginPath(); o.arc(hx, hy, 21, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - h.ab.t / h.ab.cd)); o.strokePath(); }
+    else o.lineStyle(2, 0xb07cff, 0.9).strokeCircle(hx, hy, 21);
     if (HX.blades) for (let i = 0; i < HX.blades + 1; i++) {
-      const ang = S.time * 3 + i * Math.PI * 2 / (HX.blades + 1);
-      g.fillStyle(0xe6e9f5, 1).fillCircle(h.x + Math.cos(ang) * 42, h.y + Math.sin(ang) * 42, 5);
+      const ang = S.time * 3 + i * Math.PI * 2 / (HX.blades + 1), [bx, by] = P(h.x + Math.cos(ang) * 42, h.y + Math.sin(ang) * 42, 10);
+      o.fillStyle(0xe6e9f5, 1).fillCircle(bx, by, 5);
     }
-    if (HX.drone) for (let i = 0; i < HX.drone; i++) g.fillStyle(0x5fe39a, 1).fillRect(h.x + (i ? -26 : 18), h.y - 26, 8, 8);
+    if (HX.drone) for (let i = 0; i < HX.drone; i++) o.fillStyle(0x5fe39a, 1).fillRect(hx + (i ? -26 : 18), hy - 26, 8, 8);
   }
 
   for (const z of S.zones) {
@@ -2997,21 +3140,18 @@ function draw(g, o) {
     else if (z.vortex) { for (let i = 0; i < 3; i++) g.lineStyle(2, z.color, 0.8 * a).strokeCircle(z.x, z.y, z.r * (1 - ((S.time * 1.5 + i / 3) % 1))); g.fillStyle(0x000000, 0.4 * a).fillCircle(z.x, z.y, z.r * 0.3); }
     else { g.fillStyle(z.color, (0.12 + 0.1 * pulse) * a).fillCircle(z.x, z.y, z.r); g.lineStyle(2, z.color, 0.6 * a).strokeCircle(z.x, z.y, z.r); }
   }
-  for (const e of S.enemies) {
-    if (e.tauntT > 0 && !S.hero.ko) g.lineStyle(1, 0xff5d6c, 0.5).lineBetween(e.x, e.y, S.hero.x, S.hero.y);
-    if (e.markT > 0 || e.spotT > 0) g.lineStyle(1.5, 0xff2e4d, 0.9).strokeCircle(e.x, e.y, e.r + 7);
-  }
+  for (const e of S.enemies) if (e.tauntT > 0 && !S.hero.ko) g.lineStyle(1, 0xff5d6c, 0.5).lineBetween(e.x, e.y, S.hero.x, S.hero.y);
   if (S.enemies.some(e => BIG_BOSS[e.type] && e.d / PATH_LEN >= 0.75)) g.lineStyle(4, 0xff2e4d, 0.5 + 0.5 * Math.sin(S.time * 12)).strokeCircle(BASE.x, BASE.y, 44);
   for (const sh of S.shells || []) {
-    const u = sh.t / sh.T, gx = sh.x0 + (sh.x1 - sh.x0) * u, gy = sh.y0 + (sh.y1 - sh.y0) * u;
-    const arc = Math.min(140, Math.hypot(sh.x1 - sh.x0, sh.y1 - sh.y0) * 0.4) * Math.sin(Math.PI * u);
+    const u = sh.wait > 0 ? 0 : sh.t / sh.T, gx = sh.x0 + (sh.x1 - sh.x0) * u, gy = sh.y0 + (sh.y1 - sh.y0) * u;
     g.lineStyle(1, 0xff5d6c, 0.25 + 0.4 * u).strokeCircle(sh.x1, sh.y1, sh.tw.splash * (1.1 - 0.3 * u));
     g.fillStyle(0x000000, 0.35).fillCircle(gx, gy, 4);
-    if (!spriteTower(sh.tw)) g.fillStyle(sh.tw.color, 1).fillCircle(gx, gy - arc, 5 + 2 * sh.mult);
+    if (!spriteTower(sh.tw)) { const arc = Math.min(140, Math.hypot(sh.x1 - sh.x0, sh.y1 - sh.y0) * 0.4) * Math.sin(Math.PI * u); o.fillStyle(sh.tw.color, 1).fillCircle(gx, SY(gy) - arc, 5 + 2 * sh.mult); }
   }
+  // effect lines are shots and beams at chest height; rings are blasts spreading on the ground
   for (const f of S.fx) {
     const a = f.t / f.T;
-    if (f.k === 'line') g.lineStyle(f.w, f.color, a).lineBetween(f.x1, f.y1, f.x2, f.y2);
+    if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - 12, f.x2, SY(f.y2) - 12);
     else {
       const r = f.r * (1.2 - a * 0.4);
       if (f.fill) g.fillStyle(f.color, a * 0.2).fillCircle(f.x, f.y, r);
@@ -3027,15 +3167,17 @@ function shake(intensity, ms) { if (SCENE) SCENE.cameras.main.shake(ms, intensit
 class Main extends Phaser.Scene {
   preload() { loadArt(this); }
   create() {
-    this.cameras.main.setZoom(PX).centerOn(W / 2, H / 2);
-    this.g = this.add.graphics(); this.o = this.add.graphics().setDepth(2); SCENE = this;
+    this.cameras.main.setZoom(PX).centerOn(W / 2, VH / 2);
+    this.g = this.add.graphics().setScale(1, K).setPosition(0, TOP).setDepth(0.5); this.o = this.add.graphics().setDepth(2); SCENE = this;
     makeAnims(this);
     this.input.mouse.disableContextMenu();
-    this.input.on('pointerdown', p => { hideTip(); if (!S || !S.hero) return; p.rightButtonDown() ? handleRight(p.worldX, p.worldY) : handleClick(p.worldX, p.worldY, p.wasTouch); });
+    // the pointer is on the tilted screen: turn it back into a point on the flat field
+    const wy = p => (p.worldY - TOP) / K;
+    this.input.on('pointerdown', p => { hideTip(); if (!S || !S.hero) return; p.rightButtonDown() ? handleRight(p.worldX, wy(p)) : handleClick(p.worldX, wy(p), p.wasTouch); });
     this.input.on('pointermove', p => {
       if (!S || !S.hero) return;
-      S.hover = cellAt(p.worldX, p.worldY); S.pointer = { x: p.worldX, y: p.worldY };
-      const t = !S.paused && towerAt(S.hover.c, S.hover.r);
+      S.hover = cellAt(p.worldX, wy(p)); S.pointer = { x: p.worldX, y: wy(p) };
+      const t = !S.paused && pickTower(S.hover.c, S.hover.r);
       if (t && !p.wasTouch) {
         tipTower = t;
         const ev = p.event, rect = { left: ev.clientX, top: ev.clientY, width: 0, bottom: ev.clientY };
@@ -3086,7 +3228,7 @@ window.addEventListener('keydown', e => {
 
 window.riftguard = { get state() { return S; }, music: bgm };
 new Phaser.Game({
-  type: Phaser.AUTO, parent: 'board', width: W * PX, height: H * PX, backgroundColor: '#101223', pixelArt: true, roundPixels: true,
+  type: Phaser.AUTO, parent: 'board', width: W * PX, height: VH * PX, backgroundColor: '#101223', pixelArt: true, roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
   scene: Main, banner: false,
 });
