@@ -2,6 +2,19 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.18: 3/4 board, tower upgrade overhaul, mastery and simple explanations
+
+- **Hits land when the shot lands.** Tower damage now waits for the projectile to reach its target, and each shot leaves on the firing frame of the tower's attack animation. Tesla jumps hit as each spark arrives, Siege Mortar shells leave on the muzzle flash, and the Grave Anvil hits on the frame its hammer lands.
+- **The board is drawn in the same 3/4 view as the towers.** The ground is foreshortened like the tops of the tower bases, lanes are sunk into the plating with a wall on their far side, and the platform has a back wall and a front face. Towers, enemies and the hero stand upright on it.
+- **Respawn upgrades are for tanks only.** Quick Reboot now only appears for Defensive heroes.
+- **Offensive heroes see fewer utility picks.** Grounded (shorter boss stuns) rarely shows up for them.
+- **Crits start at 150% damage**, and Lethal Edge (more crit damage) is only offered once your hero has some crit chance.
+- **New all-tower upgrades on the Towers page:** Main Effect (damage for attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon), Upgrade Cost Reduction, Attack Range and Attack Speed. The old per-tower Power, Supply Line and Veteran Crew upgrades are gone and their Rift Shards are refunded.
+- **Signatures are each tower's Boss Core upgrade** (20 Boss Cores). Signatures you already bought stay owned.
+- **Each tower has an info page** with what it does, its paths and masteries, stats, and discoveries you unlock by playing: which merges it makes and which path combinations name a new form.
+- **Simple or detailed explanations.** A new Explanations setting (in Settings and the pause menu) switches every upgrade, ability, item and tower description to a short plain version without numbers.
+- **Kill counters and mastery.** Towers and the hero count kills in a run, and the Heroes and Towers pages show lifetime kills and a mastery level for each. Mastery can't pass level 10 until that tower or hero has beaten the first map, 20 until the second, and so on up to 50.
+
 ## 0.17: Seamless music loop and a smarter Piercing Shot
 
 - **Riftwalker loops seamlessly.** Music now plays through the game's audio engine instead of a basic audio player, which left a gap every time a song repeated. The song's silent lead-in and end are trimmed so it loops exactly on the bar, and the echo that rings past the end is blended into the start.
