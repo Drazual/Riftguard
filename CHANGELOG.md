@@ -2,6 +2,20 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.19: Kills and takedowns, merge anything, new Hard and Challenge waves, pause and first-time help
+
+- **Kills and takedowns.** A kill means that tower or hero landed the final hit. A takedown means the enemy died and that unit had damaged it. Both show on towers, the hero card, the end-of-run screen and the Heroes and Towers pages.
+- **Every tower merges with every other.** The Grave Anvil, Prism Laser, Siege Mortar and Rift Beacon now merge too, adding 22 new hybrids (28 in all). Anvil hybrids hit stopped enemies 50% harder, Beacon hybrids buff nearby towers and still shoot, Laser hybrids heat up on one target, and Mortar hybrids reach farther.
+- **Swap abilities when choosing your hero.** The picked hero's two abilities sit at the top of the hero select screen.
+- **Hard waves** now just make enemies tougher with one or two of: more HP, more armor, more speed, regeneration, more enemies, or weaker slows. They pay a small amount of gold.
+- **Challenge waves** add one toughness mod, a handicap (Swarm, Blitz, Iron Tide, Lone Hero, towers deal 25% less damage, or your hero can't attack) and a goal you must meet for the reward: lose no base HP, Last Stand (one leak loses the run), beat the timer, or keep your hero from being knocked out. The reward scales with how hard the mix is: gold, a free hero upgrade from 4 points, a relic from 5. Legendary and Secret waves also have a goal. A reminder with the goal and every mod sits at the top of the board while the wave is chosen or running.
+- **Each upgrade path is priced on its own.** Putting points into one path no longer makes the tower's other paths more expensive.
+- **Gold upgrades are Mythic or rarer.** Bounty Sigil, War Tithe and Investments only appear at Mythic and above, with lower base values.
+- **Esc backs out one step** from every menu, popup and screen.
+- **Pause button** (or P). The run freezes so you can read; you can still click towers to inspect them.
+- **First-time help.** Each page explains itself the first time you open it, and a popup explains merging the first time you have two maxed towers that can merge.
+- **"It's like I'm new"** on the main menu erases every save so the game plays like a first launch.
+
 ## 0.18: 3/4 board, tower upgrade overhaul, mastery and simple explanations
 
 - **Hits land when the shot lands.** Tower damage now waits for the projectile to reach its target, and each shot leaves on the firing frame of the tower's attack animation. Tesla jumps hit as each spark arrives, Siege Mortar shells leave on the muzzle flash, and the Grave Anvil hits on the frame its hammer lands.
