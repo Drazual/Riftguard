@@ -2,6 +2,18 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.23: New maps, super towers, wizard elements, menu upgrades to 10
+
+- **Four new maps**, each built from its own tileset with new layouts: Sunset Outpost, Neon Boardwalk (with a strip of sea along the bottom), Chroma Reactor (with coolant pools) and Spiral Rift Garden (a spiral into a base in the middle). Each map has its own decorations, and nothing can be built on decorations or water. Progress and best scores carry over from the old maps in the same order.
+- **New buttons** in the Riftguard UI kit style: chamfered pixel frames with normal, hover, pressed and disabled looks.
+- **Super towers** (two maxed hybrids merged) now cost 20,000 gold and are far stronger. Every base tower inside gives a signature power, cast in turn every 5 seconds: Rift Collapse, Supernova, Absolute Zero, Thunder God, Ascension, World Breaker, Heaven Lance and Meteor Rain.
+- **Wizard elements:** buy Lightning, Nature, Void and Light on the Heroes page, each with its own spells, ultimate, and combination spells with every other element. Choose which elements to take on a run: 4 to start, and one more slot at mastery 5, 15, 25 and 35 (keys Q W E R, then A S D F).
+- **Wizard walls lock onto the path grid,** and the tile they will land on lights up while a wall spell is readied.
+- **Menu upgrades go to 10 ranks** and cost twice as much, with smaller steps so 10 ranks stay balanced (Lucky Star and Fortune's Favor together still leave Common and Uncommon as most offers). Ranks bought before this update are refunded in full.
+- **Oracle:** Rapid Construction (free level-ups) is only offered at Rare or better, and the aura now covers exactly the build range.
+- **Upgrade pool:** the boss-stun resistance upgrade is gone, and the Wizard is never offered attack speed.
+- **Rift Bazaar:** Merge Catalyst is replaced by Titanbreaker Rounds (towers deal more damage to bosses).
+
 ## 0.22: The Wizard, Just a Phase, playlists, smoother walking
 
 - **New hero: the Wizard** (Special). No auto-attack: ready elements with Q (fire), W (water), E (earth) and R (air), then left-click to cast at the cursor. Spells cost mana, which refills over time.
