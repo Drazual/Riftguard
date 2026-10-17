@@ -2,6 +2,21 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.22: The Wizard, Just a Phase, playlists, smoother walking
+
+- **New hero: the Wizard** (Special). No auto-attack: ready elements with Q (fire), W (water), E (earth) and R (air), then left-click to cast at the cursor. Spells cost mana, which refills over time.
+  - One element: Fireball (bursts and burns the ground), Frost Burst (freezes), Stone Wall (blocks the path until it breaks or fades), Gust (blows enemies backward).
+  - The same element twice casts a bigger version: Greater Fireball, Deep Freeze, Great Wall, Cyclone.
+  - Two elements cast a combination: Scalding Torrent (fire + water: pushes back, damages, and enemies take 25% more damage for 5s), Meteor, Firestorm, Quagmire, Blizzard and Sandstorm.
+  - Heroes page upgrades: Spell Potency, Arcane Reservoir, Mana Flow, and Third Rune, which unlocks readying three runes: four ultimate spells (Inferno, Absolute Zero, Earthquake, Tempest) and overcharged mixed spells.
+  - The Wizard moves only with the mouse (right-click, or left-click empty ground). Its own level-up upgrades, two legendaries and three heroic powers come with it. The Heroes page shows the full spellbook.
+- **New song: Just a Phase.** Beat Verdant Rift to unlock it; the end screen offers to switch to it. It loops seamlessly on its 128-bar loop.
+- **Music player:** tick songs into a playlist, then play it in order, shuffle it, or loop one song.
+- **Master volume** slider in Settings and on the Music page, starting at 20%.
+- **Smoother hero walking.** The walk frames were rebuilt so heads are never cut off, feet stay planted on the same ground line, and the body doesn't wobble side to side between steps.
+- **Orbital Strike lands on your cursor**, with a ring showing where while it's ready.
+- **Balance:** every enemy has 25% more HP, and tower level-ups cost 15% more.
+
 ## 0.21: Rising tower prices, role mastery, cleaner upgrade offers, everything unlocked
 
 - **Towers get pricier as you buy them.** Each tower you buy makes that tower 50% more expensive and every other tower 15% more expensive. Selling a tower takes its purchase back off the price.

@@ -368,6 +368,7 @@ export const SIMPLE = {
   'hero:striker': 'Fast and deadly, but fragile.',
   'hero:oracle': 'Makes your towers stronger and faster.',
   'hero:sniper': 'Shoots anywhere on the map, but slowly.',
+  'hero:wizard': 'Casts elemental spells with Q W E R and left-click. No auto-attack.',
 
   // ---------- enemies (ENEMY_INFO) ----------
   'enemy:grunt': 'A basic enemy with nothing special.',
@@ -419,4 +420,5 @@ export const SIMPLE = {
   'role:offensive': 'Your hero deals more damage, reaches farther and attacks faster.',
   'role:defensive': 'Your hero gets more HP, takes less damage and heals faster.',
   'role:support': 'Your hero and aura reach farther and you gain more XP.',
+  'role:special': 'Your spells hit harder and you get more mana.',
 };
