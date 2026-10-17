@@ -61,6 +61,22 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .spacer { flex: 1; }
 .go { background: var(--tech); color: var(--void); border-color: var(--tech); font-weight: 700; }
 .go:hover:not(:disabled) { filter: brightness(1.1); }
+/* UI kit buttons: the Riftguard pixel frame (chamfered border, side tabs, inner brackets) as a 9-slice border image,
+   one image per state. Cards (upgrade picks, map and hero choices, path upgrades) keep their own panel look. */
+button:not(.choice):not(.el-card):not(.rune):not(.up):not(.reset-btn):not(.roster button) {
+  border-style: solid; border-width: 6px 16px; border-radius: 0; border-image: url('./assets/ui/btn_normal.png') 6 16 / 6px 16px stretch;
+  background: #0b1328; background-clip: padding-box; padding: 3px 0; image-rendering: pixelated; min-height: 34px; box-shadow: none;
+}
+.roster button:not(.choice) { border: 1px solid var(--line); border-left-width: 4px; border-image: none; border-radius: 5px; background: var(--panel); padding: 12px 14px; }
+button:not(.choice):not(.el-card):not(.rune):not(.up):not(.reset-btn):not(.roster button):hover:not(:disabled) { border-image-source: url('./assets/ui/btn_hover.png'); background-color: #0f1a33; }
+button:not(.choice):not(.el-card):not(.rune):not(.up):not(.reset-btn):not(.roster button):active:not(:disabled),
+button.on:not(.choice):not(.el-card):not(.rune):not(.up):not(.roster button) { border-image-source: url('./assets/ui/btn_pressed.png'); background-color: #ee2a92; color: #fff; box-shadow: none; }
+button:not(.choice):not(.el-card):not(.rune):not(.up):not(.reset-btn):not(.roster button):disabled { border-image-source: url('./assets/ui/btn_disabled.png'); background-color: #1d1c3a; color: #a58ad8; opacity: .85; }
+button.go:not(.choice) { border-image-source: url('./assets/ui/btn_hover.png'); background-color: #0f1a33; color: #fff; text-shadow: 0 0 6px rgba(53,232,242,.8); }
+button.go:not(.choice):hover:not(:disabled) { filter: none; border-image-source: url('./assets/ui/btn_pressed.png'); background-color: #ee2a92; text-shadow: none; }
+.menu button, .screen-head button, #modalBox .row button { text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+button.on:not(.choice) .c, button.on:not(.choice) kbd { color: #fff; }
+#abilityBtn.ability { background: linear-gradient(90deg, rgba(176,124,255,.45) var(--fill), #0b1328 var(--fill)); background-clip: padding-box; }
 .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
 .tag { font-size: 12px; padding: 2px 7px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line); }
 .tag.relic { border-color: var(--gold); color: var(--gold); }
@@ -302,3 +318,12 @@ button.danger { border-color: var(--danger); color: var(--danger); }
 .spellbook li.locked { opacity: .5; }
 .sb-keys { display: inline-flex; gap: 3px; }
 .rune-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+/* Wizard elements on the Heroes page: owned ones toggle in and out of the run, the rest are bought with shards. */
+.el-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 8px 0 14px; }
+.el-card { display: flex; flex-direction: column; gap: 3px; text-align: left; border: 1px solid var(--line); border-left: 4px solid var(--el); border-radius: 6px; background: var(--panel); padding: 10px; }
+.el-card b { color: var(--el); }
+.el-card small { color: var(--muted); font-family: var(--body); font-size: 12px; line-height: 1.35; }
+.el-card em { color: #9fd8ff; font-style: normal; font-family: var(--display); font-size: 13px; }
+.el-card.on { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--el); }
+.el-card.on small { color: var(--text); }
+.el-card:hover:not(:disabled) { border-color: var(--el); }

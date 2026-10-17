@@ -7,22 +7,28 @@ import { SIMPLE } from './simple.js';
 (() => {
 const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, CHOICE_FROM = 5;
 let MAX_WAVE = 20; // set per map in newRun
+// Each map is drawn from its own tileset (src/assets/maps). water: tiles nobody can build on. props: how many
+// decorations to scatter on open ground well away from the path; they block building too.
 const MAPS = {
-  verdant:  { name: 'Verdant Rift', tier: 'Level 1', waves: 20, shardMul: 1, desc: 'The standard run. No modifiers.',
-    path: [[-1,2],[5,2],[5,7],[2,7],[2,12],[11,12],[11,4],[17,4],[17,10],[23,10]] },
-  ironhold: { name: 'Ironhold', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, price: 1.3, desc: 'Enemies have 40% more HP and everything costs 30% more.',
-    path: [[-1,7],[4,7],[4,2],[10,2],[10,12],[15,12],[15,3],[20,3],[20,8],[23,8]] },
-  warped:   { name: 'Warped Spire', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
-    path: [[-1,12],[6,12],[6,3],[12,3],[12,9],[18,9],[18,2],[23,2]] },
-  maelstrom: { name: 'Rift Maelstrom', tier: 'Level 4', waves: 35, shardMul: 2.5, enemyHp: 1.8, armorBonus: 0.1, early: 2, tyrantCores: 8,
+  verdant:  { name: 'Sunset Outpost', theme: 'sunset', tier: 'Level 1', waves: 20, shardMul: 1, props: 12, desc: 'The standard run. No modifiers.',
+    path: [[-1,3],[5,3],[5,11],[10,11],[10,5],[15,5],[15,11],[20,11],[20,6],[23,6]] },
+  ironhold: { name: 'Neon Boardwalk', theme: 'boardwalk', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, price: 1.3, props: 11, water: [[0,14,24,1]],
+    desc: 'Enemies have 40% more HP and everything costs 30% more.',
+    path: [[-1,11],[3,11],[3,2],[8,2],[8,8],[12,8],[12,2],[17,2],[17,11],[21,11],[21,5],[23,5]] },
+  warped:   { name: 'Chroma Reactor', theme: 'reactor', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, props: 11, water: [[13,0,2,2],[22,13,2,2]],
+    desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
+    path: [[-1,2],[7,2],[7,6],[2,6],[2,12],[11,12],[11,4],[16,4],[16,12],[21,12],[21,2],[23,2]] },
+  maelstrom: { name: 'Spiral Rift Garden', theme: 'garden', tier: 'Level 4', waves: 35, shardMul: 2.5, enemyHp: 1.8, armorBonus: 0.1, early: 2, tyrantCores: 8, props: 9,
     desc: 'A long spiral into a base in the middle. Rift Storm: enemies have 80% more HP, armored enemies get +10% armor, and special enemies show up 2 waves early. The final Tyrant drops 8 Boss Cores.',
-    path: [[-1,1],[22,1],[22,13],[1,13],[1,4],[19,4],[19,10],[4,10],[4,7],[15,7]] },
+    path: [[-1,13],[22,13],[22,1],[1,1],[1,10],[18,10],[18,4],[5,4],[5,7],[13,7]] },
 };
 // Maps unlock in order: beat one to open the next.
 const MAP_ORDER = ['verdant', 'ironhold', 'warped', 'maelstrom'];
 function mapUnlocked(id) { const i = MAP_ORDER.indexOf(id); return i <= 0 || !!(META.best[MAP_ORDER[i - 1]] && META.best[MAP_ORDER[i - 1]].won); }
-let WP, SEG, PATH_LEN, pathCells, BASE;
+let WP, SEG, PATH_LEN, pathCells, BASE, MAP_ID, waterCells, mapProps, blockedCells;
+const cellHash = (c, r, i) => { let v = (c * 73856093) ^ (r * 19349663) ^ (i * 83492791); v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967296; };
 function setMap(id) {
+  MAP_ID = id;
   WP = MAPS[id].path.map(([c, r]) => ({ x: c * C + C / 2, y: r * C + C / 2 }));
   SEG = []; PATH_LEN = 0;
   for (let i = 0; i < WP.length - 1; i++) {
@@ -40,6 +46,17 @@ function setMap(id) {
     }
   }
   BASE = WP[WP.length - 1];
+  // Water and decorations: never on the path, decorations at least 2 tiles clear of it and 3 apart.
+  waterCells = new Set();
+  for (const [c0, r0, w, h] of MAPS[id].water || []) for (let c = c0; c < c0 + w; c++) for (let r = r0; r < r0 + h; r++) if (!pathCells.has(c + ',' + r)) waterCells.add(c + ',' + r);
+  const nearPath = (c, r, d) => { for (let dc = -d; dc <= d; dc++) for (let dr = -d; dr <= d; dr++) if (pathCells.has((c + dc) + ',' + (r + dr))) return true; return false; };
+  const start = { c: Math.floor((BASE.x - 80) / C), r: Math.floor((BASE.y > 120 ? BASE.y - 60 : BASE.y + 60) / C) }, open = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (!waterCells.has(c + ',' + r) && !nearPath(c, r, 1) && Math.hypot(c - start.c, r - start.r) > 2) open.push({ c, r });
+  open.sort((a, b) => cellHash(a.c, a.r, 7) - cellHash(b.c, b.r, 7));
+  mapProps = [];
+  for (const p of open) if (mapProps.length < (MAPS[id].props || 0) && !mapProps.some(q => Math.max(Math.abs(q.c - p.c), Math.abs(q.r - p.r)) < 3)) mapProps.push(p);
+  mapProps.sort((a, b) => a.r - b.r);
+  blockedCells = new Set([...waterCells, ...mapProps.map(p => p.c + ',' + p.r)]);
 }
 setMap('verdant');
 function posAt(d) {
@@ -262,7 +279,70 @@ const SUPERS = {
   'arcane+plasma+tesla':       { name: 'Nova Battery',     color: 0xffe08a, desc: 'Heavy bolts that explode and throw lightning across the field.' },
   'frost+plasma+tesla':        { name: 'Tempest Engine',   color: 0xc8f5ff, desc: 'A storm of scalding, freezing, crackling blasts. Nothing in range moves fast.' },
 };
-const MERGE_COST = 1000, MAX_LVL = 13, MERGE_LVL = 13, PATH_MAX = 4, SELL_RATE = 0.8;
+// Super towers: two level 13 hybrids fused for 20,000 gold. Every base tower inside gives it a signature power,
+// and it casts them in turn every few seconds while enemies are in range. Damage is in multiples of its own hit.
+const SUPER_POWERS = {
+  arcane: { name: 'Rift Collapse', text: 'drags every enemy in range back along the path for 1.5s, hits them for 6× damage, and they take 30% more damage for 5s' },
+  plasma: { name: 'Supernova',     text: 'detonates everything in range for 10× damage and leaves the ground burning for 4s' },
+  frost:  { name: 'Absolute Zero', text: 'freezes every enemy in range for 2.5s (bosses 0.8s), and they take 40% more damage for 5s' },
+  tesla:  { name: 'Thunder God',   text: 'calls down 12 lightning bolts on enemies in range, each for 5× damage and a short stun' },
+  beacon: { name: 'Ascension',     text: 'every tower within 260 fires twice as fast for 6s' },
+  anvil:  { name: 'World Breaker', text: 'slams every enemy in range for 8× damage and stuns them for 1.5s (bosses 0.5s)' },
+  laser:  { name: 'Heaven Lance',  text: 'a beam from orbit hits the toughest enemy in range for 30× damage and everything near it for 8×' },
+  mortar: { name: 'Meteor Rain',   text: 'drops 10 meteors across its range, each dealing 4× damage in a wide blast' },
+};
+const SUPER_CD = 5;
+const superText = t => t.parents.map(k => `${SUPER_POWERS[k].name}: ${SUPER_POWERS[k].text}.`).join(' ');
+function superPower(t) {
+  const R = tRange(t), area = inRange(t.x, t.y, R);
+  if (!area.length) return false;
+  t.spIdx = ((t.spIdx == null ? -1 : t.spIdx) + 1) % t.parents.length;
+  const k = t.parents[t.spIdx], d = t.dmg * S.mod.towerDmg * (t.buff ? 1 + t.buff.dmg : 1), boss = (e, a, b) => e.boss ? b : a;
+  const hit = (list, m, each) => { for (const e of list) { damage(e, d * m, t); if (!e.dead && each) each(e); } };
+  const ring = (x, y, r, color, T, more) => S.fx.push(Object.assign({ k: 'ring', x, y, r, color, t: T, T, fill: true }, more));
+  if (k === 'arcane') {
+    hit(area, 6, e => { if (!(e.pushT > 0)) e.pushSpd = 0; e.pushT = Math.max(e.pushT || 0, boss(e, 1.5, 0.5)); e.pushSpd = Math.max(e.pushSpd, 120); e.brittle = Math.max(e.brittle, 0.3); e.brittleT = Math.max(e.brittleT, 5); });
+    for (let i = 0; i < 3; i++) ring(t.x, t.y, R * (1 - i * 0.25), 0xb07cff, 0.7 + i * 0.15, { shrink: true });
+    shake(0.012, 300);
+  } else if (k === 'plasma') {
+    hit(area, 10); S.zones.push({ x: t.x, y: t.y, r: R * 0.7, t: 4, T: 4, dps: d * 0.8, slow: 0, color: 0xff7a3d });
+    ring(t.x, t.y, R, 0xff7a3d, 0.8); ring(t.x, t.y, R * 0.6, 0xffffff, 0.5); ring(t.x, t.y, R * 1.1, 0xffd36e, 1.1, { fill: false });
+    shake(0.025, 450); sfx('boom');
+  } else if (k === 'frost') {
+    hit(area, 1, e => { e.stunT = Math.max(e.stunT, boss(e, 2.5, 0.8)); e.brittle = Math.max(e.brittle, 0.4); e.brittleT = Math.max(e.brittleT, 5);
+      S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 8, color: 0xdff6ff, t: 0.8, T: 0.8, fill: true }); });
+    ring(t.x, t.y, R, 0x9fe6ff, 1); ring(t.x, t.y, R * 0.5, 0xffffff, 0.6);
+    shake(0.01, 250);
+  } else if (k === 'tesla') {
+    for (let i = 0; i < 12; i++) S.delayed.push({ at: S.time + i * 0.07, fn: () => {
+      const live = inRange(t.x, t.y, R); if (!live.length) return;
+      const e = pick(live); damage(e, d * 5, t); if (!e.dead) e.stunT = Math.max(e.stunT, boss(e, 0.4, 0.15));
+      S.fx.push({ k: 'bolt', x: e.x, y: e.y, color: 0x9cf4dd, t: 0.3, T: 0.3, seed: Math.random() * 1000 }); ring(e.x, e.y, 26, 0x9cf4dd, 0.3);
+    } });
+    shake(0.01, 700);
+  } else if (k === 'beacon') {
+    for (const o of S.towers) if (Math.hypot(o.x - t.x, o.y - t.y) <= 260) { o.ascendT = 6; S.fx.push({ k: 'pillar', x: o.x, y: o.y, w: 8, color: 0xffd36e, t: 0.8, T: 0.8 }); }
+    ring(t.x, t.y, 260, 0xffd36e, 1);
+  } else if (k === 'anvil') {
+    hit(area, 8, e => { e.stunT = Math.max(e.stunT, boss(e, 1.5, 0.5)); });
+    for (let i = 0; i < 3; i++) S.delayed.push({ at: S.time + i * 0.15, fn: () => ring(t.x, t.y, R * (0.5 + i * 0.3), 0xc8a26a, 0.6) });
+    shake(0.035, 500); sfx('boom');
+  } else if (k === 'laser') {
+    const top = area.reduce((a, b) => b.hp > a.hp ? b : a);
+    damage(top, d * 30, t); hit(inRange(top.x, top.y, 70).filter(e => e !== top), 8);
+    S.fx.push({ k: 'pillar', x: top.x, y: top.y, w: 16, color: 0xff6fa0, t: 0.9, T: 0.9 }); ring(top.x, top.y, 70, 0xff6fa0, 0.7);
+    shake(0.02, 300);
+  } else if (k === 'mortar') {
+    for (let i = 0; i < 10; i++) S.delayed.push({ at: S.time + 0.3 + i * 0.12, fn: () => {
+      const live = inRange(t.x, t.y, R), e = live.length ? pick(live) : null;
+      const a = Math.random() * Math.PI * 2, rr = Math.random() * R * 0.8, x = e ? e.x + (Math.random() - 0.5) * 30 : t.x + Math.cos(a) * rr, y = e ? e.y + (Math.random() - 0.5) * 30 : t.y + Math.sin(a) * rr;
+      hit(inRange(x, y, 60), 4); S.fx.push({ k: 'line', x1: x - 80, y1: y - 420, x2: x, y2: y, l1: 0, color: 0xffb35c, t: 0.2, T: 0.2, w: 6 }); ring(x, y, 60, 0xff8a3d, 0.5); shake(0.006, 100);
+    } });
+  }
+  S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 34, color: t.color, t: 0.5, T: 0.5, fill: true });
+  return true;
+}
+const MERGE_COST = 1000, SUPER_COST = 20000, MAX_LVL = 13, MERGE_LVL = 13, PATH_MAX = 4, SELL_RATE = 0.8;
 // Oracle points: cumulative ranks reached after 1, 2 and 3 points.
 const ORACLE_RANKS = [0, 2, 3, 4];
 // Numeric tower traits; merges keep the stronger value of each.
@@ -330,7 +410,7 @@ const HEROES = {
     ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 },
     alt: { id: 'strike', name: 'Orbital Strike', cd: 16, mult: 5, r: 90 } },
   wizard:   { name: 'Wizard', role: 'Special', cat: 'special', color: 0x7fb2ff, css: '#7fb2ff', spells: true,
-    desc: 'A spell caster with no auto-attack. Ready elements with Q W E R and left-click to cast at the cursor: one element, the same one twice for a stronger spell, or two different ones for a combination. Spells cost mana. Moves only with the mouse.',
+    desc: 'A spell caster with no auto-attack. Ready elements with Q W E R (more keys as you take more elements) and left-click to cast at the cursor: one element, the same one twice for a stronger spell, or two different ones for a combination. Spells cost mana. Moves only with the mouse.',
     stats: { hp: 190, dmg: 0, rate: 1, range: 0, block: 1, armor: 0, regen: 2, speed: 140, mana: 100, manaRegen: 7 },
     ability: { id: 'spells', name: 'Spellcraft', cd: 0 } },
 };
@@ -380,7 +460,10 @@ document.addEventListener('mouseover', e => {
 });
 function abilityText(h) {
   const a = h.ab;
-  if (a.id === 'spells') return 'Ready elements with Q (fire), W (water), E (earth) and R (air), then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Spells cost mana.';
+  if (a.id === 'spells') {
+    const keys = S && S.hero && !S.over && S.hero.cls === 'wizard' ? Object.entries(S.runeKeys) : wizLoadout().map((el, i) => [SLOT_KEYS[i], el]);
+    return `Ready elements with ${keys.map(([k, el]) => `${k.toUpperCase()} (${ELEMENTS[el].name.toLowerCase()})`).join(', ')}, then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Spells cost mana.`;
+  }
   if (simple() && SIMPLE['ability:' + a.id]) return SIMPLE['ability:' + a.id];
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
   if (a.id === 'nova') return `Deals ${a.dmg.toFixed(0)} damage to every enemy within ${a.r.toFixed(0)}.`;
@@ -404,8 +487,8 @@ const RARITIES = [
 const RAR = Object.fromEntries(RARITIES.map(r => [r.id, r]));
 const DEMONIC_CHANCE = 0.01;
 function rollRarity() {
-  const luck = (1 + 0.1 * rank(META.global, 'luck')) * (1 + 0.3 * rank(META.global, 'fortune'));
-  const ws = RARITIES.map(x => x.id === 'common' ? x.w * (1 - 0.15 * rank(META.global, 'fortune')) : x.w * luck), total = ws.reduce((a, b) => a + b, 0);
+  const luck = (1 + 0.04 * rank(META.global, 'luck')) * (1 + 0.08 * rank(META.global, 'fortune'));
+  const ws = RARITIES.map(x => x.id === 'common' ? x.w * (1 - 0.04 * rank(META.global, 'fortune')) : x.w * luck), total = ws.reduce((a, b) => a + b, 0);
   let r = Math.random() * total;
   for (let i = 0; i < RARITIES.length; i++) { if ((r -= ws[i]) < 0) return RARITIES[i]; }
   return RARITIES[0];
@@ -424,8 +507,7 @@ const PERKS = [
   { id: 'bounty',  cls: 'offensive', gold: true, name: 'Bounty Sigil', m: 0.8, desc: m => `Enemies your hero kills drop +${Math.max(1, Math.round(m))} gold.`, apply: (h, m) => h.bounty += Math.max(1, Math.round(m)) },
   { id: 'tithe',   cls: 'defensive', also: ['support'], gold: true, name: 'War Tithe', m: 0.3, desc: m => `Every enemy killed by your towers or your hero drops +${Math.max(1, Math.round(m))} gold.`, apply: (h, m) => h.tithe += Math.max(1, Math.round(m)) },
   { id: 'siphon',  cls: 'defensive', name: 'Siphon',        m: 3,    desc: m => `Heal ${Math.round(m)} HP for every kill.`, apply: (h, m) => h.siphon += Math.round(m) },
-  { id: 'grounded', cls: 'any', util: true, name: 'Grounded', m: 0.5, desc: m => `Boss stuns on your towers last ${pct(Math.min(0.8, m))} less (up to 80%).`, apply: (h, m) => h.grounded = 1 - (1 - h.grounded) * (1 - Math.min(0.8, m)) },
-  { id: 'boots',   cls: 'any', name: 'Rift Boots',    m: 0.15, desc: m => `+${pct(m)} move speed and +${pct(m / 2)} attack speed.`, apply: (h, m) => { h.speed *= 1 + m; h.rate /= 1 + m / 2; } },
+  { id: 'boots',   cls: 'any', rate: true, name: 'Rift Boots',    m: 0.15, desc: m => `+${pct(m)} move speed and +${pct(m / 2)} attack speed.`, apply: (h, m) => { h.speed *= 1 + m; h.rate /= 1 + m / 2; } },
   // Vanguard
   { id: 'taunt',   cls: 'vanguard', name: 'Taunt',         m: 2,    desc: m => `After Shield Slam, enemies within 120 stop and attack you for ${m.toFixed(1)}s.`, apply: (h, m) => h.taunt += m },
   { id: 'shell',   cls: 'vanguard', name: 'Hardlight Shell', m: 0.08, desc: m => `Take ${pct(m)} less damage (up to 75%).`, apply: (h, m) => h.armor = Math.min(0.75, h.armor + m) },
@@ -445,7 +527,7 @@ const PERKS = [
   { id: 'wide',    cls: 'striker', ab: 'nova', name: 'Wide Nova',      m: 0.12, desc: m => `Rift Nova radius +${pct(m)}.`, apply: (h, m) => h.ab.r *= 1 + m },
   { id: 'momentum',cls: 'striker', name: 'Momentum',      m: 0.03, desc: m => `Each kill by your hero gives +${pct(m)} attack speed for 4s, stacking up to 10 times.`, apply: (h, m) => h.momentum += m },
   // Oracle
-  { id: 'rapid',   cls: 'oracle', name: 'Rapid Construction', m: 0.6, desc: m => `Towers you build within your aura get their first ${Math.max(1, Math.round(m))} level-up${Math.round(m) > 1 ? 's' : ''} free.`, apply: (h, m) => h.rapid += Math.max(1, Math.round(m)) },
+  { id: 'rapid',   cls: 'oracle', minRar: 'rare', name: 'Rapid Construction', m: 0.6, desc: m => `Towers you build within your aura get their first ${Math.max(1, Math.round(m))} level-up${Math.round(m) > 1 ? 's' : ''} free.`, apply: (h, m) => h.rapid += Math.max(1, Math.round(m)) },
   { id: 'aura',    cls: 'oracle', name: 'Commander Aura',  m: 0.08, desc: m => `Towers near you deal +${pct(m)} more damage.`, apply: (h, m) => h.aura += m },
   { id: 'signal',  cls: 'oracle', name: 'Signal Boost',    m: 0.15, desc: m => `Aura reaches ${pct(m)} farther and all towers get +${pct(m / 3)} range.`, apply: (h, m) => { h.auraRange *= 1 + m; h.towerRange += m / 3; } },
   { id: 'surge',   cls: 'oracle', name: 'Power Surge',     m: 0.15, desc: m => S && S.hero && S.hero.ab.id === 'stasis' ? `Stasis Field slows ${pct(m * 0.75)} more.` : `Overclock Field speeds towers up ${pct(m)} more.`, apply: (h, m) => h.ab.power += m },
@@ -615,7 +697,7 @@ const SHOP_ITEMS = [
   { id: 'matrix',   kind: 'Tower', name: 'Farsight Matrix',  cost: 220, m: 0.12, desc: m => `All towers get +${pct(m)} range.`, apply: m => S.hero.towerRange += m },
   { id: 'codex',    kind: 'Tower', name: 'Mastery Codex',    cost: 450, m: 1,    desc: m => `Every tower can use ${m} more upgrade path${m > 1 ? 's' : ''}.`, apply: m => S.pathBonus += m },
   { id: 'primer',   kind: 'Tower', name: 'Path Primer',      cost: 260, m: 3,    desc: m => `Your next ${m} tower upgrades are free.`, apply: m => S.freeLevels += m },
-  { id: 'catalyst', kind: 'Tower', name: 'Merge Catalyst',   cost: 500, m: 1,    desc: m => `Your next ${m} tower merge${m > 1 ? 's cost' : ' costs'} no gold.`, apply: m => S.freeMerges += m },
+  { id: 'breaker',  kind: 'Tower', name: 'Titanbreaker Rounds', cost: 340, m: 0.3, desc: m => `All towers deal +${pct(m)} damage to bosses.`, apply: m => S.mod.bossDmg += m },
   { id: 'lattice',  kind: 'Tower', name: 'Cryo Lattice',     cost: 280, m: 0.1,  desc: m => `Every tower hit also slows enemies by ${pct(m)}.`, apply: m => S.mod.allSlow += m },
   { id: 'ember',    kind: 'Tower', name: 'Ember Coating',    cost: 280, m: 0.25, desc: m => `Every tower hit also burns for ${pct(m)} of its damage over 2s.`, apply: m => S.mod.allBurn += m },
   { id: 'titan',    kind: 'Hero',  name: 'Titan Frame',      cost: 260, m: 0.4,  desc: m => `Hero +${pct(m)} max HP and takes ${pct(m / 2)} less damage.`, apply: m => { const h = S.hero; h.maxHp = Math.round(h.maxHp * (1 + m)); h.hp = h.maxHp; h.armor = Math.min(0.8, h.armor + m / 2); } },
@@ -639,37 +721,42 @@ const BOONS = {
 // Each hero has its own permanent upgrades, bought with Rift Shards on the Heroes page.
 const HERO_META = {
   vanguard: [
-    { id: 'ironhide', name: 'Ironhide',         max: 5, cost: r => 30 + 25 * r, desc: r => `+${10 * r}% max HP`, apply: (h, r) => h.maxHp = Math.round(h.maxHp * (1 + 0.1 * r)) },
-    { id: 'bastion',  name: 'Bastion Plating',  max: 4, cost: r => 40 + 30 * r, desc: r => `Take ${4 * r}% less damage`, apply: (h, r) => h.armor = Math.min(0.75, h.armor + 0.04 * r) },
-    { id: 'seismic',  name: 'Seismic Training', max: 4, cost: r => 40 + 30 * r, desc: r => `Shield Slam deals +${15 * r}% damage and stuns ${(0.2 * r).toFixed(1)}s longer`, apply: (h, r) => { h.ab.dmg *= 1 + 0.15 * r; h.ab.stun += 0.2 * r; } },
-    { id: 'medic',    name: 'Field Medic',      max: 3, cost: r => 50 + 40 * r, desc: r => `+${(1.5 * r).toFixed(1)} HP regen per second`, apply: (h, r) => h.regen += 1.5 * r },
+    { id: 'ironhide', name: 'Ironhide',         max: 10, cost: r => 60 + 50 * r, desc: r => `+${6 * r}% max HP`, apply: (h, r) => h.maxHp = Math.round(h.maxHp * (1 + 0.06 * r)) },
+    { id: 'bastion',  name: 'Bastion Plating',  max: 10, cost: r => 80 + 60 * r, desc: r => `Take ${2 * r}% less damage`, apply: (h, r) => h.armor = Math.min(0.75, h.armor + 0.02 * r) },
+    { id: 'seismic',  name: 'Seismic Training', max: 10, cost: r => 80 + 60 * r, desc: r => `Shield Slam deals +${8 * r}% damage and stuns ${(0.1 * r).toFixed(1)}s longer`, apply: (h, r) => { h.ab.dmg *= 1 + 0.08 * r; h.ab.stun += 0.1 * r; } },
+    { id: 'medic',    name: 'Field Medic',      max: 10, cost: r => 100 + 80 * r, desc: r => `+${(0.6 * r).toFixed(1)} HP regen per second`, apply: (h, r) => h.regen += 0.6 * r },
   ],
   striker: [
-    { id: 'honed',    name: 'Honed Edge',       max: 5, cost: r => 30 + 25 * r, desc: r => `+${7 * r}% damage`, apply: (h, r) => h.dmg *= 1 + 0.07 * r },
-    { id: 'instinct', name: 'Killer Instinct',  max: 4, cost: r => 40 + 30 * r, desc: r => `+${4 * r}% crit chance`, apply: (h, r) => h.crit += 0.04 * r },
-    { id: 'novam',    name: 'Nova Mastery',     max: 4, cost: r => 40 + 30 * r, desc: r => `Rift Nova deals +${10 * r}% damage and recharges ${6 * r}% faster`, apply: (h, r) => { h.ab.dmg *= 1 + 0.1 * r; h.ab.cd *= 1 - 0.06 * r; } },
-    { id: 'fleet',    name: 'Fleet Foot',       max: 3, cost: r => 50 + 40 * r, desc: r => `+${6 * r}% move and attack speed`, apply: (h, r) => { h.speed *= 1 + 0.06 * r; h.rate /= 1 + 0.06 * r; } },
+    { id: 'honed',    name: 'Honed Edge',       max: 10, cost: r => 60 + 50 * r, desc: r => `+${5 * r}% damage`, apply: (h, r) => h.dmg *= 1 + 0.05 * r },
+    { id: 'instinct', name: 'Killer Instinct',  max: 10, cost: r => 80 + 60 * r, desc: r => `+${2 * r}% crit chance`, apply: (h, r) => h.crit += 0.02 * r },
+    { id: 'novam',    name: 'Nova Mastery',     max: 10, cost: r => 80 + 60 * r, desc: r => `Rift Nova deals +${6 * r}% damage and recharges ${3 * r}% faster`, apply: (h, r) => { h.ab.dmg *= 1 + 0.06 * r; h.ab.cd *= 1 - 0.03 * r; } },
+    { id: 'fleet',    name: 'Fleet Foot',       max: 10, cost: r => 100 + 80 * r, desc: r => `+${3 * r}% move and attack speed`, apply: (h, r) => { h.speed *= 1 + 0.03 * r; h.rate /= 1 + 0.03 * r; } },
   ],
   oracle: [
-    { id: 'resonance', name: 'Resonance',       max: 5, cost: r => 30 + 25 * r, desc: r => `Tower aura gives +${4 * r}% more damage`, apply: (h, r) => h.aura += 0.04 * r },
-    { id: 'longclock', name: 'Long Overclock',  max: 4, cost: r => 40 + 30 * r, desc: r => `Overclock Field lasts ${(0.6 * r).toFixed(1)}s longer`, apply: (h, r) => h.ab.dur += 0.6 * r },
-    { id: 'tithe',     name: 'Rift Tithe',      max: 4, cost: r => 40 + 30 * r, desc: r => `Start each run with +${25 * r} gold`, stat: ['Starting gold bonus', r => 25 * r], apply: (h, r) => S.gold += 25 * r },
-    { id: 'widesig',   name: 'Wide Signal',     max: 3, cost: r => 50 + 40 * r, desc: r => `All towers get +${3 * r}% range`, apply: (h, r) => h.towerRange += 0.03 * r },
+    { id: 'resonance', name: 'Resonance',       max: 10, cost: r => 60 + 50 * r, desc: r => `Tower aura gives +${(2.5 * r).toFixed(1).replace('.0', '')}% more damage`, apply: (h, r) => h.aura += 0.025 * r },
+    { id: 'longclock', name: 'Long Overclock',  max: 10, cost: r => 80 + 60 * r, desc: r => `Overclock Field lasts ${(0.3 * r).toFixed(1)}s longer`, apply: (h, r) => h.ab.dur += 0.3 * r },
+    { id: 'tithe',     name: 'Rift Tithe',      max: 10, cost: r => 80 + 60 * r, desc: r => `Start each run with +${15 * r} gold`, stat: ['Starting gold bonus', r => 15 * r], apply: (h, r) => S.gold += 15 * r },
+    { id: 'widesig',   name: 'Wide Signal',     max: 10, cost: r => 100 + 80 * r, desc: r => `All towers get +${(1.5 * r).toFixed(1).replace('.0', '')}% range`, apply: (h, r) => h.towerRange += 0.015 * r },
   ],
   sniper: [
-    { id: 'rounds',   name: 'Heavy Rounds',     max: 5, cost: r => 30 + 25 * r, desc: r => `+${8 * r}% damage`, apply: (h, r) => h.dmg *= 1 + 0.08 * r },
-    { id: 'stance',   name: 'Steady Stance',    max: 4, cost: r => 40 + 30 * r, desc: r => `Brace ${12 * r}% faster`, apply: (h, r) => h.brace *= 1 - 0.12 * r },
-    { id: 'hollow',   name: 'Hollow Points',    max: 4, cost: r => 40 + 30 * r, desc: r => `+${15 * r}% crit damage`, apply: (h, r) => h.critDmg += 0.15 * r },
-    { id: 'drills',   name: 'Piercing Drills',  max: 3, cost: r => 50 + 40 * r, desc: r => `Piercing Shot recharges ${8 * r}% faster`, apply: (h, r) => h.ab.cd *= 1 - 0.08 * r },
+    { id: 'rounds',   name: 'Heavy Rounds',     max: 10, cost: r => 60 + 50 * r, desc: r => `+${5 * r}% damage`, apply: (h, r) => h.dmg *= 1 + 0.05 * r },
+    { id: 'stance',   name: 'Steady Stance',    max: 10, cost: r => 80 + 60 * r, desc: r => `Brace ${5 * r}% faster`, apply: (h, r) => h.brace *= 1 - 0.05 * r },
+    { id: 'hollow',   name: 'Hollow Points',    max: 10, cost: r => 80 + 60 * r, desc: r => `+${10 * r}% crit damage`, apply: (h, r) => h.critDmg += 0.1 * r },
+    { id: 'drills',   name: 'Piercing Drills',  max: 10, cost: r => 100 + 80 * r, desc: r => `Piercing Shot recharges ${4 * r}% faster`, apply: (h, r) => h.ab.cd *= 1 - 0.04 * r },
   ],
   // book: the same effect on the spellbook's stand-in hero, so the Heroes page shows upgraded numbers
   wizard: [
-    { id: 'potency',  name: 'Spell Potency',    max: 5, cost: r => 30 + 25 * r, desc: r => `Spells deal +${8 * r}% damage`, apply: (h, r) => h.spell *= 1 + 0.08 * r, book: (h, r) => h.spell *= 1 + 0.08 * r },
-    { id: 'reservoir',name: 'Arcane Reservoir', max: 4, cost: r => 40 + 30 * r, desc: r => `+${15 * r} max mana`, apply: (h, r) => { h.maxMana += 15 * r; h.mana = h.maxMana; } },
-    { id: 'flow',     name: 'Mana Flow',        max: 4, cost: r => 40 + 30 * r, desc: r => `+${r} mana per second`, apply: (h, r) => h.manaRegen += r },
-    { id: 'triad',    name: 'Third Rune',       max: 1, cost: () => 150, desc: () => 'Ready 3 runes at once: 4 ultimate spells (the same element three times) and overcharged mixed spells', apply: h => h.runeMax = 3 },
+    { id: 'potency',  name: 'Spell Potency',    max: 10, cost: r => 60 + 50 * r, desc: r => `Spells deal +${5 * r}% damage`, apply: (h, r) => h.spell *= 1 + 0.05 * r, book: (h, r) => h.spell *= 1 + 0.05 * r },
+    { id: 'reservoir',name: 'Arcane Reservoir', max: 10, cost: r => 80 + 60 * r, desc: r => `+${10 * r} max mana`, apply: (h, r) => { h.maxMana += 10 * r; h.mana = h.maxMana; } },
+    { id: 'flow',     name: 'Mana Flow',        max: 10, cost: r => 100 + 80 * r, desc: r => `+${(0.6 * r).toFixed(1)} mana per second`, apply: (h, r) => h.manaRegen += 0.6 * r },
+    { id: 'triad',    name: 'Third Rune',       max: 1, cost: () => 300, desc: () => 'Ready 3 runes at once: an ultimate spell for each element (the same element three times) and overcharged mixed spells', apply: h => h.runeMax = 3 },
   ],
 };
+// What the menu upgrades cost before 0.23 (5 ranks at half price). Those ranks are refunded once, since every
+// rank now does less and goes up to 10.
+const OLD_META_COST = { hero: [r => 30 + 25 * r, r => 40 + 30 * r, r => 40 + 30 * r, r => 50 + 40 * r],
+  global: { gold: r => 25 + 20 * r, lives: r => 25 + 20 * r, reroll: r => 50 + 40 * r, luck: r => 60 + 50 * r, vet: r => 120 + 100 * r, fortune: r => 300 + 250 * r },
+  tower: { main: r => 40 + 30 * r, cost: r => 40 + 35 * r, range: r => 40 + 35 * r, speed: r => 50 + 40 * r } };
 // Special upgrades: bought once with Boss Cores. Mythic tier and up.
 const SPECIALS = [
   { id: 'sovereign', rarity: 'mythic',    cost: 25, name: 'Rift Sovereign',    desc: 'Start every run with a random Legendary upgrade for your hero.' },
@@ -684,23 +771,26 @@ const SPECIALS = [
 ];
 const BOSS_CORES = { knight: 1, warden: 2, tyrant: 5 };
 const BIG_BOSS = { warden: true, tyrant: true };
+// Luck upgrades scale gently: all 10 ranks of both still leave Common and Uncommon as most offers.
+const vetFree = r => Math.floor((r + 2) / 3); // free upgrades at ranks 1, 4, 7 and 10
 const GLOBAL_META = [
-  { id: 'gold',    name: 'War Chest',       max: 5, cost: r => 25 + 20 * r, desc: r => `Start with +${20 * r} gold`, stat: ['Starting gold', r => 150 + 20 * r] },
-  { id: 'lives',   name: 'Reinforced Core', max: 5, cost: r => 25 + 20 * r, desc: r => `Base starts with +${2 * r} HP`, stat: ['Base HP', r => 20 + 2 * r] },
-  { id: 'reroll',  name: 'Fate Weaver',     max: 3, cost: r => 50 + 40 * r, desc: r => `+${r} upgrade reroll${r > 1 ? 's' : ''} per run`, stat: ['Rerolls per run', r => 2 + r] },
-  { id: 'luck',    name: 'Lucky Star',      max: 3, cost: r => 60 + 50 * r, desc: r => `Rarer upgrades are ${10 * r}% more likely`, stat: ['Rarer upgrade odds', r => '+' + 10 * r + '%'] },
-  { id: 'vet',     name: 'Veteran',         max: 2, cost: r => 120 + 100 * r, desc: r => `Start each run with ${r} free hero upgrade${r > 1 ? 's' : ''}`, stat: ['Free hero upgrades at the start', r => r] },
-  { id: 'fortune', name: 'Fortune’s Favor', max: 3, cost: r => 300 + 250 * r, desc: r => `Much better upgrade odds: Rare and above ${30 * r}% more likely, Common ${15 * r}% less likely`, stat: ['Rare and above odds', r => '+' + 30 * r + '%'] },
+  { id: 'gold',    name: 'War Chest',       max: 10, cost: r => 50 + 40 * r, desc: r => `Start with +${15 * r} gold`, stat: ['Starting gold', r => 150 + 15 * r] },
+  { id: 'lives',   name: 'Reinforced Core', max: 10, cost: r => 50 + 40 * r, desc: r => `Base starts with +${Math.round(1.5 * r)} HP`, stat: ['Base HP', r => 20 + Math.round(1.5 * r)] },
+  { id: 'reroll',  name: 'Fate Weaver',     max: 10, cost: r => 100 + 80 * r, desc: r => `+${r} upgrade reroll${r > 1 ? 's' : ''} per run`, stat: ['Rerolls per run', r => 2 + r] },
+  { id: 'luck',    name: 'Lucky Star',      max: 10, cost: r => 120 + 100 * r, desc: r => `Rarer upgrades are ${4 * r}% more likely`, stat: ['Rarer upgrade odds', r => '+' + 4 * r + '%'] },
+  { id: 'vet',     name: 'Veteran',         max: 10, cost: r => 240 + 200 * r, desc: r => `Start each run with ${vetFree(r)} free hero upgrade${vetFree(r) > 1 ? 's' : ''}, and your hero gains ${4 * r}% more XP`,
+    stat: ['Free upgrades / XP gain', r => `${vetFree(r)} / +${4 * r}%`] },
+  { id: 'fortune', name: 'Fortune’s Favor', max: 10, cost: r => 600 + 500 * r, desc: r => `Better upgrade odds: Rare and above ${8 * r}% more likely, Common ${4 * r}% less likely`, stat: ['Rare and above odds', r => '+' + 8 * r + '%'] },
 ];
 // Upgrades for every tower, bought with Rift Shards on the Towers page. Main Effect boosts each tower's main job:
 // damage for the attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon.
 const mainEffect = k => k === 'frost' ? 'slow strength' : k === 'beacon' ? 'damage buff' : 'damage';
 const TOWER_GLOBAL = [
-  { id: 'main',  name: 'Main Effect',            max: 10, cost: r => 40 + 30 * r, desc: r => `Every tower's main effect is ${4 * r}% stronger: damage for attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon`,
+  { id: 'main',  name: 'Main Effect',            max: 10, cost: r => 80 + 60 * r, desc: r => `Every tower's main effect is ${4 * r}% stronger: damage for attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon`,
     simple: 'Every tower is better at its main job.', stat: ['Main effect', r => '+' + 4 * r + '%'] },
-  { id: 'cost',  name: 'Upgrade Cost Reduction', max: 5,  cost: r => 40 + 35 * r, desc: r => `Tower level-ups cost ${4 * r}% less`, simple: 'Tower upgrades cost less.', stat: ['Level-up cost', r => '-' + 4 * r + '%'] },
-  { id: 'range', name: 'Attack Range',           max: 5,  cost: r => 40 + 35 * r, desc: r => `All towers get +${3 * r}% range`, simple: 'Towers reach farther.', stat: ['Tower range', r => '+' + 3 * r + '%'] },
-  { id: 'speed', name: 'Attack Speed',           max: 5,  cost: r => 50 + 40 * r, desc: r => `All towers attack ${3 * r}% faster`, simple: 'Towers attack faster.', stat: ['Tower attack speed', r => '+' + 3 * r + '%'] },
+  { id: 'cost',  name: 'Upgrade Cost Reduction', max: 10, cost: r => 80 + 70 * r, desc: r => `Tower level-ups cost ${(2.5 * r).toFixed(1).replace('.0', '')}% less`, simple: 'Tower upgrades cost less.', stat: ['Level-up cost', r => '-' + (2.5 * r).toFixed(1).replace('.0', '') + '%'] },
+  { id: 'range', name: 'Attack Range',           max: 10, cost: r => 80 + 70 * r, desc: r => `All towers get +${2 * r}% range`, simple: 'Towers reach farther.', stat: ['Tower range', r => '+' + 2 * r + '%'] },
+  { id: 'speed', name: 'Attack Speed',           max: 10, cost: r => 100 + 80 * r, desc: r => `All towers attack ${2 * r}% faster`, simple: 'Towers attack faster.', stat: ['Tower attack speed', r => '+' + 2 * r + '%'] },
 ];
 const SIGNATURES = {
   arcane: { name: 'Spellweave',    desc: 'Every 5th bolt also applies Hex Brand, even without points in it.' },
@@ -755,6 +845,14 @@ if (META.unlocked || META.towerUnlocked) {
   delete META.unlocked; delete META.towerUnlocked; saveMeta();
 }
 const rank = (obj, id) => (obj && obj[id]) || 0;
+// 0.23: menu upgrades go to 10 ranks at double price with smaller steps. Give back what the old ranks cost.
+if (!META.meta10) {
+  const back = (obj, id, cost) => { for (let r = 0; r < rank(obj, id); r++) META.shards += cost(r); delete obj[id]; };
+  for (const k of Object.keys(HERO_META)) HERO_META[k].forEach((d, i) => { if (d.id !== 'triad') back(META.heroes[k], d.id, OLD_META_COST.hero[i]); });
+  for (const [id, cost] of Object.entries(OLD_META_COST.global)) back(META.global, id, cost);
+  for (const [id, cost] of Object.entries(OLD_META_COST.tower)) back(META.towerGlobal, id, cost);
+  META.meta10 = true; saveMeta();
+}
 // Mastery: each tower type levels up with kills, each hero with its role's stat (level L needs 5 x L x (L + 1) points). It can't
 // pass level 10 until it has beaten the first map, 20 until the second, and so on up to 50 on the last map.
 const MASTERY_MAX = 50, masteryKills = L => 5 * L * (L + 1);
@@ -981,7 +1079,7 @@ const FIRST_TIPS = {
   log: ['Stats log', '<p>Your recent runs: how far you got, what you lost and which towers did the most damage. Copy the full log to share it.</p>'],
   run: ['Your first run', '<p><b>Build:</b> pick a tower in the bar below (or press its number) and click a free tile. Your hero walks over to build it.</p><p><b>Move:</b> right-click the map to send your hero somewhere. <b>Q</b> uses its ability.</p><p><b>Upgrade:</b> click a tower to level it up. Each level adds a point to one of its paths, and each path’s price only rises with its own points.</p><p>Press <b>Space</b> to start a wave, <b>P</b> to pause, and <b>Esc</b> to back out of anything.</p>'],
   waves: ['Hard and Challenge waves', '<p>From now on you pick how hard each wave is.</p><p><b>Hard</b> makes the enemies tougher (more HP, armor, speed and so on) for a little extra gold.</p><p><b>Challenge</b> makes them tougher, adds a handicap, and sets a goal like “lose no base HP”. Meet the goal to earn the reward. The goal stays at the top of the screen while the wave runs.</p>'],
-  merge: ['Merging towers', '<p>You have two maxed towers that can merge. Merging <b>uses up both towers and gives you one</b> much stronger hybrid where the second one stood.</p><p>Every tower type can merge with every other, so there are dozens of hybrids, and two maxed hybrids can merge again into a super tower. The paths each tower took decide what its hybrid can learn, so the same pair can turn out differently every run.</p><p>Select a maxed tower and press <b>Merge</b>, then click the other one.</p>'],
+  merge: ['Merging towers', '<p>You have two maxed towers that can merge. Merging <b>uses up both towers and gives you one</b> much stronger hybrid where the second one stood.</p><p>Every tower type can merge with every other, so there are dozens of hybrids, and two maxed hybrids can merge again into a super tower for 20,000 gold, which unleashes a signature power from each tower inside it every few seconds. The paths each tower took decide what its hybrid can learn, so the same pair can turn out differently every run.</p><p>Select a maxed tower and press <b>Merge</b>, then click the other one.</p>'],
 };
 function firstTip(id) {
   META.tips = META.tips || {};
@@ -1129,7 +1227,7 @@ function showHeroes(sel) {
         <div class="stats">${ROLE_STAT[d.cat].name !== 'kills' ? `<div><span>Total ${ROLE_STAT[d.cat].name}</span>${Math.round(heroStat(sel))}</div>` : ''}<div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Total takedowns</span>${META.takedowns.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
           <div><span>Maps beaten</span>${MAP_ORDER.filter(m => (META.wins.heroes[sel] || {})[m]).length}/${MAP_ORDER.length}</div></div>
         ${masteryHtml('heroes', sel)}
-        ${d.spells ? `<h3 class="meta-h">Spellbook</h3><p class="help">${abilityText({ ab: d.ability })}</p>${spellbookHtml(bookHero(), rank(META.heroes.wizard || {}, 'triad'))}` : `<h3 class="meta-h">Ability · pick one</h3>
+        ${d.spells ? `${elementsHtml()}<h3 class="meta-h">Spellbook</h3><p class="help">${abilityText({ ab: d.ability })} Spells for every element you own are listed.</p>${spellbookHtml(bookHero(), rank(META.heroes.wizard || {}, 'triad'), EL_ORDER.filter(elOpen))}` : `<h3 class="meta-h">Ability · pick one</h3>
         <div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].map(([v, ab]) => `<button class="choice ${heroAbility(sel) === ab ? 'picked' : ''}" data-ab-pick="${v}">
           <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>`}
         <h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
@@ -1142,6 +1240,20 @@ function showHeroes(sel) {
       <h3 class="meta-h special-h">Special upgrades for all heroes ${refundBtn('special')}</h3>${SPECIALS.filter(x => !x.hero).map(specialRow).join('')}</div>`);
   $('screen').querySelectorAll('[data-hero-tab]').forEach(b => b.onclick = () => showHeroes(b.dataset.heroTab));
   $('screen').querySelectorAll('[data-ab-pick]').forEach(b => b.onclick = () => { META.abilities = META.abilities || {}; META.abilities[sel] = b.dataset.abPick; saveMeta(); showHeroes(sel); });
+  $('screen').querySelectorAll('[data-el-buy]').forEach(b => b.onclick = () => {
+    const el = b.dataset.elBuy, cost = ELEMENTS[el].cost;
+    if (elOpen(el) || META.shards < cost) return;
+    META.shards -= cost; META.wizEls = Object.assign({}, META.wizEls, { [el]: true });
+    const load = wizLoadout(); if (load.length < wizSlots() && !load.includes(el)) load.push(el);
+    META.wizLoad = load; saveMeta(); sfx('level'); showHeroes(sel);
+  });
+  $('screen').querySelectorAll('[data-el-take]').forEach(b => b.onclick = () => {
+    const el = b.dataset.elTake, load = wizLoadout();
+    if (load.includes(el)) { if (load.length > 1) load.splice(load.indexOf(el), 1); }
+    else if (load.length < wizSlots()) load.push(el);
+    else return toast(`All ${wizSlots()} element slots are full: click a taken element to leave it behind first.`);
+    META.wizLoad = load; saveMeta(); showHeroes(sel);
+  });
   $('screen').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
     const isHero = b.dataset.meta === 'hero', defs = isHero ? HERO_META[b.dataset.hero] : GLOBAL_META, def = defs.find(x => x.id === b.dataset.id);
     const obj = isHero ? META.heroes[b.dataset.hero] : META.global;
@@ -1271,13 +1383,13 @@ function newRun(mapId) {
   setMap(mapId);
   const map = MAPS[mapId], G = META.global;
   S = {
-    map: mapId, gold: 150 + 20 * rank(G, 'gold'), lives: 20 + 2 * rank(G, 'lives'), startLives: 20 + 2 * rank(G, 'lives'), bossKills: 0,
+    map: mapId, gold: 150 + 15 * rank(G, 'gold'), lives: 20 + Math.round(1.5 * rank(G, 'lives')), startLives: 20 + Math.round(1.5 * rank(G, 'lives')), bossKills: 0,
     log: [], ws: null, drained: null, boons: {}, pendingBoon: null, ionT: 6, wave: 0, waveActive: false, spawnQ: [], spawnT: 0, interval: 0.9,
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    echoes: [], zones: [], walls: [], runes: [], delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
-    mod: { towerDmg: 1, slow: 0, gold: 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
+    echoes: [], zones: [], walls: [], runes: [], runeKeys: {}, delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    mod: { towerDmg: 1, slow: 0, gold: 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0, bossDmg: 0 },
     hero: null,
   };
   MAX_WAVE = map.waves;
@@ -1303,7 +1415,7 @@ function applyHeroMeta(h) {
   const M = META.heroes[h.cls] || {};
   for (const def of HERO_META[h.cls]) if (rank(M, def.id)) def.apply(h, rank(M, def.id));
   h.hp = h.maxHp;
-  S.pendingLevels += rank(META.global, 'vet');
+  const vet = rank(META.global, 'vet'); S.pendingLevels += vetFree(vet); h.xpGain += 0.04 * vet;
 }
 // Special upgrades that act at the start of a run.
 function applySpecials(h) {
@@ -1326,13 +1438,13 @@ function showHeroSelect() {
         ${heroPortrait(k, 2)}<small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
         <span>HP ${d.stats.hp} · ${d.stats.mana ? 'Mana ' + d.stats.mana + ' · No auto-attack' : 'Damage ' + d.stats.dmg + ' · ' + (d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase())}</span>
         <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text) : ''}</span>
-        <em class="reward">${d.spells ? 'Spells: Q W E R, then left-click' : `Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span>`}</em></button>`; }).join('')}</div>`).join('');
+        <em class="reward">${d.spells ? `Spells: ${wizLoadout().length} elements, then left-click` : `Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span>`}</em></button>`; }).join('')}</div>`).join('');
   const towerCards = () => `<div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const on = picks.includes(k);
         return `<button class="choice mapcard tower-pick ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}">
         <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${tx('tower:' + k, d.info)}</span></button>`; }).join('')}</div>`;
   // The picked hero's two abilities, so you can swap before the run without visiting the Heroes page.
   const abilityRow = () => { const d = HEROES[hero];
-    if (d.spells) return `<h3 class="cat-h">${d.name} · spells</h3><p class="help">${abilityText({ ab: d.ability })} Full spellbook on the Heroes page.</p>`;
+    if (d.spells) return `<h3 class="cat-h">${d.name} · spells</h3><p class="help">${abilityText({ ab: d.ability })} Pick elements and see the full spellbook on the Heroes page.</p>`;
     return `<h3 class="cat-h">${d.name} ability · pick one</h3><div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].filter(([, ab]) => ab).map(([v, ab]) => `<button class="choice ${heroAbility(hero) === ab ? 'picked' : ''}" data-ab-pick="${v}">
       <small class="path">${heroAbility(hero) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${hero}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>`; };
   // Two pages: pick the hero first, then the towers.
@@ -1380,6 +1492,7 @@ function startRun(hero, towers) {
   S.loadout = towers.slice();
   S.sig = {}; for (const k of towers) if (META.towers[k].sig) S.sig[k] = true;
   S.hero = makeHero(hero); applyHeroMeta(S.hero); applySpecials(S.hero); S.paused = false; hideScreen();
+  if (HEROES[hero].spells) S.runeKeys = Object.fromEntries(wizLoadout().map((el, i) => [SLOT_KEYS[i], el]));
   renderBuildBar(); renderInspector(); renderCodex(); renderEnemyCodex(); renderHero();
   toast(HEROES[hero].name + ' ready. Build towers, then start the wave.');
   queueTip('run');
@@ -1404,10 +1517,11 @@ function levelCost(t, path) {
   if (S.freeLevels > 0 || t.freeUps > 0) return 0;
   const n = path ? t.ups[path.id] || 0 : 0;
   const base = t.hybrid ? t.upStart * (1 + 0.3 * n) : t.baseCost * (pathMax() === 3 ? 3.1 : 2.5) * (n + 1);
-  return Math.round(base * 1.15 * S.hero.lvlMul * (1 - 0.04 * rank(META.towerGlobal, 'cost')) * mapPrice());
+  return Math.round(base * 1.15 * S.hero.lvlMul * (1 - 0.025 * rank(META.towerGlobal, 'cost')) * mapPrice());
 }
 const hybridUpStart = (parents, sup) => Math.round(2 * (MAX_LVL - 1) * Math.max(...parents.map(k => TOWERS[k].cost)) * (sup ? 1.5 : 1));
-function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul * mapPrice()); }
+// Two hybrids fusing into a super tower always costs the same.
+function mergeCost(t) { return t && t.hybrid ? SUPER_COST : Math.round(MERGE_COST * S.hero.mergeMul * mapPrice()); }
 function pathLimit() { return 3 + (S.hero.cls === 'oracle' ? 1 : 0) + (S.pathBonus || 0); }
 function pathMax() { return S.hero && S.hero.cls === 'oracle' ? 3 : PATH_MAX; }
 function tRange(t) { return t.range * (1 + S.hero.towerRange) * (t.buff ? (1 + t.buff.range) * (t.buff.light ? 2 : 1) : 1); }
@@ -1502,7 +1616,7 @@ const HERO_STATS = [
 const RUN_STATS = [
   ['All tower damage', () => S.mod.towerDmg, 'p'], ['All tower fire rate', () => 1 / S.mod.towerRate, 'p'], ['Kill gold', () => S.mod.gold, 'p'],
   ['Base HP', () => S.lives, 'n'], ['Gold', () => S.gold, 'n'], ['Paths per tower', () => pathLimit(), 'n'], ['Free tower upgrades', () => S.freeLevels, 'n'],
-  ['Free merges', () => S.freeMerges, 'n'], ['Hero upgrades to pick', () => S.pendingLevels, 'n'], ['Hit slow', () => S.mod.allSlow, 'p'], ['Hit burn', () => S.mod.allBurn, 'p'],
+  ['Tower boss damage', () => S.mod.bossDmg, 'p'], ['Hero upgrades to pick', () => S.pendingLevels, 'n'], ['Hit slow', () => S.mod.allSlow, 'p'], ['Hit burn', () => S.mod.allBurn, 'p'],
   ['Enemy HP', () => S.mod.enemyHp, 'p'], ['Enemy speed', () => S.mod.enemySpeed, 'p'],
 ];
 const TOWER_STATS = [
@@ -1519,7 +1633,7 @@ const TOWER_STATS = [
   ['Pin', t => t.pin, 's'], ['Hero damage taken', t => t.type === 'anvil' ? 1 - t.guard : 0, 'p'], ['Crush below', t => t.crushExec, 'p'],
 ];
 const readStats = (list, obj) => list.map(([l, f, k]) => [typeof l === 'function' ? l(obj) : l, f(obj), k]);
-const heroStats = h => readStats(HERO_STATS, h);
+const heroStats = h => { syncAura(h); return readStats(HERO_STATS, h); };
 function diffStats(a, b) {
   const out = [];
   a.forEach(([l, v, k], i) => { const w = b[i][1]; if (typeof v === 'number' && typeof w === 'number' && !isNaN(v) && !isNaN(w) && Math.abs(v - w) > 1e-9 && FMT[k](v) !== FMT[k](w)) out.push([l, v, w, k]); });
@@ -1771,7 +1885,7 @@ const coresFor = type => type === 'tyrant' && MAPS[S.map].tyrantCores ? MAPS[S.m
 // pierce: true = ignores armor (burns, zones, executes); 'hex' = Hex Brand pulse (ignores armor and doesn't feed the brand).
 function damage(e, amt, src, pierce) {
   if (e.dead) return;
-  amt *= 1 + (e.markT > 0 ? e.mark : 0) + (e.brittleT > 0 ? e.brittle : 0) + (e.spotT > 0 && src && typeof src === 'object' ? e.spot : 0);
+  amt *= 1 + (e.markT > 0 ? e.mark : 0) + (e.brittleT > 0 ? e.brittle : 0) + (e.spotT > 0 && src && typeof src === 'object' ? e.spot : 0) + (e.boss && src && typeof src === 'object' ? S.mod.bossDmg : 0);
   if (!pierce) amt *= 1 - armorOf(e, src);
   const dealt = Math.min(amt, e.hp);
   if (pierce !== 'hex') e.taken = (e.taken || 0) + dealt;
@@ -1832,6 +1946,8 @@ function damage(e, amt, src, pierce) {
 }
 function slowEnemy(e, amt, dur) { if (e.unslow) return; e.slow = Math.min(0.85, Math.max(e.slow, (amt + S.mod.slow) * (e.steady ? 0.5 : 1))); e.slowT = Math.max(e.slowT, dur || 1.6); }
 function inRange(x, y, r) { return S.enemies.filter(e => !e.dead && Math.hypot(e.x - x, e.y - y) <= r); }
+// The Oracle's aura covers exactly its build range: anything that grows one grows the other.
+function syncAura(h) { if (h.cls === 'oracle') h.auraRange = h.buildRange = Math.max(h.auraRange, h.buildRange); }
 function nearAura(t) { const h = S.hero; return !h.ko && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange; }
 
 function applyHit(t, e, dmg, freeze) {
@@ -2090,14 +2206,28 @@ function orbitalStrike(h, a) {
 // ---------- the Wizard: no auto-attack; ready up to 2 elements (3 with Third Rune), then left-click to cast ----------
 // Q fire, W water, E earth, R air. One element casts its spell; the same element twice casts a bigger version for
 // more mana; two different elements cast their combination spell. Spells land on the cursor and cost mana.
-const RUNES = { q: 'fire', w: 'water', e: 'earth', r: 'air' };
+// Elements: the first four are always known; the rest are bought on the Heroes page. The Wizard takes a few of
+// them on each run (more as its mastery grows), bound in order to Q W E R and then A S D F.
 const ELEMENTS = {
-  fire:  { name: 'Fire',  key: 'Q', color: 0xff7a3d, css: '#ff7a3d' },
-  water: { name: 'Water', key: 'W', color: 0x5fc8ff, css: '#5fc8ff' },
-  earth: { name: 'Earth', key: 'E', color: 0xc8a26a, css: '#c8a26a' },
-  air:   { name: 'Air',   key: 'R', color: 0xd8f4ee, css: '#d8f4ee' },
+  fire:   { name: 'Fire',      color: 0xff7a3d, css: '#ff7a3d' },
+  water:  { name: 'Water',     color: 0x5fc8ff, css: '#5fc8ff' },
+  earth:  { name: 'Earth',     color: 0xc8a26a, css: '#c8a26a' },
+  air:    { name: 'Air',       color: 0xd8f4ee, css: '#d8f4ee' },
+  storm:  { name: 'Lightning', color: 0x9cf4dd, css: '#9cf4dd', cost: 400, blurb: 'Chains between enemies and stuns them.' },
+  nature: { name: 'Nature',    color: 0x7ee06a, css: '#7ee06a', cost: 400, blurb: 'Roots enemies in place and poisons them.' },
+  void:   { name: 'Void',      color: 0xb07cff, css: '#b07cff', cost: 600, blurb: 'Drags enemies back and makes them take more damage.' },
+  light:  { name: 'Light',     color: 0xf9e6a2, css: '#f9e6a2', cost: 600, blurb: 'Piercing beams and heavy single hits, and some spells heal you.' },
 };
-const EL_ORDER = ['fire', 'water', 'earth', 'air'];
+const EL_ORDER = ['fire', 'water', 'earth', 'air', 'storm', 'nature', 'void', 'light'];
+const BASE_ELS = EL_ORDER.slice(0, 4), SLOT_KEYS = ['q', 'w', 'e', 'r', 'a', 's', 'd', 'f'], SLOT_AT = [5, 15, 25, 35];
+const elOpen = el => BASE_ELS.includes(el) || !!(META.wizEls && META.wizEls[el]);
+const wizSlots = () => 4 + SLOT_AT.filter(m => masteryOf('heroes', 'wizard').lvl >= m).length;
+// The elements taken on the next run: the saved picks that are still open, cut to the slots (by default the first
+// elements owned, in order).
+function wizLoadout() {
+  const n = wizSlots(), picks = (META.wizLoad || EL_ORDER.filter(elOpen)).filter(elOpen).slice(0, n);
+  return picks.length ? picks : BASE_ELS.slice();
+}
 const spellPow = h => h.spell * (S && S.mode && S.mode.challenge === 'lone' ? 2 : 1);
 const waveNo = () => (S && S.wave) || 1;
 const freezeFor = (e, s, h) => e.boss ? s * 0.3 : s + h.freezeBonus;
@@ -2107,6 +2237,35 @@ function pushBack(e, dur, spd, h) {
   e.pushT = Math.max(e.pushT || 0, (e.boss ? 0.35 : 1) * dur * h.pushBonus); e.pushSpd = Math.max(e.pushSpd, spd);
 }
 function hitArea(x, y, r, dmg, each) { for (const e of inRange(x, y, r)) { damage(e, dmg); if (!e.dead && each) each(e); } }
+const root = (e, s) => { e.stunT = Math.max(e.stunT, e.boss ? s * 0.3 : s); };
+const poison = (e, dps, s) => { e.burnT = Math.max(e.burnT, s); e.burnDps = Math.max(e.burnDps, dps); };
+const expose = (e, k, s) => { e.brittle = Math.max(e.brittle, k); e.brittleT = Math.max(e.brittleT, s); };
+const healHero = (h, f) => { if (!h.ko) { h.hp = Math.min(h.maxHp, h.hp + h.maxHp * f); S.fx.push({ k: 'ring', x: h.x, y: h.y, r: 24, color: 0x7dffb0, t: 0.5, T: 0.5, fill: true }); } };
+// Lightning that starts at the enemy nearest (x, y) and jumps to the nearest enemy it hasn't hit yet.
+function chainZap(h, x, y, jumps, dmg, color, each) {
+  let cur = inRange(x, y, 80 * h.spellR).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0], from = { x: h.x, y: h.y };
+  const hit = new Set();
+  for (let i = 0; cur && i <= jumps; i++) {
+    hit.add(cur); S.fx.push({ k: 'line', x1: from.x, y1: from.y, x2: cur.x, y2: cur.y, color: color || 0x9cf4dd, t: 0.25, T: 0.25, w: 3 });
+    damage(cur, dmg); if (!cur.dead && each) each(cur);
+    from = cur; cur = S.enemies.filter(e => !e.dead && !hit.has(e) && Math.hypot(e.x - from.x, e.y - from.y) <= 110).sort((a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y))[0];
+  }
+}
+// A beam from the staff through (x, y): everything within w of the line, up to len long.
+function lineHit(h, x, y, len, w, dmg, color, each) {
+  const dx = x - h.x, dy = y - h.y, d = Math.hypot(dx, dy) || 1, ex = h.x + dx / d * len, ey = h.y + dy / d * len;
+  for (const e of S.enemies) if (!e.dead && segDist(e.x, e.y, { x1: h.x, y1: h.y, x2: ex, y2: ey }) <= w + e.r) { damage(e, dmg); if (!e.dead && each) each(e); }
+  S.fx.push({ k: 'line', x1: h.x, y1: h.y, x2: ex, y2: ey, color, t: 0.35, T: 0.35, w: w * 0.8 }); S.fx.push({ k: 'line', x1: h.x, y1: h.y, x2: ex, y2: ey, color: 0xffffff, t: 0.25, T: 0.25, w: 2 });
+}
+// Lightning bolts on random enemies inside a circle, one every gap seconds.
+function strikes(x, y, r, n, gap, dmg, each) {
+  for (let i = 0; i < n; i++) S.delayed.push({ at: S.time + i * gap, fn: () => {
+    const live = inRange(x, y, r); if (!live.length) return;
+    const e = pick(live); damage(e, dmg); if (!e.dead && each) each(e);
+    S.fx.push({ k: 'bolt', x: e.x, y: e.y, color: 0x9cf4dd, t: 0.25, T: 0.25, seed: Math.random() * 1000 });
+  } });
+}
+const ringFx = (x, y, r, color, T, fill = true) => S.fx.push({ k: 'ring', x, y, r, color, t: T, T, fill });
 function burnGround(x, y, r, t, dps, color) { S.zones.push({ x, y, r, t, T: t, dps, slow: 0, color: color || 0xff8a3d }); }
 // The point on the path nearest (x, y), as a path distance, if it's within reach.
 function pathPointNear(x, y, reach) {
@@ -2114,11 +2273,24 @@ function pathPointNear(x, y, reach) {
   for (let d = 0; d <= PATH_LEN; d += 4) { const p = posAt(d), dd = Math.hypot(p.x - x, p.y - y); if (dd < bd) { bd = dd; best = d; } }
   return best;
 }
-function raiseWall(h, x, y, hp, dur, pow, slam) {
-  const d = pathPointNear(x, y, 140);
-  if (d == null) return false;
-  const p = posAt(d);
-  S.walls.push({ d, x: p.x, y: p.y, hp: hp * h.wallBonus, max: hp * h.wallBonus, t: dur, T: dur });
+// Walls lock onto the grid: the centre of the path tile nearest the cursor.
+function wallSpot(x, y) {
+  let best = null, bd = 140;
+  for (const key of pathCells) {
+    const [c, r] = key.split(',').map(Number), cx = c * C + C / 2, cy = r * C + C / 2, dd = Math.hypot(cx - x, cy - y);
+    if (dd < bd) { bd = dd; best = { x: cx, y: cy }; }
+  }
+  if (!best) return null;
+  const d = pathPointNear(best.x, best.y, 30);
+  if (d == null) return null;
+  const a = posAt(Math.max(0, d - 6)), b = posAt(Math.min(PATH_LEN, d + 6));
+  return { d, x: best.x, y: best.y, across: Math.abs(b.x - a.x) > Math.abs(b.y - a.y) };
+}
+function raiseWall(h, x, y, hp, dur, pow, slam, more) {
+  const p = wallSpot(x, y);
+  if (!p) return false;
+  const d = p.d;
+  S.walls.push(Object.assign({ d, x: p.x, y: p.y, across: p.across, hp: hp * h.wallBonus, max: hp * h.wallBonus, t: dur, T: dur }, more));
   if (slam) hitArea(p.x, p.y, 45, slam * pow, e => { e.stunT = Math.max(e.stunT, e.boss ? 0.3 : 1); });
   S.fx.push({ k: 'ring', x: p.x, y: p.y, r: 30, color: ELEMENTS.earth.color, t: 0.5, T: 0.5, fill: true }); shake(0.004, 120);
   return true;
@@ -2136,7 +2308,7 @@ const SPELLS = {
     cast: (h, x, y, p) => launch(h, x, y, 0xff7a3d, 4, () => { const r = 55 * h.spellR; hitArea(x, y, r, 55 * p); burnGround(x, y, r * 0.8, 3, 14 * p); S.fx.push({ k: 'ring', x, y, r, color: 0xff7a3d, t: 0.4, T: 0.4, fill: true }); sfx('boom'); }) },
   water: { name: 'Frost Burst', mana: 22, desc: (h, p) => `Freezes enemies within ${f0(70 * h.spellR)} solid for ${(1.6 + h.freezeBonus).toFixed(1)}s and deals ${f0(15 * p)} damage.`,
     cast: (h, x, y, p) => { const r = 70 * h.spellR; hitArea(x, y, r, 15 * p, e => freeze(e, 1.6, h)); S.fx.push({ k: 'ring', x, y, r, color: 0x9fe6ff, t: 0.5, T: 0.5, fill: true }); } },
-  earth: { name: 'Stone Wall', mana: 28, desc: h => `Raises a wall on the path nearest the cursor. It blocks enemies for 6s or until its ${f0((250 + 30 * waveNo()) * h.wallBonus)} HP runs out.`,
+  earth: { name: 'Stone Wall', wall: true, mana: 28, desc: h => `Raises a wall on the path nearest the cursor. It blocks enemies for 6s or until its ${f0((250 + 30 * waveNo()) * h.wallBonus)} HP runs out.`,
     cast: (h, x, y) => raiseWall(h, x, y, 250 + 30 * waveNo(), 6, 1, 0) },
   air: { name: 'Gust', mana: 18, desc: (h, p) => `Blows enemies within ${f0(80 * h.spellR)} back along the path for ${(1 * h.pushBonus).toFixed(1)}s and deals ${f0(10 * p)} damage.`,
     cast: (h, x, y, p) => { const r = 80 * h.spellR; hitArea(x, y, r, 10 * p, e => pushBack(e, 1, 90, h)); S.fx.push({ k: 'ring', x, y, r, color: 0xd8f4ee, t: 0.45, T: 0.45 }); } },
@@ -2144,7 +2316,7 @@ const SPELLS = {
     cast: (h, x, y, p) => launch(h, x, y, 0xff5a2a, 7, () => { const r = 85 * h.spellR; hitArea(x, y, r, 140 * p); burnGround(x, y, r * 0.8, 4, 25 * p); S.fx.push({ k: 'ring', x, y, r, color: 0xff5a2a, t: 0.5, T: 0.5, fill: true }); shake(0.008, 180); sfx('boom'); }) },
   'water+water': { name: 'Deep Freeze', mana: 40, desc: (h, p) => `Freezes enemies within ${f0(100 * h.spellR)} for ${(3 + h.freezeBonus).toFixed(1)}s, deals ${f0(30 * p)} damage, and they take 20% more damage for 4s.`,
     cast: (h, x, y, p) => { const r = 100 * h.spellR; hitArea(x, y, r, 30 * p, e => { freeze(e, 3, h); e.brittle = Math.max(e.brittle, 0.2); e.brittleT = Math.max(e.brittleT, 4); }); S.fx.push({ k: 'ring', x, y, r, color: 0xdff6ff, t: 0.7, T: 0.7, fill: true }); } },
-  'earth+earth': { name: 'Great Wall', mana: 50, desc: (h, p) => `Raises a thick wall (${f0((650 + 60 * waveNo()) * h.wallBonus)} HP) for 9s that slams nearby enemies for ${f0(40 * p)} and stuns them 1s.`,
+  'earth+earth': { name: 'Great Wall', wall: true, mana: 50, desc: (h, p) => `Raises a thick wall (${f0((650 + 60 * waveNo()) * h.wallBonus)} HP) for 9s that slams nearby enemies for ${f0(40 * p)} and stuns them 1s.`,
     cast: (h, x, y, p) => raiseWall(h, x, y, 650 + 60 * waveNo(), 9, p, 40) },
   'air+air': { name: 'Cyclone', mana: 32, desc: (h, p) => `Hurls enemies within ${f0(110 * h.spellR)} back for ${(1.8 * h.pushBonus).toFixed(1)}s and deals ${f0(25 * p)} damage.`,
     cast: (h, x, y, p) => { const r = 110 * h.spellR; hitArea(x, y, r, 25 * p, e => pushBack(e, 1.8, 110, h)); S.zones.push({ x, y, r, t: 0.8, T: 0.8, dps: 0, slow: 0, color: 0xd8f4ee, vortex: true }); } },
@@ -2169,17 +2341,96 @@ const SPELLS = {
     cast: (h, x, y, p) => { const r = 220 * h.spellR; hitArea(x, y, r, 150 * p, e => { e.stunT = Math.max(e.stunT, e.boss ? 0.6 : 2); }); S.fx.push({ k: 'ring', x, y, r, color: 0xc8a26a, t: 0.8, T: 0.8, fill: true }); shake(0.025, 600); sfx('boom'); } },
   'air+air+air': { name: 'Tempest', mana: 70, desc: (h, p) => `A tempest within ${f0(200 * h.spellR)} hurls enemies back for ${(2.5 * h.pushBonus).toFixed(1)}s and deals ${f0(60 * p)} damage.`,
     cast: (h, x, y, p) => { const r = 200 * h.spellR; hitArea(x, y, r, 60 * p, e => pushBack(e, 2.5, 140, h)); S.zones.push({ x, y, r, t: 1.2, T: 1.2, dps: 0, slow: 0, color: 0xd8f4ee, vortex: true }); } },
+  // ---- Lightning
+  storm: { name: 'Spark Bolt', mana: 20, desc: (h, p) => `Lightning hits the enemy nearest the cursor for ${f0(50 * p)} and jumps to 3 more.`,
+    cast: (h, x, y, p) => chainZap(h, x, y, 3, 50 * p) },
+  'storm+storm': { name: 'Chain Lightning', mana: 36, desc: (h, p) => `Lightning jumps through 7 enemies for ${f0(110 * p)} each and stuns them 0.5s.`,
+    cast: (h, x, y, p) => chainZap(h, x, y, 6, 110 * p, 0x9cf4dd, e => root(e, 0.5)) },
+  'storm+storm+storm': { name: 'Thunderstorm', mana: 70, desc: (h, p) => `For 5s, lightning strikes enemies within ${f0(180 * h.spellR)} every 0.25s for ${f0(90 * p)}, stunning them 0.3s.`,
+    cast: (h, x, y, p) => { strikes(x, y, 180 * h.spellR, 20, 0.25, 90 * p, e => root(e, 0.3)); ringFx(x, y, 180 * h.spellR, 0x9cf4dd, 5, false); shake(0.008, 800); } },
+  // ---- Nature
+  nature: { name: 'Thorn Snare', mana: 20, desc: (h, p) => `Vines root enemies within ${f0(60 * h.spellR)} for 1.5s and poison them (${f0(14 * p)}/s for 4s).`,
+    cast: (h, x, y, p) => { const r = 60 * h.spellR; hitArea(x, y, r, 10 * p, e => { root(e, 1.5); poison(e, 14 * p, 4); }); ringFx(x, y, r, 0x7ee06a, 0.5); } },
+  'nature+nature': { name: 'Bramble Field', mana: 36, desc: (h, p) => `Thick brambles cover ${f0(90 * h.spellR)} for 6s: enemies are slowed 50% and take ${f0(22 * p)}/s.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 90 * h.spellR, t: 6, T: 6, dps: 22 * p, slow: 0.5, color: 0x5fb84a }) },
+  'nature+nature+nature': { name: 'Wild Growth', mana: 70, desc: (h, p) => `Roots every enemy within ${f0(180 * h.spellR)} for 3s, poisons them (${f0(40 * p)}/s for 6s), and heals you 40%.`,
+    cast: (h, x, y, p) => { const r = 180 * h.spellR; hitArea(x, y, r, 30 * p, e => { root(e, 3); poison(e, 40 * p, 6); }); healHero(h, 0.4); ringFx(x, y, r, 0x7ee06a, 0.9); shake(0.01, 300); } },
+  // ---- Void
+  void: { name: 'Void Bolt', mana: 18, desc: (h, p) => `Hits enemies within ${f0(55 * h.spellR)} for ${f0(45 * p)}, and they take 20% more damage from everything for 4s.`,
+    cast: (h, x, y, p) => launch(h, x, y, 0xb07cff, 4, () => { const r = 55 * h.spellR; hitArea(x, y, r, 45 * p, e => expose(e, 0.2, 4)); ringFx(x, y, r, 0xb07cff, 0.4); }) },
+  'void+void': { name: 'Singularity', mana: 42, desc: (h, p) => `A black hole within ${f0(90 * h.spellR)} slows enemies 60% for 3s (${f0(30 * p)}/s), then implodes for ${f0(120 * p)}.`,
+    cast: (h, x, y, p) => { const r = 90 * h.spellR; S.zones.push({ x, y, r, t: 3, T: 3, dps: 30 * p, slow: 0.6, color: 0x6a3cb0, vortex: true });
+      S.delayed.push({ at: S.time + 3, fn: () => { hitArea(x, y, r, 120 * p); S.fx.push({ k: 'ring', x, y, r, color: 0xb07cff, t: 0.6, T: 0.6, fill: true, shrink: true }); shake(0.01, 200); } }); } },
+  'void+void+void': { name: 'Event Horizon', mana: 70, desc: (h, p) => `Drags every enemy within ${f0(200 * h.spellR)} back for ${(2 * h.pushBonus).toFixed(1)}s, deals ${f0(100 * p)}, and they take 35% more damage for 6s.`,
+    cast: (h, x, y, p) => { const r = 200 * h.spellR; hitArea(x, y, r, 100 * p, e => { pushBack(e, 2, 130, h); expose(e, 0.35, 6); }); S.fx.push({ k: 'ring', x, y, r, color: 0xb07cff, t: 0.9, T: 0.9, fill: true, shrink: true }); shake(0.015, 400); } },
+  // ---- Light
+  light: { name: 'Radiant Lance', mana: 22, desc: (h, p) => `A beam of light pierces every enemy in a line for ${f0(70 * p)}.`,
+    cast: (h, x, y, p) => lineHit(h, x, y, 420, 14, 70 * p, 0xf9e6a2) },
+  'light+light': { name: 'Solar Flare', mana: 40, desc: (h, p) => `Blinds enemies within ${f0(80 * h.spellR)} (1s stun) for ${f0(130 * p)} damage and heals you 15%.`,
+    cast: (h, x, y, p) => { const r = 80 * h.spellR; hitArea(x, y, r, 130 * p, e => root(e, 1)); healHero(h, 0.15); ringFx(x, y, r, 0xfff6c8, 0.5); S.fx.push({ k: 'pillar', x, y, w: 10, color: 0xf9e6a2, t: 0.5, T: 0.5 }); } },
+  'light+light+light': { name: 'Judgment', mana: 70, desc: (h, p) => `Pillars of light strike the 5 toughest enemies on the map for ${f0(320 * p)} each.`,
+    cast: (h, x, y, p) => { S.enemies.filter(e => !e.dead).sort((a, b) => b.hp - a.hp).slice(0, 5).forEach((e, i) => S.delayed.push({ at: S.time + i * 0.12, fn: () => { if (e.dead) return; damage(e, 320 * p); S.fx.push({ k: 'pillar', x: e.x, y: e.y, w: 12, color: 0xf9e6a2, t: 0.7, T: 0.7 }); ringFx(e.x, e.y, 40, 0xf9e6a2, 0.5); shake(0.008, 120); } })); } },
+  // ---- two different elements, for every pair that includes a bought element
+  'fire+storm': { name: 'Plasma Storm', mana: 42, desc: (h, p) => `Superheated lightning hits enemies within ${f0(80 * h.spellR)} for ${f0(90 * p)}, stuns them 0.4s and sets them burning (${f0(20 * p)}/s for 3s).`,
+    cast: (h, x, y, p) => { const r = 80 * h.spellR; hitArea(x, y, r, 90 * p, e => { root(e, 0.4); poison(e, 20 * p, 3); }); strikes(x, y, r, 4, 0.08, 0); ringFx(x, y, r, 0xffb35c, 0.5); } },
+  'water+storm': { name: 'Conductive Surge', mana: 40, desc: (h, p) => `Soaks enemies within ${f0(90 * h.spellR)} and electrifies them: ${f0(70 * p)} damage and a 1.2s stun.`,
+    cast: (h, x, y, p) => { const r = 90 * h.spellR; hitArea(x, y, r, 70 * p, e => root(e, 1.2)); strikes(x, y, r, 5, 0.06, 0); ringFx(x, y, r, 0x5fc8ff, 0.5); } },
+  'earth+storm': { name: 'Magnet Quake', mana: 40, desc: (h, p) => `Hits enemies within ${f0(90 * h.spellR)} for ${f0(80 * p)}, stuns them 0.6s and strips 30% armor for 5s.`,
+    cast: (h, x, y, p) => { const r = 90 * h.spellR; hitArea(x, y, r, 80 * p, e => { root(e, 0.6); e.brk = Math.max(e.brk || 0, 0.3); e.brkT = Math.max(e.brkT || 0, 5); }); ringFx(x, y, r, 0xc8a26a, 0.6); shake(0.008, 200); } },
+  'air+storm': { name: 'Thunderhead', mana: 44, desc: (h, p) => `A storm cloud hangs over ${f0(100 * h.spellR)} for 4s, striking an enemy every 0.4s for ${f0(55 * p)} and blowing it back.`,
+    cast: (h, x, y, p) => { const r = 100 * h.spellR; strikes(x, y, r, 10, 0.4, 55 * p, e => pushBack(e, 0.4, 80, h)); ringFx(x, y, r, 0xd8f4ee, 4, false); } },
+  'fire+nature': { name: 'Wildfire', mana: 40, desc: (h, p) => `Sets ${f0(95 * h.spellR)} ablaze for 5s: ${f0(32 * p)}/s and 20% slow.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 95 * h.spellR, t: 5, T: 5, dps: 32 * p, slow: 0.2, color: 0xff9a3d }) },
+  'water+nature': { name: 'Overgrowth', mana: 38, desc: (h, p) => `Roots enemies within ${f0(85 * h.spellR)} for 2s and poisons them (${f0(16 * p)}/s for 5s).`,
+    cast: (h, x, y, p) => { const r = 85 * h.spellR; hitArea(x, y, r, 20 * p, e => { root(e, 2); poison(e, 16 * p, 5); }); ringFx(x, y, r, 0x47d9c5, 0.6); } },
+  'earth+nature': { name: 'Thornwall', wall: true, mana: 46, desc: (h, p) => `Raises a thorny wall (${f0((420 + 45 * waveNo()) * h.wallBonus)} HP) for 7s. Enemies next to it take ${f0(30 * p)}/s.`,
+    cast: (h, x, y, p) => raiseWall(h, x, y, 420 + 45 * waveNo(), 7, p, 0, { thorns: 30 * p, color: 0x5fb84a }) },
+  'air+nature': { name: 'Pollen Cloud', mana: 36, desc: (h, p) => `A choking cloud over ${f0(90 * h.spellR)} for 6s: 35% slow, ${f0(18 * p)}/s, and strips 15% armor.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 90 * h.spellR, t: 6, T: 6, dps: 18 * p, slow: 0.35, color: 0xd8e88a, brk: 0.15 }) },
+  'storm+nature': { name: 'Living Lightning', mana: 40, desc: (h, p) => `Lightning jumps through 8 enemies for ${f0(60 * p)} each and poisons them (${f0(12 * p)}/s for 4s).`,
+    cast: (h, x, y, p) => chainZap(h, x, y, 7, 60 * p, 0x7ee06a, e => poison(e, 12 * p, 4)) },
+  'fire+void': { name: 'Hellfire', mana: 44, desc: (h, p) => `Black flames hit enemies within ${f0(80 * h.spellR)} for ${f0(120 * p)} and burn the ground for 6s (${f0(25 * p)}/s).`,
+    cast: (h, x, y, p) => launch(h, x, y, 0x8a3cff, 6, () => { const r = 80 * h.spellR; hitArea(x, y, r, 120 * p); burnGround(x, y, r * 0.8, 6, 25 * p, 0x8a3cff); ringFx(x, y, r, 0x8a3cff, 0.5); sfx('boom'); }) },
+  'water+void': { name: 'Abyssal Tide', mana: 40, desc: (h, p) => `A dark wave pushes enemies within ${f0(90 * h.spellR)} back for ${(1.2 * h.pushBonus).toFixed(1)}s, deals ${f0(50 * p)}, and they take 25% more damage for 5s.`,
+    cast: (h, x, y, p) => { const r = 90 * h.spellR; hitArea(x, y, r, 50 * p, e => { pushBack(e, 1.2, 100, h); expose(e, 0.25, 5); }); ringFx(x, y, r, 0x4a5ad0, 0.6); } },
+  'earth+void': { name: 'Gravity Well', mana: 42, desc: (h, p) => `Crushing gravity within ${f0(90 * h.spellR)} for 4s: 70% slow and ${f0(15 * p)}/s, then everything inside is pinned for ${(1 + h.freezeBonus).toFixed(1)}s.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 90 * h.spellR, t: 4, T: 4, dps: 15 * p, slow: 0.7, color: 0x6a4ab0, vortex: true, endFreeze: 1 }) },
+  'air+void': { name: 'Vacuum', mana: 38, desc: (h, p) => `Sucks enemies within ${f0(100 * h.spellR)} back for ${(1.5 * h.pushBonus).toFixed(1)}s, deals ${f0(40 * p)}, and they take 15% more damage for 4s.`,
+    cast: (h, x, y, p) => { const r = 100 * h.spellR; hitArea(x, y, r, 40 * p, e => { pushBack(e, 1.5, 110, h); expose(e, 0.15, 4); }); S.fx.push({ k: 'ring', x, y, r, color: 0xb07cff, t: 0.6, T: 0.6, shrink: true }); } },
+  'storm+void': { name: 'Dark Lightning', mana: 42, desc: (h, p) => `Black lightning jumps through 6 enemies for ${f0(80 * p)} each, and they take 20% more damage for 5s.`,
+    cast: (h, x, y, p) => chainZap(h, x, y, 5, 80 * p, 0x8a3cff, e => expose(e, 0.2, 5)) },
+  'nature+void': { name: 'Blight', mana: 38, desc: (h, p) => `Rots the ground within ${f0(90 * h.spellR)} for 6s: ${f0(25 * p)}/s, 20% slow, and strips 25% armor.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 90 * h.spellR, t: 6, T: 6, dps: 25 * p, slow: 0.2, color: 0x6a8a3a, brk: 0.25 }) },
+  'fire+light': { name: 'Sunfire', mana: 42, desc: (h, p) => `A blazing beam pierces every enemy in a line for ${f0(120 * p)} and sets them burning (${f0(25 * p)}/s for 3s).`,
+    cast: (h, x, y, p) => lineHit(h, x, y, 460, 18, 120 * p, 0xffb35c, e => poison(e, 25 * p, 3)) },
+  'water+light': { name: 'Prism Rain', mana: 40, desc: (h, p) => `Glittering rain over ${f0(100 * h.spellR)} deals ${f0(60 * p)}, freezes enemies ${(1 + h.freezeBonus).toFixed(1)}s, and heals you 10%.`,
+    cast: (h, x, y, p) => { const r = 100 * h.spellR; hitArea(x, y, r, 60 * p, e => freeze(e, 1, h)); healHero(h, 0.1); ringFx(x, y, r, 0xc8f0ff, 0.6); } },
+  'earth+light': { name: 'Crystal Spire', wall: true, mana: 44, desc: (h, p) => `Raises a crystal wall (${f0((380 + 40 * waveNo()) * h.wallBonus)} HP) for 7s that blasts nearby enemies for ${f0(80 * p)} and stuns them 0.8s.`,
+    cast: (h, x, y, p) => raiseWall(h, x, y, 380 + 40 * waveNo(), 7, p, 80, { color: 0xf9e6a2 }) },
+  'air+light': { name: 'Halo Wind', mana: 38, desc: (h, p) => `A ring of light blows enemies within ${f0(100 * h.spellR)} back for ${(1 * h.pushBonus).toFixed(1)}s, deals ${f0(50 * p)}, and blinds them 0.6s.`,
+    cast: (h, x, y, p) => { const r = 100 * h.spellR; hitArea(x, y, r, 50 * p, e => { pushBack(e, 1, 90, h); root(e, 0.6); }); ringFx(x, y, r, 0xfff6c8, 0.5); } },
+  'storm+light': { name: 'Divine Bolt', mana: 44, desc: (h, p) => `A bolt from the heavens hits the toughest enemy near the cursor for ${f0(260 * p)}, then jumps to 3 more for half.`,
+    cast: (h, x, y, p) => { const near = inRange(x, y, 120 * h.spellR); if (!near.length) return; const top = near.reduce((a, b) => b.hp > a.hp ? b : a);
+      damage(top, 260 * p); S.fx.push({ k: 'pillar', x: top.x, y: top.y, w: 10, color: 0xf9e6a2, t: 0.5, T: 0.5 }); chainZap(h, top.x, top.y, 3, 130 * p, 0xf9e6a2); } },
+  'nature+light': { name: 'Bloom', mana: 40, desc: (h, p) => `Heals you 30% and blossoms over ${f0(90 * h.spellR)} for 5s: 30% slow and ${f0(20 * p)}/s.`,
+    cast: (h, x, y, p) => { healHero(h, 0.3); S.zones.push({ x, y, r: 90 * h.spellR, t: 5, T: 5, dps: 20 * p, slow: 0.3, color: 0xf79bbe }); } },
+  'void+light': { name: 'Eclipse', mana: 46, desc: (h, p) => `Darkness and light collide within ${f0(110 * h.spellR)}: ${f0(150 * p)} damage, a 0.5s stun, and they take 30% more damage for 5s.`,
+    cast: (h, x, y, p) => { const r = 110 * h.spellR; hitArea(x, y, r, 150 * p, e => { root(e, 0.5); expose(e, 0.3, 5); }); ringFx(x, y, r, 0x101223, 0.7); ringFx(x, y, r * 0.7, 0xf9e6a2, 0.5); shake(0.012, 250); } },
 };
 const f0 = v => Math.round(v);
 // how long after casting a spell lands (fireballs fly, the meteor falls)
 const flight = (h, x, y) => Math.max(0.12, Math.hypot(x - h.x, y - h.y) / 650);
-const landsAfter = (key, h, x, y) => /^fire(\+fire)*$/.test(key) ? flight(h, x, y) : key === 'fire+earth' ? 0.7 : 0.05;
+const landsAfter = (key, h, x, y) => /^(fire(\+fire)*|void|fire\+void)$/.test(key) ? flight(h, x, y) : key === 'fire+earth' ? 0.7 : 0.05;
 // A third, different element overcharges a two-element spell (+35% power) and adds its own touch on the target area.
 const RIDERS = {
   fire:  { text: 'sets enemies burning (20/s for 3s)', apply: (e, p) => { e.burnT = Math.max(e.burnT, 3); e.burnDps = Math.max(e.burnDps, 20 * p); } },
   water: { text: 'freezes them for 1s', apply: (e, p, h) => freeze(e, 1, h) },
   earth: { text: 'cracks their armor (25% for 4s)', apply: e => { e.brk = Math.max(e.brk, 0.25); e.brkT = Math.max(e.brkT, 4); } },
   air:   { text: 'blows them back for 0.8s', apply: (e, p, h) => pushBack(e, 0.8, 90, h) },
+  storm: { text: 'shocks them for 30 damage and a 0.3s stun', apply: (e, p) => { damage(e, 30 * p); root(e, 0.3); } },
+  nature: { text: 'poisons them (18/s for 4s)', apply: (e, p) => poison(e, 18 * p, 4) },
+  void:  { text: 'makes them take 15% more damage for 4s', apply: e => expose(e, 0.15, 4) },
+  light: { text: 'smites them for 40 damage', apply: (e, p) => damage(e, 40 * p) },
 };
 const spellKey = els => els.slice().sort((a, b) => EL_ORDER.indexOf(a) - EL_ORDER.indexOf(b)).join('+');
 // What the readied runes cast: { spell, key, rider, mana, pow }.
@@ -2193,7 +2444,8 @@ function resolveRunes(runes) {
 }
 function readyRune(k) {
   const h = S.hero; if (!h || h.ko || S.over || !$('modal').hidden) return;
-  S.runes.push(RUNES[k]); if (S.runes.length > h.runeMax) S.runes.shift();
+  if (!S.runeKeys[k]) return;
+  S.runes.push(S.runeKeys[k]); if (S.runes.length > h.runeMax) S.runes.shift();
   sfx('click'); renderRunes();
 }
 function castRunes(x, y) {
@@ -2204,7 +2456,7 @@ function castRunes(x, y) {
   const mana = r.mana * h.spellCost;
   if (h.mana < mana) return toast(`Not enough mana for ${r.spell.name} (${Math.ceil(mana)} needed).`);
   const p = spellPow(h) * r.pow;
-  if (r.spell.cast(h, x, y, p) === false) return toast('Stone walls go on the path: point at the path to raise one.');
+  if (r.spell.cast(h, x, y, p) === false) return toast('Walls go on the path: point at a path tile to raise one.');
   if (r.rider) S.delayed.push({ at: S.time + landsAfter(r.key, h, x, y) + 0.02, fn: () => { for (const e of inRange(x, y, 90 * h.spellR)) RIDERS[r.rider].apply(e, spellPow(h), h); } });
   h.mana -= mana; h.castT = S.time + 0.3; h.aimX = x; h.aimY = y; h.atkAt = S.time; h.casts = (h.casts || 0) + 1;
   if (h.echo && h.casts % h.echo === 0) S.delayed.push({ at: S.time + 0.4, fn: () => { if (!h.ko) { r.spell.cast(h, x, y, p * 0.6); toast('Arcane Echo!'); } } });
@@ -2218,31 +2470,42 @@ function wallAhead(e, step) {
 function updateWalls(dt) {
   for (const w of S.walls) {
     w.t -= dt;
+    if (w.thorns) for (const e of inRange(w.x, w.y, 36)) damage(e, w.thorns * dt);
     if (w.t <= 0 || w.hp <= 0) { w.gone = true; S.fx.push({ k: 'ring', x: w.x, y: w.y, r: 26, color: ELEMENTS.earth.color, t: 0.4, T: 0.4 }); }
   }
   S.walls = S.walls.filter(w => !w.gone);
 }
 // Build bar widget: the four runes, what they'll cast, and the mana bar.
 function runeBarHtml() {
-  return `<div id="runeBar" data-tip="spells">${Object.entries(RUNES).map(([k, el]) => `<button class="rune" data-rune="${k}" style="--el:${ELEMENTS[el].css}">${ELEMENTS[el].name} <kbd>${k.toUpperCase()}</kbd></button>`).join('')}
+  return `<div id="runeBar" data-tip="spells">${Object.entries(S.runeKeys).map(([k, el]) => `<button class="rune" data-rune="${k}" style="--el:${ELEMENTS[el].css}">${ELEMENTS[el].name} <kbd>${k.toUpperCase()}</kbd></button>`).join('')}
     <span class="rune-cast" id="runeCast"></span><span class="meter mana"><i id="manaFill"></i></span></div>`;
 }
 function renderRunes() {
   const el = $('runeCast'); if (!el || !S.hero) return;
   const r = resolveRunes(S.runes), h = S.hero;
-  el.innerHTML = S.runes.map(x => `<i style="background:${ELEMENTS[x].css}"></i>`).join('') + (r ? `<b>${r.spell.name}${r.rider ? ' +' + ELEMENTS[r.rider].name : ''}</b> <small>${Math.ceil(r.mana * h.spellCost)} mana · left-click</small>` : '<small>Ready runes with Q W E R</small>');
+  el.innerHTML = S.runes.map(x => `<i style="background:${ELEMENTS[x].css}"></i>`).join('') + (r ? `<b>${r.spell.name}${r.rider ? ' +' + ELEMENTS[r.rider].name : ''}</b> <small>${Math.ceil(r.mana * h.spellCost)} mana · left-click</small>` : `<small>Ready runes with ${Object.keys(S.runeKeys).join(' ').toUpperCase()}</small>`);
 }
 function manaMeter() { const f = $('manaFill'), h = S && S.hero; if (f && h && h.maxMana) f.style.width = (100 * h.mana / h.maxMana).toFixed(1) + '%'; }
 // Spellbook: every spell the Wizard can cast with its runes and current numbers.
-function spellbookHtml(h, triad) {
+function spellbookHtml(h, triad, els) {
+  els = EL_ORDER.filter(e => els.includes(e));
   const keyOf = k => k.split('+').map(e => `<i class="rune-dot" style="background:${ELEMENTS[e].css}" title="${ELEMENTS[e].name}"></i>`).join('');
   const row = k => { const s = SPELLS[k]; return `<li><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${s.name}</b><small>${s.mana} mana</small></div><span class="sb-d">${s.desc(h, spellPow(h))}</span></li>`; };
-  const singles = EL_ORDER.map(e => row(e)), doubles = EL_ORDER.map(e => row(e + '+' + e));
-  const combos = Object.keys(SPELLS).filter(k => k.split('+').length === 2 && new Set(k.split('+')).size === 2).map(row);
-  const ults = EL_ORDER.map(e => e + '+' + e + '+' + e);
+  const singles = els.map(e => row(e)), doubles = els.map(e => row(e + '+' + e));
+  const combos = Object.keys(SPELLS).filter(k => k.split('+').length === 2 && new Set(k.split('+')).size === 2 && k.split('+').every(e => els.includes(e))).map(row);
+  const ults = els.map(e => e + '+' + e + '+' + e);
   return `<ul class="spellbook"><li class="sb-h">One element</li>${singles.join('')}<li class="sb-h">Same element twice</li>${doubles.join('')}<li class="sb-h">Two elements</li>${combos.join('')}
     <li class="sb-h">Three runes ${triad ? '' : '· unlock with Third Rune'}</li>${triad ? ults.map(row).join('') : ults.map(k => `<li class="locked"><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${SPELLS[k].name}</b><small>Third Rune</small></div></li>`).join('')}
-    ${triad ? `<li><span class="sb-d">Three runes of mixed elements cast the first two's spell 35% stronger for 40% more mana, and the third rune ${Object.entries(RIDERS).map(([e, r]) => `${ELEMENTS[e].name.toLowerCase()} ${r.text}`).join(', ')}.</span></li>` : ''}</ul>`;
+    ${triad ? `<li><span class="sb-d">Three runes of mixed elements cast the first two's spell 35% stronger for 40% more mana, and the third rune ${Object.entries(RIDERS).filter(([e]) => els.includes(e)).map(([e, r]) => `${ELEMENTS[e].name.toLowerCase()} ${r.text}`).join(', ')}.</span></li>` : ''}</ul>`;
+}
+// Heroes page: buy elements and choose which ones the Wizard takes on a run.
+function elementsHtml() {
+  const load = wizLoadout(), n = wizSlots(), next = SLOT_AT.find(m => masteryOf('heroes', 'wizard').lvl < m);
+  return `<h3 class="meta-h">Elements · taking ${load.length} of ${n}</h3>
+    <p class="help">Click an element to take it or leave it behind. Taken elements are bound in order to ${SLOT_KEYS.slice(0, n).join(' ').toUpperCase()}. ${next ? `Mastery ${next} gives another slot.` : 'All slots open.'}</p>
+    <div class="el-grid">${EL_ORDER.map(el => { const E = ELEMENTS[el], i = load.indexOf(el);
+      return elOpen(el) ? `<button class="el-card ${i >= 0 ? 'on' : ''}" data-el-take="${el}" style="--el:${E.css}"><b>${E.name}</b><small>${i >= 0 ? 'Key ' + SLOT_KEYS[i].toUpperCase() : 'Left behind'}</small></button>`
+        : `<button class="el-card locked" data-el-buy="${el}" style="--el:${E.css}" ${META.shards < E.cost ? 'disabled' : ''}><b>${E.name}</b><small>${E.blurb}</small><em>◆ ${E.cost}</em></button>`; }).join('')}</div>`;
 }
 // A stand-in hero for spellbook numbers outside a run.
 const bookHero = () => { const h = { spell: 1, spellR: 1, freezeBonus: 0, pushBonus: 1, wallBonus: 1, spellCost: 1 }; const M = META.heroes.wizard || {}; for (const def of HERO_META.wizard) if (rank(M, def.id) && def.book) def.book(h, rank(M, def.id)); return h; };
@@ -2371,6 +2634,7 @@ function knockOut(h) {
 function update(dt) {
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
   if (!S || S.paused || S.over || !S.hero) return;
+  syncAura(S.hero);
   if (S.pendingBoon) return showBoon();
   if (S.pendingHeroic > 0) return showHeroic();
   if (S.pendingLevels > 0) return showLevelUp();
@@ -2621,6 +2885,8 @@ function update(dt) {
     if (t.zero) for (const e of inRange(t.x, t.y, tRange(t))) slowEnemy(e, t.zero, 0.2);
     let spd = overclocked(t) ? 1 + h.ab.power : conductor ? 1 + h.ab.power * 0.5 : 1;
     if (h.ab.haste && S.stasisT > 0 && Math.hypot(S.stasisAt.x - t.x, S.stasisAt.y - t.y) <= h.ab.r) spd *= 1 + h.ab.haste;
+    if (t.ascendT > 0) { t.ascendT -= dt; spd *= 2; }
+    if (t.super && (t.spT -= dt * spd) <= 0) t.spT = superPower(t) ? SUPER_CD : 0.25;
     if (t.buff) spd *= (1 + t.buff.rate) * (t.buff.tempo ? 2 : 1);
     if (t.pact && S.enemies.some(e => e.blocked && Math.hypot(e.x - t.x, e.y - t.y) <= tRange(t))) spd *= 2;
     t.cd -= dt * spd;
@@ -2679,9 +2945,10 @@ function rollPerks() {
   const h = S.hero, cat = HEROES[h.cls].cat, out = [];
   const weighted = list => { const bag = []; for (const p of list) { bag.push(p); if (owns(p.id)) bag.push(p, p); } return bag; };
   const shared = p => p.cls === 'any' || p.cls === cat || (p.also && p.also.includes(cat));
-  // Offensive heroes rarely see utility picks (boss-stun reduction), and crit damage needs some crit chance first.
-  // Gold upgrades only come at Mythic or rarer.
-  const fits = (p, rarity) => (!p.util || cat !== 'offensive' || Math.random() < 0.2) && (p.id !== 'critdmg' || h.crit > 0) && (!p.gold || rarity.mult >= RAR.mythic.mult);
+  // Crit damage needs some crit chance first. Gold upgrades only come at Mythic or rarer, and some upgrades (free
+  // level-ups) only at their own minimum rarity. The Wizard has no attacks, so it never sees attack speed.
+  const allowed = (p, rarity) => (!p.minRar || rarity.mult >= RAR[p.minRar].mult) && !(p.rate && HEROES[h.cls].spells);
+  const fits = (p, rarity) => allowed(p, rarity) && (p.id !== 'critdmg' || h.crit > 0) && (!p.gold || rarity.mult >= RAR.mythic.mult);
   const slots = shuffle(['hero', 'hero', Math.random() < 0.3 ? 'hero' : 'shared']);
   for (const slot of slots) {
     const rarity = rollRarity(), demonic = Math.random() < DEMONIC_CHANCE;
@@ -2697,8 +2964,8 @@ function rollPerks() {
       perk = pick(ABILITY_MODS.filter(m => m.cls === h.cls && m.ab === h.ab.id && !h.ab[m.id] && fresh(m))) || null;
     const pool = p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && (!p.ab || p.ab === h.ab.id) && fits(p, rarity);
     // If every kind in this pool is already on offer, fall back to anything not already shown.
-    if (!perk) perk = pick(weighted(PERKS.filter(p => pool(p) && fresh(p)))) || pick(weighted(PERKS.filter(p => (slot === 'hero' ? shared(p) : p.cls === h.cls) && (!p.ab || p.ab === h.ab.id) && fresh(p))))
-      || pick(PERKS.filter(p => (pool(p) || shared(p)) && !taken.has(p.id)));
+    if (!perk) perk = pick(weighted(PERKS.filter(p => pool(p) && fresh(p)))) || pick(weighted(PERKS.filter(p => (slot === 'hero' ? shared(p) : p.cls === h.cls) && (!p.ab || p.ab === h.ab.id) && allowed(p, rarity) && fresh(p))))
+      || pick(PERKS.filter(p => (pool(p) || shared(p)) && allowed(p, rarity) && !taken.has(p.id)));
     out.push(makeOffer(perk, rar, demonic && !perk.fixed));
   }
   return out;
@@ -2813,6 +3080,7 @@ function inBuildRange(c, r) { const h = S.hero; return Math.hypot(c * C + C / 2 
 function buildProblem(c, r, type) {
   if (c < 0 || r < 0 || c >= COLS || r >= ROWS) return 'Out of bounds.';
   if (pathCells.has(c + ',' + r)) return 'You can’t build on the path.';
+  if (blockedCells.has(c + ',' + r)) return waterCells.has(c + ',' + r) ? 'You can’t build on water.' : 'Something is in the way.';
   if (towerAt(c, r)) return 'That tile is taken.';
   if (S.hero.ko) return 'Your hero is knocked out.';
   if (S.gold < towerCost(type)) return 'Not enough gold.';
@@ -2821,7 +3089,7 @@ function buildProblem(c, r, type) {
 function newTower(type, c, r) {
   const d = TOWERS[type], G = META.towerGlobal, main = 1 + 0.04 * rank(G, 'main');
   // the all-tower upgrades: main effect, range and attack speed (cheaper level-ups are in levelCost)
-  return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg * (type === 'frost' ? 1 : main), rate: d.rate / (1 + 0.03 * rank(G, 'speed')), range: d.range * (1 + 0.03 * rank(G, 'range')), support: !!d.support,
+  return { type, c, r, x: c * C + C / 2, y: r * C + C / 2, lvl: 1, dmg: d.dmg * (type === 'frost' ? 1 : main), rate: d.rate / (1 + 0.02 * rank(G, 'speed')), range: d.range * (1 + 0.02 * rank(G, 'range')), support: !!d.support,
     hex: 0, hexNova: 0, bDmg: d.support ? 0.15 * main : 0, bRate: 0, bRange: 0, bSunder: 0, bGold: 0, bOverdrive: false, bTempo: false, bLight: false, bBreak: false, bRush: false,
     press: 0.25, pressCap: 1.5, pin: 0, shackle: false, after: false, tide: false, guard: 0, pact: false, crushExec: 0, stunT: 0, stunMax: 0, warnT: 0, buff: null,
     splash: d.splash || 0, slow: Math.min(0.85, (d.slow || 0) * (type === 'frost' ? main : 1)), slowDur: 1.6, chain: d.chain || 0, chainMul: 0.7, chainReach: 95,
@@ -2997,10 +3265,10 @@ function towerTags(t) {
 }
 function tryMerge(a, b) {
   S.mergeFrom = null;
-  const why = mergeProblem(a, b), cost = mergeCost();
+  const why = mergeProblem(a, b), cost = mergeCost(a);
   if (why) { toast(why); return renderInspector(); }
   if (S.gold < cost) { toast('Merging costs ' + cost + ' gold.'); return renderInspector(); }
-  S.gold -= cost; if (S.freeMerges > 0) S.freeMerges--;
+  S.gold -= cost;
   const tags = towerTags(a).concat(towerTags(b));
   // A merged tower always shoots: it drops the beam, the lobbed shells and the Beacon's no-attack role, and keeps
   // what those gave it as traits (heat, splash, the buff). A Siege Mortar's reach is only partly kept.
@@ -3013,9 +3281,9 @@ function tryMerge(a, b) {
     const recipe = RECIPES[a.type];
     label = info ? info.name : 'Prime ' + recipe.name; color = info ? info.color : recipe.color;
     merged = Object.assign(base, { type: a.type, hybrid: true, super: true, parents, name: label, color,
-      desc: (info ? info.desc : 'Two ' + recipe.name + 's fused into one. ' + recipe.desc) + ' Its paths are ascended versions of fusion effects its hybrids never used.',
+      desc: (info ? info.desc : 'Two ' + recipe.name + 's fused into one. ' + recipe.desc) + ' Its paths are ascended versions of fusion effects its hybrids never used. Every ' + SUPER_CD + 's it unleashes its next signature power. ' + superText({ parents }),
       fusions: pickFusions(tags, parents.join('+') + a.order.join() + b.order.join(), a.order.concat(b.order)),
-      dmg: Math.max(a.dmg, b.dmg) * 1.6, rate: Math.min(a.rate, b.rate) * 0.9 });
+      dmg: Math.max(a.dmg, b.dmg) * 2.5, rate: Math.min(a.rate, b.rate) * 0.75, spT: 1.5 });
   } else {
     key = [a.type, b.type].sort().join('+');
     const rec = RECIPES[key], [fa, fb] = [a, b].map(t => t.name ? t.name.split(' ')[0] : '');
@@ -3030,11 +3298,11 @@ function tryMerge(a, b) {
   if (merged.parents.includes('anvil')) merged.crush = Math.max(merged.crush, 0.5);
   // Fast + heavy parents (Prism Laser + Siege Mortar) would otherwise get the big hit at the fast rate: keep damage per
   // second within 2.6x the stronger parent's.
-  const dpsCap = 2.6 * Math.max(a.dmg / a.rate, b.dmg / b.rate);
+  const dpsCap = (merged.super ? 6 : 2.6) * Math.max(a.dmg / a.rate, b.dmg / b.rate);
   if (merged.dmg / merged.rate > dpsCap) merged.dmg = dpsCap * merged.rate;
   if (!merged.dmg) merged.dmg = Math.max(a.dmg, b.dmg, 10);
   if (merged.chain) merged.chain += 1;
-  if (merged.super) merged.multi += 1;
+  if (merged.super) { merged.multi += 2; shake(0.03, 600); for (let i = 0; i < 4; i++) S.fx.push({ k: 'ring', x: b.x, y: b.y, r: 50 + 40 * i, color: i % 2 ? 0xffffff : color, t: 0.6 + 0.2 * i, T: 0.6 + 0.2 * i, fill: true }); S.fx.push({ k: 'pillar', x: b.x, y: b.y, w: 20, color, t: 1.2, T: 1.2 }); }
   Object.assign(b, merged);
   S.towers = S.towers.filter(t => t !== a);
   S.fx.push({ k: 'ring', x: b.x, y: b.y, r: merged.super ? 60 : 40, color, t: 0.6, T: 0.6, fill: true });
@@ -3123,7 +3391,7 @@ function renderInspector() {
       el.innerHTML = `<h3>Placing</h3>${buildTipHtml(S.build)}<p class="help">Left-click a tile to build. Right-click or press R to cancel.</p>`;
       return;
     }
-    el.innerHTML = `<h3>Tower</h3><p>Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.</p><p>Towers level up to ${MAX_LVL}. Each level adds a point to one of 5 paths. A tower uses 3 paths of 4 points (with the Oracle, 4 paths of 3 bigger points). A path's last point unlocks its mastery, and at level ${MAX_LVL} the tower ascends into a form named after its paths. Two different level ${MERGE_LVL} towers merge into a hybrid (merging costs ${MERGE_COST} gold), and two level ${MERGE_LVL} hybrids merge into a super tower.</p>`;
+    el.innerHTML = `<h3>Tower</h3><p>Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.</p><p>Towers level up to ${MAX_LVL}. Each level adds a point to one of 5 paths. A tower uses 3 paths of 4 points (with the Oracle, 4 paths of 3 bigger points). A path's last point unlocks its mastery, and at level ${MAX_LVL} the tower ascends into a form named after its paths. Two different level ${MERGE_LVL} towers merge into a hybrid (merging costs ${MERGE_COST} gold), and two level ${MERGE_LVL} hybrids merge into a super tower (${SUPER_COST.toLocaleString('en-US')} gold) with signature powers.</p>`;
     return;
   }
   const sell = Math.round(t.spent * SELL_RATE);
@@ -3151,7 +3419,7 @@ function renderInspector() {
     ${t.lvl < MAX_LVL ? `<p class="help" style="margin-top:8px">Paths used: ${t.order.length}/${lim}${!t.hybrid && t.order.length === 2 && t.lvl < MAX_LVL ? ' · A 3rd path gives it a new name' : ''}${t.freeUps ? ` · ${t.freeUps} free level-up${t.freeUps > 1 ? 's' : ''}` : ''}. Each level: ${levelText(t)} Level ${MAX_LVL} ${t.hybrid ? 'perfects it' : 'ascends it into its final form'}: ${ascText(t)}</p>` : `<p class="help">Max level.${canMerge ? ` Merge it with another level ${MERGE_LVL} ${t.hybrid ? 'hybrid to make a super tower' : 'tower of a different type to make a hybrid'}.` : ''}</p>`}
     <div class="ups">${opts.map(shown).join('')}</div>
     <div class="row">
-      ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost() ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost() || 'Free')}</button>` : ''}
+      ${canMerge ? `<button id="mergeBtn" ${S.gold < mergeCost(t) ? 'disabled' : ''}>${t.hybrid ? 'Super merge' : 'Merge'} · ${gc(mergeCost(t))}</button>` : ''}
       <button id="sellBtn">Sell · ${gc('+' + sell)} <kbd>R</kbd></button>
     </div>`;
   el.querySelectorAll('.up').forEach(b => b.onclick = () => levelTower(t, opts[+b.dataset.u]));
@@ -3286,6 +3554,48 @@ const PX = 0.8, TILE = C * PX, K = 0.75, TH = TILE * K, TOP = 40, BOT = 30, VH =
 const SY = y => TOP + y * K; // screen y of a point on the ground
 const PAL = { ink: '#101223', deep: '#24243D', dusk: '#3B3561', violet: '#625080', mist: '#9B8BA5' };
 let groundFor = null;
+// Tilesets: one atlas per map theme. Its first row is 32×24 tiles (top-down art squashed to the board's tilt): ground
+// variants g0.., rare decorations d0.., the path in every direction (EW, NS, NE, ES, SW, NW), and entry / exit / water.
+// Props sit on the second row.
+const MAP_ART = import.meta.glob('./assets/maps/*.png', { eager: true, import: 'default' });
+const MAP_META = import.meta.glob('./assets/maps/*.json', { eager: true, import: 'default' });
+const themeMeta = th => MAP_META[`./assets/maps/${th}.json`];
+// Which neighbours of each path tile the path runs to (the path enters from off the map and ends at the base).
+function pathLinks() {
+  const seq = [];
+  for (let i = 0; i < WP.length - 1; i++) {
+    let c = Math.floor(WP[i].x / C), r = Math.floor(WP[i].y / C); const c1 = Math.floor(WP[i + 1].x / C), r1 = Math.floor(WP[i + 1].y / C);
+    while (c !== c1 || r !== r1) { seq.push([c, r]); c += Math.sign(c1 - c); r += Math.sign(r1 - r); }
+  }
+  seq.push([Math.floor(BASE.x / C), Math.floor(BASE.y / C)]);
+  const out = new Map(), dir = { '0,-1': 'N', '1,0': 'E', '0,1': 'S', '-1,0': 'W' };
+  seq.forEach(([c, r], i) => {
+    if (c < 0) return;
+    const nb = new Set();
+    for (const j of [i - 1, i + 1]) if (seq[j]) nb.add(dir[(seq[j][0] - c) + ',' + (seq[j][1] - r)]);
+    if (i === seq.length - 1) nb.add(nb.has('W') ? 'E' : nb.has('E') ? 'W' : nb.has('N') ? 'S' : 'N');
+    out.set(c + ',' + r, { key: 'NESW'.split('').filter(x => nb.has(x)).join(''), first: i === 1 && seq[0][0] < 0, last: i === seq.length - 1 });
+  });
+  return out;
+}
+function drawTileset(sc, th) {
+  const meta = themeMeta(th), img = sc.textures.get('map_' + th).getSourceImage(), tex = sc.textures.get('ground'), x2 = tex.getContext();
+  const top = TOP * PX, T = TILE, tot = meta.weights.reduce((a, b) => a + b, 0), links = pathLinks();
+  x2.imageSmoothingEnabled = false;
+  const put = (key, c, r) => { const sx = meta.tiles[key]; if (sx != null) x2.drawImage(img, sx, 0, 32, 24, c * T, top + r * TH, T, TH); };
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    const k = c + ',' + r, l = links.get(k);
+    if (l) { put(l.first && meta.tiles.entry != null && l.key === 'EW' ? 'entry' : l.last && meta.tiles.exit != null ? 'exit' : l.key, c, r); continue; }
+    if (waterCells.has(k) && meta.tiles.water != null) { put('water', c, r); continue; }
+    let x = cellHash(c, r, 1) * tot, g = 0; while (x > meta.weights[g]) x -= meta.weights[g++];
+    put(meta.deco && cellHash(c, r, 2) < 0.05 ? 'd' + Math.floor(cellHash(c, r, 3) * meta.deco) : 'g' + g, c, r);
+  }
+  for (const p of mapProps) {
+    const [sx, sy, w, h] = meta.props[Math.floor(cellHash(p.c, p.r, 5) * meta.props.length)];
+    x2.fillStyle = 'rgba(16,18,35,0.45)'; x2.beginPath(); x2.ellipse(p.c * T + T / 2, top + (p.r + 1) * TH - 4, Math.min(14, w / 2), 4, 0, 0, Math.PI * 2); x2.fill();
+    x2.drawImage(img, sx, sy, w, h, Math.round(p.c * T + (T - w) / 2), Math.round(top + (p.r + 1) * TH - h - 2), w, h);
+  }
+}
 function drawGround(sc) {
   groundFor = pathCells;
   const top = TOP * PX, WALL = 7; // art pixels: headroom, height of the lane's north wall
@@ -3301,7 +3611,9 @@ function drawGround(sc) {
     px(x + 6, 12, TILE - 12, 3, PAL.ink); if (hash(c, 0, 7) < 0.35) px(x + 8, 13, 4, 1, PAL.violet);
     px(x, top - 2, TILE, 2, PAL.ink);
   }
-  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+  const th = MAPS[MAP_ID].theme;
+  if (th && sc.textures.exists('map_' + th)) drawTileset(sc, th);
+  else for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
     const x = c * TILE, y = top + r * TH, T = TILE;
     if (lane(c, r)) {
       px(x, y, T, TH, PAL.ink);
@@ -3379,6 +3691,7 @@ const towerSprites = new Map();
 function loadArt(sc) {
   for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: FRAME, frameHeight: FRAME });
   for (const k in HEROES) sc.load.spritesheet('hero_' + k, ART_URLS[`./assets/hero_${k}.png`], { frameWidth: FRAME, frameHeight: FRAME });
+  for (const m of Object.values(MAPS)) if (m.theme) sc.load.image('map_' + m.theme, MAP_ART[`./assets/maps/${m.theme}.png`]);
 }
 function makeAnims(sc) {
   for (const k in ART) {
@@ -3569,10 +3882,15 @@ function draw(g, o) {
     if (t === S.drained) { o.lineStyle(2, 0xff5d6c, 0.9).lineBetween(tx - 14, ty - 24, tx + 14, ty + 4); }
     if (overclocked(t)) g.lineStyle(1, 0xb07cff, 0.9).strokeRoundedRect(t.x - 19, t.y - 19, 38, 38, 6);
     const cy = ty - 12;
-    if (t.super) {
+    if (t.super) { // a pulsing core with its base towers' colours in orbit, and a ring that fills as its next power charges
+      const pulse = 0.5 + 0.5 * Math.sin(S.time * 5), k = 1 - Math.max(0, t.spT || 0) / SUPER_CD;
+      g.fillStyle(t.color, 0.1 + 0.08 * pulse).fillCircle(t.x, t.y, 30 + 4 * pulse);
+      o.fillStyle(t.color, 0.3).fillCircle(tx, cy, 13 + 3 * pulse);
       o.fillStyle(t.color, 1).fillCircle(tx, cy, 8);
-      o.lineStyle(2, t.color, 0.8).strokeCircle(tx, cy, 11);
-      o.lineStyle(1, 0xf2c14e, 0.9).strokeCircle(tx, cy, 14);
+      o.fillStyle(0xffffff, 0.9).fillCircle(tx, cy, 3 + pulse);
+      o.lineStyle(2, 0xf2c14e, 0.9).beginPath(); o.arc(tx, cy, 15, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); o.strokePath();
+      t.parents.forEach((p, i) => { const an = S.time * 2.2 + i * Math.PI * 2 / t.parents.length; o.fillStyle(TOWERS[p].color, 1).fillCircle(tx + Math.cos(an) * 20, cy + Math.sin(an) * 9, 2.5); });
+      if (t.ascendT > 0) o.lineStyle(1.5, 0xffd36e, 0.8).strokeCircle(tx, cy, 22 + 2 * pulse);
     } else if (t.hybrid) {
       o.fillStyle(t.color, 1).fillCircle(tx, cy, 7);
       o.lineStyle(2, t.color, 0.7).strokeCircle(tx, cy, 11);
@@ -3664,20 +3982,37 @@ function draw(g, o) {
   }
   // effect lines are shots and beams at chest height; rings are blasts spreading on the ground
   // Stone walls: a low rampart across the path, cracking as it loses HP
+  // A wall spell readied: the path tile it will lock onto
+  if (h.cls === 'wizard' && S.pointer && !h.ko) { const r = resolveRunes(S.runes), sp = r && r.spell.wall && wallSpot(S.pointer.x, S.pointer.y);
+    if (sp) { g.fillStyle(0xffffff, 0.22).fillRect(sp.x - C / 2, sp.y - C / 2, C, C); g.lineStyle(2, 0xffffff, 0.65 + 0.35 * Math.sin(S.time * 8)).strokeRect(sp.x - C / 2 + 1, sp.y - C / 2 + 1, C - 2, C - 2); } }
+  // Walls fill their path tile: a rampart across the lane, cracking as it loses HP
   for (const w of S.walls) {
-    const x = w.x, y = SY(w.y), k = Math.max(0, w.hp / w.max), fade = Math.min(1, w.t / 0.4);
-    o.fillStyle(0x6b5640, fade).fillRect(x - 15, y - 16, 30, 16);
-    o.fillStyle(0x9c8160, fade).fillRect(x - 15, y - 16, 30, 4);
-    o.lineStyle(1, 0x3a2e22, fade).strokeRect(x - 15, y - 16, 30, 16).lineBetween(x - 5, y - 12, x - 5, y).lineBetween(x + 5, y - 12, x + 5, y);
-    if (k < 0.5) o.lineStyle(1, 0x241c14, fade).lineBetween(x - 10, y - 10, x - 2, y - 4).lineBetween(x + 3, y - 14, x + 9, y - 6);
-    o.fillStyle(0x000000, 0.6).fillRect(x - 15, y - 22, 30, 3); o.fillStyle(0xc8a26a, 1).fillRect(x - 15, y - 22, 30 * k, 3);
+    const x = w.x, y = SY(w.y), k = Math.max(0, w.hp / w.max), fade = Math.min(1, w.t / 0.4), col = w.color || 0x8a7050;
+    const hw = w.across ? 7 : 17, top = w.across ? SY(w.y - 17) : SY(w.y - 6), bot = w.across ? SY(w.y + 17) : SY(w.y + 6), H = 16;
+    o.fillStyle(Phaser.Display.Color.ValueToColor(col).darken(30).color, fade).fillRect(x - hw, bot - H, hw * 2, H);
+    o.fillStyle(col, fade).fillRect(x - hw, top - H, hw * 2, bot - top);
+    o.fillStyle(0xffffff, 0.25 * fade).fillRect(x - hw, top - H, hw * 2, 1);
+    o.lineStyle(1, 0x241c14, fade).strokeRect(x - hw, top - H, hw * 2, bot - top + H);
+    if (k < 0.5) o.lineStyle(1, 0x241c14, fade).lineBetween(x - hw + 3, bot - 10, x - 1, bot - 4).lineBetween(x + 2, bot - H + 2, x + hw - 3, bot - 6);
+    if (w.thorns) for (let i = -1; i <= 1; i++) o.lineStyle(1, 0x7ee06a, fade).lineBetween(x + i * hw * 0.6, top - H, x + i * hw * 0.6 + 2, top - H - 5);
+    o.fillStyle(0x000000, 0.6).fillRect(x - 15, top - H - 8, 30, 3); o.fillStyle(0xc8a26a, 1).fillRect(x - 15, top - H - 8, 30 * k, 3);
   }
   for (const f of S.fx) {
     const a = f.t / f.T;
     if (f.k === 'orb') { const q = 1 - a, x = f.x1 + (f.x2 - f.x1) * q, y = SY(f.y1 + (f.y2 - f.y1) * q) - 18 * (1 - q) - 40 * Math.sin(Math.PI * q) * 0.4; o.fillStyle(f.color, 0.35).fillCircle(x, y, f.r * 1.8); o.fillStyle(f.color, 1).fillCircle(x, y, f.r); o.fillStyle(0xffffff, 0.9).fillCircle(x, y, f.r * 0.4); continue; }
-    if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - (f.l1 || 12), f.x2, SY(f.y2) - 12);
-    else {
-      const r = f.r * (1.2 - a * 0.4);
+    if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - (f.l1 == null ? 12 : f.l1), f.x2, SY(f.y2) - 12);
+    else if (f.k === 'pillar') { // a beam straight down from the sky
+      const y = SY(f.y), w = f.w * (0.6 + 0.4 * a);
+      o.fillStyle(f.color, 0.35 * a).fillRect(f.x - w * 1.6, y - 520, w * 3.2, 520); o.fillStyle(f.color, 0.8 * a).fillRect(f.x - w / 2, y - 520, w, 520);
+      o.fillStyle(0xffffff, a).fillRect(f.x - w / 5, y - 520, w / 2.5, 520); g.fillStyle(f.color, 0.4 * a).fillCircle(f.x, f.y, f.w * 2.5);
+    } else if (f.k === 'bolt') { // jagged lightning from above
+      let px = f.x + Math.sin(f.seed) * 40, py = SY(f.y) - 320;
+      for (let i = 1; i <= 7; i++) {
+        const q = i / 7, nx = i === 7 ? f.x : f.x + Math.sin(f.seed + i * 7.3) * 26 * (1 - q), ny = py + (SY(f.y) - 8 - (SY(f.y) - 320)) / 7;
+        o.lineStyle(4, f.color, a * 0.6).lineBetween(px, py, nx, ny); o.lineStyle(1.5, 0xffffff, a).lineBetween(px, py, nx, ny); px = nx; py = ny;
+      }
+    } else {
+      const r = f.shrink ? f.r * (0.15 + 0.85 * a) : f.r * (1.2 - a * 0.4);
       if (f.fill) g.fillStyle(f.color, a * 0.2).fillCircle(f.x, f.y, r);
       g.lineStyle(2, f.color, a).strokeCircle(f.x, f.y, r);
     }
@@ -3745,7 +4080,7 @@ window.addEventListener('keydown', e => {
   if (e.key.toLowerCase() === 'p' && !e.repeat) return togglePause();
   const lk = e.key.toLowerCase();
   // the Wizard: Q W E R ready runes, and it never moves with the keyboard
-  if (S.hero.cls === 'wizard') { if (RUNES[lk] && !e.repeat) { e.preventDefault(); readyRune(lk); } if (RUNES[lk] || MOVE_KEYS.includes(lk)) return; }
+  if (S.hero.cls === 'wizard') { const rk = S.runeKeys[lk]; if (rk && !e.repeat) { e.preventDefault(); readyRune(lk); } if (rk || MOVE_KEYS.includes(lk)) return; }
   if (keyMove && MOVE_KEYS.includes(lk)) { e.preventDefault(); held.add(lk); return; }
   const k = /^[1-9]$/.test(e.key) && S.loadout[+e.key - 1];
   if (k) selectBuild(k);
