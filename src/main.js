@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './style.css';
 import riftwalkerUrl from './music/riftwalker.mp3';
+import phaseUrl from './music/just-a-phase.mp3';
 import { SIMPLE } from './simple.js';
 
 (() => {
@@ -328,6 +329,10 @@ const HEROES = {
     stats: { hp: 170, dmg: 48, rate: 2.4, range: 9999, block: 1, armor: 0, regen: 2, speed: 140, brace: 1.2, crit: 0.1 },
     ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 },
     alt: { id: 'strike', name: 'Orbital Strike', cd: 16, mult: 5, r: 90 } },
+  wizard:   { name: 'Wizard', role: 'Special', cat: 'special', color: 0x7fb2ff, css: '#7fb2ff', spells: true,
+    desc: 'A spell caster with no auto-attack. Ready elements with Q W E R and left-click to cast at the cursor: one element, the same one twice for a stronger spell, or two different ones for a combination. Spells cost mana. Moves only with the mouse.',
+    stats: { hp: 190, dmg: 0, rate: 1, range: 0, block: 1, armor: 0, regen: 2, speed: 140, mana: 100, manaRegen: 7 },
+    ability: { id: 'spells', name: 'Spellcraft', cd: 0 } },
 };
 // Each hero has two abilities to choose from on the Heroes page; the choice is saved in META.abilities.
 const heroAbility = k => (META.abilities && META.abilities[k] === 'alt' && HEROES[k].alt) || HEROES[k].ability;
@@ -337,6 +342,7 @@ const heroesIn = cat => Object.entries(HEROES).filter(([, h]) => h.cat === cat);
 // Hover box for a hero's ability: exact numbers, what each upgrade adds, and the controls.
 function abilityTipHtml(h) {
   const a = h.ab, rows = [];
+  if (a.id === 'spells') return `<b>Spellcraft</b><p>${abilityText(h)}</p><div class="tip-s">Esc clears readied runes. Right-click or left-click empty ground to move.</div>`;
   if (a.id === 'slam') rows.push(['Damage', a.dmg.toFixed(0)], ['Radius', (a.r * (a.magnet ? 1.5 : 1)).toFixed(0)], ['Stun', a.stun.toFixed(1) + 's']);
   if (a.id === 'nova') rows.push(['Damage', a.dmg.toFixed(0)], ['Radius', a.r.toFixed(0)]);
   if (a.id === 'overclock') rows.push(['Radius', a.r.toFixed(0)], ['Towers fire faster', pct(a.power)], ['Lasts', a.dur.toFixed(1) + 's']);
@@ -349,7 +355,7 @@ function abilityTipHtml(h) {
   const mods = ABILITY_MODS.filter(m => a[m.id]);
   const extra = { slam: h.taunt ? `After the slam, enemies within 120 attack you for ${h.taunt.toFixed(1)}s (bosses half).` : '',
     pierce: 'Press F to set an aim point and it always fires that way. Press F on the point to clear it.',
-    strike: 'Press F to set an aim point and the strike always lands there.',
+    strike: 'Point at the map and press Q: the strike lands on your cursor.',
     overclock: '', nova: '' }[a.id];
   return `<b>${a.name}</b> <span class="tip-c">Q</span><p>${abilityText(h)}</p>
     ${simple() ? '' : `<div class="tip-s">${rows.map(([k, v]) => `${k}: <b>${v}</b>`).join(' · ')}</div>`}
@@ -360,6 +366,7 @@ function tipFor(key) {
   if (key === 'ability' && S && S.hero) return abilityTipHtml(S.hero);
   if (key.startsWith('ability:')) { const parts = key.split(':'), d = HEROES[parts[1]], ab = parts[2] === 'alt' ? d.alt : parts[2] === 'base' ? d.ability : heroAbility(parts[1]); return abilityTipHtml({ ab: Object.assign({}, ab), dmg: d.stats.dmg, taunt: 0 }); }
   if (key.startsWith('mod:')) { const m = ABILITY_MODS.find(x => x.id === key.slice(4)); return m ? `<b>${m.name}</b><p>${tx(key, m.desc)}</p>` : ''; }
+  if (key === 'spells' && S && S.hero) { const r = resolveRunes(S.runes); return `<b>Runes</b><p>${r ? `<b>${r.spell.name}</b>: ${r.spell.desc(S.hero, spellPow(S.hero) * r.pow)}${r.rider ? ` The ${ELEMENTS[r.rider].name.toLowerCase()} rune ${RIDERS[r.rider].text}.` : ''}` : abilityText(S.hero)}</p><div class="tip-s">Mana ${Math.floor(S.hero.mana)}/${Math.round(S.hero.maxMana)} · +${S.hero.manaRegen.toFixed(1)}/s</div>`; }
   if (key === 'hold') return `<b>Hold position</b> <span class="tip-c">H</span><p>Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.</p>`;
   if (key === 'aim') return `<b>Aim point</b> <span class="tip-c">F</span><p>Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.</p>`;
   return '';
@@ -373,13 +380,14 @@ document.addEventListener('mouseover', e => {
 });
 function abilityText(h) {
   const a = h.ab;
+  if (a.id === 'spells') return 'Ready elements with Q (fire), W (water), E (earth) and R (air), then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Spells cost mana.';
   if (simple() && SIMPLE['ability:' + a.id]) return SIMPLE['ability:' + a.id];
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
   if (a.id === 'nova') return `Deals ${a.dmg.toFixed(0)} damage to every enemy within ${a.r.toFixed(0)}.`;
   if (a.id === 'pierce') return `Fires a round through every enemy in a line toward your aim point (or the lead enemy) for ${a.mult.toFixed(1)}× damage.`;
   if (a.id === 'bulwark') return `Raises a shield that soaks ${(a.dmg * 5 * (a.overflow ? 1.5 : 1)).toFixed(0)} damage for ${a.dur.toFixed(1)}s. When it breaks or ends it bursts, hitting enemies within ${a.r.toFixed(0)} for ${a.dmg.toFixed(0)} plus 60% of what it soaked.`;
   if (a.id === 'overdrive') return `For ${a.dur.toFixed(1)}s you attack ${pct(a.power)} faster.`;
-  if (a.id === 'strike') return `Calls a strike on your aim point (or the toughest enemy). After 0.8s it hits everything within ${a.r.toFixed(0)} for ${a.mult.toFixed(1)}× damage.`;
+  if (a.id === 'strike') return `Calls a strike where your cursor is on the map (or the toughest enemy). After 0.8s it hits everything within ${a.r.toFixed(0)} for ${a.mult.toFixed(1)}× damage.`;
   if (a.id === 'stasis') return `Enemies within ${a.r.toFixed(0)} of where you cast it are slowed ${pct(Math.min(0.85, a.power * 0.75))} for ${a.dur.toFixed(1)}s.`;
   return `Towers within ${a.r.toFixed(0)} fire ${pct(a.power)} faster for ${a.dur.toFixed(1)}s.`;
 }
@@ -457,6 +465,15 @@ const PERKS = [
   { id: 'adren',   cls: 'striker', ab: 'overdrive', name: 'Adrenaline', m: 1, desc: m => `Overdrive lasts ${m.toFixed(1)}s longer.`, apply: (h, m) => h.ab.dur += m },
   { id: 'redline', cls: 'striker', ab: 'overdrive', name: 'Redline', m: 0.25, desc: m => `Overdrive gives +${pct(m)} more attack speed.`, apply: (h, m) => h.ab.power += m },
   { id: 'payload', cls: 'sniper', ab: 'strike', name: 'Bigger Payload', m: 0.15, desc: m => `Orbital Strike blast is ${pct(m)} wider.`, apply: (h, m) => h.ab.r *= 1 + m },
+  // Wizard
+  { id: 'arcpow',  cls: 'wizard', name: 'Arcane Power',    m: 0.15, desc: m => `Spells deal +${pct(m)} damage.`, apply: (h, m) => h.spell *= 1 + m },
+  { id: 'manapool',cls: 'wizard', name: 'Deep Reserves',   m: 20,   desc: m => `+${Math.round(m)} max mana and a full refill.`, apply: (h, m) => { h.maxMana += Math.round(m); h.mana = h.maxMana; } },
+  { id: 'manaflow',cls: 'wizard', name: 'Mana Spring',     m: 1.5,  desc: m => `+${m.toFixed(1)} mana per second.`, apply: (h, m) => h.manaRegen += m },
+  { id: 'thrift',  cls: 'wizard', name: 'Spell Thrift',    m: 0.07, desc: m => `Spells cost ${pct(Math.min(0.5, m))} less mana (up to 50%).`, apply: (h, m) => h.spellCost = Math.max(0.5, h.spellCost * (1 - Math.min(0.5, m))) },
+  { id: 'reachsp', cls: 'wizard', name: 'Wide Casting',    m: 0.1,  desc: m => `Spells cover +${pct(m)} more area.`, apply: (h, m) => h.spellR *= 1 + m },
+  { id: 'rime',    cls: 'wizard', name: 'Rime',            m: 0.3,  desc: m => `Freezes last ${m.toFixed(1)}s longer.`, apply: (h, m) => h.freezeBonus += m },
+  { id: 'masonry', cls: 'wizard', name: 'Masonry',         m: 0.25, desc: m => `Stone walls have +${pct(m)} HP.`, apply: (h, m) => h.wallBonus *= 1 + m },
+  { id: 'zephyr',  cls: 'wizard', name: 'Zephyr',          m: 0.2,  desc: m => `Enemies you blow back are pushed ${pct(m)} longer.`, apply: (h, m) => h.pushBonus *= 1 + m },
   { id: 'alchemy', cls: 'support', name: 'Alchemist',       m: 0.15, desc: m => `Tower merges cost ${pct(Math.min(0.8, m))} less.`, apply: (h, m) => h.mergeMul *= 1 - Math.min(0.8, m) },
 ];
 // Every hero level also grows the hero's core stats, by role. Damage heroes hit harder, reach farther and
@@ -466,6 +483,7 @@ const ROLE_LEVEL = {
   defensive: { text: '+3% max HP, +0.5% damage reduction, +0.2% of max HP as regen per second',
     apply: h => { const add = Math.round(HEROES[h.cls].stats.hp * 0.03); h.maxHp += add; h.hp = Math.min(h.maxHp, h.hp + add); h.armor = Math.min(0.75, h.armor + 0.005); h.regen += h.maxHp * 0.002; } },
   support:   { text: '+1% range and aura reach, +1% XP gain', apply: h => { if (h.range < 9999) h.range *= 1.01; h.auraRange *= 1.01; h.xpGain += 0.01; } },
+  special:   { text: '+4% spell damage, +3 max mana, +0.15 mana per second', apply: h => { h.spell *= 1.04; h.maxMana += 3; h.manaRegen += 0.15; } },
 };
 function levelHero(h) {
   h.xp -= h.next; h.lvl++; h.next = Math.round(h.next * 1.3); S.pendingLevels++;
@@ -502,6 +520,8 @@ const ABILITY_MODS = [
 ];
 // Unique upgrades that only appear at Legendary (per hero) or Secret (any hero).
 const UNIQUES = [
+  { id: 'echo',   cls: 'wizard',   rarity: 'legendary', name: 'Arcane Echo',    desc: 'Every 4th spell you cast repeats itself at 60% power.', apply: h => h.echo = 4 },
+  { id: 'archmage', cls: 'wizard', rarity: 'legendary', name: 'Archmage',       desc: '+25% spell damage and spells cost 15% less mana.', apply: h => { h.spell *= 1.25; h.spellCost *= 0.85; } },
   { id: 'aegis',  cls: 'vanguard', rarity: 'legendary', name: 'Aegis Core',     desc: 'Take 20% less damage and gain 150 max HP.', apply: h => { h.maxHp += 50; h.armor = Math.min(0.75, h.armor + 0.2); h.maxHp += 100; h.hp = h.maxHp; } },
   { id: 'unbreak',cls: 'vanguard', rarity: 'legendary', name: 'Unbreakable',    desc: 'Once per wave, a fatal blow leaves you at full HP instead.', apply: h => h.unbreakable = true },
   { id: 'exec',   cls: 'striker',  rarity: 'legendary', name: 'Executioner',    desc: '+20% damage. Your hits instantly finish non-boss enemies below 15% HP.', apply: h => { h.dmg *= 1.2; h.execute = 0.15; } },
@@ -531,9 +551,9 @@ const HEROICS = [
   { id: 'blades', for: [], name: 'Orbiting Blades', desc: r => `${r + 1} blades circle your hero, each dealing ${20 * r} damage per second to enemies they touch.` },
   { id: 'retribution', for: ['vanguard'], name: 'Retribution', desc: r => `Every 4s, a shockwave hits enemies within 110 of your hero for ${20 * r} damage plus ${30 * r}% of the damage you took since the last one.` },
   { id: 'barrage', for: ['striker'], name: 'Rift Barrage', desc: r => `Every 5s, fire ${2 + 2 * r} homing rift missiles at enemies near your hero, each dealing 150% hero damage + ${10 * r}.` },
-  { id: 'drone',  for: ['striker', 'oracle'], name: 'Turret Drone',    desc: r => `${r} drone${r > 1 ? 's' : ''} fly beside your hero and shoot the nearest enemy for ${10 + 8 * r} damage.` },
-  { id: 'timestop', for: ['oracle', 'sniper'], name: 'Time Stop',     desc: r => `Every 25s, every enemy on the map freezes for ${1 + r}s.` },
-  { id: 'wither', for: ['vanguard'], name: 'Withering Aura',  desc: r => `Enemies within ${90 + 20 * r} of your hero take ${10 * r} damage per second and are slowed 20%.` },
+  { id: 'drone',  for: ['striker', 'oracle', 'wizard'], name: 'Turret Drone',    desc: r => `${r} drone${r > 1 ? 's' : ''} fly beside your hero and shoot the nearest enemy for ${10 + 8 * r} damage.` },
+  { id: 'timestop', for: ['oracle', 'sniper', 'wizard'], name: 'Time Stop',     desc: r => `Every 25s, every enemy on the map freezes for ${1 + r}s.` },
+  { id: 'wither', for: ['vanguard', 'wizard'], name: 'Withering Aura',  desc: r => `Enemies within ${90 + 20 * r} of your hero take ${10 * r} damage per second and are slowed 20%.` },
   { id: 'chainstrike', for: ['striker'], name: 'Chain Strike', desc: r => `Your attacks jump to ${1 + r} more enemies for 60% damage.` },
   { id: 'goldrush', for: ['oracle'], name: 'Gold Rush',     desc: r => `Kills have a ${8 * r}% chance to drop 15 bonus gold.` },
   { id: 'phoenix', for: ['vanguard'], name: 'Phoenix Rebirth', desc: r => `When knocked out, explode for ${150 * r} damage and respawn in 2s.` },
@@ -642,6 +662,13 @@ const HERO_META = {
     { id: 'hollow',   name: 'Hollow Points',    max: 4, cost: r => 40 + 30 * r, desc: r => `+${15 * r}% crit damage`, apply: (h, r) => h.critDmg += 0.15 * r },
     { id: 'drills',   name: 'Piercing Drills',  max: 3, cost: r => 50 + 40 * r, desc: r => `Piercing Shot recharges ${8 * r}% faster`, apply: (h, r) => h.ab.cd *= 1 - 0.08 * r },
   ],
+  // book: the same effect on the spellbook's stand-in hero, so the Heroes page shows upgraded numbers
+  wizard: [
+    { id: 'potency',  name: 'Spell Potency',    max: 5, cost: r => 30 + 25 * r, desc: r => `Spells deal +${8 * r}% damage`, apply: (h, r) => h.spell *= 1 + 0.08 * r, book: (h, r) => h.spell *= 1 + 0.08 * r },
+    { id: 'reservoir',name: 'Arcane Reservoir', max: 4, cost: r => 40 + 30 * r, desc: r => `+${15 * r} max mana`, apply: (h, r) => { h.maxMana += 15 * r; h.mana = h.maxMana; } },
+    { id: 'flow',     name: 'Mana Flow',        max: 4, cost: r => 40 + 30 * r, desc: r => `+${r} mana per second`, apply: (h, r) => h.manaRegen += r },
+    { id: 'triad',    name: 'Third Rune',       max: 1, cost: () => 150, desc: () => 'Ready 3 runes at once: 4 ultimate spells (the same element three times) and overcharged mixed spells', apply: h => h.runeMax = 3 },
+  ],
 };
 // Special upgrades: bought once with Boss Cores. Mythic tier and up.
 const SPECIALS = [
@@ -738,6 +765,7 @@ const ROLE_STAT = {
   defensive: { per: 100, name: 'damage blocked', unit: 'damage blocked' },
   offensive: { per: 1, name: 'kills', unit: 'kill' },
   support:   { per: 1, name: 'assisted kills', unit: 'assisted kill' },
+  special:   { per: 1, name: 'kills', unit: 'kill' },
 };
 const heroStat = k => META.heroStat[k] != null ? META.heroStat[k] : (META.kills.heroes[k] || 0) * ROLE_STAT[HEROES[k].cat].per;
 function masteryOf(kind, k) {
@@ -760,7 +788,7 @@ function masteryHtml(kind, k) {
 }
 
 // ---------- settings (saved in this browser) ----------
-let SETTINGS = { volume: 0.6, muted: false, fullscreen: true, musicOn: true, musicVolume: 0.5, song: 'riftwalker', musicMode: 'all', simple: false };
+let SETTINGS = { master: 0.2, volume: 0.6, muted: false, fullscreen: true, musicOn: true, musicVolume: 0.5, song: 'riftwalker', musicMode: 'all', playlist: null, simple: false };
 try { Object.assign(SETTINGS, JSON.parse(localStorage.getItem('riftguard-settings') || '{}')); } catch (e) {}
 function saveSettings() { try { localStorage.setItem('riftguard-settings', JSON.stringify(SETTINGS)); } catch (e) {} }
 // Explanations: Detailed shows exact numbers; Simple shows just the idea (from simple.js). Toggled in Settings.
@@ -775,25 +803,38 @@ function setFullscreen(on) {
 if (desktop && !SETTINGS.fullscreen) desktop.setFullscreen(false);
 
 // ---------- sound: tiny synthesized effects, no audio files ----------
-let actx = null, master = null;
+// Sound effects and music both run through the master volume.
+let actx = null, master = null, mainOut = null;
 function audio() {
   if (!actx) {
-    try { actx = new (window.AudioContext || window.webkitAudioContext)(); master = actx.createGain(); master.connect(actx.destination); } catch (e) { return null; }
+    try {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      mainOut = actx.createGain(); mainOut.connect(actx.destination);
+      master = actx.createGain(); master.connect(mainOut);
+    } catch (e) { return null; }
   }
+  mainOut.gain.value = SETTINGS.master;
   master.gain.value = SETTINGS.muted ? 0 : SETTINGS.volume;
   if (actx.state === 'suspended') actx.resume();
   return actx;
 }
 // ---------- music: background songs, picked on the Music screen ----------
 // loop: for songs written to loop, the length of the loop in seconds from the first beat (Riftwalker is
-// 104 bars at 100 BPM). The file's silent lead-in and its tail are trimmed off, and the reverb tail that
-// rings past the loop is laid over its start, so it repeats seamlessly.
-const SONGS = [{ id: 'riftwalker', name: 'Riftwalker', url: riftwalkerUrl, loop: 249.6 }];
-const MUSIC_MODES = { one: 'Repeat this song', all: 'Play all in order', shuffle: 'Shuffle' };
+// 104 bars at 100 BPM; Just a Phase is 128 bars at 166.67 BPM). The file's silent lead-in and its tail are
+// trimmed off, and the tail that rings past the loop is laid over its start, so it repeats seamlessly.
+// lead: how far the first beat sits before the first clearly audible sample (Just a Phase starts on a soft
+// attack, 232 samples at 48 kHz before it crosses the loudness threshold).
+// unlock: the map you must beat to hear the song.
+const SONGS = [
+  { id: 'riftwalker', name: 'Riftwalker', url: riftwalkerUrl, loop: 249.6 },
+  { id: 'phase', name: 'Just a Phase', url: phaseUrl, loop: 184.32, lead: 232 / 48000, unlock: 'verdant' },
+];
+const songOpen = s => !s.unlock || !!(META.best[s.unlock] && META.best[s.unlock].won);
+const MUSIC_MODES = { one: 'Loop one song', all: 'Play the playlist in order', shuffle: 'Shuffle the playlist' };
 // Plays through Web Audio: an <audio> element leaves a gap every time it loops.
 const bgm = {
   song: null, buf: null, src: null, gain: null, paused: true, loop: true, offset: 0, startedAt: 0, want: false, onended: null,
-  ctx() { const c = audio(); if (c && !this.gain) { this.gain = c.createGain(); this.gain.connect(c.destination); } return c; },
+  ctx() { const c = audio(); if (c && !this.gain) { this.gain = c.createGain(); this.gain.connect(mainOut); } return c; },
   get duration() { return this.buf ? this.buf.duration : NaN; },
   get currentTime() {
     if (!this.buf) return 0;
@@ -812,7 +853,7 @@ const bgm = {
     const x = new XMLHttpRequest(); x.open('GET', song.url); x.responseType = 'arraybuffer';
     x.onload = () => c.decodeAudioData(x.response).then(buf => {
       if (this.song !== song) return;
-      this.buf = loopBuffer(c, buf, song.loop);
+      this.buf = loopBuffer(c, buf, song.loop, song.lead);
       if (this.want) { this.paused = true; this.play(); }
       musicTick();
     }).catch(() => {});
@@ -831,10 +872,11 @@ const bgm = {
   pause() { this.want = false; if (this.paused) return; this.offset = this.currentTime; this.stop(); },
   stop() { if (this.src) { this.src.onended = null; try { this.src.stop(); } catch (e) {} this.src = null; } this.paused = true; },
 };
-function loopBuffer(c, buf, loop) {
+function loopBuffer(c, buf, loop, lead) {
   const sr = buf.sampleRate, L = Math.round((loop || 0) * sr), ch = [...Array(buf.numberOfChannels)].map((_, i) => buf.getChannelData(i));
-  let on = 0; // first beat: the first clearly audible sample
+  let on = 0; // first beat: the first clearly audible sample, less the song's lead
   while (on < Math.min(buf.length, sr) && !ch.some(d => Math.abs(d[on]) > 0.02)) on++;
+  on = Math.max(0, on - Math.round((lead || 0) * sr));
   if (!L || on + L > buf.length) return buf;
   const out = c.createBuffer(ch.length, L, sr);
   ch.forEach((d, i) => {
@@ -844,9 +886,12 @@ function loopBuffer(c, buf, loop) {
   return out;
 }
 let bgmStarted = false;
-const songIdx = () => Math.max(0, SONGS.findIndex(s => s.id === SETTINGS.song));
+const songIdx = () => Math.max(0, SONGS.findIndex(s => s.id === SETTINGS.song && songOpen(s)));
+// The playlist: unlocked songs that "Play all" and "Shuffle" move between. Defaults to every unlocked song.
+const playlist = () => { const on = SONGS.filter(s => songOpen(s) && (!SETTINGS.playlist || SETTINGS.playlist.includes(s.id))); return on.length ? on : [SONGS[songIdx()]]; };
 function applyMusic() {
-  bgm.volume = SETTINGS.musicVolume; bgm.setLoop(SETTINGS.musicMode === 'one' || SONGS.length === 1);
+  audio();
+  bgm.volume = SETTINGS.musicVolume; bgm.setLoop(SETTINGS.musicMode === 'one' || playlist().length === 1);
   if (!SETTINGS.musicOn) bgm.pause(); else if (bgmStarted && bgm.paused) bgm.play();
 }
 function playSong(id) {
@@ -855,8 +900,9 @@ function playSong(id) {
   bgmStarted = true; applyMusic();
 }
 function nextSong(step = 1) {
-  const n = SONGS.length, i = songIdx();
-  playSong(SONGS[SETTINGS.musicMode === 'shuffle' && n > 1 ? (i + 1 + Math.floor(Math.random() * (n - 1))) % n : (i + step + n) % n].id);
+  const list = playlist(), n = list.length, i = list.findIndex(s => s.id === SETTINGS.song);
+  if (i < 0) return playSong(list[0].id);
+  playSong(list[SETTINGS.musicMode === 'shuffle' && n > 1 ? (i + 1 + Math.floor(Math.random() * (n - 1))) % n : (i + step + n) % n].id);
 }
 bgm.onended = () => nextSong();
 // browsers only allow audio after the player interacts with the page
@@ -931,7 +977,7 @@ const FIRST_TIPS = {
   loadout: ['Choose your towers', '<p>Pick the towers you can build this run. Each one gets a number key (1, 2, 3...) as a shortcut. You can’t change them once the run starts.</p>'],
   heroes: ['Heroes page', '<p>Every hero is open from the start. Spend Rift Shards on permanent upgrades for each one. Boss Cores, dropped by bosses, buy the big special upgrades.</p><p>Refund buttons give your shards back if you want to try a different build.</p>'],
   towers: ['Towers page', '<p>Every tower is open from the start. Buy upgrades that make them stronger in every run. The tabs along the top switch towers. Below the upgrades you can see every form and merge you’ve discovered.</p>'],
-  music: ['Music', '<p>Pick the song that plays on the menus and in runs. Volume is in Settings.</p>'],
+  music: ['Music', '<p>Pick the song that plays on the menus and in runs, build a playlist to play in order or shuffle, or loop one song. Beating maps unlocks more songs.</p>'],
   log: ['Stats log', '<p>Your recent runs: how far you got, what you lost and which towers did the most damage. Copy the full log to share it.</p>'],
   run: ['Your first run', '<p><b>Build:</b> pick a tower in the bar below (or press its number) and click a free tile. Your hero walks over to build it.</p><p><b>Move:</b> right-click the map to send your hero somewhere. <b>Q</b> uses its ability.</p><p><b>Upgrade:</b> click a tower to level it up. Each level adds a point to one of its paths, and each path’s price only rises with its own points.</p><p>Press <b>Space</b> to start a wave, <b>P</b> to pause, and <b>Esc</b> to back out of anything.</p>'],
   waves: ['Hard and Challenge waves', '<p>From now on you pick how hard each wave is.</p><p><b>Hard</b> makes the enemies tougher (more HP, armor, speed and so on) for a little extra gold.</p><p><b>Challenge</b> makes them tougher, adds a handicap, and sets a goal like “lose no base HP”. Meet the goal to earn the reward. The goal stays at the top of the screen while the wave runs.</p>'],
@@ -1073,19 +1119,19 @@ function showHeroes(sel) {
         ${heroPortrait(sel, 3)}<h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
         <p>${tx('hero:' + sel, d.desc)}</p>
         <div class="stats">
-          <div><span>HP</span>${st.hp}</div><div><span>Damage</span>${st.dmg}</div>
-          <div><span>Attacks/s</span>${(1 / st.rate).toFixed(2)}</div><div><span>Range</span>${st.range >= 9999 ? 'Whole map' : st.range}</div>
+          <div><span>HP</span>${st.hp}</div>${st.mana ? `<div><span>Mana</span>${st.mana} (+${st.manaRegen}/s)</div>` : `<div><span>Damage</span>${st.dmg}</div>
+          <div><span>Attacks/s</span>${(1 / st.rate).toFixed(2)}</div><div><span>Range</span>${st.range >= 9999 ? 'Whole map' : st.range}</div>`}
           <div><span>Blocks</span>${blockText(st.block)}</div><div><span>Move speed</span>${st.speed}</div>
           ${st.brace ? `<div><span>Brace time</span>${st.brace}s</div>` : ''}${st.crit ? `<div><span>Crit chance</span>${pct(st.crit)}</div>` : ''}
-          <div><span>Crit damage</span>150%</div>
+          ${st.mana ? '' : '<div><span>Crit damage</span>150%</div>'}
         </div>
         <h3 class="meta-h">Stats</h3>
-        <div class="stats">${d.cat !== 'offensive' ? `<div><span>Total ${ROLE_STAT[d.cat].name}</span>${Math.round(heroStat(sel))}</div>` : ''}<div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Total takedowns</span>${META.takedowns.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
+        <div class="stats">${ROLE_STAT[d.cat].name !== 'kills' ? `<div><span>Total ${ROLE_STAT[d.cat].name}</span>${Math.round(heroStat(sel))}</div>` : ''}<div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Total takedowns</span>${META.takedowns.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
           <div><span>Maps beaten</span>${MAP_ORDER.filter(m => (META.wins.heroes[sel] || {})[m]).length}/${MAP_ORDER.length}</div></div>
         ${masteryHtml('heroes', sel)}
-        <h3 class="meta-h">Ability · pick one</h3>
+        ${d.spells ? `<h3 class="meta-h">Spellbook</h3><p class="help">${abilityText({ ab: d.ability })}</p>${spellbookHtml(bookHero(), rank(META.heroes.wizard || {}, 'triad'))}` : `<h3 class="meta-h">Ability · pick one</h3>
         <div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].map(([v, ab]) => `<button class="choice ${heroAbility(sel) === ab ? 'picked' : ''}" data-ab-pick="${v}">
-          <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>
+          <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>`}
         <h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
           <h3 class="meta-h special-h">Special upgrades · Boss Cores ${refundBtn('special', sel)}</h3>
           <p class="help">Bought once with Boss Cores, which bosses drop. Game-changing, and expensive.</p>
@@ -1127,9 +1173,14 @@ function showMusic() {
       <div class="music-seek"><span id="muTime">${clock(bgm.currentTime)}</span><input type="range" id="muSeek" min="0" max="1" step="0.001" value="${bgm.duration ? bgm.currentTime / bgm.duration : 0}"><span id="muDur">${clock(bgm.duration)}</span></div>
       <div class="row"><button id="muPrev">Previous</button><button class="go" id="muPlay">${playing ? 'Pause' : 'Play'}</button><button id="muNext">Next</button></div></div>
     <h3 class="music-h">Songs</h3>
-    <div class="cards songs">${SONGS.map((s, i) => `<button class="choice song-pick ${s.id === cur.id ? 'picked' : ''}" data-song="${s.id}"><small class="path">Track ${i + 1}</small><b>${s.name}</b><span>${s.id === cur.id ? (playing ? 'Playing' : 'Selected') : 'Click to play'}</span></button>`).join('')}</div>
+    <p class="help">Click a song to play it. Ticked songs make up your playlist, which the play mode moves through in order or shuffled. "Loop one song" repeats the song that is playing.</p>
+    <div class="cards songs">${SONGS.map((s, i) => { const open = songOpen(s), inList = playlist().some(x => x.id === s.id);
+      return `<div class="song-card ${s.id === cur.id ? 'picked' : ''} ${open ? '' : 'locked'}"><button class="choice song-pick ${s.id === cur.id ? 'picked' : ''}" data-song="${s.id}" ${open ? '' : 'disabled'}><small class="path">Track ${i + 1}</small><b>${s.name}</b>
+        <span>${!open ? `Locked: beat ${MAPS[s.unlock].name} to unlock` : s.id === cur.id ? (playing ? 'Playing' : 'Selected') : 'Click to play'}</span></button>
+        ${open ? `<label class="song-list"><input type="checkbox" data-list="${s.id}" ${inList ? 'checked' : ''}> In playlist</label>` : ''}</div>`; }).join('')}</div>
     <div class="settings music-set">
       <label>Music <input type="checkbox" id="muOn" ${SETTINGS.musicOn ? 'checked' : ''}></label>
+      <label>Master volume <input type="range" id="muMaster" min="0" max="1" step="0.05" value="${SETTINGS.master}"></label>
       <label>Music volume <input type="range" id="muVol" min="0" max="1" step="0.05" value="${SETTINGS.musicVolume}"></label>
       <label>Play mode <select id="muMode">${Object.entries(MUSIC_MODES).map(([k, v]) => `<option value="${k}" ${SETTINGS.musicMode === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
     </div>`);
@@ -1141,8 +1192,14 @@ function showMusic() {
   $('muSeek').oninput = e => { if (bgm.duration) bgm.currentTime = +e.target.value * bgm.duration; };
   $('muOn').onchange = e => { SETTINGS.musicOn = e.target.checked; saveSettings(); playSong(cur.id); redraw(); };
   $('muVol').oninput = e => { SETTINGS.musicVolume = +e.target.value; saveSettings(); applyMusic(); };
+  $('muMaster').oninput = e => { SETTINGS.master = +e.target.value; saveSettings(); applyMusic(); };
   $('muMode').onchange = e => { SETTINGS.musicMode = e.target.value; saveSettings(); applyMusic(); };
   document.querySelectorAll('.song-pick').forEach(b => b.onclick = () => { SETTINGS.musicOn = true; playSong(b.dataset.song); redraw(); });
+  document.querySelectorAll('[data-list]').forEach(b => b.onchange = () => {
+    const ids = playlist().map(x => x.id).filter(id => id !== b.dataset.list);
+    if (b.checked) ids.push(b.dataset.list);
+    SETTINGS.playlist = SONGS.filter(x => ids.includes(x.id)).map(x => x.id); saveSettings(); applyMusic(); redraw();
+  });
 }
 function musicTick() {
   if (!$('muSeek')) return;
@@ -1173,6 +1230,7 @@ function showSettings() {
   openModal(`<h2>${inRun ? 'Paused' : 'Settings'}</h2>
     <div class="settings">
       <label>Music <input type="checkbox" id="setMusic" ${SETTINGS.musicOn ? 'checked' : ''}></label>
+      <label>Master volume <input type="range" id="setMaster" min="0" max="1" step="0.05" value="${SETTINGS.master}"></label>
       <label>Music volume <input type="range" id="setMusicVol" min="0" max="1" step="0.05" value="${SETTINGS.musicVolume}"></label>
       <label>Sound effects volume <input type="range" id="setVol" min="0" max="1" step="0.05" value="${SETTINGS.volume}"></label>
       <label>Mute sound effects <input type="checkbox" id="setMute" ${SETTINGS.muted ? 'checked' : ''}></label>
@@ -1189,6 +1247,7 @@ function showSettings() {
   $('setVol').onchange = () => sfx('level');
   $('setMusic').onchange = e => { SETTINGS.musicOn = e.target.checked; saveSettings(); bgmStarted = true; if (!bgm.song) playSong(SETTINGS.song); else applyMusic(); };
   $('setMusicVol').oninput = e => { SETTINGS.musicVolume = +e.target.value; saveSettings(); applyMusic(); };
+  $('setMaster').oninput = e => { SETTINGS.master = +e.target.value; saveSettings(); applyMusic(); };
   $('setMute').onchange = e => { SETTINGS.muted = e.target.checked; saveSettings(); audio(); };
   $('setFs').onchange = e => setFullscreen(e.target.checked);
   $('setKeys').onchange = e => { if (e.target.checked !== keyMove) toggleKeys(); };
@@ -1217,7 +1276,7 @@ function newRun(mapId) {
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    echoes: [], zones: [], delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    echoes: [], zones: [], walls: [], runes: [], delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
     mod: { towerDmg: 1, slow: 0, gold: 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
     hero: null,
   };
@@ -1237,6 +1296,7 @@ function makeHero(id) {
     ab: Object.assign({ t: 0 }, heroAbility(id)), shield: 0, shieldMax: 0, shieldT: 0, odT: 0,
     boonSlow: 0, boonSplash: 0, boonRail: 0, boonVent: 0, boonChain: 0, boonIon: 0,
     xpGain: 0, retStore: 0, retT: 4, barrageT: 5,
+    mana: s.mana || 0, maxMana: s.mana || 0, manaRegen: s.manaRegen || 0, spell: 1, spellR: 1, spellCost: 1, freezeBonus: 0, pushBonus: 1, wallBonus: 1, runeMax: 2, echo: 0,
   };
 }
 function applyHeroMeta(h) {
@@ -1264,14 +1324,15 @@ function showHeroSelect() {
   const heroCards = () => CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => {
         return `<button class="choice mapcard hero-pick ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}">
         ${heroPortrait(k, 2)}<small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
-        <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase()}</span>
+        <span>HP ${d.stats.hp} · ${d.stats.mana ? 'Mana ' + d.stats.mana + ' · No auto-attack' : 'Damage ' + d.stats.dmg + ' · ' + (d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase())}</span>
         <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text) : ''}</span>
-        <em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span></em></button>`; }).join('')}</div>`).join('');
+        <em class="reward">${d.spells ? 'Spells: Q W E R, then left-click' : `Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span>`}</em></button>`; }).join('')}</div>`).join('');
   const towerCards = () => `<div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const on = picks.includes(k);
         return `<button class="choice mapcard tower-pick ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}">
         <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${tx('tower:' + k, d.info)}</span></button>`; }).join('')}</div>`;
   // The picked hero's two abilities, so you can swap before the run without visiting the Heroes page.
   const abilityRow = () => { const d = HEROES[hero];
+    if (d.spells) return `<h3 class="cat-h">${d.name} · spells</h3><p class="help">${abilityText({ ab: d.ability })} Full spellbook on the Heroes page.</p>`;
     return `<h3 class="cat-h">${d.name} ability · pick one</h3><div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].filter(([, ab]) => ab).map(([v, ab]) => `<button class="choice ${heroAbility(hero) === ab ? 'picked' : ''}" data-ab-pick="${v}">
       <small class="path">${heroAbility(hero) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${hero}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>`; };
   // Two pages: pick the hero first, then the towers.
@@ -1337,13 +1398,13 @@ function towerCost(type) {
   const b = S.bought || {}, mine = b[type] || 0, all = Object.values(b).reduce((x, y) => x + y, 0);
   return Math.round(TOWERS[type].cost * 1.5 ** mine * 1.15 ** (all - mine) * S.hero.costMul * mapPrice());
 }
-// Level-up price: build cost × 2.5 × (points already in that path + 1). Merged towers start at their upStart
+// Level-up price: build cost × 2.5 × 1.15 × (points already in that path + 1). Merged towers start at their upStart
 // price and rise 30% per point in that path. Each path is priced on its own: only points already in that path make its next point dearer.
 function levelCost(t, path) {
   if (S.freeLevels > 0 || t.freeUps > 0) return 0;
   const n = path ? t.ups[path.id] || 0 : 0;
   const base = t.hybrid ? t.upStart * (1 + 0.3 * n) : t.baseCost * (pathMax() === 3 ? 3.1 : 2.5) * (n + 1);
-  return Math.round(base * S.hero.lvlMul * (1 - 0.04 * rank(META.towerGlobal, 'cost')) * mapPrice());
+  return Math.round(base * 1.15 * S.hero.lvlMul * (1 - 0.04 * rank(META.towerGlobal, 'cost')) * mapPrice());
 }
 const hybridUpStart = (parents, sup) => Math.round(2 * (MAX_LVL - 1) * Math.max(...parents.map(k => TOWERS[k].cost)) * (sup ? 1.5 : 1));
 function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul * mapPrice()); }
@@ -1634,9 +1695,10 @@ function showShop() {
 // atD: spawn partway along the path (Splitter pieces, boss summons).
 function spawn(type, atD) {
   const d = ENEMIES[type], m = S.mode, map = MAPS[S.map];
-  // Enemies get much tougher each wave; bosses also scale with the wave they lead.
+  // Enemies get much tougher each wave; bosses also scale with the wave they lead. Every enemy has 25% more HP
+  // than its listed base.
   let scale = d.boss ? 1 + 0.15 * Math.max(0, S.wave - 5) : 1 + 0.55 * (S.wave - 1) + 0.1 * (S.wave - 1) ** 2;
-  scale *= S.mod.enemyHp;
+  scale *= S.mod.enemyHp * 1.25;
   if (hasTough('hp')) scale *= 1.4;
   if (m.hpMul) scale *= m.hpMul;
   if (m.challenge === 'swarm') scale *= 0.65;
@@ -1963,7 +2025,7 @@ function heroDmg() { return S.hero.dmg * (S.mode.challenge === 'lone' ? 2 : 1); 
 function useAbility() {
   const h = S && S.hero, a = h && h.ab;
   if (!h || h.ko > 0 || a.t > 0 || S.over || S.paused) return;
-  if ((a.id === 'pierce' || a.id === 'strike') && !S.aim && !S.enemies.some(e => !e.dead)) return toast('No target for ' + a.name + '. Press F to set an aim point.');
+  if ((a.id === 'pierce' || (a.id === 'strike' && !S.pointer)) && !S.aim && !S.enemies.some(e => !e.dead)) return toast('No target for ' + a.name + '. Press F to set an aim point.');
   // with an aim point set, Piercing Shot holds fire (and keeps its charge) until an enemy is on its line
   if (a.id === 'pierce' && S.aim && !pierceLine(h, a, S.aim).length) return toast('No enemy on the aim line yet. Piercing Shot holds its fire.');
   a.t = a.cd;
@@ -2005,10 +2067,11 @@ function hurtHero(h, loss) {
   if (h.shield > 0) { const soak = Math.min(h.shield, loss); h.shield -= soak; h.soaked = (h.soaked || 0) + soak; loss -= soak; if (h.shield <= 0) endShield(h); }
   h.hp -= loss; if (S.heroics.retribution) h.retStore += loss;
 }
-// Sniper alt: a heavy blast at the aim point (F) or the toughest enemy, after a short delay.
+// Sniper alt: a heavy blast where the cursor is, after a short delay. With the cursor off the map it falls back to
+// the aim point (F), then the toughest enemy.
 function orbitalStrike(h, a) {
   const tough = S.enemies.filter(e => !e.dead).sort((p, q) => (q.boss - p.boss) || (q.hp - p.hp))[0];
-  const at = S.aim ? { x: S.aim.x, y: S.aim.y } : tough ? { x: tough.x, y: tough.y } : null;
+  const p = S.pointer, at = p ? { x: Math.max(0, Math.min(W, p.x)), y: Math.max(0, Math.min(H, p.y)) } : S.aim ? { x: S.aim.x, y: S.aim.y } : tough ? { x: tough.x, y: tough.y } : null;
   if (!at) return;
   sfx('snipe');
   S.fx.push({ k: 'line', x1: at.x, y1: 0, x2: at.x, y2: at.y, color: 0xffd36e, t: 0.8, T: 0.8, w: 2 });
@@ -2024,6 +2087,166 @@ function orbitalStrike(h, a) {
     if (a.carpet) for (let i = 0; i < 3; i++) { const ang = Math.random() * Math.PI * 2, d = a.r * 0.9; S.delayed.push({ at: S.time + 0.15 * (i + 1), fn: () => boom(at.x + Math.cos(ang) * d, at.y + Math.sin(ang) * d, a.r * 0.7, 0.5) }); }
   } });
 }
+// ---------- the Wizard: no auto-attack; ready up to 2 elements (3 with Third Rune), then left-click to cast ----------
+// Q fire, W water, E earth, R air. One element casts its spell; the same element twice casts a bigger version for
+// more mana; two different elements cast their combination spell. Spells land on the cursor and cost mana.
+const RUNES = { q: 'fire', w: 'water', e: 'earth', r: 'air' };
+const ELEMENTS = {
+  fire:  { name: 'Fire',  key: 'Q', color: 0xff7a3d, css: '#ff7a3d' },
+  water: { name: 'Water', key: 'W', color: 0x5fc8ff, css: '#5fc8ff' },
+  earth: { name: 'Earth', key: 'E', color: 0xc8a26a, css: '#c8a26a' },
+  air:   { name: 'Air',   key: 'R', color: 0xd8f4ee, css: '#d8f4ee' },
+};
+const EL_ORDER = ['fire', 'water', 'earth', 'air'];
+const spellPow = h => h.spell * (S && S.mode && S.mode.challenge === 'lone' ? 2 : 1);
+const waveNo = () => (S && S.wave) || 1;
+const freezeFor = (e, s, h) => e.boss ? s * 0.3 : s + h.freezeBonus;
+function freeze(e, s, h) { e.stunT = Math.max(e.stunT, freezeFor(e, s, h)); S.fx.push({ k: 'ring', x: e.x, y: e.y, r: e.r + 6, color: 0xdff6ff, t: 0.5, T: 0.5, fill: true }); }
+function pushBack(e, dur, spd, h) {
+  if (!(e.pushT > 0)) e.pushSpd = 0;
+  e.pushT = Math.max(e.pushT || 0, (e.boss ? 0.35 : 1) * dur * h.pushBonus); e.pushSpd = Math.max(e.pushSpd, spd);
+}
+function hitArea(x, y, r, dmg, each) { for (const e of inRange(x, y, r)) { damage(e, dmg); if (!e.dead && each) each(e); } }
+function burnGround(x, y, r, t, dps, color) { S.zones.push({ x, y, r, t, T: t, dps, slow: 0, color: color || 0xff8a3d }); }
+// The point on the path nearest (x, y), as a path distance, if it's within reach.
+function pathPointNear(x, y, reach) {
+  let best = null, bd = reach;
+  for (let d = 0; d <= PATH_LEN; d += 4) { const p = posAt(d), dd = Math.hypot(p.x - x, p.y - y); if (dd < bd) { bd = dd; best = d; } }
+  return best;
+}
+function raiseWall(h, x, y, hp, dur, pow, slam) {
+  const d = pathPointNear(x, y, 140);
+  if (d == null) return false;
+  const p = posAt(d);
+  S.walls.push({ d, x: p.x, y: p.y, hp: hp * h.wallBonus, max: hp * h.wallBonus, t: dur, T: dur });
+  if (slam) hitArea(p.x, p.y, 45, slam * pow, e => { e.stunT = Math.max(e.stunT, e.boss ? 0.3 : 1); });
+  S.fx.push({ k: 'ring', x: p.x, y: p.y, r: 30, color: ELEMENTS.earth.color, t: 0.5, T: 0.5, fill: true }); shake(0.004, 120);
+  return true;
+}
+// A fireball flies from the staff to the target, then bursts.
+function launch(h, x, y, color, size, land) {
+  const T = flight(h, x, y);
+  S.fx.push({ k: 'orb', x1: h.x, y1: h.y, x2: x, y2: y, r: size, color, t: T, T });
+  S.delayed.push({ at: S.time + T, fn: land });
+}
+// Each spell: mana cost, a short description from the hero's numbers, and what it does at (x, y).
+// p is spell power (Spell Power upgrades, levels, Lone Hero) times any overcharge from a third rune.
+const SPELLS = {
+  fire: { name: 'Fireball', mana: 18, desc: (h, p) => `A fireball bursts for ${f0(55 * p)} damage within ${f0(55 * h.spellR)} and leaves the ground burning for 3s (${f0(14 * p)}/s).`,
+    cast: (h, x, y, p) => launch(h, x, y, 0xff7a3d, 4, () => { const r = 55 * h.spellR; hitArea(x, y, r, 55 * p); burnGround(x, y, r * 0.8, 3, 14 * p); S.fx.push({ k: 'ring', x, y, r, color: 0xff7a3d, t: 0.4, T: 0.4, fill: true }); sfx('boom'); }) },
+  water: { name: 'Frost Burst', mana: 22, desc: (h, p) => `Freezes enemies within ${f0(70 * h.spellR)} solid for ${(1.6 + h.freezeBonus).toFixed(1)}s and deals ${f0(15 * p)} damage.`,
+    cast: (h, x, y, p) => { const r = 70 * h.spellR; hitArea(x, y, r, 15 * p, e => freeze(e, 1.6, h)); S.fx.push({ k: 'ring', x, y, r, color: 0x9fe6ff, t: 0.5, T: 0.5, fill: true }); } },
+  earth: { name: 'Stone Wall', mana: 28, desc: h => `Raises a wall on the path nearest the cursor. It blocks enemies for 6s or until its ${f0((250 + 30 * waveNo()) * h.wallBonus)} HP runs out.`,
+    cast: (h, x, y) => raiseWall(h, x, y, 250 + 30 * waveNo(), 6, 1, 0) },
+  air: { name: 'Gust', mana: 18, desc: (h, p) => `Blows enemies within ${f0(80 * h.spellR)} back along the path for ${(1 * h.pushBonus).toFixed(1)}s and deals ${f0(10 * p)} damage.`,
+    cast: (h, x, y, p) => { const r = 80 * h.spellR; hitArea(x, y, r, 10 * p, e => pushBack(e, 1, 90, h)); S.fx.push({ k: 'ring', x, y, r, color: 0xd8f4ee, t: 0.45, T: 0.45 }); } },
+  'fire+fire': { name: 'Greater Fireball', mana: 32, desc: (h, p) => `A huge fireball bursts for ${f0(140 * p)} damage within ${f0(85 * h.spellR)} and leaves the ground burning for 4s (${f0(25 * p)}/s).`,
+    cast: (h, x, y, p) => launch(h, x, y, 0xff5a2a, 7, () => { const r = 85 * h.spellR; hitArea(x, y, r, 140 * p); burnGround(x, y, r * 0.8, 4, 25 * p); S.fx.push({ k: 'ring', x, y, r, color: 0xff5a2a, t: 0.5, T: 0.5, fill: true }); shake(0.008, 180); sfx('boom'); }) },
+  'water+water': { name: 'Deep Freeze', mana: 40, desc: (h, p) => `Freezes enemies within ${f0(100 * h.spellR)} for ${(3 + h.freezeBonus).toFixed(1)}s, deals ${f0(30 * p)} damage, and they take 20% more damage for 4s.`,
+    cast: (h, x, y, p) => { const r = 100 * h.spellR; hitArea(x, y, r, 30 * p, e => { freeze(e, 3, h); e.brittle = Math.max(e.brittle, 0.2); e.brittleT = Math.max(e.brittleT, 4); }); S.fx.push({ k: 'ring', x, y, r, color: 0xdff6ff, t: 0.7, T: 0.7, fill: true }); } },
+  'earth+earth': { name: 'Great Wall', mana: 50, desc: (h, p) => `Raises a thick wall (${f0((650 + 60 * waveNo()) * h.wallBonus)} HP) for 9s that slams nearby enemies for ${f0(40 * p)} and stuns them 1s.`,
+    cast: (h, x, y, p) => raiseWall(h, x, y, 650 + 60 * waveNo(), 9, p, 40) },
+  'air+air': { name: 'Cyclone', mana: 32, desc: (h, p) => `Hurls enemies within ${f0(110 * h.spellR)} back for ${(1.8 * h.pushBonus).toFixed(1)}s and deals ${f0(25 * p)} damage.`,
+    cast: (h, x, y, p) => { const r = 110 * h.spellR; hitArea(x, y, r, 25 * p, e => pushBack(e, 1.8, 110, h)); S.zones.push({ x, y, r, t: 0.8, T: 0.8, dps: 0, slow: 0, color: 0xd8f4ee, vortex: true }); } },
+  'fire+water': { name: 'Scalding Torrent', mana: 40, desc: (h, p) => `A boiling wave pushes enemies within ${f0(85 * h.spellR)} back, deals ${f0(60 * p)} damage, and they take 25% more damage from everything for 5s.`,
+    cast: (h, x, y, p) => { const r = 85 * h.spellR; hitArea(x, y, r, 60 * p, e => { pushBack(e, 0.7, 100, h); e.brittle = Math.max(e.brittle, 0.25); e.brittleT = Math.max(e.brittleT, 5); }); S.fx.push({ k: 'line', x1: h.x, y1: h.y, x2: x, y2: y, color: 0x9fe6ff, t: 0.3, T: 0.3, w: 8 }); S.fx.push({ k: 'ring', x, y, r, color: 0xffb08a, t: 0.5, T: 0.5, fill: true }); } },
+  'fire+earth': { name: 'Meteor', mana: 45, desc: (h, p) => `After 0.7s a meteor strikes for ${f0(170 * p)} within ${f0(90 * h.spellR)}, stuns for 1.2s, and leaves molten ground for 4s (${f0(20 * p)}/s).`,
+    cast: (h, x, y, p) => { const r = 90 * h.spellR; S.fx.push({ k: 'ring', x, y, r, color: 0xff5d3d, t: 0.7, T: 0.7 }); S.delayed.push({ at: S.time + 0.7, fn: () => { hitArea(x, y, r, 170 * p, e => { e.stunT = Math.max(e.stunT, e.boss ? 0.4 : 1.2); }); burnGround(x, y, r * 0.8, 4, 20 * p); S.fx.push({ k: 'line', x1: x - 60, y1: y - 400, x2: x, y2: y, color: 0xff9a3d, t: 0.25, T: 0.25, w: 10 }); S.fx.push({ k: 'ring', x, y, r, color: 0xff7a3d, t: 0.6, T: 0.6, fill: true }); shake(0.014, 260); sfx('boom'); } }); } },
+  'fire+air': { name: 'Firestorm', mana: 40, desc: (h, p) => `A whirling firestorm burns enemies within ${f0(80 * h.spellR)} for 4s (${f0(40 * p)}/s) and slows them 30%.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 80 * h.spellR, t: 4, T: 4, dps: 40 * p, slow: 0.3, color: 0xff7a3d, vortex: true }) },
+  'water+earth': { name: 'Quagmire', mana: 38, desc: (h, p) => `Turns the ground within ${f0(95 * h.spellR)} to deep mud for 6s: enemies are slowed 65% and take ${f0(8 * p)}/s.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 95 * h.spellR, t: 6, T: 6, dps: 8 * p, slow: 0.65, color: 0x7a6a4a }) },
+  'water+air': { name: 'Blizzard', mana: 42, desc: (h, p) => `A blizzard rages within ${f0(100 * h.spellR)} for 5s (${f0(22 * p)}/s, 45% slow), then freezes everything still inside for ${(1.2 + h.freezeBonus).toFixed(1)}s.`,
+    cast: (h, x, y, p) => S.zones.push({ x, y, r: 100 * h.spellR, t: 5, T: 5, dps: 22 * p, slow: 0.45, color: 0xbfeaff, endFreeze: 1.2 }) },
+  'earth+air': { name: 'Sandstorm', mana: 38, desc: (h, p) => `A sandstorm within ${f0(90 * h.spellR)} blows enemies back for 0.6s, then for 5s scours them (${f0(16 * p)}/s) and strips 20% armor.`,
+    cast: (h, x, y, p) => { const r = 90 * h.spellR; hitArea(x, y, r, 0, e => pushBack(e, 0.6, 90, h)); S.zones.push({ x, y, r, t: 5, T: 5, dps: 16 * p, slow: 0, color: 0xd8b878, brk: 0.2 }); } },
+  // Third Rune (Heroes page): the same element three times.
+  'fire+fire+fire': { name: 'Inferno', mana: 70, desc: (h, p) => `Engulfs everything within ${f0(140 * h.spellR)} for ${f0(260 * p)} damage and sets the ground ablaze for 5s (${f0(45 * p)}/s).`,
+    cast: (h, x, y, p) => launch(h, x, y, 0xff3d1a, 10, () => { const r = 140 * h.spellR; hitArea(x, y, r, 260 * p); burnGround(x, y, r * 0.85, 5, 45 * p, 0xff3d1a); S.fx.push({ k: 'ring', x, y, r, color: 0xff3d1a, t: 0.8, T: 0.8, fill: true }); shake(0.02, 400); sfx('boom'); }) },
+  'water+water+water': { name: 'Absolute Zero', mana: 70, desc: (h, p) => `Freezes every enemy on the map for ${(2.5 + h.freezeBonus).toFixed(1)}s, deals ${f0(40 * p)} damage, and they take 30% more damage for 5s.`,
+    cast: (h, x, y, p) => { for (const e of S.enemies.filter(e => !e.dead)) { damage(e, 40 * p); if (!e.dead) { freeze(e, 2.5, h); e.brittle = Math.max(e.brittle, 0.3); e.brittleT = Math.max(e.brittleT, 5); } } S.fx.push({ k: 'ring', x, y, r: 400, color: 0xdff6ff, t: 0.9, T: 0.9, fill: true }); shake(0.01, 300); } },
+  'earth+earth+earth': { name: 'Earthquake', mana: 70, desc: (h, p) => `Shakes the ground within ${f0(220 * h.spellR)}: ${f0(150 * p)} damage and a 2s stun.`,
+    cast: (h, x, y, p) => { const r = 220 * h.spellR; hitArea(x, y, r, 150 * p, e => { e.stunT = Math.max(e.stunT, e.boss ? 0.6 : 2); }); S.fx.push({ k: 'ring', x, y, r, color: 0xc8a26a, t: 0.8, T: 0.8, fill: true }); shake(0.025, 600); sfx('boom'); } },
+  'air+air+air': { name: 'Tempest', mana: 70, desc: (h, p) => `A tempest within ${f0(200 * h.spellR)} hurls enemies back for ${(2.5 * h.pushBonus).toFixed(1)}s and deals ${f0(60 * p)} damage.`,
+    cast: (h, x, y, p) => { const r = 200 * h.spellR; hitArea(x, y, r, 60 * p, e => pushBack(e, 2.5, 140, h)); S.zones.push({ x, y, r, t: 1.2, T: 1.2, dps: 0, slow: 0, color: 0xd8f4ee, vortex: true }); } },
+};
+const f0 = v => Math.round(v);
+// how long after casting a spell lands (fireballs fly, the meteor falls)
+const flight = (h, x, y) => Math.max(0.12, Math.hypot(x - h.x, y - h.y) / 650);
+const landsAfter = (key, h, x, y) => /^fire(\+fire)*$/.test(key) ? flight(h, x, y) : key === 'fire+earth' ? 0.7 : 0.05;
+// A third, different element overcharges a two-element spell (+35% power) and adds its own touch on the target area.
+const RIDERS = {
+  fire:  { text: 'sets enemies burning (20/s for 3s)', apply: (e, p) => { e.burnT = Math.max(e.burnT, 3); e.burnDps = Math.max(e.burnDps, 20 * p); } },
+  water: { text: 'freezes them for 1s', apply: (e, p, h) => freeze(e, 1, h) },
+  earth: { text: 'cracks their armor (25% for 4s)', apply: e => { e.brk = Math.max(e.brk, 0.25); e.brkT = Math.max(e.brkT, 4); } },
+  air:   { text: 'blows them back for 0.8s', apply: (e, p, h) => pushBack(e, 0.8, 90, h) },
+};
+const spellKey = els => els.slice().sort((a, b) => EL_ORDER.indexOf(a) - EL_ORDER.indexOf(b)).join('+');
+// What the readied runes cast: { spell, key, rider, mana, pow }.
+function resolveRunes(runes) {
+  if (!runes.length) return null;
+  if (runes.length < 3 || runes.every(r => r === runes[0])) { const key = spellKey(runes); return { key, spell: SPELLS[key], mana: SPELLS[key].mana, pow: 1 }; }
+  // mixed three: the first two different elements make the spell, the remaining rune rides along
+  const a = runes[0], b = runes.find(r => r !== a), rest = runes.slice(); rest.splice(rest.indexOf(a), 1); rest.splice(rest.indexOf(b), 1);
+  const key = spellKey([a, b]), s = SPELLS[key];
+  return { key, spell: s, rider: rest[0], mana: Math.round(s.mana * 1.4), pow: 1.35 };
+}
+function readyRune(k) {
+  const h = S.hero; if (!h || h.ko || S.over || !$('modal').hidden) return;
+  S.runes.push(RUNES[k]); if (S.runes.length > h.runeMax) S.runes.shift();
+  sfx('click'); renderRunes();
+}
+function castRunes(x, y) {
+  const h = S.hero, r = resolveRunes(S.runes);
+  if (!r || h.ko || S.over || S.paused) return;
+  if (S.mode.challenge === 'benched') return toast('Benched: your hero can’t attack this wave.');
+  if (S.time < (h.castT || 0)) return;
+  const mana = r.mana * h.spellCost;
+  if (h.mana < mana) return toast(`Not enough mana for ${r.spell.name} (${Math.ceil(mana)} needed).`);
+  const p = spellPow(h) * r.pow;
+  if (r.spell.cast(h, x, y, p) === false) return toast('Stone walls go on the path: point at the path to raise one.');
+  if (r.rider) S.delayed.push({ at: S.time + landsAfter(r.key, h, x, y) + 0.02, fn: () => { for (const e of inRange(x, y, 90 * h.spellR)) RIDERS[r.rider].apply(e, spellPow(h), h); } });
+  h.mana -= mana; h.castT = S.time + 0.3; h.aimX = x; h.aimY = y; h.atkAt = S.time; h.casts = (h.casts || 0) + 1;
+  if (h.echo && h.casts % h.echo === 0) S.delayed.push({ at: S.time + 0.4, fn: () => { if (!h.ko) { r.spell.cast(h, x, y, p * 0.6); toast('Arcane Echo!'); } } });
+  sfx('ability'); S.runes = []; renderRunes();
+}
+// Walls: enemies walking into one stop and batter it.
+function wallAhead(e, step) {
+  for (const w of S.walls) if (w.hp > 0 && e.d < w.d && e.d + step >= w.d - e.r) return w;
+  return null;
+}
+function updateWalls(dt) {
+  for (const w of S.walls) {
+    w.t -= dt;
+    if (w.t <= 0 || w.hp <= 0) { w.gone = true; S.fx.push({ k: 'ring', x: w.x, y: w.y, r: 26, color: ELEMENTS.earth.color, t: 0.4, T: 0.4 }); }
+  }
+  S.walls = S.walls.filter(w => !w.gone);
+}
+// Build bar widget: the four runes, what they'll cast, and the mana bar.
+function runeBarHtml() {
+  return `<div id="runeBar" data-tip="spells">${Object.entries(RUNES).map(([k, el]) => `<button class="rune" data-rune="${k}" style="--el:${ELEMENTS[el].css}">${ELEMENTS[el].name} <kbd>${k.toUpperCase()}</kbd></button>`).join('')}
+    <span class="rune-cast" id="runeCast"></span><span class="meter mana"><i id="manaFill"></i></span></div>`;
+}
+function renderRunes() {
+  const el = $('runeCast'); if (!el || !S.hero) return;
+  const r = resolveRunes(S.runes), h = S.hero;
+  el.innerHTML = S.runes.map(x => `<i style="background:${ELEMENTS[x].css}"></i>`).join('') + (r ? `<b>${r.spell.name}${r.rider ? ' +' + ELEMENTS[r.rider].name : ''}</b> <small>${Math.ceil(r.mana * h.spellCost)} mana · left-click</small>` : '<small>Ready runes with Q W E R</small>');
+}
+function manaMeter() { const f = $('manaFill'), h = S && S.hero; if (f && h && h.maxMana) f.style.width = (100 * h.mana / h.maxMana).toFixed(1) + '%'; }
+// Spellbook: every spell the Wizard can cast with its runes and current numbers.
+function spellbookHtml(h, triad) {
+  const keyOf = k => k.split('+').map(e => `<i class="rune-dot" style="background:${ELEMENTS[e].css}" title="${ELEMENTS[e].name}"></i>`).join('');
+  const row = k => { const s = SPELLS[k]; return `<li><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${s.name}</b><small>${s.mana} mana</small></div><span class="sb-d">${s.desc(h, spellPow(h))}</span></li>`; };
+  const singles = EL_ORDER.map(e => row(e)), doubles = EL_ORDER.map(e => row(e + '+' + e));
+  const combos = Object.keys(SPELLS).filter(k => k.split('+').length === 2 && new Set(k.split('+')).size === 2).map(row);
+  const ults = EL_ORDER.map(e => e + '+' + e + '+' + e);
+  return `<ul class="spellbook"><li class="sb-h">One element</li>${singles.join('')}<li class="sb-h">Same element twice</li>${doubles.join('')}<li class="sb-h">Two elements</li>${combos.join('')}
+    <li class="sb-h">Three runes ${triad ? '' : '· unlock with Third Rune'}</li>${triad ? ults.map(row).join('') : ults.map(k => `<li class="locked"><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${SPELLS[k].name}</b><small>Third Rune</small></div></li>`).join('')}
+    ${triad ? `<li><span class="sb-d">Three runes of mixed elements cast the first two's spell 35% stronger for 40% more mana, and the third rune ${Object.entries(RIDERS).map(([e, r]) => `${ELEMENTS[e].name.toLowerCase()} ${r.text}`).join(', ')}.</span></li>` : ''}</ul>`;
+}
+// A stand-in hero for spellbook numbers outside a run.
+const bookHero = () => { const h = { spell: 1, spellR: 1, freezeBonus: 0, pushBonus: 1, wallBonus: 1, spellCost: 1 }; const M = META.heroes.wizard || {}; for (const def of HERO_META.wizard) if (rank(M, def.id) && def.book) def.book(h, rank(M, def.id)); return h; };
+
 function slam(h, a, mult) {
   const x = h.x, y = h.y, r = a.r * (a.magnet ? 1.5 : 1);
   for (const e of inRange(x, y, r)) {
@@ -2183,7 +2406,7 @@ function update(dt) {
   } else {
     const kx = (held.has('d') || held.has('arrowright') ? 1 : 0) - (held.has('a') || held.has('arrowleft') ? 1 : 0);
     const ky = (held.has('s') || held.has('arrowdown') ? 1 : 0) - (held.has('w') || held.has('arrowup') ? 1 : 0);
-    if (keyMove && (kx || ky) && !h.hold) {
+    if (keyMove && (kx || ky) && !h.hold && h.cls !== 'wizard') {
       const n = Math.hypot(kx, ky), step = h.speed * dt;
       h.x = Math.max(10, Math.min(W - 10, h.x + kx / n * step)); h.y = Math.max(10, Math.min(H - 10, h.y + ky / n * step));
       h.tx = null; S.pendingBuild = null;
@@ -2197,8 +2420,9 @@ function update(dt) {
       const why = buildProblem(pb.c, pb.r, pb.type);
       if (why) toast(why); else placeTower(pb.c, pb.r, pb.type);
     }
-    // No healing between waves, so waiting it out isn't free.
+    // No healing between waves, so waiting it out isn't free. Mana always refills.
     if (S.waveActive) h.hp = Math.min(h.maxHp, h.hp + h.regen * dt);
+    if (h.maxMana) h.mana = Math.min(h.maxMana, h.mana + h.manaRegen * dt);
     h.cd -= dt;
     // Sniper: has to stand still for h.brace seconds before it can shoot.
     if (h.brace) h.braceT = h.x === h.px && h.y === h.py ? Math.min(h.brace, h.braceT + dt) : 0;
@@ -2333,7 +2557,8 @@ function update(dt) {
     if (S.overclockT > 0 && h.ab.chrono && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, 0.3, 0.3);
     if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burnDps * dt, e.burnSrc, true); if (e.dead) continue; }
     if (S.overclockT > 0 && h.timeWarp && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, h.timeWarp, 0.3);
-    if (e.stunT > 0) { e.stunT -= dt; }
+    if (e.pushT > 0) { e.pushT -= dt; if (e.stunT > 0) e.stunT -= dt; e.d = Math.max(0, e.d - e.pushSpd * dt); }
+    else if (e.stunT > 0) { e.stunT -= dt; }
     else if (e.tauntT > 0 && !h.ko) { e.tauntT -= dt; hurtHero(h, e.atk * (1 - h.armor) * dt * 0.5); S.blocked += e.atk * dt * 0.5; }
     else if (e.blocked) {
       let guard = 0;
@@ -2342,7 +2567,10 @@ function update(dt) {
       if (h.shield > 0 && h.ab.spiked) damage(e, 40 * dt);
       if (h.thorns) damage(e, h.thorns * dt);
     } else {
-      e.d += e.speed * (1 - e.slow) * dt;
+      // Stone walls stop enemies (Phantoms drift through) and take their attacks
+      const step = e.speed * (1 - e.slow) * dt, wall = !e.phase && S.walls.length ? wallAhead(e, step) : null;
+      if (wall) { e.d = Math.max(e.d, wall.d - e.r); wall.hp -= e.atk * dt; e.stillT += dt; }
+      else e.d += step;
       if (e.d >= PATH_LEN) {
         e.dead = true; sfx('leak');
         S.fx.push({ k: 'ring', x: BASE.x, y: BASE.y, r: BIG_BOSS[e.type] ? 120 : 30, color: 0xff5d6c, t: 0.6, T: 0.6, fill: !!e.boss });
@@ -2373,8 +2601,11 @@ function update(dt) {
       if (z.line ? segDist(e.x, e.y, z) > z.r + e.r : Math.hypot(e.x - z.x, e.y - z.y) > z.r) continue;
       if (z.dps) damage(e, z.dps * dt, z.src, true);
       if (z.slow) slowEnemy(e, z.slow, 0.3);
+      if (z.brk && !e.dead) { e.brk = Math.max(e.brk, z.brk); e.brkT = Math.max(e.brkT, 0.3); }
     }
+    if (z.endFreeze && z.t <= 0) for (const e of inRange(z.x, z.y, z.r)) freeze(e, z.endFreeze, h);
   }
+  if (S.walls.length) updateWalls(dt);
   S.zones = S.zones.filter(z => z.t > 0);
   for (const d of S.delayed) if (!S.over && S.time >= d.at) { d.done = true; d.fn(); }
   S.delayed = S.delayed.filter(d => !d.done);
@@ -2439,7 +2670,8 @@ function makeOffer(perk, rarity, demonic) {
 // upgrades (or two damage boosts) at once.
 const ABILITY_PERKS = new Set(['seismic', 'after', 'daze', 'core', 'nfocus', 'wide', 'surge', 'extend', 'apround', 'steady', 'barrier', 'adren', 'redline', 'payload']);
 const PERK_KIND = { blade: 'damage', caliber: 'damage', headhunter: 'damage', crit: 'crit', critdmg: 'crit', clock: 'speed', chamber: 'speed', boots: 'speed', momentum: 'speed',
-  plate: 'hp', fort: 'hp', reboot: 'hp', mend: 'heal', siphon: 'heal', arch: 'cost', engineer: 'cost', alchemy: 'cost', signal: 'range', reach: 'range', scope: 'range' };
+  plate: 'hp', fort: 'hp', reboot: 'hp', mend: 'heal', siphon: 'heal', arch: 'cost', engineer: 'cost', alchemy: 'cost', signal: 'range', reach: 'range', scope: 'range',
+  arcpow: 'damage', manapool: 'mana', manaflow: 'mana', thrift: 'mana', reachsp: 'range', rime: 'control', zephyr: 'control', masonry: 'wall' };
 const perkKind = p => p.mod || p.ab || ABILITY_PERKS.has(p.id) ? 'ability' : p.gold ? 'gold' : p.rarity ? 'unique:' + p.id : PERK_KIND[p.id] || p.id;
 // Two slots from your hero's own pool, one shared slot (upgrades for every hero, or for heroes of your category).
 // Upgrades you already own show up more often. Rare or better hero slots can roll an ability upgrade.
@@ -2543,8 +2775,11 @@ function endRun(won, quit) {
   }
   const mastery = was.map(([kind, k, lvl]) => [kind, k, lvl, masteryOf(kind, k).lvl]).filter(x => x[3] > x[2])
     .map(([kind, k, a, b]) => `<span class="tag">${kind === 'heroes' ? HEROES[k].name : TOWERS[k].name}: mastery ${a} → ${b}</span>`).join('');
-  const best = META.best[S.map];
-  if (!best || cleared > best.wave) META.best[S.map] = { wave: cleared, won };
+  const best = META.best[S.map], lockedSongs = SONGS.filter(x => !songOpen(x));
+  if (!best || cleared > best.wave || (won && !best.won)) META.best[S.map] = { wave: cleared, won: won || !!(best && best.won) };
+  // Songs this win unlocked join a custom playlist, and the end screen offers to switch to them.
+  const newSongs = lockedSongs.filter(songOpen);
+  if (newSongs.length && SETTINGS.playlist) { SETTINGS.playlist.push(...newSongs.map(x => x.id)); saveSettings(); }
   const top = S.towers.slice().sort((a, b) => (b.dmgTotal || 0) - (a.dmgTotal || 0))[0];
   META.runs.push({ date: new Date().toISOString(), map: S.map, hero: S.hero.cls, wave: S.wave, won, shards, cores: S.cores,
     livesLost: S.startLives - S.lives, heroLvl: S.hero.lvl, top: top ? towerName(top) + ' L' + top.lvl : '',
@@ -2558,11 +2793,13 @@ ${!won && S.loseReason ? `<p class="lose-reason">${S.loseReason}</p>` : ''}
     <p class="shards">+◆ ${shards} Rift Shards (${META.shards} total)${S.cores ? ` · <span class="cores">+⬢ ${S.cores} Boss Cores (${META.cores} total)</span>` : ''}</p>
     <p class="help">Your hero: ${S.kills.hero} kills, ${S.takedowns.hero} takedowns. Towers: ${Object.values(S.kills.towers).reduce((a, b) => a + b, 0)} kills.</p>
     ${mastery ? `<div class="tags">${mastery}</div>` : ''}
+    ${newSongs.map(x => `<div class="card song-unlock"><small class="path">New song unlocked</small><b>${x.name}</b><div class="row"><button class="go" data-switch="${x.id}">Play it now</button></div></div>`).join('')}
     <div class="logwrap"><table class="log"><thead><tr><th>Wave</th><th>Mode</th><th>Lives lost</th><th>Hero dmg</th><th>Top tower</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="row" style="margin-top:12px"><button class="go" id="again">Play again</button><button id="toMenu">Main menu</button></div>`);
   const mapId = S.map;
   $('again').onclick = () => newRun(mapId);
   $('toMenu').onclick = showMenu;
+  $('modalBox').querySelectorAll('[data-switch]').forEach(b => b.onclick = () => { SETTINGS.musicOn = true; playSong(b.dataset.switch); b.textContent = 'Playing'; b.disabled = true; });
 }
 function openModal(html) { $('modalBox').innerHTML = html; $('modal').hidden = false; hideTip(); }
 function closeModal() { $('modal').hidden = true; }
@@ -2728,6 +2965,8 @@ function handleClick(x, y, touch) {
     else { S.mergeFrom = null; toast('Merge cancelled.'); renderInspector(); }
     return;
   }
+  // the Wizard casts its readied runes at the cursor
+  if (S.hero.cls === 'wizard' && S.runes.length && !S.build) return castRunes(x, y);
   if (t) { S.sel = t; S.build = null; S.pendingBuild = null; renderBuildBar(); renderInspector(); return; }
   if (S.build) {
     const why = buildProblem(c, r, S.build);
@@ -2740,7 +2979,7 @@ function handleClick(x, y, touch) {
     return;
   }
   if (S.sel) { S.sel = null; renderInspector(); }
-  if (touch) moveHero(x, y);
+  if (touch || S.hero.cls === 'wizard') moveHero(x, y);
 }
 
 // Returns why two towers can't merge, or '' if they can.
@@ -2816,7 +3055,7 @@ function renderBuildBar() {
   bar.innerHTML = S.loadout.map((k, i) => { const d = TOWERS[k];
     return `<button class="tbtn ${S.build === k ? 'on' : ''}" data-k="${k}" ${S.gold < towerCost(k) ? 'disabled' : ''}>
       <span class="sw" style="background:${d.css}"></span>${d.name}<span class="c">${towerCost(k)}</span><kbd>${i + 1}</kbd></button>`; }).join('') +
-    `<button id="abilityBtn" class="ability" data-tip="ability">${S.hero.ab.name} <kbd>Q</kbd></button>` +
+    (S.hero.cls === 'wizard' ? runeBarHtml() : `<button id="abilityBtn" class="ability" data-tip="ability">${S.hero.ab.name} <kbd>Q</kbd></button>`) +
     (canHold(S.hero) ? `<button id="holdBtn" class="${S.hero.hold ? 'on' : ''}" data-tip="hold">${S.hero.hold ? 'Holding' : 'Hold'} <kbd>H</kbd></button>` : '') +
     (S.hero.cls === 'sniper' ? `<button id="aimBtn" class="${S.aim ? 'on' : ''}" data-tip="aim">${S.aim ? 'Aim set' : 'Aim'} <kbd>F</kbd></button>` : '') +
     `<span class="spacer"></span>
@@ -2828,7 +3067,9 @@ function renderBuildBar() {
     b.onmouseenter = () => showTip(buildTipHtml(b.dataset.k), b.getBoundingClientRect(), 'above');
     b.onmouseleave = hideTip;
   });
-  $('abilityBtn').onclick = useAbility;
+  if ($('abilityBtn')) $('abilityBtn').onclick = useAbility;
+  bar.querySelectorAll('[data-rune]').forEach(b => b.onclick = () => readyRune(b.dataset.rune));
+  renderRunes(); manaMeter();
   if ($('holdBtn')) $('holdBtn').onclick = toggleHold;
   if ($('aimBtn')) $('aimBtn').onclick = () => { if (S.aim) { S.aim = null; toast('Aim point cleared.'); renderBuildBar(); } else toast('Point at the board and press F to set an aim point.'); };
   abilityMeter();
@@ -2946,12 +3187,14 @@ function renderHero() {
   const heroics = HEROICS.filter(x => S.heroics[x.id]).map(x => `<span class="tag rar-heroic" title="${tx('heroic:' + x.id, x.desc(S.heroics[x.id]))}">${x.name} ${'I'.repeat(S.heroics[x.id])}</span>`).join('');
   const relics = S.relics.map(r => `<span class="tag relic ${r.rarity ? 'rar-' + r.rarity : ''}" title="${tx('relic:' + r.id, r.desc)}">${r.name}</span>`).join('');
   $('heroCard').innerHTML = `<h3 style="color:${d.css}">${d.name} · ${d.role} · Lv ${h.lvl}${h.ko ? ' · Knocked out' : ''}</h3>
-    <p class="help"><b class="tipname" data-tip="ability" style="color:var(--text)">${h.ab.name}</b> (${h.ab.cd.toFixed(0)}s): ${abilityText(h)}${ABILITY_MODS.some(m => h.ab[m.id]) ? `<br><b class="rar-mythic">Upgrades:</b> ${ABILITY_MODS.filter(m => h.ab[m.id]).map(m => `<span class="tipname" data-tip="mod:${m.id}">${m.name}</span>`).join(', ')}` : ''}${h.hold ? '<br><b style="color:var(--gold)">Holding position (H)</b>' : ''}</p>
+    <p class="help"><b class="tipname" data-tip="ability" style="color:var(--text)">${h.ab.name}</b>${h.ab.cd ? ` (${h.ab.cd.toFixed(0)}s)` : ''}: ${abilityText(h)}${ABILITY_MODS.some(m => h.ab[m.id]) ? `<br><b class="rar-mythic">Upgrades:</b> ${ABILITY_MODS.filter(m => h.ab[m.id]).map(m => `<span class="tipname" data-tip="mod:${m.id}">${m.name}</span>`).join(', ')}` : ''}${h.hold ? '<br><b style="color:var(--gold)">Holding position (H)</b>' : ''}</p>
     <div class="stats">
       <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div><div><span>Kills</span>${S.kills.hero}</div><div><span>Takedowns</span>${S.takedowns.hero}</div>${d.cat === 'defensive' ? `<div><span>Damage blocked</span>${f(S.blocked)}</div>` : d.cat === 'support' ? `<div><span>Assisted kills</span>${S.assists}</div>` : ''}
+      ${h.maxMana ? `<div><span>Mana</span>${Math.floor(h.mana)}/${f(h.maxMana)}</div><div><span>Mana/s</span>${h.manaRegen.toFixed(1)}</div>
+      <div><span>Spell damage</span>${pct(spellPow(h))}</div><div><span>Spell cost</span>${pct(h.spellCost)}</div><div><span>Runes</span>${h.runeMax}</div>` : `
       <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${h.range >= 9999 ? 'Whole map' : f(h.range)}</div>
       <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit chance</span>${pct(h.crit)}</div>
-      <div><span>Crit damage</span>${pct(h.critDmg)}</div>${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}
+      <div><span>Crit damage</span>${pct(h.critDmg)}</div>`}${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}
       <div><span>Armor</span>${pct(h.armor)}</div><div><span>Blocks</span>${blockText(h.block)}</div>
       <div><span>Regen/s</span>${h.regen.toFixed(1)}</div><div><span>Respawn</span>${h.respawn.toFixed(1)}s</div>
       <div><span>Build range</span>${f(h.buildRange)}</div><div><span>Move speed</span>${f(h.speed)}</div>
@@ -2981,6 +3224,7 @@ function hideTip() { $('tip').hidden = true; }
 let lastBarGold = -1, lastInspGold = -1, heroT = 0, tipTower = null;
 // The ability button empties when used and refills as the cooldown runs down.
 function abilityMeter() {
+  manaMeter();
   const b = $('abilityBtn'), a = S.hero && S.hero.ab; if (!b || !a) return;
   const fill = a.t > 0 ? (1 - a.t / a.cd) * 100 : 100;
   b.style.setProperty('--fill', fill.toFixed(1) + '%');
@@ -3368,6 +3612,8 @@ function draw(g, o) {
   }
 
   if (h.tx !== null && !h.ko) g.lineStyle(1, hc, 0.5).strokeCircle(h.tx, h.ty, 6);
+  // Orbital Strike lands on the cursor: show where while it's ready
+  if (h.ab.id === 'strike' && !h.ko && !(h.ab.t > 0) && S.pointer) g.lineStyle(1.5, 0xff5d6c, 0.55).strokeCircle(S.pointer.x, S.pointer.y, h.ab.r);
   if (S.aim) {
     const a = S.aim, ready = !(h.ab.t > 0);
     if (!h.ko) { const dx = a.x - h.x, dy = a.y - h.y, d = Math.hypot(dx, dy) || 1; g.lineStyle(1, 0xffd36e, ready ? 0.35 : 0.15).lineBetween(h.x, h.y, h.x + dx / d * 1400, h.y + dy / d * 1400); }
@@ -3394,6 +3640,7 @@ function draw(g, o) {
     else g.lineStyle(2, 0xb07cff, 0.9).strokeCircle(h.x, h.y, 17);
     o.fillStyle(0x000000, 0.6).fillRect(hx - 16, top, 32, 4);
     o.fillStyle(0x5fe39a, 1).fillRect(hx - 16, top, 32 * h.hp / h.maxHp, 4);
+    if (h.maxMana) { o.fillStyle(0x000000, 0.6).fillRect(hx - 16, top + 5, 32, 3); o.fillStyle(0x5fa8ff, 1).fillRect(hx - 16, top + 5, 32 * h.mana / h.maxMana, 3); }
     if (HX.blades) for (let i = 0; i < HX.blades + 1; i++) {
       const ang = S.time * 3 + i * Math.PI * 2 / (HX.blades + 1), [bx, by] = P(h.x + Math.cos(ang) * 42, h.y + Math.sin(ang) * 42, 10);
       o.fillStyle(0xe6e9f5, 1).fillCircle(bx, by, 5);
@@ -3416,8 +3663,18 @@ function draw(g, o) {
     if (!spriteTower(sh.tw)) { const arc = Math.min(140, Math.hypot(sh.x1 - sh.x0, sh.y1 - sh.y0) * 0.4) * Math.sin(Math.PI * u); o.fillStyle(sh.tw.color, 1).fillCircle(gx, SY(gy) - arc, 5 + 2 * sh.mult); }
   }
   // effect lines are shots and beams at chest height; rings are blasts spreading on the ground
+  // Stone walls: a low rampart across the path, cracking as it loses HP
+  for (const w of S.walls) {
+    const x = w.x, y = SY(w.y), k = Math.max(0, w.hp / w.max), fade = Math.min(1, w.t / 0.4);
+    o.fillStyle(0x6b5640, fade).fillRect(x - 15, y - 16, 30, 16);
+    o.fillStyle(0x9c8160, fade).fillRect(x - 15, y - 16, 30, 4);
+    o.lineStyle(1, 0x3a2e22, fade).strokeRect(x - 15, y - 16, 30, 16).lineBetween(x - 5, y - 12, x - 5, y).lineBetween(x + 5, y - 12, x + 5, y);
+    if (k < 0.5) o.lineStyle(1, 0x241c14, fade).lineBetween(x - 10, y - 10, x - 2, y - 4).lineBetween(x + 3, y - 14, x + 9, y - 6);
+    o.fillStyle(0x000000, 0.6).fillRect(x - 15, y - 22, 30, 3); o.fillStyle(0xc8a26a, 1).fillRect(x - 15, y - 22, 30 * k, 3);
+  }
   for (const f of S.fx) {
     const a = f.t / f.T;
+    if (f.k === 'orb') { const q = 1 - a, x = f.x1 + (f.x2 - f.x1) * q, y = SY(f.y1 + (f.y2 - f.y1) * q) - 18 * (1 - q) - 40 * Math.sin(Math.PI * q) * 0.4; o.fillStyle(f.color, 0.35).fillCircle(x, y, f.r * 1.8); o.fillStyle(f.color, 1).fillCircle(x, y, f.r); o.fillStyle(0xffffff, 0.9).fillCircle(x, y, f.r * 0.4); continue; }
     if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - (f.l1 || 12), f.x2, SY(f.y2) - 12);
     else {
       const r = f.r * (1.2 - a * 0.4);
@@ -3451,7 +3708,7 @@ class Main extends Phaser.Scene {
         showTip(towerTipHtml(t), rect, 'below');
       } else if (tipTower) { tipTower = null; hideTip(); }
     });
-    this.input.on('gameout', () => { if (S) S.hover = null; tipTower = null; hideTip(); });
+    this.input.on('gameout', () => { if (S) { S.hover = null; S.pointer = null; } tipTower = null; hideTip(); });
     showMenu();
     $('settingsBtn').onclick = () => (S && S.hero && !S.over ? showSettings() : null);
   }
@@ -3487,6 +3744,8 @@ window.addEventListener('keydown', e => {
   if (!S || !S.hero || e.target.tagName === 'INPUT') return;
   if (e.key.toLowerCase() === 'p' && !e.repeat) return togglePause();
   const lk = e.key.toLowerCase();
+  // the Wizard: Q W E R ready runes, and it never moves with the keyboard
+  if (S.hero.cls === 'wizard') { if (RUNES[lk] && !e.repeat) { e.preventDefault(); readyRune(lk); } if (RUNES[lk] || MOVE_KEYS.includes(lk)) return; }
   if (keyMove && MOVE_KEYS.includes(lk)) { e.preventDefault(); held.add(lk); return; }
   const k = /^[1-9]$/.test(e.key) && S.loadout[+e.key - 1];
   if (k) selectBuild(k);
@@ -3497,6 +3756,7 @@ window.addEventListener('keydown', e => {
   else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); if (!e.repeat) startWave(); }
   else if (e.key === 'Escape') {
     if (S.userPause) togglePause();
+    else if (S.runes.length) { S.runes = []; renderRunes(); }
     else if (S.build || S.mergeFrom || S.sel || S.pendingBuild) { S.build = null; S.mergeFrom = null; S.sel = null; S.pendingBuild = null; renderBuildBar(); renderInspector(); }
     else if (!S.over) showSettings();
   }
