@@ -9,7 +9,7 @@ let MAX_WAVE = 20; // set per map in newRun
 const MAPS = {
   verdant:  { name: 'Verdant Rift', tier: 'Level 1', waves: 20, shardMul: 1, desc: 'The standard run. No modifiers.',
     path: [[-1,2],[5,2],[5,7],[2,7],[2,12],[11,12],[11,4],[17,4],[17,10],[23,10]] },
-  ironhold: { name: 'Ironhold', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, gold: 0.7, desc: 'Enemies have 40% more HP and drop 30% less gold.',
+  ironhold: { name: 'Ironhold', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, price: 1.3, desc: 'Enemies have 40% more HP and everything costs 30% more.',
     path: [[-1,7],[4,7],[4,2],[10,2],[10,12],[15,12],[15,3],[20,3],[20,8],[23,8]] },
   warped:   { name: 'Warped Spire', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
     path: [[-1,12],[6,12],[6,3],[12,3],[12,9],[18,9],[18,2],[23,2]] },
@@ -62,13 +62,13 @@ const TOWERS = {
     info: 'Hits weakly but slows enemies down, so the rest of your towers get more time to shoot. Pairs with everything.' },
   tesla:  { name: 'Tesla Coil', key: '4', cost: 90, dmg: 12, rate: 1.1, range: 105, chain: 3, color: 0x4fd8ff, css: '#4fd8ff',
     info: 'Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies.' },
-  beacon: { name: 'Rift Beacon', key: '5', cost: 100, dmg: 0, rate: 1, range: 130, support: true, lvl: 'range', unlock: 200, color: 0xffa0e0, css: '#ffa0e0',
+  beacon: { name: 'Rift Beacon', key: '5', cost: 100, dmg: 0, rate: 1, range: 130, support: true, lvl: 'range', color: 0xffa0e0, css: '#ffa0e0',
     info: 'Never attacks. Every tower in its range deals +15% damage. Beacons don’t stack on the same tower (the strongest wins), so spread them out.' },
-  anvil:  { name: 'Grave Anvil', key: '6', cost: 90, dmg: 40, rate: 1.6, range: 70, unlock: 200, color: 0xf6a14a, css: '#f6a14a',
+  anvil:  { name: 'Grave Anvil', key: '6', cost: 90, dmg: 40, rate: 1.6, range: 70, color: 0xf6a14a, css: '#f6a14a',
     info: 'Slams the ground, crushing enemies that are not moving: blocked by your hero, stunned or frozen. The longer they stay still, the harder it hits. Moving enemies only take 30%.' },
-  laser:  { name: 'Prism Laser', key: '7', cost: 110, dmg: 5, rate: 0.2, range: 115, beam: true, unlock: 250, color: 0xff5f6f, css: '#ff5f6f',
+  laser:  { name: 'Prism Laser', key: '7', cost: 110, dmg: 5, rate: 0.2, range: 115, beam: true, color: 0xff5f6f, css: '#ff5f6f',
     info: 'Holds a steady beam on one enemy. Every tick on the same target heats the beam up for more damage (up to +160%). Switching targets cools it down. Melts bosses and tanks.' },
-  mortar: { name: 'Siege Mortar', key: '8', cost: 130, dmg: 110, rate: 4.5, range: 320, splash: 60, lob: true, unlock: 250, color: 0xf9e6a2, css: '#f9e6a2',
+  mortar: { name: 'Siege Mortar', key: '8', cost: 130, dmg: 110, rate: 4.5, range: 320, splash: 60, lob: true, color: 0xf9e6a2, css: '#f9e6a2',
     info: 'Very long range. Lobs a slow, heavy shell that lands a few moments later and wrecks everything in the blast. Fires rarely, so pair it with towers that cover the gaps.' },
 };
 // What each level-up adds on top of the path point. Damage towers hit harder; utility and support towers
@@ -83,7 +83,6 @@ const levelKey = t => (!t.hybrid && TOWERS[t.type] && TOWERS[t.type].lvl) || 'dm
 const levelBonus = t => LEVEL_BONUS[levelKey(t)];
 const dot = s => /[.!]$/.test(s) ? s : s + '.';
 const levelText = t => dot(tx('level:' + levelKey(t), levelBonus(t).text)), ascText = t => dot(tx('ascend:' + levelKey(t), levelBonus(t).asc));
-const towerUnlocked = k => !TOWERS[k].unlock || !!(META.towerUnlocked && META.towerUnlocked[k]);
 // Tower paths. Every tower shows the same 5 paths. Each level-up puts a point into one path. A tower uses
 // 3 paths of 4 points; with the Oracle it uses 4 paths of 3 bigger points (ranks 2/3/4), so a maxed path is
 // the same either way. A path's last point unlocks its mastery. At level 13 the tower ascends into a form named
@@ -324,7 +323,7 @@ const HEROES = {
     stats: { hp: 210, dmg: 7, rate: 0.6, range: 100, block: 2, armor: 0, regen: 3, speed: 150, aura: 0.15 },
     ability: { id: 'overclock', name: 'Overclock Field', cd: 24, r: 170, dur: 6, power: 0.6 },
     alt: { id: 'stasis', name: 'Stasis Field', cd: 24, r: 170, dur: 6, power: 0.6 } },
-  sniper:   { name: 'Sniper', role: 'Offensive', cat: 'offensive', color: 0xffd36e, css: '#ffd36e', unlock: 250,
+  sniper:   { name: 'Sniper', role: 'Offensive', cat: 'offensive', color: 0xffd36e, css: '#ffd36e',
     desc: 'Hits anything on the map, but has to stand still and brace before every shot. Slow, heavy, precise.',
     stats: { hp: 170, dmg: 48, rate: 2.4, range: 9999, block: 1, armor: 0, regen: 2, speed: 140, brace: 1.2, crit: 0.1 },
     ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 },
@@ -333,7 +332,6 @@ const HEROES = {
 // Each hero has two abilities to choose from on the Heroes page; the choice is saved in META.abilities.
 const heroAbility = k => (META.abilities && META.abilities[k] === 'alt' && HEROES[k].alt) || HEROES[k].ability;
 const abName = () => S && S.hero ? S.hero.ab.name : 'Your ability';
-const isUnlocked = id => !HEROES[id].unlock || !!META.unlocked[id];
 const CATEGORIES = [['offensive', 'Offensive'], ['defensive', 'Defensive'], ['support', 'Support'], ['special', 'Special']];
 const heroesIn = cat => Object.entries(HEROES).filter(([, h]) => h.cat === cat);
 // Hover box for a hero's ability: exact numbers, what each upgrade adds, and the controls.
@@ -690,16 +688,18 @@ const SIGNATURES = {
 // Signatures are each tower's Boss Core upgrade (Mythic): bought once, and on whenever that tower is in your loadout.
 const SIG_CORES = 20, OLD_SIG_COST = 250;
 const OLD_TOWER_META = { power: r => 30 + 25 * r, supply: r => 40 + 30 * r, vet: r => 120 + 100 * r };
-let META = { v: 2, shards: 0, cores: 0, specials: {}, heroes: { vanguard: {}, striker: {}, oracle: {}, sniper: {} }, unlocked: {}, global: {}, best: {}, runs: [],
-  towers: {}, towerUnlocked: {}, loadout: null, seen: {} };
+let META = { v: 2, shards: 0, cores: 0, specials: {}, heroes: { vanguard: {}, striker: {}, oracle: {}, sniper: {} }, global: {}, best: {}, runs: [],
+  towers: {}, loadout: null, seen: {} };
 try { const m = JSON.parse(localStorage.getItem('riftguard-meta') || 'null'); if (m) META = Object.assign(META, m, { v: m.v || 1 }); } catch (e) {}
 if (!META.specials) META.specials = {}; if (!META.cores) META.cores = 0;
-META.towers = META.towers || {}; META.towerUnlocked = META.towerUnlocked || {}; META.seen = META.seen || {};
+META.towers = META.towers || {}; META.seen = META.seen || {};
 for (const k of Object.keys(TOWERS)) META.towers[k] = META.towers[k] || {};
 META.towerGlobal = META.towerGlobal || {};
 // Kills and maps won, per tower type and per hero, for mastery and the stats pages.
 // A kill is the final hit; a takedown is any enemy that died after this unit damaged it (kills count as takedowns too).
-META.kills = META.kills || { towers: {}, heroes: {} }; META.wins = META.wins || { towers: {}, heroes: {} };
+META.kills = META.kills || { towers: {}, heroes: {} };
+// Hero mastery stat by role: damage blocked (defensive), kills (offensive), kills by towers it boosts (support).
+META.heroStat = META.heroStat || {}; META.wins = META.wins || { towers: {}, heroes: {} };
 META.takedowns = META.takedowns || { towers: {}, heroes: {} };
 function saveMeta() { try { localStorage.setItem('riftguard-meta', JSON.stringify(META)); } catch (e) {} }
 // The per-tower Power / Supply Line / Veteran Crew upgrades were replaced by the all-tower upgrades: refund them.
@@ -718,24 +718,43 @@ if (META.v < 2) {
     for (const [id, cost] of Object.entries(old)) for (let r = 0; r < (META.heroes[k][id] || 0); r++) META.shards += cost(r);
     META.heroes[k] = {};
   }
-  META.v = 2; META.unlocked = META.unlocked || {}; saveMeta();
+  META.v = 2; saveMeta();
 }
 for (const k of Object.keys(HEROES)) META.heroes[k] = META.heroes[k] || {};
-META.unlocked = META.unlocked || {};
+// Every hero and tower is open from the start now: give back the shards spent unlocking them.
+if (META.unlocked || META.towerUnlocked) {
+  const paid = { sniper: 250, beacon: 200, anvil: 200, laser: 250, mortar: 250 };
+  for (const [k, v] of Object.entries(Object.assign({}, META.unlocked, META.towerUnlocked))) if (v) META.shards += paid[k] || 0;
+  delete META.unlocked; delete META.towerUnlocked; saveMeta();
+}
 const rank = (obj, id) => (obj && obj[id]) || 0;
-// Mastery: each tower type and hero levels up with kills (level L needs 5 x L x (L + 1) kills in total). It can't
+// Mastery: each tower type levels up with kills, each hero with its role's stat (level L needs 5 x L x (L + 1) points). It can't
 // pass level 10 until it has beaten the first map, 20 until the second, and so on up to 50 on the last map.
 const MASTERY_MAX = 50, masteryKills = L => 5 * L * (L + 1);
+// Heroes level on their role's stat, scaled so a typical run moves every role about as far (measured in simulated
+// runs: a sniper lands ~20 kills a wave, a vanguard blocks ~2000 damage, an oracle assists ~15 kills): one point is
+// a kill, 100 damage blocked, or 1 kill by a boosted tower.
+const ROLE_STAT = {
+  defensive: { per: 100, name: 'damage blocked', unit: 'damage blocked' },
+  offensive: { per: 1, name: 'kills', unit: 'kill' },
+  support:   { per: 1, name: 'assisted kills', unit: 'assisted kill' },
+};
+const heroStat = k => META.heroStat[k] != null ? META.heroStat[k] : (META.kills.heroes[k] || 0) * ROLE_STAT[HEROES[k].cat].per;
 function masteryOf(kind, k) {
-  const kills = META.kills[kind][k] || 0, won = META.wins[kind][k] || {};
+  const kills = kind === 'heroes' ? Math.floor(heroStat(k) / ROLE_STAT[HEROES[k].cat].per) : META.kills[kind][k] || 0, won = META.wins[kind][k] || {};
   let beaten = 0; while (beaten < MAP_ORDER.length && won[MAP_ORDER[beaten]]) beaten++;
   const cap = Math.min(MASTERY_MAX, 10 * (beaten + 1)), raw = Math.floor((Math.sqrt(1 + 0.8 * kills) - 1) / 2), lvl = Math.min(raw, cap);
   return { kills, lvl, cap, capped: raw >= cap && cap < MASTERY_MAX, prev: masteryKills(lvl), next: lvl < MASTERY_MAX ? masteryKills(lvl + 1) : null, nextMap: MAP_ORDER[beaten] };
 }
+function masteryNeed(kind, k, m) {
+  if (kind !== 'heroes') return `${m.next - m.kills} more kill${m.next - m.kills === 1 ? '' : 's'} to level ${m.lvl + 1}.`;
+  const r = ROLE_STAT[HEROES[k].cat], left = Math.ceil((m.next * r.per - heroStat(k)));
+  return HEROES[k].cat === 'defensive' ? `${left} more damage blocked to level ${m.lvl + 1}.` : `${left} more ${r.unit}${left === 1 ? '' : 's'} to level ${m.lvl + 1}.`;
+}
 function masteryHtml(kind, k) {
   const m = masteryOf(kind, k), fill = m.next ? Math.min(1, (m.kills - m.prev) / (m.next - m.prev)) : 1;
   const note = m.capped ? `Capped at ${m.cap}: beat ${MAPS[m.nextMap].name} with ${kind === 'towers' ? 'this tower built' : 'this hero'} to keep leveling.`
-    : m.next ? `${m.next - m.kills} more kill${m.next - m.kills === 1 ? '' : 's'} to level ${m.lvl + 1}.` : 'Max mastery.';
+    : m.next ? masteryNeed(kind, k, m) : 'Max mastery.';
   return `<div class="mastery-box"><div class="mastery-top"><b>Mastery ${m.lvl}</b><span class="help">Cap ${m.cap}/${MASTERY_MAX}</span></div>
     <div class="meter mastery"><i style="width:${(fill * 100).toFixed(1)}%"></i></div><p class="help">${note}</p></div>`;
 }
@@ -910,8 +929,8 @@ const FIRST_TIPS = {
   maps: ['Choose a map', '<p>Start with the first map. Beating a map unlocks the next one. Harder maps have more waves and pay more shards.</p>'],
   hero: ['Choose your hero', '<p>Your hero walks the map, fights, and builds towers for you. Tanks block enemies, offensive heroes deal damage, support heroes boost your towers.</p><p>Each hero has two abilities. Pick the one you want at the top before you go on.</p>'],
   loadout: ['Choose your towers', '<p>Pick the towers you can build this run. Each one gets a number key (1, 2, 3...) as a shortcut. You can’t change them once the run starts.</p>'],
-  heroes: ['Heroes page', '<p>Unlock new heroes and spend Rift Shards on permanent upgrades for each one. Boss Cores, dropped by bosses, buy the big special upgrades.</p><p>Refund buttons give your shards back if you want to try a different build.</p>'],
-  towers: ['Towers page', '<p>Unlock towers and buy upgrades that make them stronger in every run. The tabs along the top switch towers. Below the upgrades you can see every form and merge you’ve discovered.</p>'],
+  heroes: ['Heroes page', '<p>Every hero is open from the start. Spend Rift Shards on permanent upgrades for each one. Boss Cores, dropped by bosses, buy the big special upgrades.</p><p>Refund buttons give your shards back if you want to try a different build.</p>'],
+  towers: ['Towers page', '<p>Every tower is open from the start. Buy upgrades that make them stronger in every run. The tabs along the top switch towers. Below the upgrades you can see every form and merge you’ve discovered.</p>'],
   music: ['Music', '<p>Pick the song that plays on the menus and in runs. Volume is in Settings.</p>'],
   log: ['Stats log', '<p>Your recent runs: how far you got, what you lost and which towers did the most damage. Copy the full log to share it.</p>'],
   run: ['Your first run', '<p><b>Build:</b> pick a tower in the bar below (or press its number) and click a free tile. Your hero walks over to build it.</p><p><b>Move:</b> right-click the map to send your hero somewhere. <b>Q</b> uses its ability.</p><p><b>Upgrade:</b> click a tower to level it up. Each level adds a point to one of its paths, and each path’s price only rises with its own points.</p><p>Press <b>Space</b> to start a wave, <b>P</b> to pause, and <b>Esc</b> to back out of anything.</p>'],
@@ -993,7 +1012,7 @@ function metaRow(def, obj, key, id) {
 function showTowers(sel) {
   queueTip('towers');
   sel = sel || 'arcane';
-  const d = TOWERS[sel], open = towerUnlocked(sel), M = META.towers[sel], sig = SIGNATURES[sel], hasSig = !!M.sig;
+  const d = TOWERS[sel], M = META.towers[sel], sig = SIGNATURES[sel], hasSig = !!M.sig;
   const recipes = Object.entries(RECIPES).filter(([key]) => key.split('+').includes(sel));
   const recipeRow = ([key, r]) => { const other = key.split('+').find(x => x !== sel), got = codex[key];
     return `<li class="${got ? 'found' : ''}"><b>${got ? r.name : '???'}</b><span>${got ? d.name + ' + ' + TOWERS[other].name + '. ' + tx('recipe:' + key, r.desc) : 'Merge a level ' + MERGE_LVL + ' ' + d.name + ' with another tower type to discover this.'}</span></li>`; };
@@ -1001,8 +1020,8 @@ function showTowers(sel) {
   showScreen(`<div class="screen-head"><h2>Towers</h2>${shardsTag()}<button id="mBack">Back</button></div>
     <p class="lead">Before each run you bring your hero and 5 towers. Upgrades here are permanent.</p>
     <div class="heroes">
-      <div class="roster">${Object.entries(TOWERS).map(([k, t]) => `<button data-tower-tab="${k}" class="${k === sel ? 'on' : ''} ${towerUnlocked(k) ? '' : 'locked'}" style="border-left-color:${t.css}">
-        <small>${t.support ? 'Support' : t.cost + ' gold'} · Mastery ${masteryOf('towers', k).lvl}</small><b style="color:${t.css}">${t.name}</b>${towerUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${t.unlock}</span>`}</button>`).join('')}</div>
+      <div class="roster">${Object.entries(TOWERS).map(([k, t]) => `<button data-tower-tab="${k}" class="${k === sel ? 'on' : ''}" style="border-left-color:${t.css}">
+        <small>${t.support ? 'Support' : t.cost + ' gold'} · Mastery ${masteryOf('towers', k).lvl}</small><b style="color:${t.css}">${t.name}</b></button>`).join('')}</div>
       <div class="card herodetail">
         <h3 style="color:${d.css}">${d.name}</h3>
         <p>${tx('tower:' + sel, d.info)}</p>
@@ -1015,7 +1034,7 @@ function showTowers(sel) {
         <ul class="pathlist">${TOWER_PATHS[sel].map(u => `<li><b>${u.name}</b> <span>${tx('path:' + sel + ':' + u.id, u.desc)}</span><br><em class="mastery">Mastery: ${u.mastery.name}. ${tx('mastery:' + sel + ':' + u.id, u.mastery.desc)}</em></li>`).join('')}</ul>
         <h3 class="meta-h special-h">Boss Core upgrade</h3>
         <div class="meta-row special"><div><b class="rar-mythic">Signature: ${sig.name}</b> <small class="path rar-mythic">Mythic</small><br><span class="help">${tx('sig:' + sel, sig.desc)}</span></div>
-          <button data-sig="${sel}" ${hasSig || !open || META.cores < SIG_CORES ? 'disabled' : ''}>${hasSig ? 'Owned' : '⬢ ' + SIG_CORES}</button></div>
+          <button data-sig="${sel}" ${hasSig || META.cores < SIG_CORES ? 'disabled' : ''}>${hasSig ? 'Owned' : '⬢ ' + SIG_CORES}</button></div>
         <h3 class="meta-h">Discoveries</h3>
         <p class="help">Hidden until you find them in a run.</p>
         <details class="forms" open><summary>Merges: ${recipes.filter(([key]) => codex[key]).length}/${recipes.length} found</summary>
@@ -1023,7 +1042,6 @@ function showTowers(sel) {
         <details class="forms"><summary>Path combinations: ${formsFound(sel).length}/${forms.length} found</summary>
           <ul>${forms.map(k => { const got = META.forms && META.forms[sel + ':' + k];
             return `<li class="${got ? 'found' : ''}"><b>${got ? FORM_NAMES[sel][k] : '???'}</b><span>${got ? k.split('').map(i => TOWER_PATHS[sel][+i].name).join(' + ') : 'Level a ' + d.name + ' with ' + k.length + ' paths to discover this form.'}</span></li>`; }).join('')}</ul></details>
-        ${open ? '' : `<div class="row"><button class="go" id="unlockTower" ${META.shards < d.unlock ? 'disabled' : ''}>Unlock ${d.name} · ◆ ${d.unlock}</button></div>`}
       </div>
     </div>
     <div class="card"><h3 class="meta-h">All towers ${refundBtn('towerglobal')}</h3>${TOWER_GLOBAL.map(x => metaRow(x, META.towerGlobal, 'towerglobal')).join('')}</div>`);
@@ -1038,10 +1056,6 @@ function showTowers(sel) {
     META.cores -= SIG_CORES; M.sig = 1; saveMeta(); sfx('level'); showTowers(sel);
   });
   $('screen').querySelectorAll('[data-refund]').forEach(b => b.onclick = () => { META.shards += refundValue('towerglobal'); META.towerGlobal = {}; saveMeta(); showTowers(sel); });
-  if ($('unlockTower')) $('unlockTower').onclick = () => {
-    if (META.shards < d.unlock) return;
-    META.shards -= d.unlock; META.towerUnlocked[sel] = true; saveMeta(); sfx('level'); showTowers(sel);
-  };
   $('mBack').onclick = showMenu;
 }
 // A hero's art for menus: its south-facing idle frames, zoomed z times, bobbing between the two idle frames.
@@ -1050,11 +1064,11 @@ const heroPortrait = (k, z = 2) => `<span class="hero-portrait" style="--z:${z};
 function showHeroes(sel) {
   queueTip('heroes');
   sel = sel || 'vanguard';
-  const d = HEROES[sel], open = isUnlocked(sel), st = d.stats;
+  const d = HEROES[sel], st = d.stats;
   showScreen(`<div class="screen-head"><h2>Heroes</h2>${shardsTag()}<button id="mBack">Back</button></div>
     <div class="heroes">
-      <div class="roster">${CATEGORIES.map(([c, label]) => `<h4 class="cat">${label}</h4>` + (heroesIn(c).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''} ${isUnlocked(k) ? '' : 'locked'}" style="border-left-color:${h.css}">
-        <small>${heroAbility(k).name} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
+      <div class="roster">${CATEGORIES.map(([c, label]) => `<h4 class="cat">${label}</h4>` + (heroesIn(c).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''}" style="border-left-color:${h.css}">
+        <small>${heroAbility(k).name} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${h.css}">${h.name}</b></button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
       <div class="card herodetail">
         ${heroPortrait(sel, 3)}<h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
         <p>${tx('hero:' + sel, d.desc)}</p>
@@ -1066,18 +1080,16 @@ function showHeroes(sel) {
           <div><span>Crit damage</span>150%</div>
         </div>
         <h3 class="meta-h">Stats</h3>
-        <div class="stats"><div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Total takedowns</span>${META.takedowns.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
+        <div class="stats">${d.cat !== 'offensive' ? `<div><span>Total ${ROLE_STAT[d.cat].name}</span>${Math.round(heroStat(sel))}</div>` : ''}<div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Total takedowns</span>${META.takedowns.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
           <div><span>Maps beaten</span>${MAP_ORDER.filter(m => (META.wins.heroes[sel] || {})[m]).length}/${MAP_ORDER.length}</div></div>
         ${masteryHtml('heroes', sel)}
         <h3 class="meta-h">Ability · pick one</h3>
         <div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].map(([v, ab]) => `<button class="choice ${heroAbility(sel) === ab ? 'picked' : ''}" data-ab-pick="${v}">
           <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>
-        ${open ? `<h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
+        <h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
           <h3 class="meta-h special-h">Special upgrades · Boss Cores ${refundBtn('special', sel)}</h3>
           <p class="help">Bought once with Boss Cores, which bosses drop. Game-changing, and expensive.</p>
-          ${SPECIALS.filter(x => x.hero === sel).map(specialRow).join('')}`
-               : `<div class="row"><button class="go" id="unlockHero" ${META.shards < d.unlock ? 'disabled' : ''}>Unlock ${d.name} · ◆ ${d.unlock}</button></div>
-                  <p class="help" style="margin-top:8px">Unlock ${d.name} to play them and buy their upgrades.</p>`}
+          ${SPECIALS.filter(x => x.hero === sel).map(specialRow).join('')}
       </div>
     </div>
     <div class="card"><h3 class="meta-h">All heroes ${refundBtn('global')}</h3>${GLOBAL_META.map(x => metaRow(x, META.global, 'global')).join('')}
@@ -1103,10 +1115,6 @@ function showHeroes(sel) {
     else { META.cores += v; for (const x of SPECIALS) if ((x.hero || null) === hero) delete META.specials[x.id]; }
     saveMeta(); showHeroes(sel);
   });
-  if ($('unlockHero')) $('unlockHero').onclick = () => {
-    if (META.shards < d.unlock) return;
-    META.shards -= d.unlock; META.unlocked[sel] = true; saveMeta(); sfx('level'); showHeroes(sel);
-  };
   $('mBack').onclick = showMenu;
 }
 const clock = t => isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '0:00';
@@ -1209,8 +1217,8 @@ function newRun(mapId) {
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    echoes: [], zones: [], delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).filter(towerUnlocked).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
-    mod: { towerDmg: 1, slow: 0, gold: map.gold || 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
+    echoes: [], zones: [], delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    mod: { towerDmg: 1, slow: 0, gold: 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0 },
     hero: null,
   };
   MAX_WAVE = map.waves;
@@ -1247,22 +1255,21 @@ function applySpecials(h) {
 const LOADOUT_SIZE = 5;
 // Loadout: pick a hero and up to 5 towers. The last loadout is remembered.
 function showHeroSelect() {
-  const openTowers = Object.keys(TOWERS).filter(towerUnlocked), need = Math.min(LOADOUT_SIZE, openTowers.length);
+  const openTowers = Object.keys(TOWERS), need = Math.min(LOADOUT_SIZE, openTowers.length);
   const last = META.loadout || {};
-  let hero = HEROES[last.hero] && isUnlocked(last.hero) ? last.hero : 'vanguard';
-  let picks = (last.towers || []).filter(k => TOWERS[k] && towerUnlocked(k)).slice(0, LOADOUT_SIZE);
+  let hero = HEROES[last.hero] ? last.hero : 'vanguard';
+  let picks = (last.towers || []).filter(k => TOWERS[k]).slice(0, LOADOUT_SIZE);
   for (const k of openTowers) if (picks.length < need && !picks.includes(k)) picks.push(k);
   let step = 'hero';
-  const heroCards = () => CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => { const open = isUnlocked(k);
-        return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'} ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
+  const heroCards = () => CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => {
+        return `<button class="choice mapcard hero-pick ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}">
         ${heroPortrait(k, 2)}<small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
         <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase()}</span>
         <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text) : ''}</span>
-        ${open ? `<em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span></em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('');
-  const towerCards = () => `<div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const open = towerUnlocked(k), on = picks.includes(k);
-        return `<button class="choice mapcard tower-pick ${open ? '' : 'locked'} ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
-        <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${tx('tower:' + k, d.info)}</span>
-        ${open ? '' : `<span class="lock">Locked: unlock on the Towers page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`;
+        <em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span></em></button>`; }).join('')}</div>`).join('');
+  const towerCards = () => `<div class="cards">${Object.entries(TOWERS).map(([k, d]) => { const on = picks.includes(k);
+        return `<button class="choice mapcard tower-pick ${on ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}">
+        <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${tx('tower:' + k, d.info)}</span></button>`; }).join('')}</div>`;
   // The picked hero's two abilities, so you can swap before the run without visiting the Heroes page.
   const abilityRow = () => { const d = HEROES[hero];
     return `<h3 class="cat-h">${d.name} ability · pick one</h3><div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].filter(([, ab]) => ab).map(([v, ab]) => `<button class="choice ${heroAbility(hero) === ab ? 'picked' : ''}" data-ab-pick="${v}">
@@ -1319,20 +1326,27 @@ function startRun(hero, towers) {
 
 const $ = id => document.getElementById(id);
 let toastT = 0;
-function toast(msg) { $('toast').textContent = msg; $('toast').hidden = false; toastT = 3; }
+// Repeating the message on screen only extends it, so it doesn't flicker when something calls it every frame.
+function toast(msg) { const el = $('toast'); if (el.textContent !== msg || el.hidden) { el.textContent = msg; el.hidden = false; } toastT = 3; }
 
 function countType(type) { return S.towers.filter(t => t.type === type || (t.parents && t.parents.includes(type))).length; }
-function towerCost(type) { return Math.round(TOWERS[type].cost * (1 + 0.3 * countType(type)) * S.hero.costMul); }
+// Some maps make everything cost more (towers, level-ups, merges and the shop).
+const mapPrice = () => MAPS[S.map].price || 1;
+// Each tower you buy makes that tower 50% pricier and every other tower 15% pricier. Selling one takes its purchase back.
+function towerCost(type) {
+  const b = S.bought || {}, mine = b[type] || 0, all = Object.values(b).reduce((x, y) => x + y, 0);
+  return Math.round(TOWERS[type].cost * 1.5 ** mine * 1.15 ** (all - mine) * S.hero.costMul * mapPrice());
+}
 // Level-up price: build cost × 2.5 × (points already in that path + 1). Merged towers start at their upStart
 // price and rise 30% per point in that path. Each path is priced on its own: only points already in that path make its next point dearer.
 function levelCost(t, path) {
   if (S.freeLevels > 0 || t.freeUps > 0) return 0;
   const n = path ? t.ups[path.id] || 0 : 0;
   const base = t.hybrid ? t.upStart * (1 + 0.3 * n) : t.baseCost * (pathMax() === 3 ? 3.1 : 2.5) * (n + 1);
-  return Math.round(base * S.hero.lvlMul * (1 - 0.04 * rank(META.towerGlobal, 'cost')));
+  return Math.round(base * S.hero.lvlMul * (1 - 0.04 * rank(META.towerGlobal, 'cost')) * mapPrice());
 }
 const hybridUpStart = (parents, sup) => Math.round(2 * (MAX_LVL - 1) * Math.max(...parents.map(k => TOWERS[k].cost)) * (sup ? 1.5 : 1));
-function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul); }
+function mergeCost() { return S.freeMerges > 0 ? 0 : Math.round(MERGE_COST * S.hero.mergeMul * mapPrice()); }
 function pathLimit() { return 3 + (S.hero.cls === 'oracle' ? 1 : 0) + (S.pathBonus || 0); }
 function pathMax() { return S.hero && S.hero.cls === 'oracle' ? 3 : PATH_MAX; }
 function tRange(t) { return t.range * (1 + S.hero.towerRange) * (t.buff ? (1 + t.buff.range) * (t.buff.light ? 2 : 1) : 1); }
@@ -1596,7 +1610,7 @@ function showShop() {
   let freeLeft = !!S.specials.bazaar;
   const items = shuffle(SHOP_ITEMS.slice()).slice(0, S.specials.bazaar ? 9 : 6).map((it, i) => {
     const dem = demonic && i % 2 === 0, k = S.specials.pact ? 1.5 : 3;
-    return { it, dem, m: it.m * (dem ? 2 : 1), cost: Math.round(it.cost * scale / 10) * 10, curse: dem ? pick(CURSES) : null, k, sold: false };
+    return { it, dem, m: it.m * (dem ? 2 : 1), cost: Math.round(it.cost * scale * mapPrice() / 10) * 10, curse: dem ? pick(CURSES) : null, k, sold: false };
   });
   const render = () => {
     openModal(`<h2 class="${demonic ? 'demonic-title' : ''}">${demonic ? '☠ Demonic Bazaar' : 'Rift Bazaar'}</h2>
@@ -1715,7 +1729,11 @@ function damage(e, amt, src, pierce) {
     S.gold += g; h.xp += e.gold * (1 + h.xpGain);
     if (S.ws) { S.ws.kills++; S.ws.gold += g; }
     if (byHero) S.kills.hero++;
-    else { src.kills = (src.kills || 0) + 1; for (const k of baseTypes(src)) S.kills.towers[k] = (S.kills.towers[k] || 0) + 1; }
+    else {
+      src.kills = (src.kills || 0) + 1; for (const k of baseTypes(src)) S.kills.towers[k] = (S.kills.towers[k] || 0) + 1;
+      // support mastery: kills by towers the hero is boosting (inside its aura or its field)
+      if (HEROES[h.cls].cat === 'support' && (nearAura(src) || overclocked(src))) S.assists++;
+    }
     for (const u of e.hitBy || []) {
       if (u === 'hero') { S.takedowns.hero++; continue; }
       u.takedowns = (u.takedowns || 0) + 1;
@@ -2316,11 +2334,11 @@ function update(dt) {
     if (e.burnT > 0) { e.burnT -= dt; damage(e, e.burnDps * dt, e.burnSrc, true); if (e.dead) continue; }
     if (S.overclockT > 0 && h.timeWarp && Math.hypot(e.x - S.overclockAt.x, e.y - S.overclockAt.y) <= h.ab.r) slowEnemy(e, h.timeWarp, 0.3);
     if (e.stunT > 0) { e.stunT -= dt; }
-    else if (e.tauntT > 0 && !h.ko) { e.tauntT -= dt; hurtHero(h, e.atk * (1 - h.armor) * dt * 0.5); }
+    else if (e.tauntT > 0 && !h.ko) { e.tauntT -= dt; hurtHero(h, e.atk * (1 - h.armor) * dt * 0.5); S.blocked += e.atk * dt * 0.5; }
     else if (e.blocked) {
       let guard = 0;
       for (const t of anvils) if (t.guard && Math.hypot(t.x - e.x, t.y - e.y) <= tRange(t)) guard = Math.max(guard, t.guard);
-      hurtHero(h, e.atk * (1 - h.armor) * (1 - Math.min(0.6, guard)) * dt);
+      hurtHero(h, e.atk * (1 - h.armor) * (1 - Math.min(0.6, guard)) * dt); S.blocked += e.atk * dt; // defensive mastery: damage held off the base
       if (h.shield > 0 && h.ab.spiked) damage(e, 40 * dt);
       if (h.thorns) damage(e, h.thorns * dt);
     } else {
@@ -2417,6 +2435,12 @@ function makeOffer(perk, rarity, demonic) {
   if (demonic) { o.demonic = true; o.curse = pick(CURSES); o.k = rarity.mult * (S.specials.pact ? 0.5 : 1); }
   return o;
 }
+// What an upgrade improves. One roll never offers two upgrades of the same kind, so you can't be shown three ability
+// upgrades (or two damage boosts) at once.
+const ABILITY_PERKS = new Set(['seismic', 'after', 'daze', 'core', 'nfocus', 'wide', 'surge', 'extend', 'apround', 'steady', 'barrier', 'adren', 'redline', 'payload']);
+const PERK_KIND = { blade: 'damage', caliber: 'damage', headhunter: 'damage', crit: 'crit', critdmg: 'crit', clock: 'speed', chamber: 'speed', boots: 'speed', momentum: 'speed',
+  plate: 'hp', fort: 'hp', reboot: 'hp', mend: 'heal', siphon: 'heal', arch: 'cost', engineer: 'cost', alchemy: 'cost', signal: 'range', reach: 'range', scope: 'range' };
+const perkKind = p => p.mod || p.ab || ABILITY_PERKS.has(p.id) ? 'ability' : p.gold ? 'gold' : p.rarity ? 'unique:' + p.id : PERK_KIND[p.id] || p.id;
 // Two slots from your hero's own pool, one shared slot (upgrades for every hero, or for heroes of your category).
 // Upgrades you already own show up more often. Rare or better hero slots can roll an ability upgrade.
 function rollPerks() {
@@ -2429,16 +2453,20 @@ function rollPerks() {
   const slots = shuffle(['hero', 'hero', Math.random() < 0.3 ? 'hero' : 'shared']);
   for (const slot of slots) {
     const rarity = rollRarity(), demonic = Math.random() < DEMONIC_CHANCE;
-    const taken = new Set(out.map(o => o.perk.id));
+    const taken = new Set(out.map(o => o.perk.id)), kinds = new Set(out.map(o => perkKind(o.perk)));
+    const fresh = p => !taken.has(p.id) && !kinds.has(perkKind(p));
     let perk = null, rar = rarity;
-    if (rarity.id === 'secret') perk = pick(UNIQUES.filter(u => u.rarity === 'secret' && !owns(u.id) && !taken.has(u.id))) || null;
+    if (rarity.id === 'secret') perk = pick(UNIQUES.filter(u => u.rarity === 'secret' && !owns(u.id) && fresh(u))) || null;
     if (!perk && (rarity.id === 'legendary' || rarity.id === 'secret') && Math.random() < 0.5) {
-      perk = pick(UNIQUES.filter(u => u.rarity === 'legendary' && u.cls === h.cls && (!u.ab || u.ab === h.ab.id) && !owns(u.id) && !taken.has(u.id))) || null;
+      perk = pick(UNIQUES.filter(u => u.rarity === 'legendary' && u.cls === h.cls && (!u.ab || u.ab === h.ab.id) && !owns(u.id) && fresh(u))) || null;
       if (perk) rar = RAR.legendary;
     }
-    if (!perk && slot === 'hero' && rarity.mult >= RAR.rare.mult && Math.random() < 0.45)
-      perk = pick(ABILITY_MODS.filter(m => m.cls === h.cls && m.ab === h.ab.id && !h.ab[m.id] && !taken.has(m.id))) || null;
-    if (!perk) perk = pick(weighted(PERKS.filter(p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && (!p.ab || p.ab === h.ab.id) && !taken.has(p.id) && fits(p, rarity))));
+    if (!perk && slot === 'hero' && rarity.mult >= RAR.rare.mult && Math.random() < 0.35)
+      perk = pick(ABILITY_MODS.filter(m => m.cls === h.cls && m.ab === h.ab.id && !h.ab[m.id] && fresh(m))) || null;
+    const pool = p => (slot === 'hero' ? p.cls === h.cls : shared(p)) && (!p.ab || p.ab === h.ab.id) && fits(p, rarity);
+    // If every kind in this pool is already on offer, fall back to anything not already shown.
+    if (!perk) perk = pick(weighted(PERKS.filter(p => pool(p) && fresh(p)))) || pick(weighted(PERKS.filter(p => (slot === 'hero' ? shared(p) : p.cls === h.cls) && (!p.ab || p.ab === h.ab.id) && fresh(p))))
+      || pick(PERKS.filter(p => (pool(p) || shared(p)) && !taken.has(p.id)));
     out.push(makeOffer(perk, rar, demonic && !perk.fixed));
   }
   return out;
@@ -2480,18 +2508,21 @@ function showBoon() {
     <div class="choices"><button class="choice rarity-heroic" id="takeBoon"><small class="path rar-heroic">Inspired by ${RECIPES[key].name}</small><b>${b.name}</b><span>${tx('boon:' + key, b.desc)}</span></button></div>`);
   $('takeBoon').onclick = () => { b.apply(S.hero); S.boons[key] = true; S.pendingBoon = null; closeModal(); S.paused = false; renderHero(); toast('Awakened: ' + b.name + '.'); };
 }
+// After a boss: 3 new heroic powers, plus a 4th option to rank up one you own (a different one each time, at random).
+// When fewer than 3 new ones are left, more rank-up options fill the gap.
 function showHeroic() {
   S.paused = true;
   const fresh = shuffle(HEROICS.filter(x => !S.heroics[x.id] && x.for.includes(S.hero.cls))).slice(0, 3);
-  const owned = HEROICS.filter(x => S.heroics[x.id] && S.heroics[x.id] < 3);
+  const owned = shuffle(HEROICS.filter(x => S.heroics[x.id] && S.heroics[x.id] < 3)).slice(0, 4 - fresh.length);
   if (!fresh.length && !owned.length) { S.pendingHeroic--; S.gold += 250; S.paused = false; toast('Every heroic power is maxed, so the boss dropped 250 gold instead.'); return; }
-  openModal(`<h2>Heroic power</h2><p>The boss dropped a heroic power. Take a new one, or empower one you already have (up to rank 3).</p>
-    <div class="choices">${fresh.map((x, i) => `<button class="choice rarity-heroic" data-new="${i}"><small class="path rar-heroic">Heroic · New</small><b>${x.name}</b><span>${tx('heroic:' + x.id, x.desc(1))}</span></button>`).join('')}</div>
-    ${owned.length ? `<p style="margin-top:14px">Or empower:</p><div class="choices">${owned.map((x, i) => `<button class="choice rarity-heroic" data-up="${i}"><small class="path rar-heroic">Rank ${S.heroics[x.id]} → ${S.heroics[x.id] + 1}</small><b>${x.name}</b><span>${simple() ? 'Makes it stronger.' : x.desc(S.heroics[x.id] + 1)}</span></button>`).join('')}</div>` : ''}`);
+  openModal(`<h2>Heroic power</h2><p>The boss dropped a heroic power. Take a new one${owned.length ? ', or empower one you already have (up to rank 3)' : ''}.</p>
+    <div class="choices">${fresh.map((x, i) => `<button class="choice rarity-heroic" data-new="${i}"><small class="path rar-heroic">Heroic · New</small><b>${x.name}</b><span>${tx('heroic:' + x.id, x.desc(1))}</span></button>`).join('')}${owned.map((x, i) => `<button class="choice rarity-heroic" data-up="${i}"><small class="path rar-heroic">Empower · Rank ${S.heroics[x.id]} → ${S.heroics[x.id] + 1}</small><b>${x.name}</b><span>${simple() ? 'Makes it stronger.' : x.desc(S.heroics[x.id] + 1)}</span></button>`).join('')}</div>`);
   const done = (x) => { S.pendingHeroic--; closeModal(); S.paused = false; renderHero(); toast('Heroic power: ' + x.name + ' rank ' + S.heroics[x.id] + '.'); };
   $('modalBox').querySelectorAll('[data-new]').forEach(b => b.onclick = () => { const x = fresh[+b.dataset.new]; S.heroics[x.id] = 1; done(x); });
   $('modalBox').querySelectorAll('[data-up]').forEach(b => b.onclick = () => { const x = owned[+b.dataset.up]; S.heroics[x.id]++; done(x); });
 }
+// This run's progress on the hero's mastery stat.
+function heroRunStat() { const c = HEROES[S.hero.cls].cat; return Math.round(c === 'defensive' ? S.blocked : c === 'support' ? S.assists : S.kills.hero); }
 function endRun(won, quit) {
   S.over = true; renderModeBanner();
   closeWaveLog(won);
@@ -2501,7 +2532,8 @@ function endRun(won, quit) {
   META.played = META.played || {}; META.played[S.hero.cls] = (META.played[S.hero.cls] || 0) + 1;
   // kills and wins feed mastery: report what moved
   const was = [['heroes', S.hero.cls]].concat(Object.keys(TOWERS).filter(k => S.kills.towers[k] || S.built[k]).map(k => ['towers', k])).map(([kind, k]) => [kind, k, masteryOf(kind, k).lvl]);
-  META.kills.heroes[S.hero.cls] = (META.kills.heroes[S.hero.cls] || 0) + S.kills.hero;
+  const cls = S.hero.cls; META.heroStat[cls] = heroStat(cls) + heroRunStat();
+  META.kills.heroes[cls] = (META.kills.heroes[cls] || 0) + S.kills.hero;
   for (const [k, n] of Object.entries(S.kills.towers)) META.kills.towers[k] = (META.kills.towers[k] || 0) + n;
   META.takedowns.heroes[S.hero.cls] = (META.takedowns.heroes[S.hero.cls] || 0) + S.takedowns.hero;
   for (const [k, n] of Object.entries(S.takedowns.towers)) META.takedowns.towers[k] = (META.takedowns.towers[k] || 0) + n;
@@ -2563,7 +2595,7 @@ function newTower(type, c, r) {
 }
 function placeTower(c, r, type) {
   const cost = towerCost(type), t = newTower(type, c, r), h = S.hero;
-  S.gold -= cost; t.spent = cost; S.towers.push(t); S.built[type] = true;
+  S.gold -= cost; t.spent = cost; S.towers.push(t); S.built[type] = true; S.bought[type] = (S.bought[type] || 0) + 1;
   t.freeUps = (S.specials.foundry ? 2 : 0) + (h.rapid && Math.hypot(h.x - t.x, h.y - t.y) <= h.auraRange ? h.rapid : 0);
   if (t.freeUps) S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 30, color: 0xb07cff, t: 0.5, T: 0.5, fill: true });
   if (S.build && S.gold < towerCost(S.build)) S.build = null;
@@ -2827,6 +2859,7 @@ function buildTipHtml(k) {
   return `<b>${d.name}</b> <span class="tip-c">${towerCost(k)} gold</span><p>${tx('tower:' + k, d.info)}</p>
     <div class="tip-s">${d.support ? 'Buff +' + pct(beaconDmg(t)) : 'Damage ' + t.dmg.toFixed(0) + ' · ' + (1 / d.rate).toFixed(2) + ' shots/s'} · Range ${d.range}</div>
     ${simple() ? '' : `<ul>${(d.support || k === 'anvil' ? towerTraits(t) : traits(t).slice(1)).map(x => `<li>${x}</li>`).join('')}</ul>`}
+    <div class="tip-s">Buying one raises its price 50% and every other tower's 15%.</div>
     ${S.sig[k] ? `<div class="tip-s rar-mythic">Signature: ${SIGNATURES[k].name}. ${tx('sig:' + k, SIGNATURES[k].desc)}</div>` : ''}
     <div class="tip-s">Paths: ${TOWER_PATHS[k].map(u => u.name).join(', ')}. Pick up to 3 of them (4 with the Oracle) as it levels to ${MAX_LVL}.</div>`;
 }
@@ -2890,6 +2923,7 @@ function sellSelected() {
   if (S.userPause) return pausedNote();
   const sell = Math.round(t.spent * SELL_RATE);
   S.gold += sell; S.towers = S.towers.filter(x => x !== t); S.sel = null;
+  if (!t.hybrid && S.bought[t.type] > 0) S.bought[t.type]--;
   toast('Sold for ' + sell + ' gold.'); renderInspector(); renderBuildBar();
 }
 function renderCodex() {
@@ -2914,7 +2948,7 @@ function renderHero() {
   $('heroCard').innerHTML = `<h3 style="color:${d.css}">${d.name} · ${d.role} · Lv ${h.lvl}${h.ko ? ' · Knocked out' : ''}</h3>
     <p class="help"><b class="tipname" data-tip="ability" style="color:var(--text)">${h.ab.name}</b> (${h.ab.cd.toFixed(0)}s): ${abilityText(h)}${ABILITY_MODS.some(m => h.ab[m.id]) ? `<br><b class="rar-mythic">Upgrades:</b> ${ABILITY_MODS.filter(m => h.ab[m.id]).map(m => `<span class="tipname" data-tip="mod:${m.id}">${m.name}</span>`).join(', ')}` : ''}${h.hold ? '<br><b style="color:var(--gold)">Holding position (H)</b>' : ''}</p>
     <div class="stats">
-      <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div><div><span>Kills</span>${S.kills.hero}</div><div><span>Takedowns</span>${S.takedowns.hero}</div>
+      <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div><div><span>Kills</span>${S.kills.hero}</div><div><span>Takedowns</span>${S.takedowns.hero}</div>${d.cat === 'defensive' ? `<div><span>Damage blocked</span>${f(S.blocked)}</div>` : d.cat === 'support' ? `<div><span>Assisted kills</span>${S.assists}</div>` : ''}
       <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${h.range >= 9999 ? 'Whole map' : f(h.range)}</div>
       <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit chance</span>${pct(h.crit)}</div>
       <div><span>Crit damage</span>${pct(h.critDmg)}</div>${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}

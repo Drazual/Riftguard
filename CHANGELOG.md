@@ -2,6 +2,16 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.21: Rising tower prices, role mastery, cleaner upgrade offers, everything unlocked
+
+- **Towers get pricier as you buy them.** Each tower you buy makes that tower 50% more expensive and every other tower 15% more expensive. Selling a tower takes its purchase back off the price.
+- **Ironhold makes everything cost 30% more** instead of paying 30% less gold. Towers, level-ups, merges and the shop are all affected.
+- **Hero mastery follows each role.** Defensive heroes level on damage blocked, offensive heroes on kills, and support heroes on kills by towers they were boosting. The rates were measured in test runs so every role levels at about the same speed: one point is a kill, 100 damage blocked, or one assisted kill. Existing progress carries over.
+- **Hero messages sit in the map's top-right corner** instead of the middle, so they no longer cover the wave banner, and a repeated message stays put instead of flashing.
+- **More varied hero upgrade offers.** One roll never shows two upgrades of the same kind, so you can no longer be offered three ability upgrades (or two damage boosts) at once.
+- **Boss heroic powers:** each boss offers 3 new heroic powers, plus a 4th option to empower one you already own. Which one you can empower changes each time. When fewer than 3 new ones are left, extra empower options fill in.
+- **Every hero and tower is unlocked from the start.** Shards you spent unlocking them have been refunded.
+
 ## 0.20: Hero art
 
 - **Heroes have real art.** The Vanguard is the Chrome Bulwark, the Striker is the Vice Striker, the Oracle is the Aurora Medic, and the Sniper is the Neon Kestrel. Each one idles, walks and fires in 8 directions instead of being a coloured circle.
