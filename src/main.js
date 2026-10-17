@@ -1044,6 +1044,8 @@ function showTowers(sel) {
   };
   $('mBack').onclick = showMenu;
 }
+// A hero's art for menus: its south-facing idle frames, zoomed z times, bobbing between the two idle frames.
+const heroPortrait = (k, z = 2) => `<span class="hero-portrait" style="--z:${z};background-image:url('${ART_URLS[`./assets/hero_${k}.png`]}')"></span>`;
 // Heroes page: every hero (locked ones too), their permanent upgrades, and the upgrades shared by all heroes.
 function showHeroes(sel) {
   queueTip('heroes');
@@ -1054,7 +1056,7 @@ function showHeroes(sel) {
       <div class="roster">${CATEGORIES.map(([c, label]) => `<h4 class="cat">${label}</h4>` + (heroesIn(c).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''} ${isUnlocked(k) ? '' : 'locked'}" style="border-left-color:${h.css}">
         <small>${heroAbility(k).name} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${h.css}">${h.name}</b>${isUnlocked(k) ? '' : `<span class="lock">Locked · ◆ ${h.unlock}</span>`}</button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
       <div class="card herodetail">
-        <h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
+        ${heroPortrait(sel, 3)}<h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
         <p>${tx('hero:' + sel, d.desc)}</p>
         <div class="stats">
           <div><span>HP</span>${st.hp}</div><div><span>Damage</span>${st.dmg}</div>
@@ -1253,7 +1255,7 @@ function showHeroSelect() {
   let step = 'hero';
   const heroCards = () => CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => { const open = isUnlocked(k);
         return `<button class="choice mapcard hero-pick ${open ? '' : 'locked'} ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}" ${open ? '' : 'disabled'}>
-        <small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
+        ${heroPortrait(k, 2)}<small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
         <span>HP ${d.stats.hp} · Damage ${d.stats.dmg} · ${d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase()}</span>
         <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text) : ''}</span>
         ${open ? `<em class="reward">Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span></em>` : `<span class="lock">Locked: unlock on the Heroes page for ◆ ${d.unlock}</span>`}</button>`; }).join('')}</div>`).join('');
@@ -2191,6 +2193,7 @@ function update(dt) {
         for (const t of ts) {
           const crit = Math.random() < h.crit || (h.deadeye && h.attacks % h.deadeye === 0);
           let dmg = heroDmg() * (crit ? h.critDmg : 1);
+          if (t === ts[0]) { h.aimX = t.x; h.aimY = t.y; h.atkAt = S.time; }
           if (t.boss && h.headhunter) dmg *= 1 + h.headhunter;
           if (S.oneShotReady) { dmg *= 10; S.oneShotReady = false; S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 46, color: 0xffffff, t: 0.6, T: 0.6, fill: true }); shake(0.012, 250); toast('One Shot!'); }
           if (h.boonRail && h.attacks % h.boonRail === 0) dmg *= 4;
@@ -2211,7 +2214,7 @@ function update(dt) {
           if (h.boonSlow) slowEnemy(t, h.boonSlow, 1.2);
           if (h.boonSplash) { for (const o of inRange(t.x, t.y, 45)) if (o !== t) damage(o, dmg * h.boonSplash); S.fx.push({ k: 'ring', x: t.x, y: t.y, r: 45, color: 0xff6fd8, t: 0.2, T: 0.2 }); }
           if (h.boonChain) for (const o of inRange(t.x, t.y, 100).filter(e => e !== t).slice(0, h.boonChain)) { damage(o, dmg * 0.5); slowEnemy(o, 0.3, 1.2); S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: o.x, y2: o.y, color: 0x9af0ff, t: 0.12, T: 0.12, w: 1 }); }
-          S.fx.push({ k: 'line', x1: h.x, y1: h.y, x2: t.x, y2: t.y, color: crit ? 0xffffff : 0xf2c14e, t: 0.1, T: 0.1, w: crit ? 3 : 2 });
+          S.fx.push({ k: 'line', x1: h.x, y1: h.y, l1: 22, x2: t.x, y2: t.y, color: crit ? 0xffffff : 0xf2c14e, t: 0.1, T: 0.1, w: crit ? 3 : 2 });
           if (HX.chainstrike) {
             const others = inRange(t.x, t.y, 100).filter(e => e !== t).slice(0, 1 + HX.chainstrike);
             for (const o of others) { damage(o, dmg * 0.6); S.fx.push({ k: 'line', x1: t.x, y1: t.y, x2: o.x, y2: o.y, color: 0xf2c14e, t: 0.12, T: 0.12, w: 1 }); }
@@ -3095,11 +3098,20 @@ function moveShots(dt) {
 }
 const spriteTower = t => !t.hybrid && !!ART[t.type];
 const towerSprites = new Map();
-function loadArt(sc) { for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: FRAME, frameHeight: FRAME }); }
+function loadArt(sc) {
+  for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: FRAME, frameHeight: FRAME });
+  for (const k in HEROES) sc.load.spritesheet('hero_' + k, ART_URLS[`./assets/hero_${k}.png`], { frameWidth: FRAME, frameHeight: FRAME });
+}
 function makeAnims(sc) {
   for (const k in ART) {
     const a = (name, start, frameRate, repeat) => sc.anims.create({ key: k + '-' + name, frames: sc.anims.generateFrameNumbers(k, { start, end: start + 5 }), frameRate, repeat });
     a('idle', 0, 8, -1); a('attack', 6, ATK_FPS, 0); a('recover', 12, 16, 0); a('fx', 18, 24, 0); a('hit', 19, 20, 0);
+  }
+  // Heroes: 10 rows (idle 1-2, walk 1-4, fire 1-4) by 8 facings (N, NE, E, SE, S, SW, W, NW). Firing starts on the
+  // muzzle-flash frame, the moment the hero's shot lands.
+  for (const k in HEROES) for (let d = 0; d < 8; d++) {
+    const a = (name, rows, frameRate, repeat) => sc.anims.create({ key: `hero_${k}-${name}-${d}`, frames: sc.anims.generateFrameNumbers('hero_' + k, { frames: rows.map(r => r * 8 + d) }), frameRate, repeat });
+    a('idle', [0, 1], 3, -1); a('walk', [2, 3, 4, 5], 9, -1); a('fire', [7, 8, 9], 12, 0);
   }
   sc.anims.create({ key: 'laser-beam', frames: sc.anims.generateFrameNumbers('laser', { frames: [20, 21, 22, 21] }), frameRate: 16, repeat: -1 });
 }
@@ -3133,7 +3145,46 @@ function syncSprites(sc, dt) {
     if (k === 'laser') beam(sc, t, s);
   }
   for (const [t, s] of towerSprites) if (!live.has(t)) { if (s.beam) s.beam.destroy(); s.destroy(); towerSprites.delete(t); }
+  syncHero(sc, dt, speed);
   flyShots(sc, dt * speed, speed);
+}
+// The hero: walks while moving, fires toward its target, idles otherwise, in 8 facings. The facing only changes
+// once the direction is clearly past the edge of its sector, so walking along a diagonal never flickers.
+const HERO_FEET = 43 / 48, FACE_COL = [2, 3, 4, 5, 6, 7, 0, 1]; // sector (E, SE, S, ... clockwise) to sheet column
+let heroSpr = null;
+function syncHero(sc, dt, speed) {
+  const h = S && S.hero;
+  if (!h || h.ko || S.over) { if (heroSpr) heroSpr.setVisible(false); if (!h && heroSpr) { heroSpr.destroy(); heroSpr = null; } return; }
+  const key = 'hero_' + h.cls;
+  if (!heroSpr || heroSpr.heroKey !== key) {
+    if (heroSpr) heroSpr.destroy();
+    heroSpr = sc.add.sprite(0, 0, key, 4).setOrigin(0.5, HERO_FEET).setScale(1 / PX);
+    Object.assign(heroSpr, { heroKey: key, face: 4, sector: 2, lx: h.x, ly: h.y, moveT: 0, fired: h.atkAt, anim: '' });
+  }
+  const s = heroSpr.setVisible(true);
+  const mx = h.x - s.lx, my = h.y - s.ly; s.lx = h.x; s.ly = h.y;
+  if (Math.hypot(mx, my) > 0.01) s.moveT = 0.12; else s.moveT -= dt * speed;
+  const moving = s.moveT > 0, firing = h.atkAt != null && S.time - h.atkAt < 0.25;
+  // face the target while shooting, else the way it's walking (on screen, so the 3/4 tilt counts)
+  let vx = 0, vy = 0;
+  if (firing) { vx = h.aimX - h.x; vy = (h.aimY - h.y) * K; } else if (moving) { vx = mx; vy = my * K; }
+  if (vx || vy) {
+    const ang = Math.atan2(vy, vx), cur = s.sector * Math.PI / 4;
+    let off = Math.abs(((ang - cur) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI);
+    if (off > Math.PI / 8 + 0.14) s.sector = ((Math.round(ang / (Math.PI / 4)) % 8) + 8) % 8;
+  }
+  const face = FACE_COL[s.sector];
+  if (h.atkAt !== s.fired) { s.fired = h.atkAt; s.anim = 'fire'; s.face = face; s.play(`${key}-fire-${face}`); s.once('animationcomplete', () => { s.anim = ''; }); }
+  const want = s.anim === 'fire' ? 'fire' : moving ? 'walk' : 'idle';
+  const k = `${key}-${want}-${face}`;
+  // turning keeps the step it was on, so the walk cycle doesn't restart
+  if (!s.anims.currentAnim || s.anims.currentAnim.key !== k) {
+    const at = s.anims.currentAnim && s.anims.currentAnim.key.split('-')[1] === want ? s.anims.currentFrame.index - 1 : 0;
+    s.play({ key: k, startFrame: at });
+  }
+  // the walk cycle keeps pace with the hero's real speed; firing keeps up with fast attackers
+  s.anims.timeScale = speed * (want === 'walk' ? Math.max(0.6, Math.min(1.6, h.speed / 145)) : want === 'fire' ? Math.max(1, 0.25 / Math.max(0.05, h.rate)) : 1);
+  s.setPosition(h.x, SY(h.y) + 3).setDepth(1 + h.y / 1000 + 0.0005);
 }
 // A beam sprite stretched and turned between two screen points.
 function stretchBeam(spr, x0, y0, x1, y1, width) {
@@ -3289,7 +3340,7 @@ function draw(g, o) {
     g.lineStyle(2, 0xffd36e, 0.95).strokeCircle(a.x, a.y, 10);
     g.lineBetween(a.x - 15, a.y, a.x - 5, a.y); g.lineBetween(a.x + 5, a.y, a.x + 15, a.y); g.lineBetween(a.x, a.y - 15, a.x, a.y - 5); g.lineBetween(a.x, a.y + 5, a.x, a.y + 15);
   }
-  const [hx, hy] = P(h.x, h.y, 12);
+  const [hx, hy] = P(h.x, h.y, 20), top = SY(h.y) - 47; // body middle, and just above the head
   if (h.ko) {
     o.fillStyle(0x8d95b8, 0.3).fillCircle(hx, hy, 13);
     o.lineStyle(3, hc, 0.8).beginPath();
@@ -3303,20 +3354,17 @@ function draw(g, o) {
     if (h.brace) { const ready = h.braceT >= h.brace; o.lineStyle(ready ? 3 : 2, ready ? 0xffd36e : 0x8d95b8, ready ? 0.95 : 0.6).beginPath(); o.arc(hx, hy, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (h.braceT / h.brace)); o.strokePath(); }
     if (h.shield > 0) { o.fillStyle(0x9af0ff, 0.15).fillCircle(hx, hy, 28); o.lineStyle(3, 0x9af0ff, 0.9).beginPath(); o.arc(hx, hy, 28, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * h.shield / h.shieldMax); o.strokePath(); }
     if (h.odT > 0) o.lineStyle(2, 0xff6f6f, 0.5 + 0.4 * Math.sin(S.time * 20)).strokeCircle(hx, hy, 24);
-    o.fillStyle(hc, 0.2).fillCircle(hx, hy, 18);
-    o.fillStyle(0x101223, 1).fillCircle(hx, hy, 13.25);
-    o.fillStyle(hc, 1).fillCircle(hx, hy, 12);
-    o.fillStyle(0xffffff, 0.35).fillCircle(hx - 4, hy - 4, 4);
-    o.fillStyle(0x0b0f1c, 1).fillCircle(hx, hy, 5);
-    o.fillStyle(0x000000, 0.6).fillRect(hx - 16, hy - 24, 32, 4);
-    o.fillStyle(0x5fe39a, 1).fillRect(hx - 16, hy - 24, 32 * h.hp / h.maxHp, 4);
-    if (h.ab.t > 0) { o.lineStyle(2, 0xb07cff, 0.7).beginPath(); o.arc(hx, hy, 21, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - h.ab.t / h.ab.cd)); o.strokePath(); }
-    else o.lineStyle(2, 0xb07cff, 0.9).strokeCircle(hx, hy, 21);
+    // the hero's art is a sprite (syncHero); a ring on the ground under it fills as the ability recharges
+    g.lineStyle(2, hc, 0.35).strokeCircle(h.x, h.y, 17);
+    if (h.ab.t > 0) { g.lineStyle(2, 0xb07cff, 0.7).beginPath(); g.arc(h.x, h.y, 17, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - h.ab.t / h.ab.cd)); g.strokePath(); }
+    else g.lineStyle(2, 0xb07cff, 0.9).strokeCircle(h.x, h.y, 17);
+    o.fillStyle(0x000000, 0.6).fillRect(hx - 16, top, 32, 4);
+    o.fillStyle(0x5fe39a, 1).fillRect(hx - 16, top, 32 * h.hp / h.maxHp, 4);
     if (HX.blades) for (let i = 0; i < HX.blades + 1; i++) {
       const ang = S.time * 3 + i * Math.PI * 2 / (HX.blades + 1), [bx, by] = P(h.x + Math.cos(ang) * 42, h.y + Math.sin(ang) * 42, 10);
       o.fillStyle(0xe6e9f5, 1).fillCircle(bx, by, 5);
     }
-    if (HX.drone) for (let i = 0; i < HX.drone; i++) o.fillStyle(0x5fe39a, 1).fillRect(hx + (i ? -26 : 18), hy - 26, 8, 8);
+    if (HX.drone) for (let i = 0; i < HX.drone; i++) o.fillStyle(0x5fe39a, 1).fillRect(hx + (i ? -28 : 20), top + 4, 8, 8);
   }
 
   for (const z of S.zones) {
@@ -3336,7 +3384,7 @@ function draw(g, o) {
   // effect lines are shots and beams at chest height; rings are blasts spreading on the ground
   for (const f of S.fx) {
     const a = f.t / f.T;
-    if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - 12, f.x2, SY(f.y2) - 12);
+    if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - (f.l1 || 12), f.x2, SY(f.y2) - 12);
     else {
       const r = f.r * (1.2 - a * 0.4);
       if (f.fill) g.fillStyle(f.color, a * 0.2).fillCircle(f.x, f.y, r);

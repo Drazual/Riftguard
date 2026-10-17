@@ -270,3 +270,11 @@ button.on { border-color: var(--tech); background: var(--panel-2); box-shadow: i
 .reset-btn:hover { opacity: 1; }
 button.danger { border-color: var(--danger); color: var(--danger); }
 .first-tip p { margin: 8px 0; line-height: 1.45; }
+/* Hero art in menus: frame 4 (south) of the idle rows, pixel-perfect */
+.hero-portrait { --f: calc(48px * var(--z)); float: right; width: var(--f); height: var(--f); margin: -6px -4px 0 6px; background-repeat: no-repeat;
+  background-size: calc(var(--f) * 8) calc(var(--f) * 10); background-position: calc(var(--f) * -4) 0; image-rendering: pixelated; animation: heroIdle .7s steps(1) infinite; }
+@keyframes heroIdle { 50% { background-position: calc(var(--f) * -4) calc(var(--f) * -1); } }
+.locked .hero-portrait { filter: grayscale(1) brightness(.6); }
+.hero-pick { position: relative; }
+.hero-pick .hero-portrait { position: absolute; right: 8px; top: 6px; margin: 0; }
+.hero-pick .path, .hero-pick b, .hero-pick b + span { padding-right: 84px; }

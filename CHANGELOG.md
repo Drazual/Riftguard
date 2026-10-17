@@ -2,6 +2,14 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.20: Hero art
+
+- **Heroes have real art.** The Vanguard is the Chrome Bulwark, the Striker is the Vice Striker, the Oracle is the Aurora Medic, and the Sniper is the Neon Kestrel. Each one idles, walks and fires in 8 directions instead of being a coloured circle.
+- **Smooth animation.** Every frame was cut from the sheets, cleaned up to the game's pixel scale and lined up so the hero's feet and head stay put between frames. The walk cycle keeps pace with the hero's move speed, turning keeps the step it was on, and the facing only changes once a direction is clearly past a diagonal so it never flickers.
+- **Shots line up.** The hero's fire animation starts on its muzzle flash, the same moment its shot lands, and tracers leave from the gun instead of the hero's feet.
+- **The ability ring sits on the ground** under the hero and fills as the ability recharges.
+- **Hero select and the Heroes page show each hero's art.**
+
 ## 0.19: Kills and takedowns, merge anything, new Hard and Challenge waves, pause and first-time help
 
 - **Kills and takedowns.** A kill means that tower or hero landed the final hit. A takedown means the enemy died and that unit had damaged it. Both show on towers, the hero card, the end-of-run screen and the Heroes and Towers pages.
