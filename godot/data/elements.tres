@@ -1,0 +1,64 @@
+[gd_resource type="Resource" script_class="ElementList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/element_data.gd" id="1_gbiod"]
+[ext_resource type="Script" path="res://scripts/data/element_list.gd" id="2_smm61"]
+
+[sub_resource type="Resource" id="Resource_g6ld7"]
+script = ExtResource("1_gbiod")
+id = "fire"
+name = "Fire"
+color = Color(1, 0.47843137, 0.23921569, 1)
+
+[sub_resource type="Resource" id="Resource_fe656"]
+script = ExtResource("1_gbiod")
+id = "water"
+name = "Water"
+color = Color(0.37254903, 0.78431374, 1, 1)
+
+[sub_resource type="Resource" id="Resource_a02wc"]
+script = ExtResource("1_gbiod")
+id = "earth"
+name = "Earth"
+color = Color(0.78431374, 0.63529414, 0.41568628, 1)
+
+[sub_resource type="Resource" id="Resource_nfo02"]
+script = ExtResource("1_gbiod")
+id = "air"
+name = "Air"
+color = Color(0.84705883, 0.95686275, 0.93333334, 1)
+
+[sub_resource type="Resource" id="Resource_wk83x"]
+script = ExtResource("1_gbiod")
+id = "storm"
+name = "Lightning"
+color = Color(0.6117647, 0.95686275, 0.8666667, 1)
+cost = 400
+blurb = "Chains between enemies and stuns them."
+
+[sub_resource type="Resource" id="Resource_47f0p"]
+script = ExtResource("1_gbiod")
+id = "nature"
+name = "Nature"
+color = Color(0.49411765, 0.8784314, 0.41568628, 1)
+cost = 400
+blurb = "Roots enemies in place and poisons them."
+
+[sub_resource type="Resource" id="Resource_mhrt3"]
+script = ExtResource("1_gbiod")
+id = "void"
+name = "Void"
+color = Color(0.6901961, 0.4862745, 1, 1)
+cost = 600
+blurb = "Drags enemies back and makes them take more damage."
+
+[sub_resource type="Resource" id="Resource_jhgo0"]
+script = ExtResource("1_gbiod")
+id = "light"
+name = "Light"
+color = Color(0.9764706, 0.9019608, 0.63529414, 1)
+cost = 600
+blurb = "Piercing beams and heavy single hits, and some spells heal you."
+
+[resource]
+script = ExtResource("2_smm61")
+items = Array[ExtResource("1_gbiod")]([SubResource("Resource_g6ld7"), SubResource("Resource_fe656"), SubResource("Resource_a02wc"), SubResource("Resource_nfo02"), SubResource("Resource_wk83x"), SubResource("Resource_47f0p"), SubResource("Resource_mhrt3"), SubResource("Resource_jhgo0")])

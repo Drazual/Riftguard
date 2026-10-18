@@ -1,0 +1,256 @@
+[gd_resource type="Resource" script_class="RecipeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1_qr0rf"]
+[ext_resource type="Script" path="res://scripts/data/recipe_list.gd" id="2_gi7il"]
+
+[sub_resource type="Resource" id="Resource_cva3j"]
+script = ExtResource("1_qr0rf")
+key = "arcane+frost"
+name = "Rimeshard"
+color = Color(0.7882353, 0.72156864, 1, 1)
+desc = "Fires rapid ice shards that slow every enemy they hit. Arcane speed with Frost control."
+boon_name = "Frostbitten Strikes"
+boon_desc = "Your hero’s attacks slow enemies by 30%."
+boon_effect = "h.boon_slow = 0.3"
+
+[sub_resource type="Resource" id="Resource_saffi"]
+script = ExtResource("1_qr0rf")
+key = "arcane+plasma"
+name = "Starbolt"
+color = Color(1, 0.43529412, 0.84705883, 1)
+desc = "Fires fast bolts that explode on impact. Arcane speed with Plasma splash, so it shreds groups."
+boon_name = "Starburst Rounds"
+boon_desc = "Your hero’s attacks explode, dealing 40% damage to nearby enemies."
+boon_effect = "h.boon_splash = 0.4"
+
+[sub_resource type="Resource" id="Resource_60uhn"]
+script = ExtResource("1_qr0rf")
+key = "arcane+tesla"
+name = "Railgun"
+color = Color(0.5411765, 1, 1, 1)
+desc = "Fires heavy bolts that arc to more enemies on hit. Huge single hits that also clear lines."
+boon_name = "Rail Lance"
+boon_desc = "Every 4th hero attack deals 4× damage."
+boon_effect = "h.boon_rail = 4"
+
+[sub_resource type="Resource" id="Resource_g3ece"]
+script = ExtResource("1_qr0rf")
+key = "frost+plasma"
+name = "Steam Engine"
+color = Color(0.8784314, 0.9019608, 1, 1)
+desc = "Blasts scalding steam that splashes and slows every enemy caught in the cloud."
+boon_name = "Steam Vent"
+boon_desc = "Enemies within 80 of your hero take 15 damage per second and are slowed 15%."
+boon_effect = "h.boon_vent = 15"
+
+[sub_resource type="Resource" id="Resource_630s8"]
+script = ExtResource("1_qr0rf")
+key = "frost+tesla"
+name = "Cryo Coil"
+color = Color(0.6039216, 0.9411765, 1, 1)
+desc = "Chain lightning that slows every enemy it jumps to. Locks down whole lines."
+boon_name = "Static Frost"
+boon_desc = "Your hero’s attacks jump to 2 more enemies for 50% damage and slow them."
+boon_effect = "h.boon_chain = 2"
+
+[sub_resource type="Resource" id="Resource_wl3uf"]
+script = ExtResource("1_qr0rf")
+key = "plasma+tesla"
+name = "Ion Storm"
+color = Color(1, 0.827451, 0.43137255, 1)
+desc = "Explosive shells whose blast also throws lightning outward. The best crowd clearer."
+boon_name = "Ion Discharge"
+boon_desc = "Every 6s, lightning strikes 4 random enemies for 60 damage plus double your hero damage."
+boon_effect = "h.boon_ion = 6"
+
+[sub_resource type="Resource" id="Resource_gatsr"]
+script = ExtResource("1_qr0rf")
+key = "anvil+arcane"
+name = "Runehammer"
+color = Color(1, 0.56078434, 0.627451, 1)
+desc = "Fires runic bolts that hit stopped enemies 50% harder. Pairs with blocking heroes and stuns."
+
+[sub_resource type="Resource" id="Resource_va2u2"]
+script = ExtResource("1_qr0rf")
+key = "anvil+beacon"
+name = "War Drum"
+color = Color(1, 0.6901961, 0.47843137, 1)
+desc = "Pounds enemies with heavy shots that hit stopped enemies 50% harder, and buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_n77hu"]
+script = ExtResource("1_qr0rf")
+key = "anvil+frost"
+name = "Glacier Maul"
+color = Color(0.7490196, 0.9098039, 0.84705883, 1)
+desc = "Slowing shots that hit stopped enemies 50% harder. Its own freezes set up its biggest hits."
+
+[sub_resource type="Resource" id="Resource_w7uvs"]
+script = ExtResource("1_qr0rf")
+key = "anvil+laser"
+name = "Forge Beam"
+color = Color(1, 0.5411765, 0.3529412, 1)
+desc = "Searing shots that heat up on one target and hit stopped enemies 50% harder."
+
+[sub_resource type="Resource" id="Resource_bwwdc"]
+script = ExtResource("1_qr0rf")
+key = "anvil+mortar"
+name = "Quake Cannon"
+color = Color(0.9490196, 0.7607843, 0.47843137, 1)
+desc = "Heavy long-range blasts that hurt groups and hit stopped enemies 50% harder."
+
+[sub_resource type="Resource" id="Resource_3swbl"]
+script = ExtResource("1_qr0rf")
+key = "anvil+plasma"
+name = "Magma Hammer"
+color = Color(0.9411765, 0.5411765, 0.2901961, 1)
+desc = "Exploding shells that hit stopped enemies 50% harder."
+
+[sub_resource type="Resource" id="Resource_b4kp3"]
+script = ExtResource("1_qr0rf")
+key = "anvil+tesla"
+name = "Thunder Anvil"
+color = Color(0.6039216, 0.8156863, 1, 1)
+desc = "Chain lightning that hits stopped enemies 50% harder."
+
+[sub_resource type="Resource" id="Resource_v6x13"]
+script = ExtResource("1_qr0rf")
+key = "arcane+beacon"
+name = "Spellbanner"
+color = Color(1, 0.49803922, 0.8156863, 1)
+desc = "Fires fast magic bolts and buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_icrax"]
+script = ExtResource("1_qr0rf")
+key = "arcane+laser"
+name = "Prism Lance"
+color = Color(1, 0.43529412, 0.627451, 1)
+desc = "Rapid bolts that heat up and hit harder the longer they stay on one enemy."
+
+[sub_resource type="Resource" id="Resource_cebf4"]
+script = ExtResource("1_qr0rf")
+key = "arcane+mortar"
+name = "Starfall Battery"
+color = Color(1, 0.6901961, 0.8784314, 1)
+desc = "Long-range bolts that burst on impact and hurt everything nearby."
+
+[sub_resource type="Resource" id="Resource_p02b3"]
+script = ExtResource("1_qr0rf")
+key = "beacon+frost"
+name = "Aurora Spire"
+color = Color(0.7529412, 0.9411765, 0.9411765, 1)
+desc = "Slowing shots, and it buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_11y47"]
+script = ExtResource("1_qr0rf")
+key = "beacon+laser"
+name = "Sunlance Beacon"
+color = Color(1, 0.62352943, 0.65882355, 1)
+desc = "Shots that heat up on one target, and it buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_a2h4w"]
+script = ExtResource("1_qr0rf")
+key = "beacon+mortar"
+name = "Signal Battery"
+color = Color(0.9882353, 0.84705883, 0.7529412, 1)
+desc = "Long-range explosive shots, and it buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_p01o1"]
+script = ExtResource("1_qr0rf")
+key = "beacon+plasma"
+name = "Flare Beacon"
+color = Color(0.62352943, 0.9098039, 0.8156863, 1)
+desc = "Exploding shells, and it buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_ie8b8"]
+script = ExtResource("1_qr0rf")
+key = "beacon+tesla"
+name = "Storm Banner"
+color = Color(0.65882355, 0.8784314, 1, 1)
+desc = "Chain lightning, and it buffs nearby towers like a Beacon."
+
+[sub_resource type="Resource" id="Resource_tubq7"]
+script = ExtResource("1_qr0rf")
+key = "frost+laser"
+name = "Cryo Lance"
+color = Color(0.8156863, 0.78431374, 0.9411765, 1)
+desc = "Chilling shots that slow their target and heat up the longer they stay on it."
+
+[sub_resource type="Resource" id="Resource_oi2ti"]
+script = ExtResource("1_qr0rf")
+key = "frost+mortar"
+name = "Avalanche Mortar"
+color = Color(0.8784314, 0.9411765, 0.9098039, 1)
+desc = "Long-range blasts that slow every enemy caught in them."
+
+[sub_resource type="Resource" id="Resource_l1lpg"]
+script = ExtResource("1_qr0rf")
+key = "laser+mortar"
+name = "Solar Battery"
+color = Color(1, 0.7529412, 0.5647059, 1)
+desc = "Long-range blasts that grow stronger with each hit on the same target."
+
+[sub_resource type="Resource" id="Resource_4qxas"]
+script = ExtResource("1_qr0rf")
+key = "laser+plasma"
+name = "Fusion Torch"
+color = Color(0.49803922, 0.8784314, 0.7529412, 1)
+desc = "Exploding shots that heat up the longer they hit the same enemy."
+
+[sub_resource type="Resource" id="Resource_kxskh"]
+script = ExtResource("1_qr0rf")
+key = "laser+tesla"
+name = "Arc Lance"
+color = Color(0.6901961, 0.65882355, 1, 1)
+desc = "Chain lightning that heats up on its main target."
+
+[sub_resource type="Resource" id="Resource_tboei"]
+script = ExtResource("1_qr0rf")
+key = "mortar+plasma"
+name = "Bombard"
+color = Color(0.84705883, 0.9411765, 0.6901961, 1)
+desc = "Long-range shells with huge explosions. Wrecks crowds."
+
+[sub_resource type="Resource" id="Resource_coxg1"]
+script = ExtResource("1_qr0rf")
+key = "mortar+tesla"
+name = "Thunder Battery"
+color = Color(0.84705883, 0.9098039, 1, 1)
+desc = "Long-range blasts that throw chain lightning outward."
+
+[sub_resource type="Resource" id="Resource_sxjhp"]
+script = ExtResource("1_qr0rf")
+key = "arcane+frost+plasma+tesla"
+name = "Rift Singularity"
+desc = "Holds the power of all four towers: fast bolts, explosions, deep slows and chain lightning in every shot."
+
+[sub_resource type="Resource" id="Resource_ayfo3"]
+script = ExtResource("1_qr0rf")
+key = "arcane+frost+plasma"
+name = "Prism Reactor"
+color = Color(1, 0.65882355, 0.9411765, 1)
+desc = "Rapid exploding ice bolts that shred and slow whole groups."
+
+[sub_resource type="Resource" id="Resource_o2y2g"]
+script = ExtResource("1_qr0rf")
+key = "arcane+frost+tesla"
+name = "Aurora Lance"
+color = Color(0.65882355, 0.9098039, 1, 1)
+desc = "Piercing frozen lightning that slows everything it jumps through."
+
+[sub_resource type="Resource" id="Resource_dsfg2"]
+script = ExtResource("1_qr0rf")
+key = "arcane+plasma+tesla"
+name = "Nova Battery"
+color = Color(1, 0.8784314, 0.5411765, 1)
+desc = "Heavy bolts that explode and throw lightning across the field."
+
+[sub_resource type="Resource" id="Resource_bcell"]
+script = ExtResource("1_qr0rf")
+key = "frost+plasma+tesla"
+name = "Tempest Engine"
+color = Color(0.78431374, 0.9607843, 1, 1)
+desc = "A storm of scalding, freezing, crackling blasts. Nothing in range moves fast."
+
+[resource]
+script = ExtResource("2_gi7il")
+items = Array[ExtResource("1_qr0rf")]([SubResource("Resource_cva3j"), SubResource("Resource_saffi"), SubResource("Resource_60uhn"), SubResource("Resource_g3ece"), SubResource("Resource_630s8"), SubResource("Resource_wl3uf"), SubResource("Resource_gatsr"), SubResource("Resource_va2u2"), SubResource("Resource_n77hu"), SubResource("Resource_w7uvs"), SubResource("Resource_bwwdc"), SubResource("Resource_3swbl"), SubResource("Resource_b4kp3"), SubResource("Resource_v6x13"), SubResource("Resource_icrax"), SubResource("Resource_cebf4"), SubResource("Resource_p02b3"), SubResource("Resource_11y47"), SubResource("Resource_a2h4w"), SubResource("Resource_p01o1"), SubResource("Resource_ie8b8"), SubResource("Resource_tubq7"), SubResource("Resource_oi2ti"), SubResource("Resource_l1lpg"), SubResource("Resource_4qxas"), SubResource("Resource_kxskh"), SubResource("Resource_tboei"), SubResource("Resource_coxg1"), SubResource("Resource_sxjhp"), SubResource("Resource_ayfo3"), SubResource("Resource_o2y2g"), SubResource("Resource_dsfg2"), SubResource("Resource_bcell")])

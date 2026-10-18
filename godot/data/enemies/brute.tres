@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enbfl"]
+
+[resource]
+script = ExtResource("1_enbfl")
+id = "brute"
+name = "Brute"
+hp = 220.0
+speed = 34.0
+gold = 12
+lives = 3
+atk = 20.0
+radius = 13.0
+color = Color(0.81960785, 0.29411766, 0.56078434, 1)
+armor = 0.15
+info = "15% armor."
+counter = "Big hits, burns and Hex Brand ignore or shrug off armor."

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_msag4"]
+
+[resource]
+script = ExtResource("1_msag4")
+id = "juggernaut"
+name = "Juggernaut"
+hp = 600.0
+speed = 26.0
+gold = 25
+lives = 4
+atk = 35.0
+radius = 16.0
+color = Color(0.6039216, 0.47843137, 0.4, 1)
+armor = 0.3
+unslow = true
+first_wave = 9
+per_wave = 1
+info = "30% armor, huge HP and can’t be slowed."
+counter = "Burns, Hex Brand, Brittle, Sunder and the Grave Anvil."

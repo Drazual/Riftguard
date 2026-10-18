@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_my063"]
+
+[resource]
+script = ExtResource("1_my063")
+id = "tyrant"
+name = "Rift Tyrant"
+hp = 9000.0
+speed = 22.0
+gold = 300
+lives = 20
+atk = 80.0
+radius = 23.0
+color = Color(1, 0.18039216, 0.3019608, 1)
+armor = 0.35
+unslow = true
+info = "35% armor, can’t be slowed. Roar: every 12s stuns 3 towers and knocks your hero back. Enrages at 50% HP and summons 2 Juggernauts."
+counter = "Stuns still work. Save your ability for the enrage."
+boss = true
+big_boss = true
+cores = 5
+power_name = "Roar"
+power_every = 12.0
+power_towers = 3
+power_stun = 3.0
+power_roar = true

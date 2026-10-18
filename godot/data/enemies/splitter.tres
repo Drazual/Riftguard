@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_vvqxx"]
+
+[resource]
+script = ExtResource("1_vvqxx")
+id = "splitter"
+name = "Splitter"
+hp = 150.0
+speed = 45.0
+gold = 8
+lives = 2
+atk = 14.0
+radius = 12.0
+color = Color(0.49803922, 0.8784314, 0.49803922, 1)
+split = 2
+first_wave = 8
+per_wave = 1
+info = "Splits into 2 Runners when it dies."
+counter = "Splash and chain damage clean up the pieces."

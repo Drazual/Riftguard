@@ -1,0 +1,118 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="SpriteFrames" path="res://art/towers/tesla.tres" id="1_ui3f5"]
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_w7usc"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_ui3f5"]
+[ext_resource type="Texture2D" path="res://assets/towers/tesla.png" id="3_8kqpc"]
+
+[sub_resource type="Resource" id="Resource_rnw8n"]
+script = ExtResource("1_w7usc")
+id = "arcs"
+name = "More Arcs"
+tag = "chain"
+adjective = "Forked"
+noun = "Arc"
+title = "Storms"
+desc = "Lightning jumps to 1 more enemy per point."
+effect = "t.chain += 1"
+mastery_name = "Storm Call"
+mastery_desc = "Every 4th shot calls lightning down on 3 random enemies in range."
+mastery_effect = "t.storm += 3"
+
+[sub_resource type="Resource" id="Resource_3eeww"]
+script = ExtResource("1_w7usc")
+id = "volt"
+name = "High Voltage"
+adjective = "Charged"
+noun = "Coil"
+title = "Voltage"
+desc = "+20% damage per point."
+effect = "t.dmg *= 1.2"
+mastery_name = "Overload"
+mastery_desc = "Lightning jumps have a 15% chance to stun for 0.6s."
+mastery_effect = "t.stun = max(t.stun, 0.15)"
+
+[sub_resource type="Resource" id="Resource_wpk1r"]
+script = ExtResource("1_w7usc")
+id = "conduct"
+name = "Conductive"
+tag = "chain"
+adjective = "Conductive"
+noun = "Conduit"
+title = "Currents"
+desc = "Jumps lose 7% less damage per point."
+effect = "t.chain_mul = min(0.95, t.chain_mul + 0.07)"
+mastery_name = "Ion Burst"
+mastery_desc = "Every lightning jump explodes for 30% damage around it."
+mastery_effect = "t.chain_blast += 0.3"
+
+[sub_resource type="Resource" id="Resource_t4s08"]
+script = ExtResource("1_w7usc")
+id = "bank"
+name = "Capacitor Bank"
+tag = "speed"
+adjective = "Overclocked"
+noun = "Dynamo"
+title = "Haste"
+desc = "Fires 14% faster per point."
+effect = "t.rate *= 0.86"
+mastery_name = "Overcharge"
+mastery_desc = "Every 10th shot deals +150% damage and stuns for 0.5s."
+mastery_effect = "t.overload += 1.5"
+
+[sub_resource type="Resource" id="Resource_bhcqx"]
+script = ExtResource("1_w7usc")
+id = "jump"
+name = "Arc Reach"
+tag = "chain"
+adjective = "Leaping"
+noun = "Relay"
+title = "Reach"
+desc = "Lightning jumps 20% farther per point."
+effect = "t.chain_reach *= 1.2"
+mastery_name = "Arc Storm"
+mastery_desc = "Shoots 1 more enemy and lightning jumps 2 more times."
+mastery_effect = "t.multi += 1
+t.chain += 2"
+
+[resource]
+script = ExtResource("2_ui3f5")
+id = "tesla"
+name = "Tesla Coil"
+cost = 90
+dmg = 12.0
+rate = 1.1
+range = 105.0
+chain = 3
+element_tag = "chain"
+color = Color(0.30980393, 0.84705883, 1, 1)
+info = "Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies."
+paths = Array[ExtResource("1_w7usc")]([SubResource("Resource_rnw8n"), SubResource("Resource_3eeww"), SubResource("Resource_wpk1r"), SubResource("Resource_t4s08"), SubResource("Resource_bhcqx")])
+signature_name = "Overcharge"
+signature_desc = "Chain lightning no longer loses power on each jump."
+super_power_name = "Thunder God"
+super_power_desc = "calls down 12 lightning bolts on enemies in range, each for 5× damage and a short stun"
+form_names = {
+"012": "Thunderhead",
+"0123": "Lightning Cathedral",
+"01234": "Heart of the Storm",
+"0124": "Sky Breaker",
+"013": "Storm Dynamo",
+"0134": "Fulgurite Spire",
+"014": "Skyfork Tower",
+"023": "Ion Cascade",
+"0234": "Stormweb Array",
+"024": "Leyline Relay",
+"034": "Static Tempest",
+"123": "Arc Reactor",
+"1234": "Tesla Colossus",
+"124": "Bolt Throne",
+"134": "Overvolt Pylon",
+"234": "Hyperion Coil"
+}
+frames = ExtResource("1_ui3f5")
+sheet = ExtResource("3_8kqpc")
+muzzle_y = 13.0
+shot_anchor = Vector2(23.5, 16.5)
+fx_anchor_y = 0.75
+fire_frame = 3

@@ -1,0 +1,115 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_38vpk"]
+[ext_resource type="SpriteFrames" path="res://art/towers/beacon.tres" id="1_rvova"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_rvova"]
+[ext_resource type="Texture2D" path="res://assets/towers/beacon.png" id="3_70aa3"]
+
+[sub_resource type="Resource" id="Resource_tiitw"]
+script = ExtResource("1_38vpk")
+id = "empower"
+name = "Empower"
+adjective = "Radiant"
+noun = "Beacon"
+title = "Light"
+desc = "Buffed towers deal +8% more damage per point."
+effect = "t.b_dmg += 0.08"
+mastery_name = "Overdrive"
+mastery_desc = "Buffed towers crit 10% of the time for triple damage."
+mastery_effect = "t.b_overdrive = 1"
+
+[sub_resource type="Resource" id="Resource_1dncb"]
+script = ExtResource("1_38vpk")
+id = "haste"
+name = "Haste"
+tag = "speed"
+adjective = "Hastening"
+noun = "Pulse"
+title = "Haste"
+desc = "Buffed towers fire 6% faster per point."
+effect = "t.b_rate += 0.06"
+mastery_name = "Tempo Link"
+mastery_desc = "Every 10s, buffed towers fire at double speed for 3s."
+mastery_effect = "t.b_tempo = 1"
+
+[sub_resource type="Resource" id="Resource_vd3xx"]
+script = ExtResource("1_38vpk")
+id = "reach"
+name = "Reach"
+tag = "precision"
+adjective = "Far"
+noun = "Lantern"
+title = "Reach"
+desc = "Buffed towers and the Beacon get +8% range per point."
+effect = "t.b_range += 0.08
+t.range *= 1.08"
+mastery_name = "Lighthouse"
+mastery_desc = "Buffed towers can hit enemies within twice their range."
+mastery_effect = "t.b_light = 1"
+
+[sub_resource type="Resource" id="Resource_556it"]
+script = ExtResource("1_38vpk")
+id = "sunder"
+name = "Sunder"
+tag = "precision"
+adjective = "Sundering"
+noun = "Spike"
+title = "Sundering"
+desc = "Buffed towers ignore 8% armor per point."
+effect = "t.b_sunder += 0.08"
+mastery_name = "Armor Break"
+mastery_desc = "Enemies hit by buffed towers lose 15% armor for 3s, stacking to 45%."
+mastery_effect = "t.b_break = 1"
+
+[sub_resource type="Resource" id="Resource_n0cy7"]
+script = ExtResource("1_38vpk")
+id = "btithe"
+name = "Tithe"
+tag = "arcane"
+adjective = "Gilded"
+noun = "Shrine"
+title = "Fortune"
+desc = "Kills by buffed towers give +10% gold per point."
+effect = "t.b_gold += 0.1"
+mastery_name = "Gold Rush"
+mastery_desc = "Each kill by a buffed tower has an 8% chance to drop a 25 gold coin. Walk your hero over it (coins left at the end of a wave are collected for you)."
+mastery_effect = "t.b_rush = 1"
+
+[resource]
+script = ExtResource("2_rvova")
+id = "beacon"
+name = "Rift Beacon"
+cost = 100
+dmg = 0.0
+range = 130.0
+support = true
+level_bonus = "range"
+color = Color(1, 0.627451, 0.8784314, 1)
+info = "Never attacks. Every tower in its range deals +15% damage. Beacons don’t stack on the same tower (the strongest wins), so spread them out."
+paths = Array[ExtResource("1_38vpk")]([SubResource("Resource_tiitw"), SubResource("Resource_1dncb"), SubResource("Resource_vd3xx"), SubResource("Resource_556it"), SubResource("Resource_n0cy7")])
+signature_name = "Twin Signal"
+signature_desc = "Two Beacons can stack on the same tower."
+super_power_name = "Ascension"
+super_power_desc = "every tower within 260 fires twice as fast for 6s"
+form_names = {
+"012": "Warsong Spire",
+"0123": "Herald of War",
+"01234": "Eternal Lighthouse",
+"0124": "Golden Dawn",
+"013": "Battle Standard",
+"0134": "Warlord’s Banner",
+"014": "Golden Fanfare",
+"023": "Dawnspear Lantern",
+"0234": "Crusader’s Pharos",
+"024": "Merchant’s Lighthouse",
+"034": "Conqueror’s Shrine",
+"123": "Tempo Lighthouse",
+"1234": "Guildhall Beacon",
+"124": "Bazaar Bell",
+"134": "Siegebreaker Totem",
+"234": "Plunderer’s Lantern"
+}
+frames = ExtResource("1_rvova")
+sheet = ExtResource("3_70aa3")
+foot_y = 37.0
+muzzle_y = 22.0

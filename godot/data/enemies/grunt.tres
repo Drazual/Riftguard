@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_h4kaj"]
+
+[resource]
+script = ExtResource("1_h4kaj")
+id = "grunt"
+name = "Grunt"
+hp = 55.0
+speed = 52.0
+color = Color(1, 0.3647059, 0.42352942, 1)
+info = "No special trait."
+counter = "Anything works."

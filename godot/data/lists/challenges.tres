@@ -1,0 +1,62 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_uddsm"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_qgfcp"]
+
+[sub_resource type="Resource" id="Resource_wjfbk"]
+script = ExtResource("1_uddsm")
+id = "swarm"
+name = "Swarm"
+desc = "Twice as many enemies, each with 35% less HP."
+also_pools = PackedStringArray()
+pts = 1
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ygiwq"]
+script = ExtResource("1_uddsm")
+id = "blitz"
+name = "Blitz"
+desc = "Enemies move 40% faster."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_7y1qr"]
+script = ExtResource("1_uddsm")
+id = "iron"
+name = "Iron Tide"
+desc = "Every enemy is a brute."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_jv5i2"]
+script = ExtResource("1_uddsm")
+id = "lone"
+name = "Lone Hero"
+desc = "Towers deal 40% less damage. Your hero deals double."
+also_pools = PackedStringArray()
+pts = 1
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_k3bni"]
+script = ExtResource("1_uddsm")
+id = "weak"
+name = "Dampened"
+desc = "Towers deal 25% less damage."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_v3mhl"]
+script = ExtResource("1_uddsm")
+id = "benched"
+name = "Benched"
+desc = "Your hero can’t attack (abilities still work)."
+also_pools = PackedStringArray()
+pts = 1
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_qgfcp")
+items = Array[ExtResource("1_uddsm")]([SubResource("Resource_wjfbk"), SubResource("Resource_ygiwq"), SubResource("Resource_7y1qr"), SubResource("Resource_jv5i2"), SubResource("Resource_k3bni"), SubResource("Resource_v3mhl")])

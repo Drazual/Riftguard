@@ -1,0 +1,52 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_wkr8k"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_jqyl4"]
+
+[sub_resource type="Resource" id="Resource_7ft4h"]
+script = ExtResource("1_wkr8k")
+id = "main"
+name = "Main Effect"
+desc = "Every tower's main effect is {4 * r}% stronger: damage for attacking towers, slow strength for the Frost Pylon, the damage buff for the Rift Beacon"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+stat_label = "Main effect"
+stat_value = "+{4 * r}%"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_jyj8d"]
+script = ExtResource("1_wkr8k")
+id = "cost"
+name = "Upgrade Cost Reduction"
+desc = "Tower level-ups cost {f1t(2.5 * r)}% less"
+also_pools = PackedStringArray()
+cost = "80 + 70 * r"
+stat_label = "Level-up cost"
+stat_value = "-{f1t(2.5 * r)}%"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_cih4t"]
+script = ExtResource("1_wkr8k")
+id = "range"
+name = "Attack Range"
+desc = "All towers get +{2 * r}% range"
+also_pools = PackedStringArray()
+cost = "80 + 70 * r"
+stat_label = "Tower range"
+stat_value = "+{2 * r}%"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_1g1qf"]
+script = ExtResource("1_wkr8k")
+id = "speed"
+name = "Attack Speed"
+desc = "All towers attack {2 * r}% faster"
+also_pools = PackedStringArray()
+cost = "100 + 80 * r"
+stat_label = "Tower attack speed"
+stat_value = "+{2 * r}%"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_jqyl4")
+items = Array[ExtResource("1_wkr8k")]([SubResource("Resource_7ft4h"), SubResource("Resource_jyj8d"), SubResource("Resource_cih4t"), SubResource("Resource_1g1qf")])

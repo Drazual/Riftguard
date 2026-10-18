@@ -1,0 +1,944 @@
+[gd_resource type="Resource" script_class="SpellList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_0q7j1"]
+[ext_resource type="Script" path="res://scripts/data/spell_list.gd" id="2_giy6c"]
+
+[sub_resource type="Resource" id="Resource_6xnee"]
+script = ExtResource("1_0q7j1")
+runes = "fire"
+name = "Fireball"
+mana = 18.0
+desc = "A fireball bursts for {f0(sp.dmg * p)} damage within {f0(sp.r * h.spell_r)} and leaves the ground burning for {f0(sp.burn_time)}s ({f0(sp.burn_dps * p)}/s)."
+delivery = "launch"
+r = 55.0
+dmg = 55.0
+burn_time = 3.0
+burn_dps = 14.0
+color = Color(1, 0.47843137, 0.23921569, 1)
+ring_time = 0.4
+boom = true
+art = "fireball"
+art_mode = "fly"
+art_fly_frames = PackedInt32Array(0, 1, 2, 3)
+art_hit_frames = PackedInt32Array(4, 5, 6, 7)
+art_r = 60.0
+art_fps = 10.0
+
+[sub_resource type="Resource" id="Resource_jc354"]
+script = ExtResource("1_0q7j1")
+runes = "water"
+name = "Frost Burst"
+mana = 22.0
+desc = "Freezes enemies within {f0(sp.r * h.spell_r)} solid for {f1(sp.freeze + h.freeze_bonus)}s and deals {f0(sp.dmg * p)} damage."
+r = 70.0
+dmg = 15.0
+freeze = 1.6
+color = Color(0.62352943, 0.9019608, 1, 1)
+art = "frostburst"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 70.0
+
+[sub_resource type="Resource" id="Resource_aratj"]
+script = ExtResource("1_0q7j1")
+runes = "earth"
+name = "Stone Wall"
+mana = 28.0
+desc = "Raises a wall on the path nearest the cursor. It blocks enemies for {f0(sp.wall_time)}s or until its {f0((sp.wall_hp + sp.wall_hp_per_wave * wave) * h.wall_bonus)} HP runs out."
+delivery = "wall"
+wall_hp = 250.0
+wall_hp_per_wave = 30.0
+wall_time = 6.0
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_xsx75"]
+script = ExtResource("1_0q7j1")
+runes = "air"
+name = "Gust"
+mana = 18.0
+desc = "Blows enemies within {f0(sp.r * h.spell_r)} back along the path for {f1(sp.push * h.push_bonus)}s and deals {f0(sp.dmg * p)} damage."
+r = 80.0
+dmg = 10.0
+push = 1.0
+color = Color(0.84705883, 0.95686275, 0.93333334, 1)
+ring_fill = false
+ring_time = 0.45
+art = "gust"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 80.0
+art_turn = true
+
+[sub_resource type="Resource" id="Resource_nxfyp"]
+script = ExtResource("1_0q7j1")
+runes = "fire+fire"
+name = "Greater Fireball"
+mana = 32.0
+desc = "A huge fireball bursts for {f0(sp.dmg * p)} damage within {f0(sp.r * h.spell_r)} and leaves the ground burning for {f0(sp.burn_time)}s ({f0(sp.burn_dps * p)}/s)."
+delivery = "launch"
+r = 85.0
+dmg = 140.0
+burn_time = 4.0
+burn_dps = 25.0
+color = Color(1, 0.3529412, 0.16470589, 1)
+size = 7.0
+shake = 0.008
+boom = true
+art = "gfireball"
+art_mode = "fly"
+art_fly_frames = PackedInt32Array(0, 1, 2)
+art_hit_frames = PackedInt32Array(3, 4, 5, 6, 7)
+art_r = 90.0
+art_fps = 11.0
+
+[sub_resource type="Resource" id="Resource_6465j"]
+script = ExtResource("1_0q7j1")
+runes = "water+water"
+name = "Deep Freeze"
+mana = 40.0
+desc = "Freezes enemies within {f0(sp.r * h.spell_r)} for {f1(sp.freeze + h.freeze_bonus)}s, deals {f0(sp.dmg * p)} damage, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+r = 100.0
+dmg = 30.0
+freeze = 3.0
+expose = 0.2
+expose_time = 4.0
+color = Color(0.8745098, 0.9647059, 1, 1)
+ring_time = 0.7
+art = "deepfreeze"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 100.0
+art_dur = 3.0
+art_loop = Vector2i(5, 7)
+
+[sub_resource type="Resource" id="Resource_em20i"]
+script = ExtResource("1_0q7j1")
+runes = "earth+earth"
+name = "Great Wall"
+mana = 50.0
+desc = "Raises a thick wall ({f0((sp.wall_hp + sp.wall_hp_per_wave * wave) * h.wall_bonus)} HP) for {f0(sp.wall_time)}s that slams nearby enemies for {f0(sp.wall_slam * p)} and stuns them 1s."
+delivery = "wall"
+wall_hp = 650.0
+wall_hp_per_wave = 60.0
+wall_time = 9.0
+wall_slam = 40.0
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_1vyjb"]
+script = ExtResource("1_0q7j1")
+runes = "air+air"
+name = "Cyclone"
+mana = 32.0
+desc = "Hurls enemies within {f0(sp.r * h.spell_r)} back for {f1(sp.push * h.push_bonus)}s and deals {f0(sp.dmg * p)} damage."
+r = 110.0
+dmg = 25.0
+push = 1.8
+push_speed = 110.0
+zone_time = 0.8
+zone_vortex = true
+color = Color(0.84705883, 0.95686275, 0.93333334, 1)
+ring_time = 0.0
+art = "cyclone"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 110.0
+art_dur = 1.1
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_q4c1g"]
+script = ExtResource("1_0q7j1")
+runes = "fire+water"
+name = "Scalding Torrent"
+mana = 40.0
+desc = "A boiling wave pushes enemies within {f0(sp.r * h.spell_r)} back, deals {f0(sp.dmg * p)} damage, and they take {pct(sp.expose)} more damage from everything for {f0(sp.expose_time)}s."
+r = 85.0
+dmg = 60.0
+push = 0.7
+push_speed = 100.0
+expose = 0.25
+expose_time = 5.0
+color = Color(1, 0.6901961, 0.5411765, 1)
+art = "torrent"
+art_mode = "beam"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_frvnk"]
+script = ExtResource("1_0q7j1")
+runes = "fire+earth"
+name = "Meteor"
+mana = 45.0
+desc = "After {f1(sp.delay)}s a meteor strikes for {f0(sp.dmg * p)} within {f0(sp.r * h.spell_r)}, stuns for {f1(sp.stun)}s, and leaves molten ground for {f0(sp.burn_time)}s ({f0(sp.burn_dps * p)}/s)."
+delivery = "delayed"
+r = 90.0
+dmg = 170.0
+delay = 0.7
+stun = 1.2
+stun_boss = 0.4
+burn_time = 4.0
+burn_dps = 20.0
+color = Color(1, 0.47843137, 0.23921569, 1)
+shake = 0.014
+ring_time = 0.6
+boom = true
+art = "meteor"
+art_mode = "meteor"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 90.0
+
+[sub_resource type="Resource" id="Resource_qtrmj"]
+script = ExtResource("1_0q7j1")
+runes = "fire+air"
+name = "Firestorm"
+mana = 40.0
+desc = "A whirling firestorm burns enemies within {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s ({f0(sp.zone_dps * p)}/s) and slows them {pct(sp.zone_slow)}."
+delivery = "zone"
+r = 80.0
+zone_time = 4.0
+zone_dps = 40.0
+zone_slow = 0.3
+zone_vortex = true
+color = Color(1, 0.47843137, 0.23921569, 1)
+art = "firestorm"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 80.0
+art_dur = 4.0
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_euvbb"]
+script = ExtResource("1_0q7j1")
+runes = "water+earth"
+name = "Quagmire"
+mana = 38.0
+desc = "Turns the ground within {f0(sp.r * h.spell_r)} to deep mud for {f0(sp.zone_time)}s: enemies are slowed {pct(sp.zone_slow)} and take {f0(sp.zone_dps * p)}/s."
+delivery = "zone"
+r = 95.0
+zone_time = 6.0
+zone_dps = 8.0
+zone_slow = 0.65
+color = Color(0.47843137, 0.41568628, 0.2901961, 1)
+art = "quagmire"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 95.0
+art_dur = 6.0
+art_loop = Vector2i(3, 6)
+art_low = true
+
+[sub_resource type="Resource" id="Resource_rmwyp"]
+script = ExtResource("1_0q7j1")
+runes = "water+air"
+name = "Blizzard"
+mana = 42.0
+desc = "A blizzard rages within {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s ({f0(sp.zone_dps * p)}/s, {pct(sp.zone_slow)} slow), then freezes everything still inside for {f1(sp.zone_end_freeze + h.freeze_bonus)}s."
+delivery = "zone"
+r = 100.0
+zone_time = 5.0
+zone_dps = 22.0
+zone_slow = 0.45
+zone_end_freeze = 1.2
+color = Color(0.7490196, 0.91764706, 1, 1)
+art = "blizzard"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 100.0
+art_dur = 5.0
+art_loop = Vector2i(2, 5)
+
+[sub_resource type="Resource" id="Resource_k0esu"]
+script = ExtResource("1_0q7j1")
+runes = "earth+air"
+name = "Sandstorm"
+mana = 38.0
+desc = "A sandstorm within {f0(sp.r * h.spell_r)} blows enemies back for {f1(sp.push)}s, then for {f0(sp.zone_time)}s scours them ({f0(sp.zone_dps * p)}/s) and strips {pct(sp.zone_break)} armor."
+r = 90.0
+push = 0.6
+zone_time = 5.0
+zone_dps = 16.0
+zone_break = 0.2
+color = Color(0.84705883, 0.72156864, 0.47058824, 1)
+ring_time = 0.0
+art = "sandstorm"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 90.0
+art_dur = 5.0
+art_loop = Vector2i(2, 5)
+
+[sub_resource type="Resource" id="Resource_32njv"]
+script = ExtResource("1_0q7j1")
+runes = "fire+fire+fire"
+name = "Inferno"
+mana = 70.0
+desc = "Engulfs everything within {f0(sp.r * h.spell_r)} for {f0(sp.dmg * p)} damage and sets the ground ablaze for {f0(sp.burn_time)}s ({f0(sp.burn_dps * p)}/s)."
+delivery = "launch"
+r = 140.0
+dmg = 260.0
+burn_time = 5.0
+burn_r = 0.85
+burn_dps = 45.0
+burn_color = Color(1, 0.23921569, 0.101960786, 1)
+color = Color(1, 0.23921569, 0.101960786, 1)
+size = 10.0
+shake = 0.02
+ring_time = 0.8
+boom = true
+art = "inferno"
+art_mode = "fly"
+art_fly = "gfireball"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 140.0
+art_dur = 5.0
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_8rl0c"]
+script = ExtResource("1_0q7j1")
+runes = "water+water+water"
+name = "Absolute Zero"
+mana = 70.0
+desc = "Freezes every enemy on the map for {f1(sp.freeze + h.freeze_bonus)}s, deals {f0(sp.dmg * p)} damage, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+delivery = "map"
+r = 400.0
+dmg = 40.0
+freeze = 2.5
+expose = 0.3
+expose_time = 5.0
+color = Color(0.8745098, 0.9647059, 1, 1)
+shake = 0.01
+ring_time = 0.9
+art = "abszero"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 170.0
+art_fps = 10.0
+
+[sub_resource type="Resource" id="Resource_1hsaw"]
+script = ExtResource("1_0q7j1")
+runes = "earth+earth+earth"
+name = "Earthquake"
+mana = 70.0
+desc = "Shakes the ground within {f0(sp.r * h.spell_r)}: {f0(sp.dmg * p)} damage and a {f0(sp.stun)}s stun."
+r = 220.0
+dmg = 150.0
+stun = 2.0
+stun_boss = 0.6
+color = Color(0.78431374, 0.63529414, 0.41568628, 1)
+shake = 0.025
+ring_time = 0.8
+boom = true
+art = "quake"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 220.0
+art_low = true
+
+[sub_resource type="Resource" id="Resource_n8wun"]
+script = ExtResource("1_0q7j1")
+runes = "air+air+air"
+name = "Tempest"
+mana = 70.0
+desc = "A tempest within {f0(sp.r * h.spell_r)} hurls enemies back for {f1(sp.push * h.push_bonus)}s and deals {f0(sp.dmg * p)} damage."
+r = 200.0
+dmg = 60.0
+push = 2.5
+push_speed = 140.0
+zone_time = 1.2
+zone_vortex = true
+color = Color(0.84705883, 0.95686275, 0.93333334, 1)
+ring_time = 0.0
+art = "tempest"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 200.0
+art_dur = 1.4
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_hxubh"]
+script = ExtResource("1_0q7j1")
+runes = "storm"
+name = "Spark Bolt"
+desc = "Lightning hits the enemy nearest the cursor for {f0(sp.dmg * p)} and jumps to {sp.jumps} more."
+delivery = "chain"
+dmg = 50.0
+jumps = 3
+color = Color(0.6117647, 0.95686275, 0.8666667, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_sb1b4"]
+script = ExtResource("1_0q7j1")
+runes = "storm+storm"
+name = "Chain Lightning"
+mana = 36.0
+desc = "Lightning jumps through {sp.jumps + 1} enemies for {f0(sp.dmg * p)} each and stuns them {f1(sp.root)}s."
+delivery = "chain"
+dmg = 110.0
+root = 0.5
+jumps = 6
+color = Color(0.6117647, 0.95686275, 0.8666667, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_2fivq"]
+script = ExtResource("1_0q7j1")
+runes = "storm+storm+storm"
+name = "Thunderstorm"
+mana = 70.0
+desc = "For {f0(sp.count * sp.gap)}s, lightning strikes enemies within {f0(sp.r * h.spell_r)} every {f2(sp.gap)}s for {f0(sp.dmg * p)}, stunning them {f1(sp.root)}s."
+delivery = "strikes"
+r = 180.0
+dmg = 90.0
+root = 0.3
+count = 20
+gap = 0.25
+color = Color(0.6117647, 0.95686275, 0.8666667, 1)
+shake = 0.008
+ring_fill = false
+ring_time = 5.0
+art = "tempest"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 180.0
+art_dur = 5.0
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_rqwg1"]
+script = ExtResource("1_0q7j1")
+runes = "nature"
+name = "Thorn Snare"
+desc = "Vines root enemies within {f0(sp.r * h.spell_r)} for {f1(sp.root)}s and poison them ({f0(sp.poison_dps * p)}/s for {f0(sp.poison_time)}s)."
+dmg = 10.0
+root = 1.5
+poison_dps = 14.0
+poison_time = 4.0
+color = Color(0.49411765, 0.8784314, 0.41568628, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_xpaxi"]
+script = ExtResource("1_0q7j1")
+runes = "nature+nature"
+name = "Bramble Field"
+mana = 36.0
+desc = "Thick brambles cover {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s: enemies are slowed {pct(sp.zone_slow)} and take {f0(sp.zone_dps * p)}/s."
+delivery = "zone"
+r = 90.0
+zone_time = 6.0
+zone_dps = 22.0
+zone_slow = 0.5
+color = Color(0.37254903, 0.72156864, 0.2901961, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_qr5g4"]
+script = ExtResource("1_0q7j1")
+runes = "nature+nature+nature"
+name = "Wild Growth"
+mana = 70.0
+desc = "Roots every enemy within {f0(sp.r * h.spell_r)} for {f0(sp.root)}s, poisons them ({f0(sp.poison_dps * p)}/s for {f0(sp.poison_time)}s), and heals you {pct(sp.heal)}."
+r = 180.0
+dmg = 30.0
+root = 3.0
+poison_dps = 40.0
+poison_time = 6.0
+heal = 0.4
+color = Color(0.49411765, 0.8784314, 0.41568628, 1)
+shake = 0.01
+ring_time = 0.9
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_yw1g7"]
+script = ExtResource("1_0q7j1")
+runes = "void"
+name = "Void Bolt"
+mana = 18.0
+desc = "Hits enemies within {f0(sp.r * h.spell_r)} for {f0(sp.dmg * p)}, and they take {pct(sp.expose)} more damage from everything for {f0(sp.expose_time)}s."
+delivery = "launch"
+r = 55.0
+dmg = 45.0
+expose = 0.2
+expose_time = 4.0
+color = Color(0.6901961, 0.4862745, 1, 1)
+ring_time = 0.4
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_ydh78"]
+script = ExtResource("1_0q7j1")
+runes = "void+void"
+name = "Singularity"
+mana = 42.0
+desc = "A black hole within {f0(sp.r * h.spell_r)} slows enemies {pct(sp.zone_slow)} for {f0(sp.zone_time)}s ({f0(sp.zone_dps * p)}/s), then implodes for {f0(sp.implode_dmg * p)}."
+delivery = "zone"
+r = 90.0
+zone_time = 3.0
+zone_dps = 30.0
+zone_slow = 0.6
+zone_vortex = true
+implode_dmg = 120.0
+color = Color(0.41568628, 0.23529412, 0.6901961, 1)
+art = "runeB"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 90.0
+art_dur = 3.0
+art_loop = Vector2i(2, 5)
+art_low = true
+
+[sub_resource type="Resource" id="Resource_up812"]
+script = ExtResource("1_0q7j1")
+runes = "void+void+void"
+name = "Event Horizon"
+mana = 70.0
+desc = "Drags every enemy within {f0(sp.r * h.spell_r)} back for {f1(sp.push * h.push_bonus)}s, deals {f0(sp.dmg * p)}, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+r = 200.0
+dmg = 100.0
+push = 2.0
+push_speed = 130.0
+expose = 0.35
+expose_time = 6.0
+color = Color(0.6901961, 0.4862745, 1, 1)
+shake = 0.015
+ring_shrink = true
+ring_time = 0.9
+art = "runeB"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 200.0
+art_fps = 11.0
+art_low = true
+
+[sub_resource type="Resource" id="Resource_4q3vr"]
+script = ExtResource("1_0q7j1")
+runes = "light"
+name = "Radiant Lance"
+mana = 22.0
+desc = "A beam of light pierces every enemy in a line for {f0(sp.dmg * p)}."
+delivery = "line"
+dmg = 70.0
+length = 420.0
+width = 14.0
+color = Color(0.9764706, 0.9019608, 0.63529414, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_8fn4x"]
+script = ExtResource("1_0q7j1")
+runes = "light+light"
+name = "Solar Flare"
+mana = 40.0
+desc = "Blinds enemies within {f0(sp.r * h.spell_r)} ({f0(sp.root)}s stun) for {f0(sp.dmg * p)} damage and heals you {pct(sp.heal)}."
+r = 80.0
+dmg = 130.0
+root = 1.0
+heal = 0.15
+color = Color(1, 0.9647059, 0.78431374, 1)
+pillar = true
+art = "runeA"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 80.0
+art_fps = 11.0
+art_low = true
+
+[sub_resource type="Resource" id="Resource_rl3to"]
+script = ExtResource("1_0q7j1")
+runes = "light+light+light"
+name = "Judgment"
+mana = 70.0
+desc = "Pillars of light strike the {sp.count} toughest enemies on the map for {f0(sp.dmg * p)} each."
+delivery = "toughest"
+dmg = 320.0
+count = 5
+gap = 0.12
+color = Color(0.9764706, 0.9019608, 0.63529414, 1)
+shake = 0.008
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_pofb3"]
+script = ExtResource("1_0q7j1")
+runes = "fire+storm"
+name = "Plasma Storm"
+mana = 42.0
+desc = "Superheated lightning hits enemies within {f0(sp.r * h.spell_r)} for {f0(sp.dmg * p)}, stuns them {f1(sp.root)}s and sets them burning ({f0(sp.poison_dps * p)}/s for {f0(sp.poison_time)}s)."
+r = 80.0
+dmg = 90.0
+root = 0.4
+poison_dps = 20.0
+poison_time = 3.0
+color = Color(1, 0.7019608, 0.36078432, 1)
+fx_strikes = 4
+fx_strike_gap = 0.08
+art = "firestorm"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 95.0
+art_dur = 5.0
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_6mpif"]
+script = ExtResource("1_0q7j1")
+runes = "water+storm"
+name = "Conductive Surge"
+mana = 40.0
+desc = "Soaks enemies within {f0(sp.r * h.spell_r)} and electrifies them: {f0(sp.dmg * p)} damage and a {f1(sp.root)}s stun."
+r = 90.0
+dmg = 70.0
+root = 1.2
+color = Color(0.37254903, 0.78431374, 1, 1)
+fx_strikes = 5
+fx_strike_gap = 0.06
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_e780g"]
+script = ExtResource("1_0q7j1")
+runes = "earth+storm"
+name = "Magnet Quake"
+mana = 40.0
+desc = "Hits enemies within {f0(sp.r * h.spell_r)} for {f0(sp.dmg * p)}, stuns them {f1(sp.root)}s and strips {pct(sp.armor_break)} armor for {f0(sp.armor_break_time)}s."
+r = 90.0
+dmg = 80.0
+root = 0.6
+armor_break = 0.3
+armor_break_time = 5.0
+color = Color(0.78431374, 0.63529414, 0.41568628, 1)
+shake = 0.008
+ring_time = 0.6
+art = "quake"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 90.0
+art_tint = Color(0.7490196, 0.9647059, 1, 1)
+art_low = true
+
+[sub_resource type="Resource" id="Resource_u7hxm"]
+script = ExtResource("1_0q7j1")
+runes = "air+storm"
+name = "Thunderhead"
+mana = 44.0
+desc = "A storm cloud hangs over {f0(sp.r * h.spell_r)} for {f0(sp.count * sp.gap)}s, striking an enemy every {f1(sp.gap)}s for {f0(sp.dmg * p)} and blowing it back."
+delivery = "strikes"
+r = 100.0
+dmg = 55.0
+push = 0.4
+push_speed = 80.0
+count = 10
+gap = 0.4
+color = Color(0.84705883, 0.95686275, 0.93333334, 1)
+ring_fill = false
+ring_time = 4.0
+art = "tempest"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 100.0
+art_dur = 4.0
+art_loop = Vector2i(3, 5)
+
+[sub_resource type="Resource" id="Resource_eby6t"]
+script = ExtResource("1_0q7j1")
+runes = "fire+nature"
+name = "Wildfire"
+mana = 40.0
+desc = "Sets {f0(sp.r * h.spell_r)} ablaze for {f0(sp.zone_time)}s: {f0(sp.zone_dps * p)}/s and {pct(sp.zone_slow)} slow."
+delivery = "zone"
+r = 95.0
+zone_time = 5.0
+zone_dps = 32.0
+zone_slow = 0.2
+color = Color(1, 0.6039216, 0.23921569, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_qsrg2"]
+script = ExtResource("1_0q7j1")
+runes = "water+nature"
+name = "Overgrowth"
+mana = 38.0
+desc = "Roots enemies within {f0(sp.r * h.spell_r)} for {f0(sp.root)}s and poisons them ({f0(sp.poison_dps * p)}/s for {f0(sp.poison_time)}s)."
+r = 85.0
+dmg = 20.0
+root = 2.0
+poison_dps = 16.0
+poison_time = 5.0
+color = Color(0.2784314, 0.8509804, 0.77254903, 1)
+ring_time = 0.6
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_pq7xw"]
+script = ExtResource("1_0q7j1")
+runes = "earth+nature"
+name = "Thornwall"
+mana = 46.0
+desc = "Raises a thorny wall ({f0((sp.wall_hp + sp.wall_hp_per_wave * wave) * h.wall_bonus)} HP) for {f0(sp.wall_time)}s. Enemies next to it take {f0(sp.wall_thorns * p)}/s."
+delivery = "wall"
+wall_hp = 420.0
+wall_hp_per_wave = 45.0
+wall_time = 7.0
+wall_thorns = 30.0
+wall_color = Color(0.37254903, 0.72156864, 0.2901961, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_mne4k"]
+script = ExtResource("1_0q7j1")
+runes = "air+nature"
+name = "Pollen Cloud"
+mana = 36.0
+desc = "A choking cloud over {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s: {pct(sp.zone_slow)} slow, {f0(sp.zone_dps * p)}/s, and strips {pct(sp.zone_break)} armor."
+delivery = "zone"
+r = 90.0
+zone_time = 6.0
+zone_dps = 18.0
+zone_slow = 0.35
+zone_break = 0.15
+color = Color(0.84705883, 0.9098039, 0.5411765, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_g3ewg"]
+script = ExtResource("1_0q7j1")
+runes = "storm+nature"
+name = "Living Lightning"
+mana = 40.0
+desc = "Lightning jumps through {sp.jumps + 1} enemies for {f0(sp.dmg * p)} each and poisons them ({f0(sp.poison_dps * p)}/s for {f0(sp.poison_time)}s)."
+delivery = "chain"
+dmg = 60.0
+poison_dps = 12.0
+poison_time = 4.0
+jumps = 7
+color = Color(0.49411765, 0.8784314, 0.41568628, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_kqbgj"]
+script = ExtResource("1_0q7j1")
+runes = "fire+void"
+name = "Hellfire"
+mana = 44.0
+desc = "Black flames hit enemies within {f0(sp.r * h.spell_r)} for {f0(sp.dmg * p)} and burn the ground for {f0(sp.burn_time)}s ({f0(sp.burn_dps * p)}/s)."
+delivery = "launch"
+r = 80.0
+dmg = 120.0
+burn_time = 6.0
+burn_dps = 25.0
+burn_color = Color(0.5411765, 0.23529412, 1, 1)
+color = Color(0.5411765, 0.23529412, 1, 1)
+size = 6.0
+boom = true
+art = "inferno"
+art_mode = "fly"
+art_fly = "gfireball"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 80.0
+art_dur = 6.0
+art_loop = Vector2i(3, 5)
+art_tint = Color(0.7882353, 0.627451, 1, 1)
+
+[sub_resource type="Resource" id="Resource_y1n3f"]
+script = ExtResource("1_0q7j1")
+runes = "water+void"
+name = "Abyssal Tide"
+mana = 40.0
+desc = "A dark wave pushes enemies within {f0(sp.r * h.spell_r)} back for {f1(sp.push * h.push_bonus)}s, deals {f0(sp.dmg * p)}, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+r = 90.0
+dmg = 50.0
+push = 1.2
+push_speed = 100.0
+expose = 0.25
+expose_time = 5.0
+color = Color(0.2901961, 0.3529412, 0.8156863, 1)
+ring_time = 0.6
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_a0s2g"]
+script = ExtResource("1_0q7j1")
+runes = "earth+void"
+name = "Gravity Well"
+mana = 42.0
+desc = "Crushing gravity within {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s: {pct(sp.zone_slow)} slow and {f0(sp.zone_dps * p)}/s, then everything inside is pinned for {f1(sp.zone_end_freeze + h.freeze_bonus)}s."
+delivery = "zone"
+r = 90.0
+zone_time = 4.0
+zone_dps = 15.0
+zone_slow = 0.7
+zone_vortex = true
+zone_end_freeze = 1.0
+color = Color(0.41568628, 0.2901961, 0.6901961, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_477bp"]
+script = ExtResource("1_0q7j1")
+runes = "air+void"
+name = "Vacuum"
+mana = 38.0
+desc = "Sucks enemies within {f0(sp.r * h.spell_r)} back for {f1(sp.push * h.push_bonus)}s, deals {f0(sp.dmg * p)}, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+r = 100.0
+dmg = 40.0
+push = 1.5
+push_speed = 110.0
+expose = 0.15
+expose_time = 4.0
+color = Color(0.6901961, 0.4862745, 1, 1)
+ring_fill = false
+ring_shrink = true
+ring_time = 0.6
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_4xxla"]
+script = ExtResource("1_0q7j1")
+runes = "storm+void"
+name = "Dark Lightning"
+mana = 42.0
+desc = "Black lightning jumps through {sp.jumps + 1} enemies for {f0(sp.dmg * p)} each, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+delivery = "chain"
+dmg = 80.0
+expose = 0.2
+expose_time = 5.0
+jumps = 5
+color = Color(0.5411765, 0.23529412, 1, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_xabgf"]
+script = ExtResource("1_0q7j1")
+runes = "nature+void"
+name = "Blight"
+mana = 38.0
+desc = "Rots the ground within {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s: {f0(sp.zone_dps * p)}/s, {pct(sp.zone_slow)} slow, and strips {pct(sp.zone_break)} armor."
+delivery = "zone"
+r = 90.0
+zone_time = 6.0
+zone_dps = 25.0
+zone_slow = 0.2
+zone_break = 0.25
+color = Color(0.41568628, 0.5411765, 0.22745098, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_fbkhd"]
+script = ExtResource("1_0q7j1")
+runes = "fire+light"
+name = "Sunfire"
+mana = 42.0
+desc = "A blazing beam pierces every enemy in a line for {f0(sp.dmg * p)} and sets them burning ({f0(sp.poison_dps * p)}/s for {f0(sp.poison_time)}s)."
+delivery = "line"
+dmg = 120.0
+poison_dps = 25.0
+poison_time = 3.0
+length = 460.0
+width = 18.0
+color = Color(1, 0.7019608, 0.36078432, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_qus6x"]
+script = ExtResource("1_0q7j1")
+runes = "water+light"
+name = "Prism Rain"
+mana = 40.0
+desc = "Glittering rain over {f0(sp.r * h.spell_r)} deals {f0(sp.dmg * p)}, freezes enemies {f1(sp.freeze + h.freeze_bonus)}s, and heals you {pct(sp.heal)}."
+r = 100.0
+dmg = 60.0
+freeze = 1.0
+heal = 0.1
+color = Color(0.78431374, 0.9411765, 1, 1)
+ring_time = 0.6
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_vjasp"]
+script = ExtResource("1_0q7j1")
+runes = "earth+light"
+name = "Crystal Spire"
+mana = 44.0
+desc = "Raises a crystal wall ({f0((sp.wall_hp + sp.wall_hp_per_wave * wave) * h.wall_bonus)} HP) for {f0(sp.wall_time)}s that blasts nearby enemies for {f0(sp.wall_slam * p)} and stuns them 0.8s."
+delivery = "wall"
+wall_hp = 380.0
+wall_hp_per_wave = 40.0
+wall_time = 7.0
+wall_slam = 80.0
+wall_color = Color(0.9764706, 0.9019608, 0.63529414, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_dqh84"]
+script = ExtResource("1_0q7j1")
+runes = "air+light"
+name = "Halo Wind"
+mana = 38.0
+desc = "A ring of light blows enemies within {f0(sp.r * h.spell_r)} back for {f1(sp.push * h.push_bonus)}s, deals {f0(sp.dmg * p)}, and blinds them {f1(sp.root)}s."
+r = 100.0
+dmg = 50.0
+root = 0.6
+push = 1.0
+color = Color(1, 0.9647059, 0.78431374, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_bccg0"]
+script = ExtResource("1_0q7j1")
+runes = "storm+light"
+name = "Divine Bolt"
+mana = 44.0
+desc = "A bolt from the heavens hits the toughest enemy near the cursor for {f0(sp.dmg * p)}, then jumps to {sp.jumps} more for half."
+delivery = "divine"
+r = 120.0
+dmg = 260.0
+jumps = 3
+color = Color(0.9764706, 0.9019608, 0.63529414, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_etkq1"]
+script = ExtResource("1_0q7j1")
+runes = "nature+light"
+name = "Bloom"
+mana = 40.0
+desc = "Heals you {pct(sp.heal)} and blossoms over {f0(sp.r * h.spell_r)} for {f0(sp.zone_time)}s: {pct(sp.zone_slow)} slow and {f0(sp.zone_dps * p)}/s."
+delivery = "zone"
+r = 90.0
+zone_time = 5.0
+zone_dps = 20.0
+zone_slow = 0.3
+heal = 0.3
+color = Color(0.96862745, 0.60784316, 0.74509805, 1)
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+
+[sub_resource type="Resource" id="Resource_q0a8s"]
+script = ExtResource("1_0q7j1")
+runes = "void+light"
+name = "Eclipse"
+mana = 46.0
+desc = "Darkness and light collide within {f0(sp.r * h.spell_r)}: {f0(sp.dmg * p)} damage, a {f1(sp.root)}s stun, and they take {pct(sp.expose)} more damage for {f0(sp.expose_time)}s."
+r = 110.0
+dmg = 150.0
+root = 0.5
+expose = 0.3
+expose_time = 5.0
+color = Color(0.0627451, 0.07058824, 0.13725491, 1)
+shake = 0.012
+ring_time = 0.7
+art = "runeA"
+art_fly_frames = PackedInt32Array()
+art_hit_frames = PackedInt32Array()
+art_r = 110.0
+art_tint = Color(0.84705883, 0.78431374, 1, 1)
+art_low = true
+
+[resource]
+script = ExtResource("2_giy6c")
+items = Array[ExtResource("1_0q7j1")]([SubResource("Resource_6xnee"), SubResource("Resource_jc354"), SubResource("Resource_aratj"), SubResource("Resource_xsx75"), SubResource("Resource_nxfyp"), SubResource("Resource_6465j"), SubResource("Resource_em20i"), SubResource("Resource_1vyjb"), SubResource("Resource_q4c1g"), SubResource("Resource_frvnk"), SubResource("Resource_qtrmj"), SubResource("Resource_euvbb"), SubResource("Resource_rmwyp"), SubResource("Resource_k0esu"), SubResource("Resource_32njv"), SubResource("Resource_8rl0c"), SubResource("Resource_1hsaw"), SubResource("Resource_n8wun"), SubResource("Resource_hxubh"), SubResource("Resource_sb1b4"), SubResource("Resource_2fivq"), SubResource("Resource_rqwg1"), SubResource("Resource_xpaxi"), SubResource("Resource_qr5g4"), SubResource("Resource_yw1g7"), SubResource("Resource_ydh78"), SubResource("Resource_up812"), SubResource("Resource_4q3vr"), SubResource("Resource_8fn4x"), SubResource("Resource_rl3to"), SubResource("Resource_pofb3"), SubResource("Resource_6mpif"), SubResource("Resource_e780g"), SubResource("Resource_u7hxm"), SubResource("Resource_eby6t"), SubResource("Resource_qsrg2"), SubResource("Resource_pq7xw"), SubResource("Resource_mne4k"), SubResource("Resource_g3ewg"), SubResource("Resource_kqbgj"), SubResource("Resource_y1n3f"), SubResource("Resource_a0s2g"), SubResource("Resource_477bp"), SubResource("Resource_4xxla"), SubResource("Resource_xabgf"), SubResource("Resource_fbkhd"), SubResource("Resource_qus6x"), SubResource("Resource_vjasp"), SubResource("Resource_dqh84"), SubResource("Resource_bccg0"), SubResource("Resource_etkq1"), SubResource("Resource_q0a8s")])

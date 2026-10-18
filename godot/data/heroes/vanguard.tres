@@ -1,0 +1,87 @@
+[gd_resource type="Resource" script_class="HeroData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s1qux"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_picai"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/vanguard.tres" id="2_yftxd"]
+[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_yftxd"]
+[ext_resource type="Texture2D" path="res://assets/heroes/vanguard.png" id="4_3ftpl"]
+
+[sub_resource type="Resource" id="Resource_hfr1b"]
+script = ExtResource("1_s1qux")
+id = "slam"
+name = "Shield Slam"
+dmg = 30.0
+r = 100.0
+stun = 1.5
+desc = "Deals {f0(a.dmg)} damage and stuns enemies within {f0(a.r)} for {f1(a.stun)}s."
+
+[sub_resource type="Resource" id="Resource_bnd7b"]
+script = ExtResource("1_s1qux")
+id = "bulwark"
+name = "Bulwark Shield"
+dmg = 30.0
+r = 110.0
+dur = 5.0
+desc = "Raises a shield that soaks {f0(a.dmg * 5 * iff(a.overflow, 1.5, 1))} damage for {f1(a.dur)}s. When it breaks or ends it bursts, hitting enemies within {f0(a.r)} for {f0(a.dmg)} plus 60% of what it soaked."
+
+[sub_resource type="Resource" id="Resource_ym1xd"]
+script = ExtResource("2_picai")
+id = "ironhide"
+name = "Ironhide"
+desc = "+{6 * r}% max HP"
+effect = "h.max_hp = round(h.max_hp * (1 + 0.06 * r))"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_isgv3"]
+script = ExtResource("2_picai")
+id = "bastion"
+name = "Bastion Plating"
+desc = "Take {2 * r}% less damage"
+effect = "h.armor = min(0.75, h.armor + 0.02 * r)"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_fh8k1"]
+script = ExtResource("2_picai")
+id = "seismic"
+name = "Seismic Training"
+desc = "Shield Slam deals +{8 * r}% damage and stuns {f1(0.1 * r)}s longer"
+effect = "h.ab.dmg *= 1 + 0.08 * r
+h.ab.stun += 0.1 * r"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_6vjy8"]
+script = ExtResource("2_picai")
+id = "medic"
+name = "Field Medic"
+desc = "+{f1(0.6 * r)} HP regen per second"
+effect = "h.regen += 0.6 * r"
+also_pools = PackedStringArray()
+cost = "100 + 80 * r"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("3_yftxd")
+id = "vanguard"
+name = "Vanguard"
+role = "Defensive"
+category = "defensive"
+color = Color(0.37254903, 0.8901961, 0.6039216, 1)
+desc = "A walking fortress. Huge HP, blocks every enemy that reaches it and stuns crowds."
+hp = 340.0
+dmg = 8.0
+rate = 0.7
+range = 80.0
+block = 999
+armor = 0.1
+regen = 5.0
+speed = 135.0
+ability = SubResource("Resource_hfr1b")
+alt = SubResource("Resource_bnd7b")
+meta = Array[ExtResource("2_picai")]([SubResource("Resource_ym1xd"), SubResource("Resource_isgv3"), SubResource("Resource_fh8k1"), SubResource("Resource_6vjy8")])
+frames = ExtResource("2_yftxd")
+sheet = ExtResource("4_3ftpl")

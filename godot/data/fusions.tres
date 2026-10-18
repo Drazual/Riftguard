@@ -1,0 +1,154 @@
+[gd_resource type="Resource" script_class="FusionList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/fusion_data.gd" id="1_7buld"]
+[ext_resource type="Script" path="res://scripts/data/fusion_list.gd" id="2_h8auc"]
+
+[sub_resource type="Resource" id="Resource_s2oxb"]
+script = ExtResource("1_7buld")
+id = "chainreact"
+name = "Chain Reaction"
+tags = PackedStringArray("burst", "burn")
+desc = "Enemies this tower kills explode for {round(8 * r * m)}% of their max HP."
+effect = "t.death_blast += 0.08 * m"
+
+[sub_resource type="Resource" id="Resource_iqf2q"]
+script = ExtResource("1_7buld")
+id = "frostfire"
+name = "Frostfire"
+tags = PackedStringArray("slow", "burn")
+desc = "Hits on slowed enemies burn them for {round(30 * r * m)}% of the hit, and burning enemies are slowed."
+effect = "t.frostfire += 0.3 * m"
+
+[sub_resource type="Resource" id="Resource_fk50v"]
+script = ExtResource("1_7buld")
+id = "echo"
+name = "Echo Shot"
+tags = PackedStringArray("speed", "power")
+desc = "Every shot repeats a moment later for {round(15 * r * m)}% damage."
+effect = "t.echo += 0.15 * m"
+
+[sub_resource type="Resource" id="Resource_qe7m0"]
+script = ExtResource("1_7buld")
+id = "shatter"
+name = "Shatter"
+tags = PackedStringArray("slow", "precision")
+desc = "Stunned or frozen enemies take +{round(25 * r * m)}% damage from this tower."
+effect = "t.shatter += 0.25 * m"
+
+[sub_resource type="Resource" id="Resource_b7pi1"]
+script = ExtResource("1_7buld")
+id = "gravity"
+name = "Gravity Well"
+tags = PackedStringArray("burst", "slow")
+desc = "Every 5th shot drags enemies near the target {round(15 * r * m)} steps back along the path."
+effect = "t.gravity += 15 * m"
+
+[sub_resource type="Resource" id="Resource_btoww"]
+script = ExtResource("1_7buld")
+id = "execute"
+name = "Executioner"
+tags = PackedStringArray("precision", "power")
+desc = "Hits finish off non-boss enemies below {round(4 * r * m)}% HP."
+effect = "t.execute = min(0.35, t.execute + 0.04 * m)"
+
+[sub_resource type="Resource" id="Resource_ykihb"]
+script = ExtResource("1_7buld")
+id = "prism"
+name = "Prism Split"
+tags = PackedStringArray("multi", "arcane")
+desc = "Each hit splits to {round(r * m)} nearby enemies for 40% damage."
+effect = "t.prism += m"
+
+[sub_resource type="Resource" id="Resource_qccgf"]
+script = ExtResource("1_7buld")
+id = "storm"
+name = "Storm Call"
+tags = PackedStringArray("chain", "power")
+desc = "Every 4th shot calls lightning on {round(r * m)} random enemies in range."
+effect = "t.storm += m"
+
+[sub_resource type="Resource" id="Resource_lq7vt"]
+script = ExtResource("1_7buld")
+id = "ionburst"
+name = "Ion Burst"
+tags = PackedStringArray("chain", "burst")
+desc = "Lightning jumps explode for {round(10 * r * m)}% damage around them."
+effect = "t.chain_blast += 0.1 * m
+t.chain = iff(t.chain > 0, t.chain, 2)"
+
+[sub_resource type="Resource" id="Resource_0lw7c"]
+script = ExtResource("1_7buld")
+id = "timelock"
+name = "Time Lock"
+tags = PackedStringArray("slow", "arcane")
+desc = "Every 8th shot stuns every enemy in range for {f2(0.15 * r * m)}s."
+effect = "t.time_lock += 0.15 * m"
+
+[sub_resource type="Resource" id="Resource_ciig6"]
+script = ExtResource("1_7buld")
+id = "corrode"
+name = "Corrosion"
+tags = PackedStringArray("burn", "precision")
+desc = "Hits melt armor: enemies take +{round(5 * r * m)}% damage from everything for 2s."
+effect = "t.mark += 0.05 * m"
+
+[sub_resource type="Resource" id="Resource_gvvav"]
+script = ExtResource("1_7buld")
+id = "phase"
+name = "Phase Rounds"
+tags = PackedStringArray("precision", "multi")
+desc = "Shots pass through and hit {round(r * m)} enemies behind the target for 60% damage."
+effect = "t.pierce += m"
+
+[sub_resource type="Resource" id="Resource_ws6dd"]
+script = ExtResource("1_7buld")
+id = "gilded"
+name = "Gilded Rounds"
+tags = PackedStringArray("power", "arcane")
+desc = "Kills by this tower drop +{round(2 * r * m)} gold."
+effect = "t.loot += 2 * m"
+
+[sub_resource type="Resource" id="Resource_dhufe"]
+script = ExtResource("1_7buld")
+id = "siphon"
+name = "Soul Siphon"
+tags = PackedStringArray("arcane", "burn")
+desc = "Kills by this tower heal your hero {round(4 * r * m)} HP and give extra XP."
+effect = "t.leech += 4 * m"
+
+[sub_resource type="Resource" id="Resource_arkmu"]
+script = ExtResource("1_7buld")
+id = "overload"
+name = "Overload"
+tags = PackedStringArray("chain", "speed")
+desc = "Every 10th shot deals +{round(60 * r * m)}% damage and stuns for 0.5s."
+effect = "t.overload += 0.6 * m"
+
+[sub_resource type="Resource" id="Resource_d8wc0"]
+script = ExtResource("1_7buld")
+id = "nova"
+name = "Rift Nova"
+tags = PackedStringArray("burst", "arcane")
+desc = "Every 6th shot blasts every enemy in range for {round(20 * r * m)}% damage."
+effect = "t.nova += 0.2 * m"
+
+[sub_resource type="Resource" id="Resource_gwtvf"]
+script = ExtResource("1_7buld")
+id = "tempo"
+name = "Tempo Field"
+tags = PackedStringArray("speed", "multi")
+desc = "Each shot makes the next one {round(4 * r * m)}% faster, up to 5 stacks (resets on a miss)."
+effect = "t.tempo += 0.04 * m"
+
+[sub_resource type="Resource" id="Resource_xscut"]
+script = ExtResource("1_7buld")
+id = "static"
+name = "Static Web"
+tags = PackedStringArray("chain", "slow")
+desc = "Lightning and hits slow enemies by {round(6 * r * m)}% for 1.5s."
+effect = "t.slow = min(0.85, max(t.slow, 0.06 * m * (t.ups_of('static') + 1)))
+t.slow_dur = max(t.slow_dur, 1.5)"
+
+[resource]
+script = ExtResource("2_h8auc")
+items = Array[ExtResource("1_7buld")]([SubResource("Resource_s2oxb"), SubResource("Resource_iqf2q"), SubResource("Resource_fk50v"), SubResource("Resource_qe7m0"), SubResource("Resource_b7pi1"), SubResource("Resource_btoww"), SubResource("Resource_ykihb"), SubResource("Resource_qccgf"), SubResource("Resource_lq7vt"), SubResource("Resource_0lw7c"), SubResource("Resource_ciig6"), SubResource("Resource_gvvav"), SubResource("Resource_ws6dd"), SubResource("Resource_dhufe"), SubResource("Resource_arkmu"), SubResource("Resource_d8wc0"), SubResource("Resource_gwtvf"), SubResource("Resource_xscut")])

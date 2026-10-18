@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_biwsq"]
+
+[resource]
+script = ExtResource("1_biwsq")
+id = "mender"
+name = "Mender"
+hp = 120.0
+speed = 48.0
+gold = 12
+lives = 2
+radius = 10.0
+color = Color(0.49019608, 1, 0.6901961, 1)
+heal = 0.03
+first_wave = 12
+per_wave = 1
+info = "Heals enemies within 70 for 3% of their max HP every second."
+counter = "Focus it first. Sniper Spotter and Headhunter help."

@@ -1,0 +1,74 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_won34"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_wxiyj"]
+
+[sub_resource type="Resource" id="Resource_ra2ly"]
+script = ExtResource("1_won34")
+id = "gold"
+name = "War Chest"
+desc = "Start with +{15 * r} gold"
+also_pools = PackedStringArray()
+cost = "50 + 40 * r"
+stat_label = "Starting gold"
+stat_value = "{150 + 15 * r}"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_as853"]
+script = ExtResource("1_won34")
+id = "lives"
+name = "Reinforced Core"
+desc = "Base starts with +{round(1.5 * r)} HP"
+also_pools = PackedStringArray()
+cost = "50 + 40 * r"
+stat_label = "Base HP"
+stat_value = "{20 + round(1.5 * r)}"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_dgvs6"]
+script = ExtResource("1_won34")
+id = "reroll"
+name = "Fate Weaver"
+desc = "+{r} upgrade reroll{s(r)} per run"
+also_pools = PackedStringArray()
+cost = "100 + 80 * r"
+stat_label = "Rerolls per run"
+stat_value = "{2 + r}"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_q8cah"]
+script = ExtResource("1_won34")
+id = "luck"
+name = "Lucky Star"
+desc = "Rarer upgrades are {4 * r}% more likely"
+also_pools = PackedStringArray()
+cost = "120 + 100 * r"
+stat_label = "Rarer upgrade odds"
+stat_value = "+{4 * r}%"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_bhhkj"]
+script = ExtResource("1_won34")
+id = "vet"
+name = "Veteran"
+desc = "Start each run with {vet(r)} free hero upgrade{s(vet(r))}, and your hero gains {4 * r}% more XP"
+also_pools = PackedStringArray()
+cost = "240 + 200 * r"
+stat_label = "Free upgrades / XP gain"
+stat_value = "{vet(r)} / +{4 * r}%"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_l7k5x"]
+script = ExtResource("1_won34")
+id = "fortune"
+name = "Fortune’s Favor"
+desc = "Better upgrade odds: Rare and above {8 * r}% more likely, Common {4 * r}% less likely"
+also_pools = PackedStringArray()
+cost = "600 + 500 * r"
+stat_label = "Rare and above odds"
+stat_value = "+{8 * r}%"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_wxiyj")
+items = Array[ExtResource("1_won34")]([SubResource("Resource_ra2ly"), SubResource("Resource_as853"), SubResource("Resource_dgvs6"), SubResource("Resource_q8cah"), SubResource("Resource_bhhkj"), SubResource("Resource_l7k5x")])

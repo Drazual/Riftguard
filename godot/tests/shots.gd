@@ -1,0 +1,84 @@
+## Takes screenshots of the menus and a run, to check the look. Needs a display:
+## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/shots.tscn -- <out dir>
+extends Node
+
+var out := "user://shots"
+var main: Main
+
+
+func _ready() -> void:
+	var args := OS.get_cmdline_user_args()
+	if args.size():
+		out = args[0]
+	DirAccess.make_dir_recursive_absolute(out)
+	get_tree().create_timer(120).timeout.connect(func(): print("SHOTS TIMEOUT"); get_tree().quit(1))
+	seed(7)
+	for id in Menus.FIRST_TIPS:
+		Save.meta.tips[id] = true
+	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
+	add_child(main)
+	await _shot("01_menu")
+	main.ui.menus.show_map_select()
+	await _shot("02_maps")
+	main.ui.menus.new_run("verdant")
+	await _shot("03_heroes")
+	main.ui.menus.start_run("vanguard", Array(DB.tower_order).slice(0, 5))
+	await _shot("04_run")
+	var g := main.game
+	var S := g.S
+	S.gold = 2000
+	var placed := 0
+	for c in range(2, 18):
+		for r in range(2, 11):
+			if placed < 6 and g.build_problem(c, r, DB.tower_order[placed % 5]) == "":
+				g.place_tower(c, r, DB.tower_order[placed % 5])
+				placed += 1
+	var auto := [true]
+	g.modal.connect(func(kind, _d):
+		if auto[0] and kind == "level_up":
+			(func():
+				main.ui.close_modal()
+				g.pick_offer(0)).call_deferred())
+	g.start_wave()
+	for i in 200:
+		await get_tree().process_frame
+	await _shot("05_wave")
+	S.hero.x = S.map.pos_at(S.map.path_len * 0.3).x
+	S.hero.y = S.map.pos_at(S.map.path_len * 0.3).y
+	g.use_ability()
+	for i in 20:
+		await get_tree().process_frame
+	await _shot("05b_wave")
+	auto[0] = false
+	if S.towers.size():
+		S.sel = S.towers[0]
+		main.ui.render_inspector()
+	await _shot("06_inspect")
+	S.pending_levels = 1
+	for i in 5:
+		await get_tree().process_frame
+	await _shot("07_levelup")
+	main.ui.close_modal()
+	S.paused = false
+	S.pending_levels = 0
+	g.show_shop()
+	await _shot("08_shop")
+	main.ui.close_modal()
+	g.leave_shop()
+	main.ui.menus.show_heroes()
+	await _shot("09_hero_page")
+	main.ui.menus.show_towers()
+	await _shot("10_tower_page")
+	main.ui.hide_screen()
+	g.end_run(false, true)
+	await _shot("11_end")
+	main.ui.menus.show_settings()
+	await _shot("12_settings")
+	print("SHOTS DONE")
+	get_tree().quit()
+
+
+func _shot(name: String) -> void:
+	for i in 12:
+		await get_tree().process_frame
+	get_viewport().get_texture().get_image().save_png(out.path_join(name + ".png"))
