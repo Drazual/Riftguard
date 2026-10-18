@@ -1,7 +1,7 @@
-[gd_scene format=4]
+[gd_scene format=4 uid="uid://d10lb8v34555i"]
 
-[ext_resource type="Script" path="res://scripts/data/map_scene.gd" id="1_3s162"]
-[ext_resource type="TileSet" path="res://maps/tilesets/reactor.tres" id="2_31kjd"]
+[ext_resource type="Script" uid="uid://dpv1wiq1efio7" path="res://scripts/data/map_scene.gd" id="1_3s162"]
+[ext_resource type="TileSet" uid="uid://cla7v3hvdukct" path="res://maps/tilesets/reactor.tres" id="2_31kjd"]
 
 [node name="ChromaReactor" type="Node2D" unique_id=1978659799]
 script = ExtResource("1_3s162")

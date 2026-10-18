@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="RecipeList" format=3]
+[gd_resource type="Resource" script_class="RecipeList" format=3 uid="uid://dokpr6shkavn5"]
 
-[ext_resource type="Script" path="res://scripts/data/recipe_data.gd" id="1_qr0rf"]
-[ext_resource type="Script" path="res://scripts/data/recipe_list.gd" id="2_gi7il"]
+[ext_resource type="Script" uid="uid://bmjn0rkee4m8x" path="res://scripts/data/recipe_data.gd" id="1_qr0rf"]
+[ext_resource type="Script" uid="uid://c2ccbc548p64f" path="res://scripts/data/recipe_list.gd" id="2_gi7il"]
 
 [sub_resource type="Resource" id="Resource_cva3j"]
 script = ExtResource("1_qr0rf")

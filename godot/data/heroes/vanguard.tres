@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="HeroData" format=3]
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://bkdlwjboj4jn6"]
 
-[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s1qux"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_picai"]
-[ext_resource type="SpriteFrames" path="res://art/heroes/vanguard.tres" id="2_yftxd"]
-[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_yftxd"]
-[ext_resource type="Texture2D" path="res://assets/heroes/vanguard.png" id="4_3ftpl"]
+[ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_s1qux"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_picai"]
+[ext_resource type="SpriteFrames" uid="uid://3unflah6g4l1" path="res://art/heroes/vanguard.tres" id="2_yftxd"]
+[ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_yftxd"]
+[ext_resource type="Texture2D" uid="uid://diwqymacxgvf7" path="res://assets/heroes/vanguard.png" id="4_3ftpl"]
 
 [sub_resource type="Resource" id="Resource_hfr1b"]
 script = ExtResource("1_s1qux")
@@ -72,7 +72,7 @@ role = "Defensive"
 category = "defensive"
 color = Color(0.37254903, 0.8901961, 0.6039216, 1)
 desc = "A walking fortress. Huge HP, blocks every enemy that reaches it and stuns crowds."
-hp = 340.0
+hp = 450.0
 dmg = 8.0
 rate = 0.7
 range = 80.0
