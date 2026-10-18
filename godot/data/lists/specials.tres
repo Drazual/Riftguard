@@ -97,6 +97,17 @@ heroes = PackedStringArray()
 cores = 45
 hero = "sniper"
 
+[sub_resource type="Resource" id="Resource_galeS"]
+script = ExtResource("1_txdmo")
+id = "galeS"
+name = "Born Bruiser"
+desc = "Gale starts every run in Bruiser Form."
+rarity = "mythic"
+cores = 30
+hero = "gale"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_lghwh")
-items = Array[ExtResource("1_txdmo")]([SubResource("Resource_jjrov"), SubResource("Resource_iq4gi"), SubResource("Resource_3mtxu"), SubResource("Resource_qfyfx"), SubResource("Resource_34s6n"), SubResource("Resource_jcmgl"), SubResource("Resource_6decq"), SubResource("Resource_uhbek"), SubResource("Resource_7hjov")])
+items = Array[ExtResource("1_txdmo")]([SubResource("Resource_jjrov"), SubResource("Resource_iq4gi"), SubResource("Resource_3mtxu"), SubResource("Resource_qfyfx"), SubResource("Resource_34s6n"), SubResource("Resource_jcmgl"), SubResource("Resource_6decq"), SubResource("Resource_uhbek"), SubResource("Resource_7hjov"), SubResource("Resource_galeS")])

@@ -311,7 +311,7 @@ effect = "h.ab.exec_r = true"
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "pierce"
-min_rarity = "rare"
+min_rarity = "legendary"
 kind = "ability"
 heroes = PackedStringArray()
 

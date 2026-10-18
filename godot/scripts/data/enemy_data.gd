@@ -14,7 +14,7 @@ extends Resource
 @export var atk := 8.0
 @export var radius := 9.0
 @export var color := Color.RED
-@export_range(0.0, 0.6) var armor := 0.0
+@export_range(0.0, 0.8) var armor := 0.0
 ## Immune to slows (stuns still work).
 @export var unslow := false
 ## Only Defensive heroes can block it.
@@ -43,3 +43,16 @@ extends Resource
 @export var power_nearest := false
 ## Also knocks the hero back.
 @export var power_roar := false
+## Also stuns the hero for this many seconds (Grounded makes it shorter).
+@export var power_hero_stun := 0.0
+## Only stuns the hero within this distance of the boss (0 = anywhere on the map).
+@export var power_hero_reach := 0.0
+## A curse on the towers it hits: weaken = less damage, jam = slower attacks, blind = less range.
+@export_enum("none", "weaken", "jam", "blind") var power_tower_curse := "none"
+## How strong the tower curse is (0.3 = 30% less).
+@export_range(0.0, 0.9) var power_tower_curse_amt := 0.0
+## A curse on the hero: shred = takes more damage, weaken = less damage, drag = slower moving and attacking.
+@export_enum("none", "shred", "weaken", "drag") var power_hero_curse := "none"
+@export_range(0.0, 0.9) var power_hero_curse_amt := 0.0
+## How long both curses last, in seconds.
+@export var power_curse_dur := 0.0

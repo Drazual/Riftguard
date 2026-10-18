@@ -32,7 +32,7 @@ static func block_text(n: int) -> String:
 
 
 static func main_effect(k: String) -> String:
-	return "slow strength" if k == "frost" else ("damage buff" if k == "beacon" else "damage")
+	return "slow strength" if k == "frost" else ("damage buff" if k == "beacon" else ("hero buffs" if k == "shrine" else "damage"))
 
 
 # ---------- what a tower does ----------
@@ -117,7 +117,33 @@ static func anvil_traits(g: Game, t: Tower) -> Array:
 
 
 static func tower_traits(g: Game, t: Tower) -> Array:
-	return support_traits(g, t) if t.support else (anvil_traits(g, t) if t.type == "anvil" else traits(g, t))
+	var out: Array = shrine_traits(g, t) if t.hero_buff else (support_traits(g, t) if t.support else (anvil_traits(g, t) if t.type == "anvil" else traits(g, t)))
+	if t.curse_t > 0 and t.hero_buff:
+		out.push_front("Cursed by a boss: its hero buffs are %s weaker for %ss." % [pct(maxf(t.curse_dmg, maxf(t.curse_rate, t.curse_range))), f1(t.curse_t)])
+	elif t.curse_t > 0:
+		var what := "deals %s less damage" % pct(t.curse_dmg) if t.curse_dmg else ("attacks %s slower" % pct(t.curse_rate) if t.curse_rate else "has %s less range" % pct(t.curse_range))
+		out.push_front("Cursed by a boss: %s for %ss." % [what, f1(t.curse_t)])
+	return out
+
+
+## Hero Shrine: what it gives the hero right now.
+static func shrine_traits(_g: Game, t: Tower) -> Array:
+	var out := ["Buffs your hero anywhere on the map: +%s damage, %s less damage taken." % [pct(t.hb_dmg), pct(t.hb_armor)]]
+	if t.hb_rate: out.append("Your hero attacks %s faster." % pct(t.hb_rate))
+	if t.hb_cdr: out.append("Your hero’s ability recharges %s faster." % pct(t.hb_cdr))
+	if t.hb_regen: out.append("Your hero heals %s of max HP per second." % pct(t.hb_regen))
+	if t.hb_range: out.append("Your hero’s attacks reach %s farther." % pct(t.hb_range))
+	if t.hb_crit: out.append("Your hero gets +%s crit chance." % pct(t.hb_crit))
+	if t.hb_boss: out.append("Your hero deals +%s damage to bosses." % pct(t.hb_boss))
+	if t.hb_aura: out.append("Your hero’s tower aura is %s stronger." % pct(t.hb_aura))
+	if t.hb_spell: out.append("Your spells deal +%s damage." % pct(t.hb_spell))
+	if t.hb_mana: out.append("Your mana refills %s faster." % pct(t.hb_mana))
+	if t.hb_knock: out.append("Knockback is %s stronger." % pct(t.hb_knock))
+	if t.hb_block: out.append("In Bruiser Form, Gale holds %d more enemies." % int(t.hb_block))
+	if t.hb_shield: out.append("Every 12s of a wave, your hero gets a shield worth %s of max HP." % pct(t.hb_shield))
+	if t.hb_bruiser: out.append("Bruiser Form: Gale hits far harder but holds 6 enemies instead of all.")
+	if t.stun_t > 0: out.append("Stunned: no hero buffs until it recovers.")
+	return out
 
 
 static func bullets(lines: Array, col := Kit.MUTED) -> String:
@@ -138,8 +164,11 @@ static func build_tip(g: Game, k: String) -> String:
 	var d: TowerData = DB.towers[k]
 	var t := g.new_tower(k, 0, 0)
 	var s := Kit.b(d.name) + "  " + Kit.c("%d gold" % g.tower_cost(k), Kit.GOLD) + "\n" + Kit.c(DB.tx("tower:" + k, d.info), Kit.MUTED) + "\n"
-	s += Kit.c(("Buff +" + pct(t.b_dmg)) if d.support else ("Damage %s · %s shots/s" % [f0(t.dmg), f2(1 / d.rate)]), Kit.TEXT) + Kit.c(" · Range %s" % f0(d.range), Kit.TEXT) + "\n"
-	if not DB.is_simple():
+	if d.hero_buff:
+		s += Kit.c("Hero +%s damage · %s less damage taken · works anywhere on the map" % [pct(t.hb_dmg), pct(t.hb_armor)], Kit.TEXT) + "\n"
+	else:
+		s += Kit.c(("Buff +" + pct(t.b_dmg)) if d.support else ("Damage %s · %s shots/s" % [f0(t.dmg), f2(1 / d.rate)]), Kit.TEXT) + Kit.c(" · Range %s" % f0(d.range), Kit.TEXT) + "\n"
+	if not DB.is_simple() and not d.hero_buff:
 		var tr := tower_traits(g, t) if (d.support or k == "anvil") else traits(g, t).slice(1)
 		if tr.size():
 			s += bullets(tr) + "\n"
@@ -147,7 +176,7 @@ static func build_tip(g: Game, k: String) -> String:
 	if g.S.sig.get(k, false):
 		s += Kit.c("Signature: %s. %s" % [d.signature_name, DB.tx("sig:" + k, d.signature_desc)], Kit.PINK) + "\n"
 	var names := []
-	for p in d.paths:
+	for p in g.tower_paths(k):
 		names.append(p.name)
 	s += Kit.c("Paths: %s. Pick up to %d of them (%d with the Oracle) as it levels to %d." % [", ".join(names), DB.rules.path_limit, DB.rules.path_limit + 1, DB.rules.max_level], Kit.MUTED)
 	return s
