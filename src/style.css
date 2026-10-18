@@ -303,6 +303,9 @@ button.danger { border-color: var(--danger); color: var(--danger); }
 .song-unlock b { display: block; font-family: var(--display); font-size: 18px; color: var(--tech); }
 #runeBar { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 #runeBar .rune { border-color: var(--el); color: var(--el); padding: 6px 9px; }
+#runeBar .rune { position: relative; overflow: hidden; }
+#runeBar .rune.cd { opacity: .45; }
+#runeBar .rune.cd::after { content: ''; position: absolute; left: 0; bottom: 0; height: 3px; width: var(--cd); background: var(--el); }
 #runeBar .rune kbd { color: var(--muted); font-size: 11px; font-family: var(--display); }
 .rune-cast { display: inline-flex; align-items: center; gap: 4px; min-width: 150px; font-size: 13px; padding: 0 4px; }
 .rune-cast i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; box-shadow: 0 0 6px currentColor; }
@@ -327,3 +330,18 @@ button.danger { border-color: var(--danger); color: var(--danger); }
 .el-card.on { background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--el); }
 .el-card.on small { color: var(--text); }
 .el-card:hover:not(:disabled) { border-color: var(--el); }
+
+/* Wizard spellbook: folding sections */
+.sb-box { margin: 10px 0; }
+.sb-box > summary { cursor: pointer; font-family: var(--display); color: var(--accent, #9cf4dd); letter-spacing: .04em; padding: 4px 0; }
+.sb-box.sb-more { margin-left: 4px; }
+.el-card .meter.mastery { display: block; width: 100%; height: 4px; margin: 6px 0 2px; flex: none; background: rgba(255, 255, 255, .1); }
+.el-card .meter.mastery i { background: var(--el); }
+/* Spell mix triangle */
+.lean { display: flex; align-items: center; gap: 14px; margin: 10px 0; flex-wrap: wrap; }
+.lean svg { flex: none; }
+.lean .help { flex: 1; min-width: 180px; margin: 0; }
+.lean-tri { fill: rgba(156, 244, 221, .06); stroke: #625080; stroke-width: 1.5; }
+.lean-ax { stroke: #3b3561; stroke-width: 1; stroke-dasharray: 3 3; }
+.lean-dot { fill: #f252a2; stroke: #fff; stroke-width: 1.5; }
+.lean text { fill: #9b8ba5; font-size: 10px; font-family: var(--display, sans-serif); }

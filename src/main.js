@@ -411,7 +411,7 @@ const HEROES = {
     ability: { id: 'pierce', name: 'Piercing Shot', cd: 16, mult: 4, w: 18 },
     alt: { id: 'strike', name: 'Orbital Strike', cd: 16, mult: 5, r: 90 } },
   wizard:   { name: 'Wizard', role: 'Special', cat: 'special', color: 0x7fb2ff, css: '#7fb2ff', spells: true,
-    desc: 'A spell caster with no auto-attack. Ready elements with Q W E R (more keys as you take more elements) and left-click to cast at the cursor: one element, the same one twice for a stronger spell, or two different ones for a combination. Spells cost mana. Moves only with the mouse.',
+    desc: 'A spell caster with no auto-attack. Take 4 elements, ready them with Q W E R and left-click to cast at the cursor: one element, the same one twice for a stronger spell, or two different ones for a combination. An element mastered to level 10 can be readied three times for its ultimate. Spells cost mana, which flows during waves.',
     stats: { hp: 190, dmg: 0, rate: 1, range: 0, block: 1, armor: 0, regen: 2, speed: 140, mana: 100, manaRegen: 7 },
     ability: { id: 'spells', name: 'Spellcraft', cd: 0 } },
 };
@@ -447,7 +447,7 @@ function tipFor(key) {
   if (key === 'ability' && S && S.hero) return abilityTipHtml(S.hero);
   if (key.startsWith('ability:')) { const parts = key.split(':'), d = HEROES[parts[1]], ab = parts[2] === 'alt' ? d.alt : parts[2] === 'base' ? d.ability : heroAbility(parts[1]); return abilityTipHtml({ ab: Object.assign({}, ab), dmg: d.stats.dmg, taunt: 0 }); }
   if (key.startsWith('mod:')) { const m = ABILITY_MODS.find(x => x.id === key.slice(4)); return m ? `<b>${m.name}</b><p>${tx(key, m.desc)}</p>` : ''; }
-  if (key === 'spells' && S && S.hero) { const r = resolveRunes(S.runes); return `<b>Runes</b><p>${r ? `<b>${r.spell.name}</b>: ${r.spell.desc(S.hero, spellPow(S.hero) * r.pow)}${r.rider ? ` The ${ELEMENTS[r.rider].name.toLowerCase()} rune ${RIDERS[r.rider].text}.` : ''}` : abilityText(S.hero)}</p><div class="tip-s">Mana ${Math.floor(S.hero.mana)}/${Math.round(S.hero.maxMana)} · +${S.hero.manaRegen.toFixed(1)}/s</div>`; }
+  if (key === 'spells' && S && S.hero) { const r = resolveRunes(S.runes); return `<b>Runes</b><p>${r ? `<b>${r.spell.name}</b>: ${r.spell.desc(S.hero, spellPow(S.hero) * r.pow)}` : abilityText(S.hero)}</p><div class="tip-s">Mana ${Math.floor(S.hero.mana)}/${Math.round(S.hero.maxMana)} · +${S.hero.manaRegen.toFixed(1)}/s</div>`; }
   if (key === 'hold') return `<b>Hold position</b> <span class="tip-c">H</span><p>Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.</p>`;
   if (key === 'aim') return `<b>Aim point</b> <span class="tip-c">F</span><p>Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.</p>`;
   return '';
@@ -463,7 +463,7 @@ function abilityText(h) {
   const a = h.ab;
   if (a.id === 'spells') {
     const keys = S && S.hero && !S.over && S.hero.cls === 'wizard' ? Object.entries(S.runeKeys) : wizLoadout().map((el, i) => [SLOT_KEYS[i], el]);
-    return `Ready elements with ${keys.map(([k, el]) => `${k.toUpperCase()} (${ELEMENTS[el].name.toLowerCase()})`).join(', ')}, then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Spells cost mana.`;
+    return `Ready elements with ${keys.map(([k, el]) => `${k.toUpperCase()} (${ELEMENTS[el].name.toLowerCase()})`).join(', ')}, then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Three of an element mastered to level ${TRIPLE_AT}: its ultimate. Elements you cast rest for ${EL_CD}s. Spells cost mana, which flows only during waves; clearing a wave refills 30% of it.`;
   }
   if (simple() && SIMPLE['ability:' + a.id]) return SIMPLE['ability:' + a.id];
   if (a.id === 'slam') return `Deals ${a.dmg.toFixed(0)} damage and stuns enemies within ${a.r.toFixed(0)} for ${a.stun.toFixed(1)}s.`;
@@ -554,9 +554,12 @@ const PERKS = [
   { id: 'manaflow',cls: 'wizard', name: 'Mana Spring',     m: 1.5,  desc: m => `+${m.toFixed(1)} mana per second.`, apply: (h, m) => h.manaRegen += m },
   { id: 'thrift',  cls: 'wizard', name: 'Spell Thrift',    m: 0.07, desc: m => `Spells cost ${pct(Math.min(0.5, m))} less mana (up to 50%).`, apply: (h, m) => h.spellCost = Math.max(0.5, h.spellCost * (1 - Math.min(0.5, m))) },
   { id: 'reachsp', cls: 'wizard', name: 'Wide Casting',    m: 0.1,  desc: m => `Spells cover +${pct(m)} more area.`, apply: (h, m) => h.spellR *= 1 + m },
-  { id: 'rime',    cls: 'wizard', name: 'Rime',            m: 0.3,  desc: m => `Freezes last ${m.toFixed(1)}s longer.`, apply: (h, m) => h.freezeBonus += m },
-  { id: 'masonry', cls: 'wizard', name: 'Masonry',         m: 0.25, desc: m => `Stone walls have +${pct(m)} HP.`, apply: (h, m) => h.wallBonus *= 1 + m },
-  { id: 'zephyr',  cls: 'wizard', name: 'Zephyr',          m: 0.2,  desc: m => `Enemies you blow back are pushed ${pct(m)} longer.`, apply: (h, m) => h.pushBonus *= 1 + m },
+  { id: 'rime',    cls: 'wizard', needs: 'freeze', name: 'Rime',            m: 0.3,  desc: m => `Freezes last ${m.toFixed(1)}s longer.`, apply: (h, m) => h.freezeBonus += m },
+  { id: 'masonry', cls: 'wizard', needs: 'wall', name: 'Masonry',         m: 0.25, desc: m => `Stone walls have +${pct(m)} HP.`, apply: (h, m) => h.wallBonus *= 1 + m },
+  { id: 'zephyr',  cls: 'wizard', needs: 'push', name: 'Zephyr',          m: 0.2,  desc: m => `Enemies you blow back are pushed ${pct(m)} longer.`, apply: (h, m) => h.pushBonus *= 1 + m },
+  // one Attunement per element, offered only when the element is taken on the run
+  ...['fire', 'water', 'earth', 'air', 'storm', 'nature', 'void', 'light'].map(el => ({ id: 'att_' + el, cls: 'wizard', el, name: `${{ fire: 'Fire', water: 'Water', earth: 'Earth', air: 'Air', storm: 'Lightning', nature: 'Nature', void: 'Void', light: 'Light' }[el]} Attunement`, m: 0.12,
+    desc: m => `Spells that use ${{ fire: 'fire', water: 'water', earth: 'earth', air: 'air', storm: 'lightning', nature: 'nature', void: 'void', light: 'light' }[el]} deal +${pct(m)} damage.`, apply: (h, m) => { h.elPow = h.elPow || {}; h.elPow[el] = (h.elPow[el] || 1) * (1 + m); } })),
   { id: 'alchemy', cls: 'support', name: 'Alchemist',       m: 0.15, desc: m => `Tower merges cost ${pct(Math.min(0.8, m))} less.`, apply: (h, m) => h.mergeMul *= 1 - Math.min(0.8, m) },
 ];
 // Every hero level also grows the hero's core stats, by role. Damage heroes hit harder, reach farther and
@@ -750,7 +753,6 @@ const HERO_META = {
     { id: 'potency',  name: 'Spell Potency',    max: 10, cost: r => 60 + 50 * r, desc: r => `Spells deal +${5 * r}% damage`, apply: (h, r) => h.spell *= 1 + 0.05 * r, book: (h, r) => h.spell *= 1 + 0.05 * r },
     { id: 'reservoir',name: 'Arcane Reservoir', max: 10, cost: r => 80 + 60 * r, desc: r => `+${10 * r} max mana`, apply: (h, r) => { h.maxMana += 10 * r; h.mana = h.maxMana; } },
     { id: 'flow',     name: 'Mana Flow',        max: 10, cost: r => 100 + 80 * r, desc: r => `+${(0.6 * r).toFixed(1)} mana per second`, apply: (h, r) => h.manaRegen += 0.6 * r },
-    { id: 'triad',    name: 'Third Rune',       max: 1, cost: () => 300, desc: () => 'Ready 3 runes at once: an ultimate spell for each element (the same element three times) and overcharged mixed spells', apply: h => h.runeMax = 3 },
   ],
 };
 // What the menu upgrades cost before 0.23 (5 ranks at half price). Those ranks are refunded once, since every
@@ -849,11 +851,13 @@ const rank = (obj, id) => (obj && obj[id]) || 0;
 // 0.23: menu upgrades go to 10 ranks at double price with smaller steps. Give back what the old ranks cost.
 if (!META.meta10) {
   const back = (obj, id, cost) => { for (let r = 0; r < rank(obj, id); r++) META.shards += cost(r); delete obj[id]; };
-  for (const k of Object.keys(HERO_META)) HERO_META[k].forEach((d, i) => { if (d.id !== 'triad') back(META.heroes[k], d.id, OLD_META_COST.hero[i]); });
+  for (const k of Object.keys(HERO_META)) HERO_META[k].forEach((d, i) => back(META.heroes[k], d.id, OLD_META_COST.hero[i]));
   for (const [id, cost] of Object.entries(OLD_META_COST.global)) back(META.global, id, cost);
   for (const [id, cost] of Object.entries(OLD_META_COST.tower)) back(META.towerGlobal, id, cost);
   META.meta10 = true; saveMeta();
 }
+// 0.25: Third Rune is gone (each element opens its triple rune at mastery 10): give back its 300 shards.
+if (META.heroes.wizard && META.heroes.wizard.triad) { META.shards += 300; delete META.heroes.wizard.triad; saveMeta(); }
 // Mastery: each tower type levels up with kills, each hero with its role's stat (level L needs 5 x L x (L + 1) points). It can't
 // pass level 10 until it has beaten the first map, 20 until the second, and so on up to 50 on the last map.
 const MASTERY_MAX = 50, masteryKills = L => 5 * L * (L + 1);
@@ -873,6 +877,8 @@ function masteryOf(kind, k) {
   const cap = Math.min(MASTERY_MAX, 10 * (beaten + 1)), raw = Math.floor((Math.sqrt(1 + 0.8 * kills) - 1) / 2), lvl = Math.min(raw, cap);
   return { kills, lvl, cap, capped: raw >= cap && cap < MASTERY_MAX, prev: masteryKills(lvl), next: lvl < MASTERY_MAX ? masteryKills(lvl + 1) : null, nextMap: MAP_ORDER[beaten] };
 }
+// The Wizard's mastery is per element, so its cards show its best element instead.
+const heroMasteryText = k => HEROES[k].spells ? `Best element mastery ${Math.max(...EL_ORDER.map(el => elMastery(el).lvl))}` : `Mastery ${masteryOf('heroes', k).lvl}`;
 function masteryNeed(kind, k, m) {
   if (kind !== 'heroes') return `${m.next - m.kills} more kill${m.next - m.kills === 1 ? '' : 's'} to level ${m.lvl + 1}.`;
   const r = ROLE_STAT[HEROES[k].cat], left = Math.ceil((m.next * r.per - heroStat(k)));
@@ -944,32 +950,52 @@ const bgm = {
   set currentTime(t) { const was = !this.paused; this.stop(); this.offset = t; if (was) this.play(); },
   set volume(v) { if (this.ctx()) this.gain.gain.value = v; },
   setLoop(on) { this.loop = on; if (this.src) this.src.loop = on; },
-  setSong(song) {
-    if (this.song === song) return;
-    this.stop(); this.song = song; this.buf = null; this.offset = 0;
+  // Decoded songs, kept for the song playing and the one the playlist moves to next.
+  cache: {},
+  load(song, cb) {
+    if (this.cache[song.id]) return cb(this.cache[song.id]);
     const c = this.ctx(); if (!c) return;
     // XHR rather than fetch: the desktop app loads the game from files, which fetch refuses.
     const x = new XMLHttpRequest(); x.open('GET', song.url); x.responseType = 'arraybuffer';
     x.onload = () => c.decodeAudioData(x.response).then(buf => {
-      if (this.song !== song) return;
-      this.buf = loopBuffer(c, buf, song.loop, song.lead);
-      if (this.want) { this.paused = true; this.play(); }
-      musicTick();
+      const keep = [this.song && this.song.id, this.nextId, song.id];
+      for (const id of Object.keys(this.cache)) if (!keep.includes(id)) delete this.cache[id];
+      cb(this.cache[song.id] = loopBuffer(c, buf, song.loop, song.lead));
     }).catch(() => {});
     x.send();
   },
-  play() {
+  setSong(song) {
+    if (this.song === song) return;
+    this.stop(); this.song = song; this.buf = null; this.offset = 0; this.nextId = null;
+    this.load(song, buf => {
+      if (this.song !== song) return;
+      this.buf = buf;
+      if (this.want) { this.paused = true; this.play(); }
+      musicTick();
+    });
+  },
+  play(fadeIn) {
     this.want = true;
     const c = this.ctx(); if (!c || !this.buf || !this.paused) return;
     if (c.state === 'suspended') c.resume();
-    const src = this.src = c.createBufferSource();
-    src.buffer = this.buf; src.loop = this.loop; src.connect(this.gain);
+    const src = this.src = c.createBufferSource(), sg = this.sg = c.createGain();
+    src.buffer = this.buf; src.loop = this.loop; src.connect(sg); sg.connect(this.gain);
+    if (fadeIn) { sg.gain.setValueAtTime(0, c.currentTime); sg.gain.linearRampToValueAtTime(1, c.currentTime + fadeIn); }
     const at = this.offset % this.buf.duration;
     src.start(0, at); this.startedAt = c.currentTime - at; this.paused = false;
     src.onended = () => { if (this.src === src) { this.src = null; this.paused = true; this.offset = 0; if (this.onended) this.onended(); } };
   },
+  // Playlist change-over: the song playing fades out while the next fades in over the same seconds.
+  crossTo(song, buf, secs) {
+    const c = this.ctx(), now = c.currentTime, old = this.src, og = this.sg;
+    this.stopFade();
+    if (old) { old.onended = null; og.gain.setValueAtTime(og.gain.value, now); og.gain.linearRampToValueAtTime(0, now + secs); old.stop(now + secs + 0.05); this.fading = old; }
+    this.src = null; this.paused = true; this.song = song; this.buf = buf; this.offset = 0; this.nextId = null;
+    this.play(secs);
+  },
+  stopFade() { if (this.fading) { try { this.fading.stop(); } catch (e) {} this.fading = null; } },
   pause() { this.want = false; if (this.paused) return; this.offset = this.currentTime; this.stop(); },
-  stop() { if (this.src) { this.src.onended = null; try { this.src.stop(); } catch (e) {} this.src = null; } this.paused = true; },
+  stop() { this.stopFade(); if (this.src) { this.src.onended = null; try { this.src.stop(); } catch (e) {} this.src = null; } this.paused = true; },
 };
 function loopBuffer(c, buf, loop, lead) {
   const sr = buf.sampleRate, L = Math.round((loop || 0) * sr), ch = [...Array(buf.numberOfChannels)].map((_, i) => buf.getChannelData(i));
@@ -998,12 +1024,26 @@ function playSong(id) {
   bgm.setSong(SONGS[songIdx()]);
   bgmStarted = true; applyMusic();
 }
-function nextSong(step = 1) {
+function pickNext(step = 1) {
   const list = playlist(), n = list.length, i = list.findIndex(s => s.id === SETTINGS.song);
-  if (i < 0) return playSong(list[0].id);
-  playSong(list[SETTINGS.musicMode === 'shuffle' && n > 1 ? (i + 1 + Math.floor(Math.random() * (n - 1))) % n : (i + step + n) % n].id);
+  if (i < 0) return list[0].id;
+  return list[SETTINGS.musicMode === 'shuffle' && n > 1 ? (i + 1 + Math.floor(Math.random() * (n - 1))) % n : (i + step + n) % n].id;
 }
+function nextSong(step = 1) { playSong(pickNext(step)); }
 bgm.onended = () => nextSong();
+// In a playlist, songs cross-fade: the next one is loaded a little early and fades in over the last 10 seconds.
+const XFADE = 10;
+setInterval(() => {
+  if (!SETTINGS.musicOn || bgm.paused || bgm.loop || !bgm.buf || SETTINGS.musicMode === 'one' || playlist().length < 2 || bgm.duration < XFADE * 3) return;
+  const left = bgm.duration - bgm.currentTime;
+  if (left < XFADE + 20 && !bgm.nextId) { const id = pickNext(); if (id !== SETTINGS.song) { bgm.nextId = id; bgm.load(SONGS.find(s => s.id === id), () => {}); } }
+  const next = bgm.nextId && bgm.cache[bgm.nextId];
+  if (left <= XFADE && next) {
+    const song = SONGS.find(s => s.id === bgm.nextId);
+    SETTINGS.song = song.id; saveSettings(); bgm.crossTo(song, next, Math.max(1, left));
+    if (bgm.onswitch) bgm.onswitch();
+  }
+}, 200);
 // browsers only allow audio after the player interacts with the page
 const startMusic = () => { if (!bgm.song) playSong(SETTINGS.song); else applyMusic(); };
 playSong(SETTINGS.song);
@@ -1213,7 +1253,7 @@ function showHeroes(sel) {
   showScreen(`<div class="screen-head"><h2>Heroes</h2>${shardsTag()}<button id="mBack">Back</button></div>
     <div class="heroes">
       <div class="roster">${CATEGORIES.map(([c, label]) => `<h4 class="cat">${label}</h4>` + (heroesIn(c).map(([k, h]) => `<button data-hero-tab="${k}" class="${k === sel ? 'on' : ''}" style="border-left-color:${h.css}">
-        <small>${heroAbility(k).name} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${h.css}">${h.name}</b></button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
+        <small>${heroAbility(k).name} · ${heroMasteryText(k)}</small><b style="color:${h.css}">${h.name}</b></button>`).join('') || '<p class="help cat-empty">More heroes coming.</p>')).join('')}</div>
       <div class="card herodetail">
         ${heroPortrait(sel, 3)}<h3 style="color:${d.css}">${d.name} · ${d.role}</h3>
         <p>${tx('hero:' + sel, d.desc)}</p>
@@ -1227,8 +1267,8 @@ function showHeroes(sel) {
         <h3 class="meta-h">Stats</h3>
         <div class="stats">${ROLE_STAT[d.cat].name !== 'kills' ? `<div><span>Total ${ROLE_STAT[d.cat].name}</span>${Math.round(heroStat(sel))}</div>` : ''}<div><span>Total kills</span>${META.kills.heroes[sel] || 0}</div><div><span>Total takedowns</span>${META.takedowns.heroes[sel] || 0}</div><div><span>Runs</span>${(META.played || {})[sel] || 0}</div>
           <div><span>Maps beaten</span>${MAP_ORDER.filter(m => (META.wins.heroes[sel] || {})[m]).length}/${MAP_ORDER.length}</div></div>
-        ${masteryHtml('heroes', sel)}
-        ${d.spells ? `${elementsHtml()}<h3 class="meta-h">Spellbook</h3><p class="help">${abilityText({ ab: d.ability })} Spells for every element you own are listed.</p>${spellbookHtml(bookHero(), rank(META.heroes.wizard || {}, 'triad'), EL_ORDER.filter(elOpen))}` : `<h3 class="meta-h">Ability · pick one</h3>
+        ${d.spells ? '' : masteryHtml('heroes', sel)}
+        ${d.spells ? `${elementsHtml()}<p class="help">${abilityText({ ab: d.ability })}</p>${spellbookHtml(bookHero(), wizLoadout(), EL_ORDER.filter(elOpen))}` : `<h3 class="meta-h">Ability · pick one</h3>
         <div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].map(([v, ab]) => `<button class="choice ${heroAbility(sel) === ab ? 'picked' : ''}" data-ab-pick="${v}">
           <small class="path">${heroAbility(sel) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${sel}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>`}
         <h3 class="meta-h">${d.name} upgrades ${refundBtn('hero', sel)}</h3>${HERO_META[sel].map(x => metaRow(x, META.heroes[sel], 'hero', sel)).join('')}
@@ -1241,20 +1281,7 @@ function showHeroes(sel) {
       <h3 class="meta-h special-h">Special upgrades for all heroes ${refundBtn('special')}</h3>${SPECIALS.filter(x => !x.hero).map(specialRow).join('')}</div>`);
   $('screen').querySelectorAll('[data-hero-tab]').forEach(b => b.onclick = () => showHeroes(b.dataset.heroTab));
   $('screen').querySelectorAll('[data-ab-pick]').forEach(b => b.onclick = () => { META.abilities = META.abilities || {}; META.abilities[sel] = b.dataset.abPick; saveMeta(); showHeroes(sel); });
-  $('screen').querySelectorAll('[data-el-buy]').forEach(b => b.onclick = () => {
-    const el = b.dataset.elBuy, cost = ELEMENTS[el].cost;
-    if (elOpen(el) || META.shards < cost) return;
-    META.shards -= cost; META.wizEls = Object.assign({}, META.wizEls, { [el]: true });
-    const load = wizLoadout(); if (load.length < wizSlots() && !load.includes(el)) load.push(el);
-    META.wizLoad = load; saveMeta(); sfx('level'); showHeroes(sel);
-  });
-  $('screen').querySelectorAll('[data-el-take]').forEach(b => b.onclick = () => {
-    const el = b.dataset.elTake, load = wizLoadout();
-    if (load.includes(el)) { if (load.length > 1) load.splice(load.indexOf(el), 1); }
-    else if (load.length < wizSlots()) load.push(el);
-    else return toast(`All ${wizSlots()} element slots are full: click a taken element to leave it behind first.`);
-    META.wizLoad = load; saveMeta(); showHeroes(sel);
-  });
+  bindElements(() => showHeroes(sel));
   $('screen').querySelectorAll('[data-meta]').forEach(b => b.onclick = () => {
     const isHero = b.dataset.meta === 'hero', defs = isHero ? HERO_META[b.dataset.hero] : GLOBAL_META, def = defs.find(x => x.id === b.dataset.id);
     const obj = isHero ? META.heroes[b.dataset.hero] : META.global;
@@ -1278,7 +1305,7 @@ function showHeroes(sel) {
 }
 const clock = t => isFinite(t) ? Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0') : '0:00';
 function showMusic() {
-  queueTip('music');
+  queueTip('music'); bgm.onswitch = () => { if ($('muSeek')) showMusic(); };
   const cur = SONGS[songIdx()], playing = !bgm.paused && SETTINGS.musicOn;
   showScreen(`<div class="screen-head"><h2>Music</h2><button id="mBack">Back</button></div>
     <p class="lead">Pick the background music. It plays on the menus and during runs.</p>
@@ -1409,7 +1436,7 @@ function makeHero(id) {
     ab: Object.assign({ t: 0 }, heroAbility(id)), shield: 0, shieldMax: 0, shieldT: 0, odT: 0,
     boonSlow: 0, boonSplash: 0, boonRail: 0, boonVent: 0, boonChain: 0, boonIon: 0,
     xpGain: 0, retStore: 0, retT: 4, barrageT: 5,
-    mana: s.mana || 0, maxMana: s.mana || 0, manaRegen: s.manaRegen || 0, spell: 1, spellR: 1, spellCost: 1, freezeBonus: 0, pushBonus: 1, wallBonus: 1, runeMax: 2, echo: 0,
+    mana: s.mana || 0, maxMana: s.mana || 0, manaRegen: s.manaRegen || 0, spell: 1, spellR: 1, spellCost: 1, freezeBonus: 0, pushBonus: 1, wallBonus: 1, echo: 0, elPow: {},
   };
 }
 function applyHeroMeta(h) {
@@ -1436,7 +1463,7 @@ function showHeroSelect() {
   let step = 'hero';
   const heroCards = () => CATEGORIES.filter(([c]) => heroesIn(c).length).map(([c, label]) => `<h3 class="cat-h">${label}</h3><div class="cards">${heroesIn(c).map(([k, d]) => {
         return `<button class="choice mapcard hero-pick ${hero === k ? 'picked' : ''}" data-k="${k}" style="border-color:${d.css}">
-        ${heroPortrait(k, 2)}<small class="path" style="color:${d.css}">${d.role} · Mastery ${masteryOf('heroes', k).lvl}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
+        ${heroPortrait(k, 2)}<small class="path" style="color:${d.css}">${d.role} · ${heroMasteryText(k)}</small><b style="color:${d.css}">${d.name}</b><span>${tx('hero:' + k, d.desc)}</span>
         <span>HP ${d.stats.hp} · ${d.stats.mana ? 'Mana ' + d.stats.mana + ' · No auto-attack' : 'Damage ' + d.stats.dmg + ' · ' + (d.stats.range >= 9999 ? 'Whole-map range' : 'Blocks ' + blockText(d.stats.block).toLowerCase())}</span>
         <span class="help">Each level: ${ROLE_LEVEL[d.cat] ? tx('role:' + d.cat, ROLE_LEVEL[d.cat].text) : ''}</span>
         <em class="reward">${d.spells ? `Spells: ${wizLoadout().length} elements, then left-click` : `Ability: <span class="tipname" data-tip="ability:${k}">${heroAbility(k).name}</span>`}</em></button>`; }).join('')}</div>`).join('');
@@ -1445,7 +1472,7 @@ function showHeroSelect() {
         <small class="path" style="color:${d.css}">${on ? 'Key ' + (picks.indexOf(k) + 1) : d.support ? 'Support' : d.cost + ' gold'}${META.towers[k].sig ? ' · ' + SIGNATURES[k].name : ''}</small><b style="color:${d.css}">${d.name}</b><span>${tx('tower:' + k, d.info)}</span></button>`; }).join('')}</div>`;
   // The picked hero's two abilities, so you can swap before the run without visiting the Heroes page.
   const abilityRow = () => { const d = HEROES[hero];
-    if (d.spells) return `<h3 class="cat-h">${d.name} · spells</h3><p class="help">${abilityText({ ab: d.ability })} Pick elements and see the full spellbook on the Heroes page.</p>`;
+    if (d.spells) return `<h3 class="cat-h">${d.name} · spells</h3><div class="card">${elementsHtml()}${spellbookHtml(bookHero(), wizLoadout(), EL_ORDER.filter(elOpen), 'pick')}</div>`;
     return `<h3 class="cat-h">${d.name} ability · pick one</h3><div class="choices ab-picks">${[['base', d.ability], ['alt', d.alt]].filter(([, ab]) => ab).map(([v, ab]) => `<button class="choice ${heroAbility(hero) === ab ? 'picked' : ''}" data-ab-pick="${v}">
       <small class="path">${heroAbility(hero) === ab ? 'Equipped' : 'Click to equip'} · ${ab.cd}s cooldown</small><b class="tipname" data-tip="ability:${hero}:${v}">${ab.name}</b><span>${abilityText({ ab })}</span></button>`).join('')}</div>`; };
   // Two pages: pick the hero first, then the towers.
@@ -1464,6 +1491,7 @@ function showHeroSelect() {
     if (step === 'hero') {
       $('screen').querySelectorAll('.hero-pick').forEach(b => b.onclick = () => { hero = b.dataset.k; render(); });
       $('screen').querySelectorAll('[data-ab-pick]').forEach(b => b.onclick = () => { META.abilities = META.abilities || {}; META.abilities[hero] = b.dataset.abPick; saveMeta(); render(); });
+      bindElements(render);
       $('heroNext').onclick = $('heroNextTop').onclick = () => { step = 'towers'; $('screen').scrollTop = 0; render(); $('screen').scrollTop = 0; };
       $('screen').scrollTop = y;
       $('mBack').onclick = () => { S = null; showMapSelect(); };
@@ -1493,7 +1521,14 @@ function startRun(hero, towers) {
   S.loadout = towers.slice();
   S.sig = {}; for (const k of towers) if (META.towers[k].sig) S.sig[k] = true;
   S.hero = makeHero(hero); applyHeroMeta(S.hero); applySpecials(S.hero); S.paused = false; hideScreen();
-  if (HEROES[hero].spells) S.runeKeys = Object.fromEntries(wizLoadout().map((el, i) => [SLOT_KEYS[i], el]));
+  S.elCd = {}; S.elMana = {}; S.triples = [];
+  if (HEROES[hero].spells) {
+    const load = wizLoadout(), h = S.hero;
+    S.runeKeys = Object.fromEntries(load.map((el, i) => [SLOT_KEYS[i], el])); S.triples = load.filter(canTriple);
+    // what this run's spells can do, so the level-up offers fit them
+    const text = spellsFor(load, S.triples).map(k => SPELLS[k].desc(bookHero(), 1).toLowerCase()).join(' ');
+    h.els = load; h.can = { freeze: /freez/.test(text), wall: /wall/.test(text), push: /push|blow|hurl|drag|back along/.test(text) };
+  }
   renderBuildBar(); renderInspector(); renderCodex(); renderEnemyCodex(); renderHero();
   toast(HEROES[hero].name + ' ready. Build towers, then start the wave.');
   queueTip('run');
@@ -1756,6 +1791,7 @@ function closeWaveLog(cleared) {
 }
 function endWave() {
   S.waveActive = false;
+  const hh = S.hero; if (hh && hh.maxMana) hh.mana = Math.min(hh.maxMana, hh.mana + hh.maxMana * 0.3); // a cleared wave refills 30% of max mana
   if (MAPS[S.map].drain && S.towers.length) {
     const top = S.towers.reduce((a, b) => (b.dmgWave || 0) > (a.dmgWave || 0) ? b : a);
     S.drained = top.dmgWave ? top : null;
@@ -2204,11 +2240,11 @@ function orbitalStrike(h, a) {
     if (a.carpet) for (let i = 0; i < 3; i++) { const ang = Math.random() * Math.PI * 2, d = a.r * 0.9; S.delayed.push({ at: S.time + 0.15 * (i + 1), fn: () => boom(at.x + Math.cos(ang) * d, at.y + Math.sin(ang) * d, a.r * 0.7, 0.5) }); }
   } });
 }
-// ---------- the Wizard: no auto-attack; ready up to 2 elements (3 with Third Rune), then left-click to cast ----------
+// ---------- the Wizard: no auto-attack; ready up to 2 elements (3 of one mastered element), then left-click to cast ----------
 // Q fire, W water, E earth, R air. One element casts its spell; the same element twice casts a bigger version for
 // more mana; two different elements cast their combination spell. Spells land on the cursor and cost mana.
-// Elements: the first four are always known; the rest are bought on the Heroes page. The Wizard takes a few of
-// them on each run (more as its mastery grows), bound in order to Q W E R and then A S D F.
+// Elements: the first four are always known; the rest are bought on the Heroes page. The Wizard takes 4 of them on
+// each run, bound in order to Q W E R. Each element has its own mastery; at level 10 it can be readied three times.
 const ELEMENTS = {
   fire:   { name: 'Fire',      color: 0xff7a3d, css: '#ff7a3d' },
   water:  { name: 'Water',     color: 0x5fc8ff, css: '#5fc8ff' },
@@ -2220,9 +2256,18 @@ const ELEMENTS = {
   light:  { name: 'Light',     color: 0xf9e6a2, css: '#f9e6a2', cost: 600, blurb: 'Piercing beams and heavy single hits, and some spells heal you.' },
 };
 const EL_ORDER = ['fire', 'water', 'earth', 'air', 'storm', 'nature', 'void', 'light'];
-const BASE_ELS = EL_ORDER.slice(0, 4), SLOT_KEYS = ['q', 'w', 'e', 'r', 'a', 's', 'd', 'f'], SLOT_AT = [5, 15, 25, 35];
+const BASE_ELS = EL_ORDER.slice(0, 4), SLOT_KEYS = ['q', 'w', 'e', 'r'], TRIPLE_AT = 10, EL_CD = 2;
 const elOpen = el => BASE_ELS.includes(el) || !!(META.wizEls && META.wizEls[el]);
-const wizSlots = () => 4 + SLOT_AT.filter(m => masteryOf('heroes', 'wizard').lvl >= m).length;
+const wizSlots = () => SLOT_KEYS.length;
+// Element mastery: 1 point for every 10 mana spent on spells that use the element, on the hero mastery curve and caps.
+META.elStat = META.elStat || {};
+function elMastery(el, extra = 0) {
+  const pts = Math.floor((META.elStat[el] || 0) + extra), won = META.wins.heroes.wizard || {};
+  let beaten = 0; while (beaten < MAP_ORDER.length && won[MAP_ORDER[beaten]]) beaten++;
+  const cap = Math.min(MASTERY_MAX, 10 * (beaten + 1)), lvl = Math.min(cap, Math.floor((Math.sqrt(1 + 0.8 * pts) - 1) / 2));
+  return { pts, lvl, cap, prev: masteryKills(lvl), next: lvl < MASTERY_MAX ? masteryKills(lvl + 1) : null };
+}
+const canTriple = el => elMastery(el).lvl >= TRIPLE_AT;
 // The elements taken on the next run: the saved picks that are still open, cut to the slots (by default the first
 // elements owned, in order).
 function wizLoadout() {
@@ -2421,7 +2466,6 @@ const SPELLS = {
 const f0 = v => Math.round(v);
 // how long after casting a spell lands (fireballs fly, the meteor falls)
 const flight = (h, x, y) => Math.max(0.12, Math.hypot(x - h.x, y - h.y) / 650);
-const landsAfter = (key, h, x, y) => /^(fire(\+fire)*|void|fire\+void)$/.test(key) ? flight(h, x, y) : key === 'fire+earth' ? 0.7 : 0.05;
 // Painted spell effects (assets/fx_spells.png: 8-frame animations). Each spell names its animation, how it plays and
 // its radius. once: plays through. zone: plays in, loops its middle frames for the spell's duration, then plays out.
 // fly: the first frames travel from the staff to the target (turned to face the way they fly), the rest burst there.
@@ -2454,7 +2498,7 @@ const SPELL_ART = {
   'void+void': { a: 'runeB', r: 90, dur: 3, loop: [2, 5], low: true },
   'void+void+void': { a: 'runeB', r: 200, low: true, fps: 11 },
 };
-// Marks the circles and lines a spell draws as stand-ins so they fade under its painted effect (also for what it
+// Marks the circles and lines a spell draws as stand-ins, hidden under its painted effect (also for what it
 // does later, like a fireball landing).
 function quietly(fn) {
   const f0 = S.fx.length, z0 = S.zones.length, d0 = S.delayed.length, out = fn();
@@ -2477,32 +2521,21 @@ function spellArt(key, h, x, y) {
   } else if (A.beam) S.art.push({ a: A.a, beam: true, x1: h.x, y1: h.y, x2: x, y2: y, t0: S.time, fps: 16 });
   else area(S.time, A.turn ? { ang: Math.atan2((y - h.y) * K, x - h.x) } : {});
 }
-// A third, different element overcharges a two-element spell (+35% power) and adds its own touch on the target area.
-const RIDERS = {
-  fire:  { text: 'sets enemies burning (20/s for 3s)', apply: (e, p) => { e.burnT = Math.max(e.burnT, 3); e.burnDps = Math.max(e.burnDps, 20 * p); } },
-  water: { text: 'freezes them for 1s', apply: (e, p, h) => freeze(e, 1, h) },
-  earth: { text: 'cracks their armor (25% for 4s)', apply: e => { e.brk = Math.max(e.brk, 0.25); e.brkT = Math.max(e.brkT, 4); } },
-  air:   { text: 'blows them back for 0.8s', apply: (e, p, h) => pushBack(e, 0.8, 90, h) },
-  storm: { text: 'shocks them for 30 damage and a 0.3s stun', apply: (e, p) => { damage(e, 30 * p); root(e, 0.3); } },
-  nature: { text: 'poisons them (18/s for 4s)', apply: (e, p) => poison(e, 18 * p, 4) },
-  void:  { text: 'makes them take 15% more damage for 4s', apply: e => expose(e, 0.15, 4) },
-  light: { text: 'smites them for 40 damage', apply: (e, p) => damage(e, 40 * p) },
-};
 const spellKey = els => els.slice().sort((a, b) => EL_ORDER.indexOf(a) - EL_ORDER.indexOf(b)).join('+');
-// What the readied runes cast: { spell, key, rider, mana, pow }.
+// What the readied runes cast: { spell, key, mana, pow }.
 function resolveRunes(runes) {
   if (!runes.length) return null;
-  if (runes.length < 3 || runes.every(r => r === runes[0])) { const key = spellKey(runes); return { key, spell: SPELLS[key], mana: SPELLS[key].mana, pow: 1 }; }
-  // mixed three: the first two different elements make the spell, the remaining rune rides along
-  const a = runes[0], b = runes.find(r => r !== a), rest = runes.slice(); rest.splice(rest.indexOf(a), 1); rest.splice(rest.indexOf(b), 1);
-  const key = spellKey([a, b]), s = SPELLS[key];
-  return { key, spell: s, rider: rest[0], mana: Math.round(s.mana * 1.4), pow: 1.35 };
+  const key = spellKey(runes); return SPELLS[key] ? { key, spell: SPELLS[key], mana: SPELLS[key].mana, pow: 1 } : null;
 }
+// Two runes are kept (the oldest drops off); a third only when all three are one element mastered to level 10.
+// An element just cast rests for 2 seconds before it can be readied again.
 function readyRune(k) {
   const h = S.hero; if (!h || h.ko || S.over || !$('modal').hidden) return;
-  if (!S.runeKeys[k]) return;
-  S.runes.push(S.runeKeys[k]); if (S.runes.length > h.runeMax) S.runes.shift();
-  sfx('click'); renderRunes();
+  const el = S.runeKeys[k]; if (!el) return;
+  if (S.time < (S.elCd[el] || 0)) return;
+  let R = S.runes.concat(el).slice(-3);
+  if (!(R.length === 3 && R.every(r => r === el) && S.triples.includes(el))) R = R.slice(-2);
+  S.runes = R; sfx('click'); renderRunes();
 }
 function castRunes(x, y) {
   const h = S.hero, r = resolveRunes(S.runes);
@@ -2511,12 +2544,16 @@ function castRunes(x, y) {
   if (S.time < (h.castT || 0)) return;
   const mana = r.mana * h.spellCost;
   if (h.mana < mana) return toast(`Not enough mana for ${r.spell.name} (${Math.ceil(mana)} needed).`);
-  const p = spellPow(h) * r.pow;
-  if (quietly(() => r.spell.cast(h, x, y, p)) === false) return toast('Walls go on the path: point at a path tile to raise one.');
+  const p = spellPow(h) * r.pow * elBoost(h, r.key);
+  const art = SPELL_ART[r.key] ? quietly : f => f(); // painted spells hide their stand-in circles; the rest keep them
+  const f0 = S.fx.length, z0 = S.zones.length, w0 = S.walls.length;
+  if (art(() => r.spell.cast(h, x, y, p)) === false) return toast('Walls go on the path: point at a path tile to raise one.');
   spellArt(r.key, h, x, y);
-  if (r.rider) S.delayed.push({ at: S.time + landsAfter(r.key, h, x, y) + 0.02, fn: () => { for (const e of inRange(x, y, 90 * h.spellR)) RIDERS[r.rider].apply(e, spellPow(h), h); } });
-  h.mana -= mana; h.castT = S.time + 0.3; h.aimX = x; h.aimY = y; h.atkAt = S.time; h.casts = (h.casts || 0) + 1;
-  if (h.echo && h.casts % h.echo === 0) S.delayed.push({ at: S.time + 0.4, fn: () => { if (!h.ko && quietly(() => r.spell.cast(h, x, y, p * 0.6)) !== false) { spellArt(r.key, h, x, y); toast('Arcane Echo!'); } } });
+  // spells without painted art always mark where they landed, even when they found nothing to hit
+  if (!SPELL_ART[r.key] && S.fx.length === f0 && S.zones.length === z0 && S.walls.length === w0) ringFx(x, y, 40 * h.spellR, ELEMENTS[S.runes[0]].color, 0.45);
+  h.mana -= mana;
+  for (const el of new Set(S.runes)) { S.elCd[el] = S.time + EL_CD; S.elMana[el] = (S.elMana[el] || 0) + mana; } h.castT = S.time + 0.3; h.aimX = x; h.aimY = y; h.atkAt = S.time; h.casts = (h.casts || 0) + 1;
+  if (h.echo && h.casts % h.echo === 0) S.delayed.push({ at: S.time + 0.4, fn: () => { if (!h.ko && art(() => r.spell.cast(h, x, y, p * 0.6)) !== false) { spellArt(r.key, h, x, y); toast('Arcane Echo!'); } } });
   sfx('ability'); S.runes = []; renderRunes();
 }
 // Walls: enemies walking into one stop and batter it.
@@ -2540,30 +2577,80 @@ function runeBarHtml() {
 function renderRunes() {
   const el = $('runeCast'); if (!el || !S.hero) return;
   const r = resolveRunes(S.runes), h = S.hero;
-  el.innerHTML = S.runes.map(x => `<i style="background:${ELEMENTS[x].css}"></i>`).join('') + (r ? `<b>${r.spell.name}${r.rider ? ' +' + ELEMENTS[r.rider].name : ''}</b> <small>${Math.ceil(r.mana * h.spellCost)} mana · left-click</small>` : `<small>Ready runes with ${Object.keys(S.runeKeys).join(' ').toUpperCase()}</small>`);
+  el.innerHTML = S.runes.map(x => `<i style="background:${ELEMENTS[x].css}"></i>`).join('') + (r ? `<b>${r.spell.name}</b> <small>${Math.ceil(r.mana * h.spellCost)} mana · left-click</small>` : `<small>Ready runes with ${Object.keys(S.runeKeys).join(' ').toUpperCase()}</small>`);
 }
 function manaMeter() { const f = $('manaFill'), h = S && S.hero; if (f && h && h.maxMana) f.style.width = (100 * h.mana / h.maxMana).toFixed(1) + '%'; }
-// Spellbook: every spell the Wizard can cast with its runes and current numbers.
-function spellbookHtml(h, triad, els) {
+// The spells a set of elements can cast: each alone and twice, every pair, and the three-rune ultimate of each
+// element mastered to level 10.
+function spellsFor(els, triples = els.filter(canTriple)) {
   els = EL_ORDER.filter(e => els.includes(e));
+  return [...els, ...els.map(e => e + '+' + e), ...Object.keys(SPELLS).filter(k => { const p = k.split('+'); return p.length === 2 && p[0] !== p[1] && p.every(e => els.includes(e)); }),
+    ...els.filter(e => triples.includes(e)).map(e => e + '+' + e + '+' + e)];
+}
+// What a spell does, read from its description: damage is offense, walls and healing are defense, and push-back,
+// slows, freezes, stuns, roots and "takes more damage" are utility.
+function spellLean(k, h = bookHero()) {
+  const t = SPELLS[k].desc(h, 1).toLowerCase();
+  const util = /push|blow|hurl|drag|pull|slow|freez|stun|root|more damage|mud|back along/.test(t), def = /wall|heal|shield/.test(t);
+  const off = /\d+(?:\.\d+)? damage|\d+\/s|deals|strikes|slams|burns|smites/.test(t.replace(/\d+% more damage/g, ''));
+  const w = { off: off ? 1 : 0, def: def ? 1.2 : 0, util: util ? 1 : 0 }, n = w.off + w.def + w.util || 1;
+  return { off: w.off / n, def: w.def / n, util: w.util / n };
+}
+// A triangle with Offense, Defense and Utility at its corners and a dot where the spells' mix sits.
+function leanHtml(keys) {
+  const L = { off: 0, def: 0, util: 0 }; for (const k of keys) { const l = spellLean(k); L.off += l.off; L.def += l.def; L.util += l.util; }
+  const n = keys.length || 1, o = L.off / n, d = L.def / n, u = L.util / n;
+  const A = [80, 12], B = [14, 124], C = [146, 124], x = o * A[0] + d * B[0] + u * C[0], y = o * A[1] + d * B[1] + u * C[1];
+  const pc = v => Math.round(v * 100) + '%';
+  return `<div class="lean"><svg viewBox="-16 -4 192 154" width="192" height="154" aria-label="Spell mix: ${pc(o)} offense, ${pc(d)} defense, ${pc(u)} utility">
+      <polygon points="${A} ${B} ${C}" class="lean-tri"/><line x1="${A[0]}" y1="${A[1]}" x2="80" y2="124" class="lean-ax"/><line x1="${B[0]}" y1="${B[1]}" x2="113" y2="68" class="lean-ax"/><line x1="${C[0]}" y1="${C[1]}" x2="47" y2="68" class="lean-ax"/>
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" class="lean-dot"/>
+      <text x="80" y="8" text-anchor="middle">Offense</text><text x="14" y="142" text-anchor="middle">Defense</text><text x="146" y="142" text-anchor="middle">Utility</text></svg>
+    <p class="help">Your ${keys.length} spells lean <b>${pc(o)}</b> offense (damage), <b>${pc(d)}</b> defense (walls, healing) and <b>${pc(u)}</b> utility (push-back, slows, freezes, extra damage taken).</p></div>`;
+}
+const sbOpen = { main: true, pick: false, more: false }; // which spellbook sections are unfolded, kept across redraws
+// Spellbook: the spells your chosen elements can cast first, then the rest of the elements you own. Both fold away.
+function spellbookHtml(h, load, owned, at = 'main') {
   const keyOf = k => k.split('+').map(e => `<i class="rune-dot" style="background:${ELEMENTS[e].css}" title="${ELEMENTS[e].name}"></i>`).join('');
   const row = k => { const s = SPELLS[k]; return `<li><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${s.name}</b><small>${s.mana} mana</small></div><span class="sb-d">${s.desc(h, spellPow(h))}</span></li>`; };
-  const singles = els.map(e => row(e)), doubles = els.map(e => row(e + '+' + e));
-  const combos = Object.keys(SPELLS).filter(k => k.split('+').length === 2 && new Set(k.split('+')).size === 2 && k.split('+').every(e => els.includes(e))).map(row);
-  const ults = els.map(e => e + '+' + e + '+' + e);
-  return `<ul class="spellbook"><li class="sb-h">One element</li>${singles.join('')}<li class="sb-h">Same element twice</li>${doubles.join('')}<li class="sb-h">Two elements</li>${combos.join('')}
-    <li class="sb-h">Three runes ${triad ? '' : '· unlock with Third Rune'}</li>${triad ? ults.map(row).join('') : ults.map(k => `<li class="locked"><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${SPELLS[k].name}</b><small>Third Rune</small></div></li>`).join('')}
-    ${triad ? `<li><span class="sb-d">Three runes of mixed elements cast the first two's spell 35% stronger for 40% more mana, and the third rune ${Object.entries(RIDERS).filter(([e]) => els.includes(e)).map(([e, r]) => `${ELEMENTS[e].name.toLowerCase()} ${r.text}`).join(', ')}.</span></li>` : ''}</ul>`;
+  const locked = k => { const el = k.split('+')[0], m = elMastery(el); return `<li class="locked"><div class="sb-top"><span class="sb-keys">${keyOf(k)}</span><b>${SPELLS[k].name}</b><small>${ELEMENTS[el].name} mastery ${m.lvl}/${TRIPLE_AT}</small></div></li>`; };
+  const ready = spellsFor(load), rest = spellsFor(owned).filter(k => !ready.includes(k));
+  const ults = owned.map(e => e + '+' + e + '+' + e).filter(k => !ready.includes(k) && !rest.includes(k));
+  return `<details class="sb-box" data-sb="${at}" ${sbOpen[at] ? 'open' : ''}><summary>Spellbook · ${ready.length} spells with your elements</summary>
+    <ul class="spellbook">${ready.map(row).join('')}</ul>
+    ${rest.length || ults.length ? `<details class="sb-box sb-more" data-sb="more" ${sbOpen.more ? 'open' : ''}><summary>Other spells (${rest.length + ults.length})</summary><p class="help">Spells that need an element you left behind, and three-rune ultimates, which open when an element reaches mastery ${TRIPLE_AT}.</p>
+      <ul class="spellbook">${rest.map(row).join('')}${ults.map(locked).join('')}</ul></details>` : ''}</details>`;
 }
-// Heroes page: buy elements and choose which ones the Wizard takes on a run.
+// Elements: buy them, choose the 4 the Wizard takes on a run, and see each one's mastery. Used on the Heroes page and
+// when picking the hero for a run.
 function elementsHtml() {
-  const load = wizLoadout(), n = wizSlots(), next = SLOT_AT.find(m => masteryOf('heroes', 'wizard').lvl < m);
+  const load = wizLoadout(), n = wizSlots();
   return `<h3 class="meta-h">Elements · taking ${load.length} of ${n}</h3>
-    <p class="help">Click an element to take it or leave it behind. Taken elements are bound in order to ${SLOT_KEYS.slice(0, n).join(' ').toUpperCase()}. ${next ? `Mastery ${next} gives another slot.` : 'All slots open.'}</p>
-    <div class="el-grid">${EL_ORDER.map(el => { const E = ELEMENTS[el], i = load.indexOf(el);
-      return elOpen(el) ? `<button class="el-card ${i >= 0 ? 'on' : ''}" data-el-take="${el}" style="--el:${E.css}"><b>${E.name}</b><small>${i >= 0 ? 'Key ' + SLOT_KEYS[i].toUpperCase() : 'Left behind'}</small></button>`
-        : `<button class="el-card locked" data-el-buy="${el}" style="--el:${E.css}" ${META.shards < E.cost ? 'disabled' : ''}><b>${E.name}</b><small>${E.blurb}</small><em>◆ ${E.cost}</em></button>`; }).join('')}</div>`;
+    <p class="help">Click an element to take it or leave it behind; taken elements are bound in order to ${SLOT_KEYS.join(' ').toUpperCase()}. Each element gains mastery from the mana you spend on spells that use it. At mastery ${TRIPLE_AT} it can be readied three times for its ultimate.</p>
+    <div class="el-grid">${EL_ORDER.map(el => { const E = ELEMENTS[el], i = load.indexOf(el), m = elMastery(el), fill = m.next ? Math.min(1, (m.pts - m.prev) / (m.next - m.prev)) : 1;
+      const bar = `<span class="meter mastery"><i style="width:${(fill * 100).toFixed(0)}%"></i></span><small>Mastery ${m.lvl}${m.lvl >= TRIPLE_AT ? ' · triple rune' : ''}</small>`;
+      return elOpen(el) ? `<button class="el-card ${i >= 0 ? 'on' : ''}" data-el-take="${el}" style="--el:${E.css}"><b>${E.name}</b><small>${i >= 0 ? 'Key ' + SLOT_KEYS[i].toUpperCase() : 'Left behind'}</small>${bar}</button>`
+        : `<button class="el-card locked" data-el-buy="${el}" style="--el:${E.css}" ${META.shards < E.cost ? 'disabled' : ''}><b>${E.name}</b><small>${E.blurb}</small><em>◆ ${E.cost}</em></button>`; }).join('')}</div>
+    ${leanHtml(spellsFor(load))}`;
 }
+function bindElements(redraw) {
+  $('screen').querySelectorAll('details[data-sb]').forEach(d => d.ontoggle = () => { sbOpen[d.dataset.sb] = d.open; });
+  $('screen').querySelectorAll('[data-el-buy]').forEach(b => b.onclick = () => {
+    const el = b.dataset.elBuy, E = ELEMENTS[el]; if (elOpen(el) || META.shards < E.cost) return;
+    META.shards -= E.cost; (META.wizEls = META.wizEls || {})[el] = true;
+    const load = wizLoadout(); if (load.length < wizSlots()) META.wizLoad = load.concat(el);
+    saveMeta(); sfx('level'); redraw();
+  });
+  $('screen').querySelectorAll('[data-el-take]').forEach(b => b.onclick = () => {
+    const el = b.dataset.elTake, load = wizLoadout();
+    if (load.includes(el)) { if (load.length > 1) load.splice(load.indexOf(el), 1); }
+    else if (load.length < wizSlots()) load.push(el);
+    else return toast(`You can take ${wizSlots()} elements: click a taken element to leave it behind first.`);
+    META.wizLoad = load; saveMeta(); redraw();
+  });
+}
+// Elemental Attunement upgrades: spells that use the element deal more damage. Several stack.
+const elBoost = (h, key) => [...new Set(key.split('+'))].reduce((m, e) => m * ((h.elPow && h.elPow[e]) || 1), 1);
 // A stand-in hero for spellbook numbers outside a run.
 const bookHero = () => { const h = { spell: 1, spellR: 1, freezeBonus: 0, pushBonus: 1, wallBonus: 1, spellCost: 1 }; const M = META.heroes.wizard || {}; for (const def of HERO_META.wizard) if (rank(M, def.id) && def.book) def.book(h, rank(M, def.id)); return h; };
 
@@ -2743,7 +2830,7 @@ function update(dt) {
     }
     // No healing between waves, so waiting it out isn't free. Mana always refills.
     if (S.waveActive) h.hp = Math.min(h.maxHp, h.hp + h.regen * dt);
-    if (h.maxMana) h.mana = Math.min(h.maxMana, h.mana + h.manaRegen * dt);
+    if (h.maxMana && S.waveActive) h.mana = Math.min(h.maxMana, h.mana + h.manaRegen * dt); // mana only flows during a wave
     h.cd -= dt;
     // Sniper: has to stand still for h.brace seconds before it can shoot.
     if (h.brace) h.braceT = h.x === h.px && h.y === h.py ? Math.min(h.brace, h.braceT + dt) : 0;
@@ -3004,7 +3091,9 @@ function rollPerks() {
   const shared = p => p.cls === 'any' || p.cls === cat || (p.also && p.also.includes(cat));
   // Crit damage needs some crit chance first. Gold upgrades only come at Mythic or rarer, and some upgrades (free
   // level-ups) only at their own minimum rarity. The Wizard has no attacks, so it never sees attack speed.
-  const allowed = (p, rarity) => (!p.minRar || rarity.mult >= RAR[p.minRar].mult) && !(p.rate && HEROES[h.cls].spells);
+  // Wizard upgrades only come for what this run's elements can do: an element's Attunement needs the element, Rime a
+  // spell that freezes, Masonry one that raises walls, Zephyr one that pushes enemies back.
+  const allowed = (p, rarity) => (!p.minRar || rarity.mult >= RAR[p.minRar].mult) && !(p.rate && HEROES[h.cls].spells) && (!p.el || (h.els || []).includes(p.el)) && (!p.needs || (h.can || {})[p.needs]);
   const fits = (p, rarity) => allowed(p, rarity) && (p.id !== 'critdmg' || h.crit > 0) && (!p.gold || rarity.mult >= RAR.mythic.mult);
   const slots = shuffle(['hero', 'hero', Math.random() < 0.3 ? 'hero' : 'shared']);
   for (const slot of slots) {
@@ -3087,7 +3176,9 @@ function endRun(won, quit) {
   META.shards += shards; META.cores = (META.cores || 0) + S.cores;
   META.played = META.played || {}; META.played[S.hero.cls] = (META.played[S.hero.cls] || 0) + 1;
   // kills and wins feed mastery: report what moved
-  const was = [['heroes', S.hero.cls]].concat(Object.keys(TOWERS).filter(k => S.kills.towers[k] || S.built[k]).map(k => ['towers', k])).map(([kind, k]) => [kind, k, masteryOf(kind, k).lvl]);
+  const elWas = Object.keys(S.elMana || {}).map(el => [el, elMastery(el).lvl]);
+  for (const [el, mana] of Object.entries(S.elMana || {})) META.elStat[el] = (META.elStat[el] || 0) + mana / 10;
+  const was = [['heroes', S.hero.cls]].filter(() => !HEROES[S.hero.cls].spells).concat(Object.keys(TOWERS).filter(k => S.kills.towers[k] || S.built[k]).map(k => ['towers', k])).map(([kind, k]) => [kind, k, masteryOf(kind, k).lvl]);
   const cls = S.hero.cls; META.heroStat[cls] = heroStat(cls) + heroRunStat();
   META.kills.heroes[cls] = (META.kills.heroes[cls] || 0) + S.kills.hero;
   for (const [k, n] of Object.entries(S.kills.towers)) META.kills.towers[k] = (META.kills.towers[k] || 0) + n;
@@ -3098,7 +3189,8 @@ function endRun(won, quit) {
     for (const k of Object.keys(S.built)) (META.wins.towers[k] = META.wins.towers[k] || {})[S.map] = true;
   }
   const mastery = was.map(([kind, k, lvl]) => [kind, k, lvl, masteryOf(kind, k).lvl]).filter(x => x[3] > x[2])
-    .map(([kind, k, a, b]) => `<span class="tag">${kind === 'heroes' ? HEROES[k].name : TOWERS[k].name}: mastery ${a} → ${b}</span>`).join('');
+    .map(([kind, k, a, b]) => `<span class="tag">${kind === 'heroes' ? HEROES[k].name : TOWERS[k].name}: mastery ${a} → ${b}</span>`).join('')
+    + elWas.map(([el, a]) => [el, a, elMastery(el).lvl]).filter(x => x[2] > x[1]).map(([el, a, b]) => `<span class="tag" style="color:${ELEMENTS[el].css}">${ELEMENTS[el].name}: mastery ${a} → ${b}${a < TRIPLE_AT && b >= TRIPLE_AT ? ' · triple rune open' : ''}</span>`).join('');
   const best = META.best[S.map], lockedSongs = SONGS.filter(x => !songOpen(x));
   if (!best || cleared > best.wave || (won && !best.won)) META.best[S.map] = { wave: cleared, won: won || !!(best && best.won) };
   // Songs this win unlocked join a custom playlist, and the end screen offers to switch to them.
@@ -3516,7 +3608,7 @@ function renderHero() {
     <div class="stats">
       <div><span>HP</span>${f(h.hp)}/${f(h.maxHp)}</div><div><span>Damage</span>${f(heroDmg())}</div><div><span>Kills</span>${S.kills.hero}</div><div><span>Takedowns</span>${S.takedowns.hero}</div>${d.cat === 'defensive' ? `<div><span>Damage blocked</span>${f(S.blocked)}</div>` : d.cat === 'support' ? `<div><span>Assisted kills</span>${S.assists}</div>` : ''}
       ${h.maxMana ? `<div><span>Mana</span>${Math.floor(h.mana)}/${f(h.maxMana)}</div><div><span>Mana/s</span>${h.manaRegen.toFixed(1)}</div>
-      <div><span>Spell damage</span>${pct(spellPow(h))}</div><div><span>Spell cost</span>${pct(h.spellCost)}</div><div><span>Runes</span>${h.runeMax}</div>` : `
+      <div><span>Spell damage</span>${pct(spellPow(h))}</div><div><span>Spell cost</span>${pct(h.spellCost)}</div><div><span>Triple runes</span>${S.triples.length ? S.triples.map(e => ELEMENTS[e].name).join(', ') : 'None'}</div>` : `
       <div><span>Attacks/s</span>${(1 / h.rate).toFixed(2)}</div><div><span>Range</span>${h.range >= 9999 ? 'Whole map' : f(h.range)}</div>
       <div><span>Targets</span>${1 + h.multi}</div><div><span>Crit chance</span>${pct(h.crit)}</div>
       <div><span>Crit damage</span>${pct(h.critDmg)}</div>`}${h.brace ? `<div><span>Brace</span>${h.brace.toFixed(2)}s</div>` : ''}
@@ -3550,6 +3642,11 @@ let lastBarGold = -1, lastInspGold = -1, heroT = 0, tipTower = null;
 // The ability button empties when used and refills as the cooldown runs down.
 function abilityMeter() {
   manaMeter();
+  // resting elements: their rune buttons dim and fill back up over the 2 seconds
+  if (S.elCd) for (const b of document.querySelectorAll('#runeBar .rune')) {
+    const left = (S.elCd[S.runeKeys[b.dataset.rune]] || 0) - S.time;
+    b.classList.toggle('cd', left > 0); b.style.setProperty('--cd', left > 0 ? (100 * (1 - left / EL_CD)).toFixed(0) + '%' : '100%');
+  }
   const b = $('abilityBtn'), a = S.hero && S.hero.ab; if (!b || !a) return;
   const fill = a.t > 0 ? (1 - a.t / a.cd) * 100 : 100;
   b.style.setProperty('--fill', fill.toFixed(1) + '%');
@@ -4147,7 +4244,7 @@ function draw(g, o) {
 
   for (const z of S.zones) {
     const a = Math.min(1, z.t / z.T * 1.5), pulse = 0.5 + 0.5 * Math.sin(S.time * 10);
-    if (z.quiet) { g.lineStyle(1, z.color, 0.3 * a).strokeCircle(z.x, z.y, z.r); continue; }
+    if (z.quiet) continue;
     if (z.line) { g.lineStyle(z.r * 2, z.color, 0.22 * a).lineBetween(z.x1, z.y1, z.x2, z.y2); g.lineStyle(2, z.color, 0.7 * a).lineBetween(z.x1, z.y1, z.x2, z.y2); }
     else if (z.vortex) { for (let i = 0; i < 3; i++) g.lineStyle(2, z.color, 0.8 * a).strokeCircle(z.x, z.y, z.r * (1 - ((S.time * 1.5 + i / 3) % 1))); g.fillStyle(0x000000, 0.4 * a).fillCircle(z.x, z.y, z.r * 0.3); }
     else { g.fillStyle(z.color, (0.12 + 0.1 * pulse) * a).fillCircle(z.x, z.y, z.r); g.lineStyle(2, z.color, 0.6 * a).strokeCircle(z.x, z.y, z.r); }
@@ -4169,7 +4266,7 @@ function draw(g, o) {
   for (const w of S.walls) { const k = Math.max(0, w.hp / w.max), top = SY(w.y) - 56; o.fillStyle(0x000000, 0.6).fillRect(w.x - 15, top, 30, 3); o.fillStyle(0xc8a26a, 1).fillRect(w.x - 15, top, 30 * k, 3); }
   for (const f of S.fx) {
     const a = f.t / f.T;
-    if (f.quiet && (f.k === 'orb' || f.k === 'line')) continue;
+    if (f.quiet && (f.k === 'orb' || f.k === 'line' || f.k === 'ring')) continue; // a painted effect replaces it
     if (f.k === 'orb') { const q = 1 - a, x = f.x1 + (f.x2 - f.x1) * q, y = SY(f.y1 + (f.y2 - f.y1) * q) - 18 * (1 - q) - 40 * Math.sin(Math.PI * q) * 0.4; o.fillStyle(f.color, 0.35).fillCircle(x, y, f.r * 1.8); o.fillStyle(f.color, 1).fillCircle(x, y, f.r); o.fillStyle(0xffffff, 0.9).fillCircle(x, y, f.r * 0.4); continue; }
     if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - (f.l1 == null ? 12 : f.l1), f.x2, SY(f.y2) - 12);
     else if (f.k === 'pillar') { // a beam straight down from the sky
@@ -4184,7 +4281,6 @@ function draw(g, o) {
       }
     } else {
       const r = f.shrink ? f.r * (0.15 + 0.85 * a) : f.r * (1.2 - a * 0.4);
-      if (f.quiet) { g.lineStyle(1, f.color, a * 0.35).strokeCircle(f.x, f.y, f.r); continue; }
       if (f.fill) g.fillStyle(f.color, a * 0.2).fillCircle(f.x, f.y, r);
       g.lineStyle(2, f.color, a).strokeCircle(f.x, f.y, r);
     }
@@ -4270,7 +4366,7 @@ window.addEventListener('keydown', e => {
   }
 });
 
-window.riftguard = { get state() { return S; }, music: bgm };
+window.riftguard = { get state() { return S; }, music: bgm, SPELLS, SPELL_ART };
 new Phaser.Game({
   type: Phaser.AUTO, parent: 'board', width: W * PX, height: VH * PX, backgroundColor: '#101223', pixelArt: true, roundPixels: true,
   scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
