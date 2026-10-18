@@ -60,5 +60,5 @@ jobs:
           tag_name: godot-v${{ steps.version.outputs.version }}
           name: Riftguard ${{ steps.version.outputs.version }} (Godot)
           body_path: release-notes.md
-          make_latest: false
+          make_latest: true
           files: godot/build/Riftguard.exe

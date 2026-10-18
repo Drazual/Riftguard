@@ -1,12 +1,8 @@
 name: Desktop build
 
-# Builds the Windows app on every push to main and publishes it as a GitHub release.
-# The installed game checks the latest release on launch and updates itself.
+# Builds the old Electron Windows app and publishes it as a GitHub release.
+# The game now ships as the Godot build (godot.yml), so this only runs when started by hand from the Actions tab.
 on:
-  push:
-    branches: [main]
-    # The Godot version has its own workflow (godot.yml).
-    paths-ignore: ['godot/**', '.github/workflows/godot.yml']
   workflow_dispatch:
 
 permissions:
@@ -47,6 +43,7 @@ jobs:
           } > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
+          make_latest: false
           tag_name: v${{ steps.version.outputs.version }}
           name: Riftguard ${{ steps.version.outputs.version }}
           body_path: release-notes.md
