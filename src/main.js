@@ -3,6 +3,7 @@ import './style.css';
 import riftwalkerUrl from './music/riftwalker.mp3';
 import phaseUrl from './music/just-a-phase.mp3';
 import { SIMPLE } from './simple.js';
+import FX_META from './assets/fx_spells.json';
 
 (() => {
 const W = 960, H = 600, C = 40, COLS = 24, ROWS = 15, CHOICE_FROM = 5;
@@ -10,15 +11,15 @@ let MAX_WAVE = 20; // set per map in newRun
 // Each map is drawn from its own tileset (src/assets/maps). water: tiles nobody can build on. props: how many
 // decorations to scatter on open ground well away from the path; they block building too.
 const MAPS = {
-  verdant:  { name: 'Sunset Outpost', theme: 'sunset', tier: 'Level 1', waves: 20, shardMul: 1, props: 12, desc: 'The standard run. No modifiers.',
+  verdant:  { name: 'Sunset Outpost', theme: 'sunset', tier: 'Level 1', waves: 20, shardMul: 1, props: 15, desc: 'The standard run. No modifiers.',
     path: [[-1,3],[5,3],[5,11],[10,11],[10,5],[15,5],[15,11],[20,11],[20,6],[23,6]] },
-  ironhold: { name: 'Neon Boardwalk', theme: 'boardwalk', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, price: 1.3, props: 11, water: [[0,14,24,1]],
+  ironhold: { name: 'Neon Boardwalk', theme: 'boardwalk', tier: 'Level 2', waves: 25, shardMul: 1.5, enemyHp: 1.4, price: 1.3, props: 14, water: [[0,14,24,1]],
     desc: 'Enemies have 40% more HP and everything costs 30% more.',
     path: [[-1,11],[3,11],[3,2],[8,2],[8,8],[12,8],[12,2],[17,2],[17,11],[21,11],[21,5],[23,5]] },
-  warped:   { name: 'Chroma Reactor', theme: 'reactor', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, props: 11, water: [[13,0,2,2],[22,13,2,2]],
+  warped:   { name: 'Chroma Reactor', theme: 'reactor', tier: 'Level 3', waves: 30, shardMul: 2, drain: true, props: 14, water: [[13,0,2,2],[22,13,2,2]],
     desc: 'After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only.',
     path: [[-1,2],[7,2],[7,6],[2,6],[2,12],[11,12],[11,4],[16,4],[16,12],[21,12],[21,2],[23,2]] },
-  maelstrom: { name: 'Spiral Rift Garden', theme: 'garden', tier: 'Level 4', waves: 35, shardMul: 2.5, enemyHp: 1.8, armorBonus: 0.1, early: 2, tyrantCores: 8, props: 9,
+  maelstrom: { name: 'Spiral Rift Garden', theme: 'garden', tier: 'Level 4', waves: 35, shardMul: 2.5, enemyHp: 1.8, armorBonus: 0.1, early: 2, tyrantCores: 8, props: 12,
     desc: 'A long spiral into a base in the middle. Rift Storm: enemies have 80% more HP, armored enemies get +10% armor, and special enemies show up 2 waves early. The final Tyrant drops 8 Boss Cores.',
     path: [[-1,13],[22,13],[22,1],[1,1],[1,10],[18,10],[18,4],[5,4],[5,7],[13,7]] },
 };
@@ -1388,7 +1389,7 @@ function newRun(mapId) {
     enemies: [], towers: [], fx: [], sel: null, build: null, mergeFrom: null, pendingBuild: null,
     paused: true, over: false, speed: 1, pendingLevels: 0, pendingHeroic: 0, hover: null, rerolls: 2 + rank(G, 'reroll'), time: 0,
     mode: { kind: 'normal', name: 'Normal' }, relics: [], picks: [], heroics: {}, overclockT: 0, timeStopT: 25,
-    echoes: [], zones: [], walls: [], runes: [], runeKeys: {}, delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
+    echoes: [], zones: [], walls: [], art: [], runes: [], runeKeys: {}, delayed: [], shells: [], proj: [], kills: { hero: 0, towers: {} }, takedowns: { hero: 0, towers: {} }, built: {}, bought: {}, blocked: 0, assists: 0, cores: 0, specials: Object.assign({}, META.specials), secondChance: !!META.specials.second, bossWarned: false, pointer: null, coins: [], loadout: Object.keys(TOWERS).slice(0, 5), sig: {}, pathBonus: 0, freeLevels: 0, freeMerges: 0, needShop: false, shops: 0,
     mod: { towerDmg: 1, slow: 0, gold: 1, towerRate: 1, enemyHp: map.enemyHp || 1, enemySpeed: 1, phoenix: false, allSlow: 0, allBurn: 0, bossDmg: 0 },
     hero: null,
   };
@@ -2290,9 +2291,9 @@ function raiseWall(h, x, y, hp, dur, pow, slam, more) {
   const p = wallSpot(x, y);
   if (!p) return false;
   const d = p.d;
-  S.walls.push(Object.assign({ d, x: p.x, y: p.y, across: p.across, hp: hp * h.wallBonus, max: hp * h.wallBonus, t: dur, T: dur }, more));
+  S.walls.push(Object.assign({ d, x: p.x, y: p.y, across: p.across, hp: hp * h.wallBonus, max: hp * h.wallBonus, t: dur, T: dur, art: slam ? 'greatwall' : 'stonewall', born: S.time }, more));
   if (slam) hitArea(p.x, p.y, 45, slam * pow, e => { e.stunT = Math.max(e.stunT, e.boss ? 0.3 : 1); });
-  S.fx.push({ k: 'ring', x: p.x, y: p.y, r: 30, color: ELEMENTS.earth.color, t: 0.5, T: 0.5, fill: true }); shake(0.004, 120);
+  shake(0.004, 120);
   return true;
 }
 // A fireball flies from the staff to the target, then bursts.
@@ -2421,6 +2422,61 @@ const f0 = v => Math.round(v);
 // how long after casting a spell lands (fireballs fly, the meteor falls)
 const flight = (h, x, y) => Math.max(0.12, Math.hypot(x - h.x, y - h.y) / 650);
 const landsAfter = (key, h, x, y) => /^(fire(\+fire)*|void|fire\+void)$/.test(key) ? flight(h, x, y) : key === 'fire+earth' ? 0.7 : 0.05;
+// Painted spell effects (assets/fx_spells.png: 8-frame animations). Each spell names its animation, how it plays and
+// its radius. once: plays through. zone: plays in, loops its middle frames for the spell's duration, then plays out.
+// fly: the first frames travel from the staff to the target (turned to face the way they fly), the rest burst there.
+// beam: stretched from the staff to the target. wall: built on the wall, held while it stands, crumbled when it goes.
+const SPELL_ART = {
+  fire: { a: 'fireball', fly: [0, 1, 2, 3], hit: [4, 5, 6, 7], r: 60, fps: 10 },
+  'fire+fire': { a: 'gfireball', fly: [0, 1, 2], hit: [3, 4, 5, 6, 7], r: 90, fps: 11 },
+  'fire+fire+fire': { a: 'inferno', fly: 'gfireball', r: 140, dur: 5, loop: [3, 5] },
+  'fire+void': { a: 'inferno', fly: 'gfireball', r: 80, dur: 6, loop: [3, 5], tint: 0xc9a0ff },
+  water: { a: 'frostburst', r: 70 },
+  'water+water': { a: 'deepfreeze', r: 100, dur: 3, loop: [5, 7] },
+  'water+water+water': { a: 'abszero', r: 170, fps: 10 },
+  air: { a: 'gust', r: 80, turn: true },
+  'air+air': { a: 'cyclone', r: 110, dur: 1.1, loop: [3, 5] },
+  'air+air+air': { a: 'tempest', r: 200, dur: 1.4, loop: [3, 5] },
+  'fire+water': { a: 'torrent', beam: true },
+  'fire+earth': { a: 'meteor', r: 90, meteor: true },
+  'fire+air': { a: 'firestorm', r: 80, dur: 4, loop: [3, 5] },
+  'water+earth': { a: 'quagmire', r: 95, dur: 6, loop: [3, 6], low: true },
+  'water+air': { a: 'blizzard', r: 100, dur: 5, loop: [2, 5] },
+  'earth+air': { a: 'sandstorm', r: 90, dur: 5, loop: [2, 5] },
+  'earth+earth+earth': { a: 'quake', r: 220, low: true },
+  'earth+storm': { a: 'quake', r: 90, low: true, tint: 0xbff6ff },
+  'storm+storm+storm': { a: 'tempest', r: 180, dur: 5, loop: [3, 5] },
+  'air+storm': { a: 'tempest', r: 100, dur: 4, loop: [3, 5] },
+  'fire+storm': { a: 'firestorm', r: 95, dur: 5, loop: [3, 5] },
+  // the two "third rune" sheets: a golden sigil for light, a spinning void reticle
+  'light+light': { a: 'runeA', r: 80, low: true, fps: 11 },
+  'void+light': { a: 'runeA', r: 110, low: true, tint: 0xd8c8ff },
+  'void+void': { a: 'runeB', r: 90, dur: 3, loop: [2, 5], low: true },
+  'void+void+void': { a: 'runeB', r: 200, low: true, fps: 11 },
+};
+// Marks the circles and lines a spell draws as stand-ins so they fade under its painted effect (also for what it
+// does later, like a fireball landing).
+function quietly(fn) {
+  const f0 = S.fx.length, z0 = S.zones.length, d0 = S.delayed.length, out = fn();
+  for (let i = f0; i < S.fx.length; i++) S.fx[i].quiet = true;
+  for (let i = z0; i < S.zones.length; i++) S.zones[i].quiet = true;
+  for (let i = d0; i < S.delayed.length; i++) { const d = S.delayed[i], g = d.fn; d.fn = () => quietly(g); }
+  return out;
+}
+function spellArt(key, h, x, y) {
+  const A = SPELL_ART[key]; if (!A) return;
+  const r = (A.r || 60) * h.spellR, base = { a: A.a, x, y, r, tint: A.tint, low: A.low, fps: A.fps };
+  const area = (at, more) => S.art.push(Object.assign({}, base, { t0: at }, A.dur ? { dur: A.dur, loop: A.loop } : {}, more));
+  if (A.fly) {
+    const T = flight(h, x, y), fa = typeof A.fly === 'string' ? A.fly : A.a;
+    S.art.push({ a: fa, fly: true, frames: typeof A.fly === 'string' ? [0, 1, 2] : A.fly, x1: h.x, y1: h.y, x2: x, y2: y, t0: S.time, dur: T, tint: A.tint, size: Math.min(1.3, 0.5 + r / 200) });
+    area(S.time + T, A.hit ? { frames: A.hit } : {});
+  } else if (A.meteor) {
+    S.art.push({ a: A.a, meteor: true, frames: [0, 1, 2], x, y, t0: S.time, dur: 0.7, size: r / 95 });
+    area(S.time + 0.7, { frames: [3, 4, 5, 6, 7], fps: 11 });
+  } else if (A.beam) S.art.push({ a: A.a, beam: true, x1: h.x, y1: h.y, x2: x, y2: y, t0: S.time, fps: 16 });
+  else area(S.time, A.turn ? { ang: Math.atan2((y - h.y) * K, x - h.x) } : {});
+}
 // A third, different element overcharges a two-element spell (+35% power) and adds its own touch on the target area.
 const RIDERS = {
   fire:  { text: 'sets enemies burning (20/s for 3s)', apply: (e, p) => { e.burnT = Math.max(e.burnT, 3); e.burnDps = Math.max(e.burnDps, 20 * p); } },
@@ -2456,10 +2512,11 @@ function castRunes(x, y) {
   const mana = r.mana * h.spellCost;
   if (h.mana < mana) return toast(`Not enough mana for ${r.spell.name} (${Math.ceil(mana)} needed).`);
   const p = spellPow(h) * r.pow;
-  if (r.spell.cast(h, x, y, p) === false) return toast('Walls go on the path: point at a path tile to raise one.');
+  if (quietly(() => r.spell.cast(h, x, y, p)) === false) return toast('Walls go on the path: point at a path tile to raise one.');
+  spellArt(r.key, h, x, y);
   if (r.rider) S.delayed.push({ at: S.time + landsAfter(r.key, h, x, y) + 0.02, fn: () => { for (const e of inRange(x, y, 90 * h.spellR)) RIDERS[r.rider].apply(e, spellPow(h), h); } });
   h.mana -= mana; h.castT = S.time + 0.3; h.aimX = x; h.aimY = y; h.atkAt = S.time; h.casts = (h.casts || 0) + 1;
-  if (h.echo && h.casts % h.echo === 0) S.delayed.push({ at: S.time + 0.4, fn: () => { if (!h.ko) { r.spell.cast(h, x, y, p * 0.6); toast('Arcane Echo!'); } } });
+  if (h.echo && h.casts % h.echo === 0) S.delayed.push({ at: S.time + 0.4, fn: () => { if (!h.ko && quietly(() => r.spell.cast(h, x, y, p * 0.6)) !== false) { spellArt(r.key, h, x, y); toast('Arcane Echo!'); } } });
   sfx('ability'); S.runes = []; renderRunes();
 }
 // Walls: enemies walking into one stop and batter it.
@@ -2471,7 +2528,7 @@ function updateWalls(dt) {
   for (const w of S.walls) {
     w.t -= dt;
     if (w.thorns) for (const e of inRange(w.x, w.y, 36)) damage(e, w.thorns * dt);
-    if (w.t <= 0 || w.hp <= 0) { w.gone = true; S.fx.push({ k: 'ring', x: w.x, y: w.y, r: 26, color: ELEMENTS.earth.color, t: 0.4, T: 0.4 }); }
+    if (w.t <= 0 || w.hp <= 0) { w.gone = true; S.art.push({ a: w.art, wall: w, frames: [7, 6, 5, 4, 3, 2, 1, 0], x: w.x, y: w.y, t0: S.time, fps: 20, tint: w.color }); }
   }
   S.walls = S.walls.filter(w => !w.gone);
 }
@@ -3555,7 +3612,7 @@ const SY = y => TOP + y * K; // screen y of a point on the ground
 const PAL = { ink: '#101223', deep: '#24243D', dusk: '#3B3561', violet: '#625080', mist: '#9B8BA5' };
 let groundFor = null;
 // Tilesets: one atlas per map theme. Its first row is 32×24 tiles (top-down art squashed to the board's tilt): ground
-// variants g0.., rare decorations d0.., the path in every direction (EW, NS, NE, ES, SW, NW), and entry / exit / water.
+// variants g0.., detail tiles d0.., and the entry gate and water. The path itself is drawn (drawPath).
 // Props sit on the second row.
 const MAP_ART = import.meta.glob('./assets/maps/*.png', { eager: true, import: 'default' });
 const MAP_META = import.meta.glob('./assets/maps/*.json', { eager: true, import: 'default' });
@@ -3578,23 +3635,81 @@ function pathLinks() {
   });
   return out;
 }
+// Path looks per theme. The road is drawn pixel by pixel from its centre line, so every tile joins its neighbours
+// without a seam: fill, a darker rim inside the curb, the curb and its outline, optional centre dashes and studs.
+const PATH_STYLE = {
+  sunset: { fill: '#f79b9e', speck: '#f9b3b2', rim: '#d9737f', curb: '#f9e6a2', curbLo: '#f6c177', edge: '#101223', dash: '#9cf4dd' },
+  boardwalk: { fill: '#2b2a42', speck: '#3b3561', rim: '#1c1b2e', curb: '#f9e6a2', curbLo: '#e3b98a', edge: '#101223', dash: '#f6c177' },
+  reactor: { fill: '#2b2a42', speck: '#3b3561', rim: '#1c1b2e', curb: '#f6c177', curbLo: '#c9905a', edge: '#101223', dash: '#f9e6a2' },
+  garden: { fill: '#f9e6a2', speck: '#f0d9e8', rim: '#f6c177', curb: '#3b3561', curbLo: '#24243d', edge: '#101223', stud: '#47d9c5' },
+};
+const hexRgb = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function drawPath(x2, top, st, links) {
+  const T = TILE, img = x2.getImageData(0, top, COLS * T, ROWS * TH), d = img.data, W = COLS * T;
+  const col = {}; for (const k in st) col[k] = hexRgb(st[k]);
+  const arms = { N: [0, -1], E: [1, 0], S: [0, 1], W: [-1, 0] }, sq = T / TH; // stretch y so distances are measured on the flat ground
+  for (const [key, l] of links) {
+    const [c, r] = key.split(',').map(Number), dirs = l.key.split('');
+    for (let v = 0; v < TH; v++) for (let u = 0; u < T; u++) {
+      const dx = u + 0.5 - T / 2, dy = (v + 0.5 - TH / 2) * sq;
+      // distance to the centre line (the arms from the tile centre to each joined edge) and position along it
+      let dist = Math.hypot(dx, dy), along = null;
+      for (const a of dirs) {
+        const [ax, ay] = arms[a], t = dx * ax + dy * ay;
+        if (t < 0) continue;
+        const p = Math.abs(ax ? dy : dx);
+        if (p < dist) { dist = p; along = ax ? c * T + u : (r * TH + v) * sq; }
+      }
+      const R = T / 2; let k = null;
+      if (dist > R) continue;
+      if (dist > R - 1) k = 'edge';
+      else if (dist > R - 3) k = dist > R - 2 ? 'curb' : 'curbLo';
+      else if (dist > R - 5) k = 'rim';
+      else {
+        k = cellHash(c * T + u, r * TH + v, 11) < 0.07 ? 'speck' : 'fill';
+        if (col.dash && along != null && dist < 1.1 && ((along % 14) + 14) % 14 < 7) k = 'dash';
+      }
+      if (col.stud && k === 'curb' && along != null && ((along % 16) + 16) % 16 < 2) k = 'stud';
+      const o = (v + r * TH) * W * 4 + (u + c * T) * 4, rgb = col[k];
+      d[o] = rgb[0]; d[o + 1] = rgb[1]; d[o + 2] = rgb[2]; d[o + 3] = 255;
+    }
+  }
+  x2.putImageData(img, 0, top);
+}
 function drawTileset(sc, th) {
   const meta = themeMeta(th), img = sc.textures.get('map_' + th).getSourceImage(), tex = sc.textures.get('ground'), x2 = tex.getContext();
   const top = TOP * PX, T = TILE, tot = meta.weights.reduce((a, b) => a + b, 0), links = pathLinks();
   x2.imageSmoothingEnabled = false;
   const put = (key, c, r) => { const sx = meta.tiles[key]; if (sx != null) x2.drawImage(img, sx, 0, 32, 24, c * T, top + r * TH, T, TH); };
+  // Detail tiles from the sheet (grates, cracks, planters, crystals...) on about one ground tile in nine, never two side by side.
+  const deco = (c, r) => meta.deco && !pathCells.has(c + ',' + r) && !waterCells.has(c + ',' + r) && cellHash(c, r, 2) < 0.11;
   for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-    const k = c + ',' + r, l = links.get(k);
-    if (l) { put(l.first && meta.tiles.entry != null && l.key === 'EW' ? 'entry' : l.last && meta.tiles.exit != null ? 'exit' : l.key, c, r); continue; }
+    const k = c + ',' + r;
     if (waterCells.has(k) && meta.tiles.water != null) { put('water', c, r); continue; }
     let x = cellHash(c, r, 1) * tot, g = 0; while (x > meta.weights[g]) x -= meta.weights[g++];
-    put(meta.deco && cellHash(c, r, 2) < 0.05 ? 'd' + Math.floor(cellHash(c, r, 3) * meta.deco) : 'g' + g, c, r);
+    put(deco(c, r) && !deco(c - 1, r) && !deco(c, r - 1) ? 'd' + Math.floor(cellHash(c, r, 3) * meta.deco) : 'g' + g, c, r);
   }
-  for (const p of mapProps) {
-    const [sx, sy, w, h] = meta.props[Math.floor(cellHash(p.c, p.r, 5) * meta.props.length)];
+  // Foam where water meets land.
+  for (const k of waterCells) {
+    const [c, r] = k.split(',').map(Number), y = top + r * TH, x = c * T;
+    const land = (dc, dr) => { const n = (c + dc) + ',' + (r + dr); return c + dc >= 0 && c + dc < COLS && r + dr >= 0 && r + dr < ROWS && !waterCells.has(n); };
+    x2.fillStyle = '#9cf4dd';
+    for (let i = 0; i < T; i += 2) {
+      const w = 1 + ((i * 7 + c * 3) % 5 === 0 ? 1 : 0);
+      if (land(0, -1)) x2.fillRect(x + i, y + (cellHash(c * T + i, r, 4) < 0.5 ? 0 : 1), 2, w);
+      if (land(0, 1)) x2.fillRect(x + i, y + TH - 1 - (cellHash(c * T + i, r, 5) < 0.5 ? 0 : 1), 2, 1);
+    }
+    for (let i = 0; i < TH; i += 2) { if (land(-1, 0)) x2.fillRect(x, y + i, 1 + (cellHash(c, r * TH + i, 6) < 0.5 ? 1 : 0), 2); if (land(1, 0)) x2.fillRect(x + T - 1 - (cellHash(c, r * TH + i, 7) < 0.5 ? 1 : 0), y + i, 2, 2); }
+  }
+  drawPath(x2, top, PATH_STYLE[th] || PATH_STYLE.reactor, links);
+  // The spawn gate sits on the first path tile at the board's edge.
+  for (const [k, l] of links) if (l.first && meta.tiles.entry != null) { const [c, r] = k.split(',').map(Number); put('entry', c, r); }
+  const order = meta.props.map((_, i) => i).sort((a, b) => cellHash(a, MAP_ID.length, 9) - cellHash(b, MAP_ID.length, 9)); // every prop once before any repeats
+  mapProps.forEach((p, i) => {
+    const [sx, sy, w, h] = meta.props[order[i % order.length]];
     x2.fillStyle = 'rgba(16,18,35,0.45)'; x2.beginPath(); x2.ellipse(p.c * T + T / 2, top + (p.r + 1) * TH - 4, Math.min(14, w / 2), 4, 0, 0, Math.PI * 2); x2.fill();
     x2.drawImage(img, sx, sy, w, h, Math.round(p.c * T + (T - w) / 2), Math.round(top + (p.r + 1) * TH - h - 2), w, h);
-  }
+  });
 }
 function drawGround(sc) {
   groundFor = pathCells;
@@ -3692,6 +3807,7 @@ function loadArt(sc) {
   for (const k in ART) sc.load.spritesheet(k, ART_URLS[`./assets/${k}.png`], { frameWidth: FRAME, frameHeight: FRAME });
   for (const k in HEROES) sc.load.spritesheet('hero_' + k, ART_URLS[`./assets/hero_${k}.png`], { frameWidth: FRAME, frameHeight: FRAME });
   for (const m of Object.values(MAPS)) if (m.theme) sc.load.image('map_' + m.theme, MAP_ART[`./assets/maps/${m.theme}.png`]);
+  sc.load.spritesheet('fx_spells', ART_URLS['./assets/fx_spells.png'], { frameWidth: FX_META.fw, frameHeight: FX_META.fh });
 }
 function makeAnims(sc) {
   for (const k in ART) {
@@ -3702,9 +3818,71 @@ function makeAnims(sc) {
   // muzzle-flash frame, the moment the hero's shot lands.
   for (const k in HEROES) for (let d = 0; d < 8; d++) {
     const a = (name, rows, frameRate, repeat) => sc.anims.create({ key: `hero_${k}-${name}-${d}`, frames: sc.anims.generateFrameNumbers('hero_' + k, { frames: rows.map(r => r * 8 + d) }), frameRate, repeat });
-    a('idle', [0, 1], 3, -1); a('walk', [2, 3, 4, 5], 9, -1); a('fire', [7, 8, 9], 12, 0);
+    a('idle', [0, 1], 3, -1); a('walk', [2, 3, 4, 5], 9, -1); a('fire', HEROES[k].spells ? [6, 7, 8, 9] : [7, 8, 9], 12, 0);
   }
   sc.anims.create({ key: 'laser-beam', frames: sc.anims.generateFrameNumbers('laser', { frames: [20, 21, 22, 21] }), frameRate: 16, repeat: -1 });
+}
+// Spell effect sprites (SPELL_ART): their frame comes from game time, so they pause and speed up with the game.
+const FX_GROUND = { fireball: 58, frostburst: 58, stonewall: 92, gust: 58, gfireball: 58, deepfreeze: 84, greatwall: 98, cyclone: 58, torrent: 62, meteor: 79,
+  firestorm: 93, quagmire: 72, blizzard: 64, sandstorm: 75, inferno: 87, abszero: 72, runeA: 64, quake: 64, runeB: 60, tempest: 64 }; // ground line in the frame
+const FX_W = 115, WALL_W = 76; // the painted width of a full-size effect, in frame pixels; a wall's width on the board
+const artSprites = new Map(), wallSprites = new Map();
+function artFrame(it) {
+  const el = S.time - it.t0, fr = it.frames || [0, 1, 2, 3, 4, 5, 6, 7], fps = it.fps || 13;
+  if (el < 0) return null;
+  if (it.fly || it.meteor) return el >= it.dur ? -1 : fr[Math.floor(el * 14) % fr.length];
+  if (it.loop) {
+    const [a, b] = it.loop, tIn = a / fps, tOut = (7 - b) / fps, end = Math.max(it.dur, tIn + tOut);
+    if (el >= end) return -1;
+    if (el < tIn) return Math.floor(el * fps);
+    if (el > end - tOut) return Math.min(7, b + 1 + Math.floor((el - (end - tOut)) * fps));
+    const seq = []; for (let i = a; i <= b; i++) seq.push(i); for (let i = b - 1; i > a; i--) seq.push(i);
+    return seq[Math.floor((el - tIn) * 8) % seq.length];
+  }
+  const i = Math.floor(el * fps); return i >= fr.length ? -1 : fr[i];
+}
+function syncArt(sc) {
+  const live = new Set(), meta = FX_META.anims;
+  const sprite = (key, map) => { let sp = map.get(key); if (!sp) { sp = sc.add.sprite(0, 0, 'fx_spells', 0); map.set(key, sp); } return sp; };
+  if (S && S.hero) {
+    S.art = S.art.filter(it => {
+      const f = artFrame(it);
+      if (f === -1) return false;
+      live.add(it);
+      const sp = sprite(it, artSprites);
+      if (f === null) { sp.setVisible(false); return true; }
+      sp.setVisible(true).setFrame(meta[it.a].row * 8 + f).setTint(it.tint || 0xffffff).setRotation(0).setFlipY(false).setAlpha(1);
+      const gy = FX_GROUND[it.a] / FX_META.fh;
+      if (it.fly) {
+        const q = Math.min(1, (S.time - it.t0) / it.dur), pos = q2 => [it.x1 + (it.x2 - it.x1) * q2, SY(it.y1 + (it.y2 - it.y1) * q2) - 18 * (1 - q2) - 16 * Math.sin(Math.PI * q2)];
+        const [px, py] = pos(q), [nx, ny] = pos(Math.min(1, q + 0.03)), ang = Math.atan2(ny - py, nx - px);
+        sp.setOrigin(0.72, 0.5).setPosition(px, py).setScale(0.45 * it.size).setRotation(ang).setFlipY(Math.abs(ang) > Math.PI / 2).setDepth(3);
+      } else if (it.meteor) {
+        const q = Math.min(1, (S.time - it.t0) / it.dur), e = q * q, sz = it.size;
+        sp.setOrigin(0.78, 0.72).setPosition(it.x - 130 * sz * (1 - e), SY(it.y) - 230 * sz * (1 - e)).setScale(0.7 * sz).setDepth(3);
+      } else if (it.beam) {
+        const x0 = it.x1, y0 = SY(it.y1) - 12, x1 = it.x2, y1 = SY(it.y2) - 4, ang = Math.atan2(y1 - y0, x1 - x0), L = Math.hypot(x1 - x0, y1 - y0) + 50;
+        sp.setOrigin(0.5, gy).setPosition((x0 + x1) / 2 + Math.cos(ang) * 25, (y0 + y1) / 2 + Math.sin(ang) * 25).setScale(Math.max(0.6, L / (FX_W - 10)), 1).setRotation(ang).setFlipY(Math.abs(ang) > Math.PI / 2).setDepth(3);
+      } else if (it.wall) {
+        const w = it.wall, sc0 = WALL_W / FX_W;
+        sp.setOrigin(0.5, gy).setPosition(w.x, SY(w.y)).setScale(w.across ? sc0 * 0.5 : sc0, sc0).setDepth(1 + w.y / 1000);
+      } else {
+        const k = 2 * it.r / FX_W;
+        sp.setOrigin(0.5, it.ang != null ? 0.5 : gy).setPosition(it.x, SY(it.y)).setScale(k).setDepth(it.low ? 0.6 : 1 + it.y / 1000 + 0.01);
+        if (it.ang != null) sp.setRotation(it.ang).setFlipY(Math.abs(it.ang) > Math.PI / 2);
+      }
+      return true;
+    });
+  }
+  for (const [it, sp] of artSprites) if (!live.has(it)) { sp.destroy(); artSprites.delete(it); }
+  // walls standing on the path: built up over half a second, then held, darkening as they crack
+  const standing = new Set(S && S.hero ? S.walls : []);
+  for (const w of standing) {
+    const sp = sprite(w, wallSprites), f = Math.min(7, Math.floor((S.time - w.born) * 16)), k = Math.max(0, w.hp / w.max), sc0 = WALL_W / FX_W;
+    const shade = Math.round(255 * (0.7 + 0.3 * k)), tint = w.color ? Phaser.Display.Color.ValueToColor(w.color).lighten(25).color : (shade << 16) | (shade << 8) | shade;
+    sp.setFrame(FX_META.anims[w.art].row * 8 + f).setOrigin(0.5, FX_GROUND[w.art] / FX_META.fh).setPosition(w.x, SY(w.y)).setScale(w.across ? sc0 * 0.5 : sc0, sc0).setDepth(1 + w.y / 1000).setTint(tint);
+  }
+  for (const [w, sp] of wallSprites) if (!standing.has(w)) { sp.destroy(); wallSprites.delete(w); }
 }
 const shellSprites = new Map();
 function syncSprites(sc, dt) {
@@ -3738,6 +3916,7 @@ function syncSprites(sc, dt) {
   for (const [t, s] of towerSprites) if (!live.has(t)) { if (s.beam) s.beam.destroy(); s.destroy(); towerSprites.delete(t); }
   syncHero(sc, dt, speed);
   flyShots(sc, dt * speed, speed);
+  syncArt(sc);
 }
 // The hero: walks while moving, fires toward its target, idles otherwise, in 8 facings. The facing only changes
 // once the direction is clearly past the edge of its sector, so walking along a diagonal never flickers.
@@ -3968,6 +4147,7 @@ function draw(g, o) {
 
   for (const z of S.zones) {
     const a = Math.min(1, z.t / z.T * 1.5), pulse = 0.5 + 0.5 * Math.sin(S.time * 10);
+    if (z.quiet) { g.lineStyle(1, z.color, 0.3 * a).strokeCircle(z.x, z.y, z.r); continue; }
     if (z.line) { g.lineStyle(z.r * 2, z.color, 0.22 * a).lineBetween(z.x1, z.y1, z.x2, z.y2); g.lineStyle(2, z.color, 0.7 * a).lineBetween(z.x1, z.y1, z.x2, z.y2); }
     else if (z.vortex) { for (let i = 0; i < 3; i++) g.lineStyle(2, z.color, 0.8 * a).strokeCircle(z.x, z.y, z.r * (1 - ((S.time * 1.5 + i / 3) % 1))); g.fillStyle(0x000000, 0.4 * a).fillCircle(z.x, z.y, z.r * 0.3); }
     else { g.fillStyle(z.color, (0.12 + 0.1 * pulse) * a).fillCircle(z.x, z.y, z.r); g.lineStyle(2, z.color, 0.6 * a).strokeCircle(z.x, z.y, z.r); }
@@ -3985,20 +4165,11 @@ function draw(g, o) {
   // A wall spell readied: the path tile it will lock onto
   if (h.cls === 'wizard' && S.pointer && !h.ko) { const r = resolveRunes(S.runes), sp = r && r.spell.wall && wallSpot(S.pointer.x, S.pointer.y);
     if (sp) { g.fillStyle(0xffffff, 0.22).fillRect(sp.x - C / 2, sp.y - C / 2, C, C); g.lineStyle(2, 0xffffff, 0.65 + 0.35 * Math.sin(S.time * 8)).strokeRect(sp.x - C / 2 + 1, sp.y - C / 2 + 1, C - 2, C - 2); } }
-  // Walls fill their path tile: a rampart across the lane, cracking as it loses HP
-  for (const w of S.walls) {
-    const x = w.x, y = SY(w.y), k = Math.max(0, w.hp / w.max), fade = Math.min(1, w.t / 0.4), col = w.color || 0x8a7050;
-    const hw = w.across ? 7 : 17, top = w.across ? SY(w.y - 17) : SY(w.y - 6), bot = w.across ? SY(w.y + 17) : SY(w.y + 6), H = 16;
-    o.fillStyle(Phaser.Display.Color.ValueToColor(col).darken(30).color, fade).fillRect(x - hw, bot - H, hw * 2, H);
-    o.fillStyle(col, fade).fillRect(x - hw, top - H, hw * 2, bot - top);
-    o.fillStyle(0xffffff, 0.25 * fade).fillRect(x - hw, top - H, hw * 2, 1);
-    o.lineStyle(1, 0x241c14, fade).strokeRect(x - hw, top - H, hw * 2, bot - top + H);
-    if (k < 0.5) o.lineStyle(1, 0x241c14, fade).lineBetween(x - hw + 3, bot - 10, x - 1, bot - 4).lineBetween(x + 2, bot - H + 2, x + hw - 3, bot - 6);
-    if (w.thorns) for (let i = -1; i <= 1; i++) o.lineStyle(1, 0x7ee06a, fade).lineBetween(x + i * hw * 0.6, top - H, x + i * hw * 0.6 + 2, top - H - 5);
-    o.fillStyle(0x000000, 0.6).fillRect(x - 15, top - H - 8, 30, 3); o.fillStyle(0xc8a26a, 1).fillRect(x - 15, top - H - 8, 30 * k, 3);
-  }
+  // Walls are sprites (syncArt); their HP shows above them
+  for (const w of S.walls) { const k = Math.max(0, w.hp / w.max), top = SY(w.y) - 56; o.fillStyle(0x000000, 0.6).fillRect(w.x - 15, top, 30, 3); o.fillStyle(0xc8a26a, 1).fillRect(w.x - 15, top, 30 * k, 3); }
   for (const f of S.fx) {
     const a = f.t / f.T;
+    if (f.quiet && (f.k === 'orb' || f.k === 'line')) continue;
     if (f.k === 'orb') { const q = 1 - a, x = f.x1 + (f.x2 - f.x1) * q, y = SY(f.y1 + (f.y2 - f.y1) * q) - 18 * (1 - q) - 40 * Math.sin(Math.PI * q) * 0.4; o.fillStyle(f.color, 0.35).fillCircle(x, y, f.r * 1.8); o.fillStyle(f.color, 1).fillCircle(x, y, f.r); o.fillStyle(0xffffff, 0.9).fillCircle(x, y, f.r * 0.4); continue; }
     if (f.k === 'line') o.lineStyle(f.w, f.color, a).lineBetween(f.x1, SY(f.y1) - (f.l1 == null ? 12 : f.l1), f.x2, SY(f.y2) - 12);
     else if (f.k === 'pillar') { // a beam straight down from the sky
@@ -4013,6 +4184,7 @@ function draw(g, o) {
       }
     } else {
       const r = f.shrink ? f.r * (0.15 + 0.85 * a) : f.r * (1.2 - a * 0.4);
+      if (f.quiet) { g.lineStyle(1, f.color, a * 0.35).strokeCircle(f.x, f.y, f.r); continue; }
       if (f.fill) g.fillStyle(f.color, a * 0.2).fillCircle(f.x, f.y, r);
       g.lineStyle(2, f.color, a).strokeCircle(f.x, f.y, r);
     }
@@ -4029,6 +4201,7 @@ class Main extends Phaser.Scene {
     this.cameras.main.setZoom(PX).centerOn(W / 2, VH / 2);
     this.g = this.add.graphics().setScale(1, K).setPosition(0, TOP).setDepth(0.5); this.o = this.add.graphics().setDepth(2); SCENE = this;
     makeAnims(this);
+    this.textures.get('fx_spells').setFilter(Phaser.Textures.FilterMode.LINEAR); // painted effects are scaled to each spell's size, so smooth them
     this.input.mouse.disableContextMenu();
     // the pointer is on the tilted screen: turn it back into a point on the flat field
     const wy = p => (p.worldY - TOP) / K;

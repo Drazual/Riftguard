@@ -2,6 +2,13 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.24: Seamless roads, Neon Sage wizard, painted spell effects
+
+- **Seamless paths:** every map's road is now drawn as one continuous strip with rounded corners, curbs and centre lines in its tileset's colours, so there are no seams between tiles.
+- **More map detail** from the tileset sheets: grates, vents, hazard plates, planters, crystals, cracks and ponds on the ground, foam where water meets land, and every prop from each sheet before any repeats.
+- **The Wizard is the Neon Sage:** new sprites with idle, walk and a four-frame cast in all 8 directions.
+- **Painted spell effects** for 27 spells: Fireball and Greater Fireball fly and burst, Frost Burst, Deep Freeze, Gust, Cyclone, Scalding Torrent, Meteor, Firestorm, Quagmire, Blizzard, Sandstorm, Inferno, Absolute Zero, Earthquake and Tempest, plus Hellfire, Plasma Storm, Thunderstorm, Thunderhead and Magnet Quake. Stone Wall and Great Wall build up on the path, stand, and crumble. The golden rune circle is Solar Flare and Eclipse; the spinning void reticle is Singularity and Event Horizon.
+
 ## 0.23: New maps, super towers, wizard elements, menu upgrades to 10
 
 - **Four new maps**, each built from its own tileset with new layouts: Sunset Outpost, Neon Boardwalk (with a strip of sea along the bottom), Chroma Reactor (with coolant pools) and Spiral Rift Garden (a spiral into a base in the middle). Each map has its own decorations, and nothing can be built on decorations or water. Progress and best scores carry over from the old maps in the same order.
