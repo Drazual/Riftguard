@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="HeroData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_rfdfd"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_co4hv"]
+[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_j0x7n"]
+[ext_resource type="Texture2D" path="res://assets/heroes/wizard.png" id="4_k6p42"]
+
+[sub_resource type="Resource" id="Resource_j4fgp"]
+script = ExtResource("1_rfdfd")
+id = "spells"
+name = "Spellcraft"
+cd = 0.0
+
+[sub_resource type="Resource" id="Resource_8h5gq"]
+script = ExtResource("2_co4hv")
+id = "potency"
+name = "Spell Potency"
+desc = "Spells deal +{5 * r}% damage"
+effect = "h.spell *= 1 + 0.05 * r"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_w4a7k"]
+script = ExtResource("2_co4hv")
+id = "reservoir"
+name = "Arcane Reservoir"
+desc = "+{10 * r} max mana"
+effect = "h.max_mana += 10 * r
+h.mana = h.max_mana"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_llyg4"]
+script = ExtResource("2_co4hv")
+id = "flow"
+name = "Mana Flow"
+desc = "+{f1(0.6 * r)} mana per second"
+effect = "h.mana_regen += 0.6 * r"
+also_pools = PackedStringArray()
+cost = "100 + 80 * r"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("3_j0x7n")
+id = "wizard"
+name = "Wizard"
+role = "Special"
+category = "special"
+color = Color(0.49803922, 0.69803923, 1, 1)
+desc = "A spell caster with no auto-attack. Take 4 elements, ready them with Q W E R and left-click to cast at the cursor: one element, the same one twice for a stronger spell, or two different ones for a combination. An element mastered to level 10 can be readied three times for its ultimate. Spells cost mana, which flows during waves."
+hp = 190.0
+dmg = 0.0
+rate = 1.0
+range = 0.0
+mana = 100.0
+mana_regen = 7.0
+spells = true
+ability = SubResource("Resource_j4fgp")
+meta = Array[ExtResource("2_co4hv")]([SubResource("Resource_8h5gq"), SubResource("Resource_w4a7k"), SubResource("Resource_llyg4")])
+sheet = ExtResource("4_k6p42")

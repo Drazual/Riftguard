@@ -1,0 +1,116 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_4uqr0"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_110pk"]
+[ext_resource type="Texture2D" path="res://assets/towers/frost.png" id="3_odqda"]
+
+[sub_resource type="Resource" id="Resource_t0jij"]
+script = ExtResource("1_4uqr0")
+id = "deep"
+name = "Deep Freeze"
+tag = "slow"
+adjective = "Glacial"
+noun = "Spire"
+title = "Winter"
+desc = "Slows 7% more per point (up to 85%)."
+effect = "t.slow = min(0.85, t.slow + 0.07)"
+mastery_name = "Absolute Zero"
+mastery_desc = "Every enemy in range is constantly slowed by 30%."
+mastery_effect = "t.zero = max(t.zero, 0.3)"
+
+[sub_resource type="Resource" id="Resource_tr68n"]
+script = ExtResource("1_4uqr0")
+id = "burst"
+name = "Frost Burst"
+tag = "burst"
+adjective = "Shattering"
+noun = "Burst"
+title = "Ice"
+desc = "Shots burst and chill every enemy nearby; +20% burst size per point."
+effect = "t.splash = iff(t.splash > 0, t.splash * 1.2, 35)"
+mastery_name = "Flash Freeze"
+mastery_desc = "Every 6th shot freezes enemies solid for 1.2s."
+mastery_effect = "t.freeze = 6"
+
+[sub_resource type="Resource" id="Resource_nc4yv"]
+script = ExtResource("1_4uqr0")
+id = "linger"
+name = "Lingering Cold"
+tag = "slow"
+adjective = "Lingering"
+noun = "Veil"
+title = "Stillness"
+desc = "Slows last 0.8s longer per point."
+effect = "t.slow_dur += 0.8"
+mastery_name = "Time Lock"
+mastery_desc = "Every 8th shot stuns every enemy in range for 0.6s."
+mastery_effect = "t.time_lock += 0.6"
+
+[sub_resource type="Resource" id="Resource_21kr8"]
+script = ExtResource("1_4uqr0")
+id = "hypo"
+name = "Hypothermia"
+tag = "arcane"
+adjective = "Frigid"
+noun = "Rime"
+title = "Hypothermia"
+desc = "Each hit adds a chill stack. At 9 stacks the enemy freezes solid for 0.8s (bosses 0.3s); each point needs 1 stack fewer."
+effect = "t.hypo = 9 - rank"
+mastery_name = "Cold Snap"
+mastery_desc = "When Hypothermia freezes an enemy, the cold bursts out and freezes every enemy within 70 for 0.5s (bosses 0.2s)."
+mastery_effect = "t.cold_snap = 1"
+
+[sub_resource type="Resource" id="Resource_i8t1h"]
+script = ExtResource("1_4uqr0")
+id = "brittle"
+name = "Brittle"
+tag = "precision"
+adjective = "Brittle"
+noun = "Fang"
+title = "Frailty"
+desc = "Slowed enemies take +8% damage from everything per point."
+effect = "t.brittle += 0.08"
+mastery_name = "Frostbite"
+mastery_desc = "Hits on slowed enemies also burn them for 50% of the hit over 2s."
+mastery_effect = "t.frostfire += 0.5"
+
+[resource]
+script = ExtResource("2_110pk")
+id = "frost"
+name = "Frost Pylon"
+cost = 60
+dmg = 6.0
+rate = 0.9
+slow = 0.45
+level_bonus = "rate"
+element_tag = "slow"
+color = Color(0.6117647, 0.95686275, 0.8666667, 1)
+info = "Hits weakly but slows enemies down, so the rest of your towers get more time to shoot. Pairs with everything."
+paths = Array[ExtResource("1_4uqr0")]([SubResource("Resource_t0jij"), SubResource("Resource_tr68n"), SubResource("Resource_nc4yv"), SubResource("Resource_21kr8"), SubResource("Resource_i8t1h")])
+signature_name = "Deep Freeze"
+signature_desc = "An enemy slowed for 3s straight freezes solid for 1s."
+super_power_name = "Absolute Zero"
+super_power_desc = "freezes every enemy in range for 2.5s (bosses 0.8s), and they take 40% more damage for 5s"
+form_names = {
+"012": "Glacier Heart",
+"0123": "Ice Age Monolith",
+"01234": "Absolute Winter",
+"0124": "Diamond Dust Spire",
+"013": "Blizzard Spire",
+"0134": "Winter’s Maw",
+"014": "Shatterfrost Spire",
+"023": "Eternal Winter",
+"0234": "Glacial Throne",
+"024": "Frostbite Obelisk",
+"034": "Permafrost Tomb",
+"123": "Avalanche Totem",
+"1234": "Polar Vortex",
+"124": "Crystal Storm",
+"134": "Hoarfrost Bloom",
+"234": "Stasis Crypt"
+}
+sheet = ExtResource("3_odqda")
+foot_y = 41.0
+muzzle_y = 16.0
+shot_anchor = Vector2(25, 25)
+fire_frame = 2

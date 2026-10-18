@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_7w8x8"]
+
+[resource]
+script = ExtResource("1_7w8x8")
+id = "wraith"
+name = "Wraith"
+hp = 45.0
+speed = 120.0
+atk = 6.0
+radius = 8.0
+color = Color(0.6039216, 0.84705883, 1, 1)
+unslow = true
+first_wave = 6
+per_wave = 2
+info = "Very fast and can’t be slowed."
+counter = "Stuns still work. Chain lightning and long range."

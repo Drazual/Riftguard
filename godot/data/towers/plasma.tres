@@ -1,0 +1,115 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_llbkv"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_cb24n"]
+[ext_resource type="Texture2D" path="res://assets/towers/plasma.png" id="3_5ok33"]
+
+[sub_resource type="Resource" id="Resource_pxjha"]
+script = ExtResource("1_llbkv")
+id = "shells"
+name = "Bigger Shells"
+tag = "burst"
+adjective = "Shrapnel"
+noun = "Mortar"
+title = "Shrapnel"
+desc = "+20% blast radius per point."
+effect = "t.splash *= 1.2"
+mastery_name = "Cluster Bomb"
+mastery_desc = "Each shot also throws 2 bomblets at nearby enemies for 50% damage."
+mastery_effect = "t.cluster = 2"
+
+[sub_resource type="Resource" id="Resource_c3w3s"]
+script = ExtResource("1_llbkv")
+id = "hot"
+name = "Hot Plasma"
+adjective = "Molten"
+noun = "Cannon"
+title = "Fire"
+desc = "+20% damage per point."
+effect = "t.dmg *= 1.2"
+mastery_name = "Orbital Strike"
+mastery_desc = "Every 4th shot is a huge blast: double radius, triple damage."
+mastery_effect = "t.orbital = 4"
+
+[sub_resource type="Resource" id="Resource_l66h1"]
+script = ExtResource("1_llbkv")
+id = "burn"
+name = "Burning Ground"
+tag = "burn"
+adjective = "Blazing"
+noun = "Pyre"
+title = "Embers"
+desc = "Hits burn for +30% of their damage over 2s per point."
+effect = "t.burn += 0.3"
+mastery_name = "Chain Reaction"
+mastery_desc = "Enemies this tower kills explode for 20% of their max HP."
+mastery_effect = "t.death_blast += 0.2"
+
+[sub_resource type="Resource" id="Resource_5i0r3"]
+script = ExtResource("1_llbkv")
+id = "auto"
+name = "Autoloader"
+tag = "speed"
+adjective = "Rapid"
+noun = "Autocannon"
+title = "Haste"
+desc = "Fires 14% faster per point."
+effect = "t.rate *= 0.86"
+mastery_name = "Double Tap"
+mastery_desc = "Every shot fires again a moment later for 50% damage."
+mastery_effect = "t.echo += 0.5"
+
+[sub_resource type="Resource" id="Resource_5wn1j"]
+script = ExtResource("1_llbkv")
+id = "concuss"
+name = "Concussive Shells"
+tag = "slow"
+adjective = "Quaking"
+noun = "Hammer"
+title = "Thunder"
+desc = "Blasts slow enemies by 10% per point for 1s."
+effect = "t.slow = max(t.slow, 0.1 * rank)
+t.slow_dur = max(t.slow_dur, 1)"
+mastery_name = "Gravity Well"
+mastery_desc = "Every 5th shot drags enemies near the blast 40 steps back along the path."
+mastery_effect = "t.gravity += 40"
+
+[resource]
+script = ExtResource("2_cb24n")
+id = "plasma"
+name = "Plasma Cannon"
+cost = 80
+dmg = 24.0
+rate = 1.4
+range = 110.0
+splash = 50.0
+element_tag = "burn"
+color = Color(0.18431373, 0.8392157, 0.6901961, 1)
+info = "Lobs slow plasma shells that explode on impact and hurt every enemy in the blast. Best against tight groups."
+paths = Array[ExtResource("1_llbkv")]([SubResource("Resource_pxjha"), SubResource("Resource_c3w3s"), SubResource("Resource_l66h1"), SubResource("Resource_5i0r3"), SubResource("Resource_5wn1j")])
+signature_name = "Napalm Shells"
+signature_desc = "Explosions leave burning ground for 2s. Burns ignore armor."
+super_power_name = "Supernova"
+super_power_desc = "detonates everything in range for 10× damage and leaves the ground burning for 4s"
+form_names = {
+"012": "Inferno Mortar",
+"0123": "Armageddon Mortar",
+"01234": "Starfall Citadel",
+"0124": "Volcano Heart",
+"013": "Carpet Bomber",
+"0134": "Siege Colossus",
+"014": "Meteor Hammer",
+"023": "Napalm Spitter",
+"0234": "Firestorm Engine",
+"024": "Magma Quake",
+"034": "Shockwave Battery",
+"123": "Hellfire Cannon",
+"1234": "Solar Forge",
+"124": "Sunfall Artillery",
+"134": "Thunder Howitzer",
+"234": "Cinder Gatling"
+}
+sheet = ExtResource("3_5ok33")
+foot_y = 40.0
+muzzle_y = 10.0
+fire_frame = 2

@@ -1,0 +1,102 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_txdmo"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_lghwh"]
+
+[sub_resource type="Resource" id="Resource_jjrov"]
+script = ExtResource("1_txdmo")
+id = "sovereign"
+name = "Rift Sovereign"
+desc = "Start every run with a random Legendary upgrade for your hero."
+also_pools = PackedStringArray()
+rarity = "mythic"
+heroes = PackedStringArray()
+cores = 25
+
+[sub_resource type="Resource" id="Resource_iq4gi"]
+script = ExtResource("1_txdmo")
+id = "second"
+name = "Second Chance"
+desc = "Once per run, when your base would fall, the wave restarts with your base at 10 HP."
+also_pools = PackedStringArray()
+rarity = "mythic"
+heroes = PackedStringArray()
+cores = 30
+
+[sub_resource type="Resource" id="Resource_3mtxu"]
+script = ExtResource("1_txdmo")
+id = "bazaar"
+name = "Grand Bazaar"
+desc = "Boss shops show 9 items instead of 6, and the first item you buy in each is free."
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+cores = 40
+
+[sub_resource type="Resource" id="Resource_qfyfx"]
+script = ExtResource("1_txdmo")
+id = "foundry"
+name = "Ascendant Foundry"
+desc = "Every tower you build gets its first 2 level-ups free."
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+cores = 50
+
+[sub_resource type="Resource" id="Resource_34s6n"]
+script = ExtResource("1_txdmo")
+id = "pact"
+name = "Demon Pact"
+desc = "Demonic shops go from 1% to 10%, and every demonic curse is half as strong."
+also_pools = PackedStringArray()
+rarity = "secret"
+heroes = PackedStringArray()
+cores = 200
+
+[sub_resource type="Resource" id="Resource_jcmgl"]
+script = ExtResource("1_txdmo")
+id = "bulwarkS"
+name = "Immortal Bulwark"
+desc = "Start each run with Aegis Core and Unbreakable, and Unbreakable can save you twice per wave."
+also_pools = PackedStringArray()
+rarity = "mythic"
+heroes = PackedStringArray()
+cores = 35
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_6decq"]
+script = ExtResource("1_txdmo")
+id = "dancer"
+name = "Blade Dancer"
+desc = "Rift Nova casts itself every 8th kill by your hero, on top of its normal cooldown."
+also_pools = PackedStringArray()
+rarity = "mythic"
+heroes = PackedStringArray()
+cores = 35
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_uhbek"]
+script = ExtResource("1_txdmo")
+id = "conductor"
+name = "Grand Conductor"
+desc = "Overclock Field is always on at half power across the whole map."
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+cores = 45
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_7hjov"]
+script = ExtResource("1_txdmo")
+id = "oneshot"
+name = "One Shot"
+desc = "The first shot of every wave deals 10× damage, and each kill gives your next brace a head start."
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+cores = 45
+hero = "sniper"
+
+[resource]
+script = ExtResource("2_lghwh")
+items = Array[ExtResource("1_txdmo")]([SubResource("Resource_jjrov"), SubResource("Resource_iq4gi"), SubResource("Resource_3mtxu"), SubResource("Resource_qfyfx"), SubResource("Resource_34s6n"), SubResource("Resource_jcmgl"), SubResource("Resource_6decq"), SubResource("Resource_uhbek"), SubResource("Resource_7hjov")])

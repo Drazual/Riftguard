@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_b1i6m"]
+
+[resource]
+script = ExtResource("1_b1i6m")
+id = "warden"
+name = "Rift Warden"
+hp = 3000.0
+speed = 26.0
+gold = 120
+lives = 10
+atk = 45.0
+radius = 18.0
+color = Color(1, 0.18039216, 0.3019608, 1)
+armor = 0.3
+info = "30% armor. Rift Lock: every 10s stuns 2 random towers for 3s. Summons Grunts at 75%, 50% and 25% HP."
+counter = "Grounded makes stuns shorter."
+boss = true
+big_boss = true
+cores = 2
+power_name = "Rift Lock"
+power_every = 10.0
+power_towers = 2
+power_stun = 3.0

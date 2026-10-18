@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_p3prv"]
+
+[resource]
+script = ExtResource("1_p3prv")
+id = "phantom"
+name = "Phantom"
+hp = 70.0
+speed = 70.0
+gold = 7
+lives = 2
+atk = 10.0
+color = Color(0.78431374, 0.72156864, 1, 1)
+phase = true
+first_wave = 7
+per_wave = 2
+info = "Only Defensive heroes can block it."
+counter = "The Vanguard stops it. Everyone else has to shoot it down."

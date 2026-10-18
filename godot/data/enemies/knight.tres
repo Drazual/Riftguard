@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_xtle2"]
+
+[resource]
+script = ExtResource("1_xtle2")
+id = "knight"
+name = "Rift Knight"
+hp = 1100.0
+speed = 30.0
+gold = 60
+lives = 5
+atk = 30.0
+radius = 16.0
+color = Color(1, 0.18039216, 0.3019608, 1)
+armor = 0.25
+info = "25% armor. Shield Bash: every 8s stuns the nearest tower for 2s."
+counter = "Spread your towers out."
+boss = true
+cores = 1
+power_name = "Shield Bash"
+power_every = 8.0
+power_towers = 1
+power_stun = 2.0
+power_nearest = true

@@ -1,0 +1,117 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_51p67"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_i81av"]
+[ext_resource type="Texture2D" path="res://assets/towers/mortar.png" id="3_iy7k3"]
+
+[sub_resource type="Resource" id="Resource_gm4ry"]
+script = ExtResource("1_51p67")
+id = "payload"
+name = "Heavy Payload"
+adjective = "Thundering"
+noun = "Mortar"
+title = "Ruin"
+desc = "+20% damage per point."
+effect = "t.dmg *= 1.2"
+mastery_name = "Bunker Buster"
+mastery_desc = "Every 3rd shell deals triple damage in a double-size blast."
+mastery_effect = "t.orbital = 3"
+
+[sub_resource type="Resource" id="Resource_tf4hs"]
+script = ExtResource("1_51p67")
+id = "blast"
+name = "Wide Blast"
+tag = "burst"
+adjective = "Sprawling"
+noun = "Crater"
+title = "Craters"
+desc = "+15% blast radius per point."
+effect = "t.splash *= 1.15"
+mastery_name = "Cluster Shells"
+mastery_desc = "Each shell scatters 3 bomblets at nearby enemies for 50% damage."
+mastery_effect = "t.cluster = 3"
+
+[sub_resource type="Resource" id="Resource_el5ru"]
+script = ExtResource("1_51p67")
+id = "napalm"
+name = "Napalm"
+tag = "burn"
+adjective = "Burning"
+noun = "Brazier"
+title = "Napalm"
+desc = "Blasts burn for 30% of their damage over 2s per point."
+effect = "t.burn += 0.3"
+mastery_name = "Firestorm"
+mastery_desc = "Shells leave burning ground for 3s."
+mastery_effect = "t.firestorm = true"
+
+[sub_resource type="Resource" id="Resource_cuij1"]
+script = ExtResource("1_51p67")
+id = "reload"
+name = "Quick Reload"
+tag = "speed"
+adjective = "Rapid"
+noun = "Battery"
+title = "Salvos"
+desc = "Fires 12% faster per point."
+effect = "t.rate *= 0.88"
+mastery_name = "Double Salvo"
+mastery_desc = "Every shell is followed by a second one for 60% damage."
+mastery_effect = "t.salvo = 0.6"
+
+[sub_resource type="Resource" id="Resource_xjvcp"]
+script = ExtResource("1_51p67")
+id = "shock"
+name = "Shockwave"
+tag = "slow"
+adjective = "Shaking"
+noun = "Quake"
+title = "Tremors"
+desc = "Blasts slow enemies by 12% per point for 1.6s."
+effect = "t.slow = max(t.slow, 0.12 * rank)"
+mastery_name = "Earthquake"
+mastery_desc = "Every 4th shell stuns everything in the blast for 0.8s (bosses 0.3s)."
+mastery_effect = "t.quake_stun = true"
+
+[resource]
+script = ExtResource("2_i81av")
+id = "mortar"
+name = "Siege Mortar"
+cost = 130
+dmg = 110.0
+rate = 4.5
+range = 320.0
+splash = 60.0
+lob = true
+element_tag = "burst"
+color = Color(0.9764706, 0.9019608, 0.63529414, 1)
+info = "Very long range. Lobs a slow, heavy shell that lands a few moments later and wrecks everything in the blast. Fires rarely, so pair it with towers that cover the gaps."
+paths = Array[ExtResource("1_51p67")]([SubResource("Resource_gm4ry"), SubResource("Resource_tf4hs"), SubResource("Resource_el5ru"), SubResource("Resource_cuij1"), SubResource("Resource_xjvcp")])
+signature_name = "Rocket Shells"
+signature_desc = "Shells fly 40% faster and their blast is 20% wider."
+super_power_name = "Meteor Rain"
+super_power_desc = "drops 10 meteors across its range, each dealing 4× damage in a wide blast"
+form_names = {
+"012": "Doomshell Battery",
+"0123": "Ragnarok Battery",
+"01234": "End of Days",
+"0124": "Cataclysm Cannon",
+"013": "Bastion Buster",
+"0134": "Thunder Siege",
+"014": "Crater Maker",
+"023": "Firebomb Nest",
+"0234": "Brimstone Bastion",
+"024": "Scorched Earth",
+"034": "Rolling Barrage",
+"123": "Inferno Rain",
+"1234": "Ash Sky",
+"124": "Quake Mortar",
+"134": "Hailstorm Launcher",
+"234": "Hellrain Battery"
+}
+sheet = ExtResource("3_iy7k3")
+foot_y = 40.0
+muzzle_y = 20.0
+shot_anchor = Vector2(24, 25)
+shot_turn = true
+fire_frame = 3

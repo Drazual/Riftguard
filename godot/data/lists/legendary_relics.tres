@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_0c8rn"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_u1sia"]
+
+[sub_resource type="Resource" id="Resource_ugx2q"]
+script = ExtResource("1_0c8rn")
+id = "starforge"
+name = "Starforge"
+desc = "All towers deal +30% damage and get +10% range."
+effect = "run.mod_tower_dmg += 0.3
+h.tower_range += 0.1"
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_0wpa0"]
+script = ExtResource("1_0c8rn")
+id = "chrono"
+name = "Chrono Engine"
+desc = "All towers fire 20% faster."
+effect = "run.mod_tower_rate *= 0.8"
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_c25mi"]
+script = ExtResource("1_0c8rn")
+id = "phoenixcore"
+name = "Phoenix Core"
+desc = "The first time your base would fall, it survives with 10 HP."
+effect = "run.mod_phoenix = true"
+also_pools = PackedStringArray()
+rarity = "legendary"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_u1sia")
+items = Array[ExtResource("1_0c8rn")]([SubResource("Resource_ugx2q"), SubResource("Resource_0wpa0"), SubResource("Resource_c25mi")])

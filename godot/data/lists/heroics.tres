@@ -1,0 +1,96 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_s5vre"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_wgf6e"]
+
+[sub_resource type="Resource" id="Resource_er4jx"]
+script = ExtResource("1_s5vre")
+id = "blades"
+name = "Orbiting Blades"
+desc = "{r + 1} blades circle your hero, each dealing {20 * r} damage per second to enemies they touch."
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_755mw"]
+script = ExtResource("1_s5vre")
+id = "retribution"
+name = "Retribution"
+desc = "Every 4s, a shockwave hits enemies within 110 of your hero for {20 * r} damage plus {30 * r}% of the damage you took since the last one."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("vanguard")
+
+[sub_resource type="Resource" id="Resource_w805a"]
+script = ExtResource("1_s5vre")
+id = "barrage"
+name = "Rift Barrage"
+desc = "Every 5s, fire {2 + 2 * r} homing rift missiles at enemies near your hero, each dealing 150% hero damage + {10 * r}."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("striker")
+
+[sub_resource type="Resource" id="Resource_x4udo"]
+script = ExtResource("1_s5vre")
+id = "drone"
+name = "Turret Drone"
+desc = "{r} drone{s(r)} fly beside your hero and shoot the nearest enemy for {10 + 8 * r} damage."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("striker", "oracle", "wizard")
+
+[sub_resource type="Resource" id="Resource_tdeub"]
+script = ExtResource("1_s5vre")
+id = "timestop"
+name = "Time Stop"
+desc = "Every 25s, every enemy on the map freezes for {1 + r}s."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("oracle", "sniper", "wizard")
+
+[sub_resource type="Resource" id="Resource_o1brj"]
+script = ExtResource("1_s5vre")
+id = "wither"
+name = "Withering Aura"
+desc = "Enemies within {90 + 20 * r} of your hero take {10 * r} damage per second and are slowed 20%."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("vanguard", "wizard")
+
+[sub_resource type="Resource" id="Resource_miatl"]
+script = ExtResource("1_s5vre")
+id = "chainstrike"
+name = "Chain Strike"
+desc = "Your attacks jump to {1 + r} more enemies for 60% damage."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("striker")
+
+[sub_resource type="Resource" id="Resource_g7oai"]
+script = ExtResource("1_s5vre")
+id = "goldrush"
+name = "Gold Rush"
+desc = "Kills have a {8 * r}% chance to drop 15 bonus gold."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("oracle")
+
+[sub_resource type="Resource" id="Resource_mtwjt"]
+script = ExtResource("1_s5vre")
+id = "phoenix"
+name = "Phoenix Rebirth"
+desc = "When knocked out, explode for {150 * r} damage and respawn in 2s."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("vanguard")
+
+[sub_resource type="Resource" id="Resource_0kqk2"]
+script = ExtResource("1_s5vre")
+id = "ricochet"
+name = "Ricochet"
+desc = "Your shots bounce to {r} more enem{iff(r > 1, 'ies', 'y')} for 50% damage."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("sniper")
+
+[sub_resource type="Resource" id="Resource_xcrny"]
+script = ExtResource("1_s5vre")
+id = "marked"
+name = "Marked for Death"
+desc = "Every 5th shot marks its target for 4s: marked enemies take +{20 * r}% damage from everything."
+also_pools = PackedStringArray()
+heroes = PackedStringArray("sniper")
+
+[resource]
+script = ExtResource("2_wgf6e")
+items = Array[ExtResource("1_s5vre")]([SubResource("Resource_er4jx"), SubResource("Resource_755mw"), SubResource("Resource_w805a"), SubResource("Resource_x4udo"), SubResource("Resource_tdeub"), SubResource("Resource_o1brj"), SubResource("Resource_miatl"), SubResource("Resource_g7oai"), SubResource("Resource_mtwjt"), SubResource("Resource_0kqk2"), SubResource("Resource_xcrny")])

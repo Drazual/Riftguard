@@ -1,0 +1,80 @@
+[gd_resource type="Resource" script_class="HeroData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_5qh7a"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_0pu25"]
+[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_8b2t1"]
+[ext_resource type="Texture2D" path="res://assets/heroes/sniper.png" id="4_5gskk"]
+
+[sub_resource type="Resource" id="Resource_v0u3i"]
+script = ExtResource("1_5qh7a")
+id = "pierce"
+name = "Piercing Shot"
+cd = 16.0
+mult = 4.0
+w = 18.0
+desc = "Fires a round through every enemy in a line toward your aim point (or the lead enemy) for {f1(a.mult)}× damage."
+
+[sub_resource type="Resource" id="Resource_tdfem"]
+script = ExtResource("1_5qh7a")
+id = "strike"
+name = "Orbital Strike"
+cd = 16.0
+r = 90.0
+mult = 5.0
+desc = "Calls a strike where your cursor is on the map (or the toughest enemy). After 0.8s it hits everything within {f0(a.r)} for {f1(a.mult)}× damage."
+
+[sub_resource type="Resource" id="Resource_pqs5a"]
+script = ExtResource("2_0pu25")
+id = "rounds"
+name = "Heavy Rounds"
+desc = "+{5 * r}% damage"
+effect = "h.dmg *= 1 + 0.05 * r"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_7bjss"]
+script = ExtResource("2_0pu25")
+id = "stance"
+name = "Steady Stance"
+desc = "Brace {5 * r}% faster"
+effect = "h.brace *= 1 - 0.05 * r"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_k5i7h"]
+script = ExtResource("2_0pu25")
+id = "hollow"
+name = "Hollow Points"
+desc = "+{10 * r}% crit damage"
+effect = "h.crit_dmg += 0.1 * r"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_bck4n"]
+script = ExtResource("2_0pu25")
+id = "drills"
+name = "Piercing Drills"
+desc = "Piercing Shot recharges {4 * r}% faster"
+effect = "h.ab.cd *= 1 - 0.04 * r"
+also_pools = PackedStringArray()
+cost = "100 + 80 * r"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("3_8b2t1")
+id = "sniper"
+name = "Sniper"
+color = Color(1, 0.827451, 0.43137255, 1)
+desc = "Hits anything on the map, but has to stand still and brace before every shot. Slow, heavy, precise."
+hp = 170.0
+dmg = 48.0
+rate = 2.4
+range = 9999.0
+brace = 1.2
+crit = 0.1
+ability = SubResource("Resource_v0u3i")
+alt = SubResource("Resource_tdfem")
+meta = Array[ExtResource("2_0pu25")]([SubResource("Resource_pqs5a"), SubResource("Resource_7bjss"), SubResource("Resource_k5i7h"), SubResource("Resource_bck4n")])
+sheet = ExtResource("4_5gskk")

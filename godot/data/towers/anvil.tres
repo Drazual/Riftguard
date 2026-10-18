@@ -1,0 +1,114 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_hs41w"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_psklc"]
+[ext_resource type="Texture2D" path="res://assets/towers/anvil.png" id="3_0xhmw"]
+
+[sub_resource type="Resource" id="Resource_40c7c"]
+script = ExtResource("1_hs41w")
+id = "crush"
+name = "Crush"
+adjective = "Crushing"
+noun = "Anvil"
+title = "Ruin"
+desc = "+15% damage per point."
+effect = "t.dmg *= 1.15"
+mastery_name = "Executioner’s Weight"
+mastery_desc = "Stopped enemies below 15% HP are crushed instantly (not bosses)."
+mastery_effect = "t.crush_exec = 0.15"
+
+[sub_resource type="Resource" id="Resource_q3op7"]
+script = ExtResource("1_hs41w")
+id = "pin"
+name = "Pin"
+tag = "slow"
+adjective = "Pinning"
+noun = "Spike"
+title = "Chains"
+desc = "Slams hold stopped enemies in place 0.3s longer per point (bosses half)."
+effect = "t.pin += 0.3"
+mastery_name = "Shackle"
+mastery_desc = "Every 4th slam roots every enemy in the area for 1s, moving or not (bosses 0.5s)."
+mastery_effect = "t.shackle = true"
+
+[sub_resource type="Resource" id="Resource_lpx87"]
+script = ExtResource("1_hs41w")
+id = "quake"
+name = "Quake"
+tag = "burst"
+adjective = "Quaking"
+noun = "Hammer"
+title = "Tremors"
+desc = "+10 slam radius per point."
+effect = "t.range += 10"
+mastery_name = "Aftershock"
+mastery_desc = "Each slam sends a second shockwave 0.5s later for 50% damage."
+mastery_effect = "t.after = true"
+
+[sub_resource type="Resource" id="Resource_go4co"]
+script = ExtResource("1_hs41w")
+id = "pressure"
+name = "Pressure"
+tag = "precision"
+adjective = "Grinding"
+noun = "Press"
+title = "Pressure"
+desc = "+10% more damage per second stopped per point, and the cap rises by 25%."
+effect = "t.press += 0.1
+t.press_cap += 0.25"
+mastery_name = "Crushing Tide"
+mastery_desc = "Pressure no longer resets when an enemy starts moving again; it fades over 3s instead."
+mastery_effect = "t.tide = true"
+
+[sub_resource type="Resource" id="Resource_qvcfs"]
+script = ExtResource("1_hs41w")
+id = "guardian"
+name = "Guardian"
+tag = "slow"
+adjective = "Guarding"
+noun = "Bastion"
+title = "Wardens"
+desc = "Your hero takes 6% less damage per point from enemies it blocks within range."
+effect = "t.guard += 0.06"
+mastery_name = "Bulwark Pact"
+mastery_desc = "While your hero blocks an enemy in range, the Anvil slams twice as fast."
+mastery_effect = "t.pact = true"
+
+[resource]
+script = ExtResource("2_psklc")
+id = "anvil"
+name = "Grave Anvil"
+cost = 90
+dmg = 40.0
+rate = 1.6
+range = 70.0
+element_tag = "burst"
+color = Color(0.9647059, 0.6313726, 0.2901961, 1)
+info = "Slams the ground, crushing enemies that are not moving: blocked by your hero, stunned or frozen. The longer they stay still, the harder it hits. Moving enemies only take 30%."
+paths = Array[ExtResource("1_hs41w")]([SubResource("Resource_40c7c"), SubResource("Resource_q3op7"), SubResource("Resource_lpx87"), SubResource("Resource_go4co"), SubResource("Resource_qvcfs")])
+signature_name = "Fault Line"
+signature_desc = "Slams travel along the path in both directions for 2 tiles."
+super_power_name = "World Breaker"
+super_power_desc = "slams every enemy in range for 8× damage and stuns them for 1.5s (bosses 0.5s)"
+form_names = {
+"012": "Tomb Hammer",
+"0123": "Grave of Kings",
+"01234": "The Final Anvil",
+"0124": "Worldbreaker",
+"013": "Executioner’s Press",
+"0134": "Titan’s Judgment",
+"014": "Oathkeeper",
+"023": "Earthsplitter",
+"0234": "Doomhammer Forge",
+"024": "Bulwark Maul",
+"034": "Grinding Bastion",
+"123": "Gravelock",
+"1234": "Mountain’s Grip",
+"124": "Warden’s Shackle",
+"134": "Iron Vise",
+"234": "Seismic Bastion"
+}
+sheet = ExtResource("3_0xhmw")
+foot_y = 39.0
+muzzle_y = 22.0
+fire_frame = 3

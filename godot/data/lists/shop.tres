@@ -1,0 +1,171 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_ywjn6"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_ro1eb"]
+
+[sub_resource type="Resource" id="Resource_xbvww"]
+script = ExtResource("1_ywjn6")
+id = "conduit"
+name = "Rift Conduit"
+desc = "All towers deal +{pct(m)} damage."
+effect = "run.mod_tower_dmg += m"
+m = 0.2
+also_pools = PackedStringArray()
+price = 300
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_56o1x"]
+script = ExtResource("1_ywjn6")
+id = "hyper"
+name = "Hyperclock Array"
+desc = "All towers fire {pct(m)} faster."
+effect = "run.mod_tower_rate *= 1 - min(0.5, m)"
+m = 0.12
+also_pools = PackedStringArray()
+price = 320
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_63y5p"]
+script = ExtResource("1_ywjn6")
+id = "matrix"
+name = "Farsight Matrix"
+desc = "All towers get +{pct(m)} range."
+effect = "h.tower_range += m"
+m = 0.12
+also_pools = PackedStringArray()
+price = 220
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_vd23l"]
+script = ExtResource("1_ywjn6")
+id = "codex"
+name = "Mastery Codex"
+desc = "Every tower can use {f0(m)} more upgrade path{s(m)}."
+effect = "run.path_bonus += m"
+m = 1.0
+also_pools = PackedStringArray()
+price = 450
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_phv06"]
+script = ExtResource("1_ywjn6")
+id = "primer"
+name = "Path Primer"
+desc = "Your next {f0(m)} tower upgrades are free."
+effect = "run.free_levels += m"
+m = 3.0
+also_pools = PackedStringArray()
+price = 260
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_vi1h7"]
+script = ExtResource("1_ywjn6")
+id = "breaker"
+name = "Titanbreaker Rounds"
+desc = "All towers deal +{pct(m)} damage to bosses."
+effect = "run.mod_boss_dmg += m"
+m = 0.3
+also_pools = PackedStringArray()
+price = 340
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_3iq61"]
+script = ExtResource("1_ywjn6")
+id = "lattice"
+name = "Cryo Lattice"
+desc = "Every tower hit also slows enemies by {pct(m)}."
+effect = "run.mod_all_slow += m"
+m = 0.1
+also_pools = PackedStringArray()
+price = 280
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_q0pm0"]
+script = ExtResource("1_ywjn6")
+id = "ember"
+name = "Ember Coating"
+desc = "Every tower hit also burns for {pct(m)} of its damage over 2s."
+effect = "run.mod_all_burn += m"
+m = 0.25
+also_pools = PackedStringArray()
+price = 280
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_utrsk"]
+script = ExtResource("1_ywjn6")
+id = "titan"
+name = "Titan Frame"
+desc = "Hero +{pct(m)} max HP and takes {pct(m / 2)} less damage."
+effect = "h.max_hp = round(h.max_hp * (1 + m))
+h.hp = h.max_hp
+h.armor = min(0.8, h.armor + m / 2)"
+m = 0.4
+also_pools = PackedStringArray()
+price = 260
+shop_kind = "Hero"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_nm16f"]
+script = ExtResource("1_ywjn6")
+id = "riftblade"
+name = "Rift Blade"
+desc = "Hero +{pct(m)} damage and +{pct(m / 4)} crit chance."
+effect = "h.dmg *= 1 + m
+h.crit = min(0.9, h.crit + m / 4)"
+m = 0.4
+also_pools = PackedStringArray()
+price = 280
+shop_kind = "Hero"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_wmw23"]
+script = ExtResource("1_ywjn6")
+id = "chrono"
+name = "Chrono Battery"
+desc = "Your ability recharges {pct(min(0.6, m))} faster."
+effect = "h.ab.cd = max(4, h.ab.cd * (1 - min(0.6, m)))"
+m = 0.25
+also_pools = PackedStringArray()
+price = 240
+shop_kind = "Hero"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_eb6jy"]
+script = ExtResource("1_ywjn6")
+id = "soul"
+name = "Soul Engine"
+desc = "Pick {f0(m)} hero upgrades right now."
+effect = "run.pending_levels += m"
+m = 2.0
+also_pools = PackedStringArray()
+price = 300
+shop_kind = "Hero"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_2c483"]
+script = ExtResource("1_ywjn6")
+id = "contract"
+name = "Bounty Contract"
+desc = "+{f0(m)} gold for every kill."
+effect = "h.bounty += m"
+m = 3.0
+also_pools = PackedStringArray()
+price = 220
+shop_kind = "Hero"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_cf73d"]
+script = ExtResource("1_ywjn6")
+id = "bulwark"
+name = "Rift Bulwark"
+desc = "Your base gains {f0(m)} HP."
+effect = "run.lives += m"
+m = 8.0
+also_pools = PackedStringArray()
+price = 200
+shop_kind = "Hero"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_ro1eb")
+items = Array[ExtResource("1_ywjn6")]([SubResource("Resource_xbvww"), SubResource("Resource_56o1x"), SubResource("Resource_63y5p"), SubResource("Resource_vd23l"), SubResource("Resource_phv06"), SubResource("Resource_vi1h7"), SubResource("Resource_3iq61"), SubResource("Resource_q0pm0"), SubResource("Resource_utrsk"), SubResource("Resource_nm16f"), SubResource("Resource_wmw23"), SubResource("Resource_eb6jy"), SubResource("Resource_2c483"), SubResource("Resource_cf73d")])

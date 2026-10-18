@@ -1,0 +1,57 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_tbkw8"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_4n0pn"]
+
+[sub_resource type="Resource" id="Resource_i8qey"]
+script = ExtResource("1_tbkw8")
+id = "0"
+desc = "Enemies have {round(5 * k)}% more HP."
+effect = "run.mod_enemy_hp += 0.05 * k"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_lmjth"]
+script = ExtResource("1_tbkw8")
+id = "1"
+desc = "Lose {round(2 * k)} base HP."
+effect = "run.lives = max(1, run.lives - round(2 * k))"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_hgqxg"]
+script = ExtResource("1_tbkw8")
+id = "2"
+desc = "Your hero loses {round(min(50, 10 * k))}% max HP."
+effect = "h.max_hp = round(h.max_hp * (1 - min(0.5, 0.1 * k)))
+h.hp = min(h.hp, h.max_hp)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_xqeg8"]
+script = ExtResource("1_tbkw8")
+id = "3"
+desc = "New towers cost {round(8 * k)}% more to build."
+effect = "h.cost_mul *= 1 + 0.08 * k"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_jlg17"]
+script = ExtResource("1_tbkw8")
+id = "4"
+desc = "Lose {round(60 * k)} gold."
+effect = "run.gold = max(0, run.gold - round(60 * k))"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_jdnrx"]
+script = ExtResource("1_tbkw8")
+id = "5"
+desc = "Enemies move {round(4 * k)}% faster."
+effect = "run.mod_enemy_speed += 0.04 * k"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_4n0pn")
+items = Array[ExtResource("1_tbkw8")]([SubResource("Resource_i8qey"), SubResource("Resource_lmjth"), SubResource("Resource_hgqxg"), SubResource("Resource_xqeg8"), SubResource("Resource_jlg17"), SubResource("Resource_jdnrx")])

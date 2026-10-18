@@ -1,0 +1,46 @@
+; Riftguard, Godot 4 port. Open this folder in Godot 4.7 (standard build) to edit the game.
+config_version=5
+
+[application]
+
+config/name="Riftguard"
+config/description="Roguelike tower defense"
+config/version="0.26"
+run/main_scene="res://scenes/main.tscn"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="Riftguard"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.png"
+boot_splash/bg_color=Color(0.0431, 0.0588, 0.1098, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+DB="*res://scripts/core/db.gd"
+Save="*res://scripts/core/save.gd"
+Sound="*res://scripts/core/sound.gd"
+Updater="*res://scripts/core/updater.gd"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/size/mode=3
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[gui]
+
+theme/default_font_multichannel_signed_distance_field=false
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=false
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=false
+environment/defaults/default_clear_color=Color(0.0431, 0.0588, 0.1098, 1)

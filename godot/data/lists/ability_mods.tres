@@ -1,0 +1,320 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_jd2t4"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_y3a34"]
+
+[sub_resource type="Resource" id="Resource_cpmsu"]
+script = ExtResource("1_jd2t4")
+id = "rings"
+name = "Shockwave Rings"
+desc = "Shield Slam sends out 3 expanding rings that each hit for 40% damage and push enemies back."
+effect = "h.ab.rings = true"
+pool = "vanguard"
+also_pools = PackedStringArray()
+ability = "slam"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_t46pr"]
+script = ExtResource("1_jd2t4")
+id = "magnet"
+name = "Magnetic Slam"
+desc = "Shield Slam reaches 50% farther and drags every enemy it hits back along the path."
+effect = "h.ab.magnet = true"
+pool = "vanguard"
+also_pools = PackedStringArray()
+ability = "slam"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ssrh7"]
+script = ExtResource("1_jd2t4")
+id = "molten"
+name = "Molten Crater"
+desc = "Shield Slam leaves a glowing crater for 4s that burns and slows enemies inside."
+effect = "h.ab.molten = true"
+pool = "vanguard"
+also_pools = PackedStringArray()
+ability = "slam"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_naw14"]
+script = ExtResource("1_jd2t4")
+id = "echo"
+name = "Echo Slam"
+desc = "A second slam hits 1s later for 50% damage."
+effect = "h.ab.echo = true"
+pool = "vanguard"
+also_pools = PackedStringArray()
+ability = "slam"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_8c7dq"]
+script = ExtResource("1_jd2t4")
+id = "twin"
+name = "Twin Nova"
+desc = "A second nova bursts on the toughest enemy on the map."
+effect = "h.ab.twin = true"
+pool = "striker"
+also_pools = PackedStringArray()
+ability = "nova"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_jj5hh"]
+script = ExtResource("1_jd2t4")
+id = "hole"
+name = "Black Hole"
+desc = "Rift Nova first holds enemies in a vortex for 1.5s, then explodes for 150% damage."
+effect = "h.ab.hole = true"
+pool = "striker"
+also_pools = PackedStringArray()
+ability = "nova"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_5aqfn"]
+script = ExtResource("1_jd2t4")
+id = "chainN"
+name = "Chain Nova"
+desc = "Every enemy Rift Nova kills sets off a smaller nova of its own."
+effect = "h.ab.chain_n = true"
+pool = "striker"
+also_pools = PackedStringArray()
+ability = "nova"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_sdafa"]
+script = ExtResource("1_jd2t4")
+id = "dash"
+name = "Nova Dash"
+desc = "You dash toward the cursor before the nova, leaving a burning trail."
+effect = "h.ab.dash = true"
+pool = "striker"
+also_pools = PackedStringArray()
+ability = "nova"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_6dqn3"]
+script = ExtResource("1_jd2t4")
+id = "mobile"
+name = "Mobile Field"
+desc = "Overclock Field follows you around."
+effect = "h.ab.mobile = true"
+pool = "oracle"
+also_pools = PackedStringArray()
+ability = "overclock"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_8y3ji"]
+script = ExtResource("1_jd2t4")
+id = "chrono"
+name = "Chrono Field"
+desc = "Enemies inside Overclock Field are slowed 30%, and tower shots inside it jump to 1 more enemy."
+effect = "h.ab.chrono = true"
+pool = "oracle"
+also_pools = PackedStringArray()
+ability = "overclock"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_7yd8p"]
+script = ExtResource("1_jd2t4")
+id = "burst"
+name = "Overcharge Burst"
+desc = "When Overclock Field ends, every tower inside fires one 3× damage shot."
+effect = "h.ab.burst = true"
+pool = "oracle"
+also_pools = PackedStringArray()
+ability = "overclock"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_u6q78"]
+script = ExtResource("1_jd2t4")
+id = "prismF"
+name = "Prism Field"
+desc = "Towers inside Overclock Field fire a bonus beam at a second enemy."
+effect = "h.ab.prism_f = true"
+pool = "oracle"
+also_pools = PackedStringArray()
+ability = "overclock"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_1i3yo"]
+script = ExtResource("1_jd2t4")
+id = "rail"
+name = "Railgun"
+desc = "Piercing Shot is 3× wider and leaves a burning line for 3s."
+effect = "h.ab.rail = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+ability = "pierce"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_fuo0s"]
+script = ExtResource("1_jd2t4")
+id = "bounce"
+name = "Ricochet Round"
+desc = "Piercing Shot bounces through 5 more enemies after its line."
+effect = "h.ab.bounce = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+ability = "pierce"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_knw2r"]
+script = ExtResource("1_jd2t4")
+id = "cluster"
+name = "Cluster Round"
+desc = "Every enemy Piercing Shot hits explodes for 40% damage around it."
+effect = "h.ab.cluster = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+ability = "pierce"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_52hr5"]
+script = ExtResource("1_jd2t4")
+id = "spiked"
+name = "Spiked Barrier"
+desc = "While Bulwark Shield is up, enemies you block take 40 damage per second."
+effect = "h.ab.spiked = true"
+pool = "vanguard"
+also_pools = PackedStringArray()
+ability = "bulwark"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_xvp2a"]
+script = ExtResource("1_jd2t4")
+id = "overflow"
+name = "Overflowing Shield"
+desc = "Bulwark Shield is 50% bigger, and whatever is left of it when it ends heals you."
+effect = "h.ab.overflow = true"
+pool = "vanguard"
+also_pools = PackedStringArray()
+ability = "bulwark"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_oey1w"]
+script = ExtResource("1_jd2t4")
+id = "bloodrush"
+name = "Blood Rush"
+desc = "Each kill during Overdrive extends it by 0.4s (up to 4s more)."
+effect = "h.ab.bloodrush = true"
+pool = "striker"
+also_pools = PackedStringArray()
+ability = "overdrive"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_c8eam"]
+script = ExtResource("1_jd2t4")
+id = "afterimg"
+name = "Afterimage"
+desc = "During Overdrive your attacks hit 2 more enemies."
+effect = "h.ab.afterimg = true"
+pool = "striker"
+also_pools = PackedStringArray()
+ability = "overdrive"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_fnpgx"]
+script = ExtResource("1_jd2t4")
+id = "shatterS"
+name = "Shattering Stasis"
+desc = "Enemies inside Stasis Field take +25% damage from everything."
+effect = "h.ab.shatter_s = true"
+pool = "oracle"
+also_pools = PackedStringArray()
+ability = "stasis"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_xoke7"]
+script = ExtResource("1_jd2t4")
+id = "anchor"
+name = "Rift Anchor"
+desc = "Casting Stasis Field freezes every enemy inside it solid for 1.5s (bosses 0.5s)."
+effect = "h.ab.anchor = true"
+pool = "oracle"
+also_pools = PackedStringArray()
+ability = "stasis"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_7dtwg"]
+script = ExtResource("1_jd2t4")
+id = "carpet"
+name = "Carpet Strike"
+desc = "Orbital Strike drops 3 more blasts around the target for 50% damage."
+effect = "h.ab.carpet = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+ability = "strike"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_w5sl5"]
+script = ExtResource("1_jd2t4")
+id = "scorch"
+name = "Scorched Earth"
+desc = "Orbital Strike leaves burning ground for 4s."
+effect = "h.ab.scorch = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+ability = "strike"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_6oav5"]
+script = ExtResource("1_jd2t4")
+id = "execR"
+name = "Execution Round"
+desc = "Piercing Shot kills non-boss enemies below 30% HP, and each kill refunds 10% of its cooldown (up to 40% per shot)."
+effect = "h.ab.exec_r = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+ability = "pierce"
+min_rarity = "rare"
+kind = "ability"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_y3a34")
+items = Array[ExtResource("1_jd2t4")]([SubResource("Resource_cpmsu"), SubResource("Resource_t46pr"), SubResource("Resource_ssrh7"), SubResource("Resource_naw14"), SubResource("Resource_8c7dq"), SubResource("Resource_jj5hh"), SubResource("Resource_5aqfn"), SubResource("Resource_sdafa"), SubResource("Resource_6dqn3"), SubResource("Resource_8y3ji"), SubResource("Resource_7yd8p"), SubResource("Resource_u6q78"), SubResource("Resource_1i3yo"), SubResource("Resource_fuo0s"), SubResource("Resource_knw2r"), SubResource("Resource_52hr5"), SubResource("Resource_xvp2a"), SubResource("Resource_oey1w"), SubResource("Resource_c8eam"), SubResource("Resource_fnpgx"), SubResource("Resource_xoke7"), SubResource("Resource_7dtwg"), SubResource("Resource_w5sl5"), SubResource("Resource_6oav5")])

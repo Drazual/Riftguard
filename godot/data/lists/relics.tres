@@ -1,0 +1,73 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_js7lr"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_ms088"]
+
+[sub_resource type="Resource" id="Resource_w0qe3"]
+script = ExtResource("1_js7lr")
+id = "overcharger"
+name = "Overcharger"
+desc = "All towers deal +15% damage."
+effect = "run.mod_tower_dmg += 0.15"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_etari"]
+script = ExtResource("1_js7lr")
+id = "cryocore"
+name = "Cryo Core"
+desc = "All slows are 15% stronger."
+effect = "run.mod_slow += 0.15"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_6yw7g"]
+script = ExtResource("1_js7lr")
+id = "treasury"
+name = "Rift Treasury"
+desc = "+25% gold from kills."
+effect = "run.mod_gold += 0.25"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ska8n"]
+script = ExtResource("1_js7lr")
+id = "lens"
+name = "Farsight Lens"
+desc = "All towers +12% range."
+effect = "h.tower_range += 0.12"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_yc4rs"]
+script = ExtResource("1_js7lr")
+id = "warbanner"
+name = "War Banner"
+desc = "Hero deals +25% damage."
+effect = "h.dmg *= 1.25"
+also_pools = PackedStringArray()
+offensive_only = true
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_4v1eb"]
+script = ExtResource("1_js7lr")
+id = "repair"
+name = "Repair Drones"
+desc = "Restore 6 base HP."
+effect = "run.lives += 6"
+also_pools = PackedStringArray()
+repeat = true
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_b2kgh"]
+script = ExtResource("1_js7lr")
+id = "capacitor"
+name = "Capacitor"
+desc = "Towers fire 10% faster."
+effect = "run.mod_tower_rate *= 0.9"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_ms088")
+items = Array[ExtResource("1_js7lr")]([SubResource("Resource_w0qe3"), SubResource("Resource_etari"), SubResource("Resource_6yw7g"), SubResource("Resource_ska8n"), SubResource("Resource_yc4rs"), SubResource("Resource_4v1eb"), SubResource("Resource_b2kgh")])

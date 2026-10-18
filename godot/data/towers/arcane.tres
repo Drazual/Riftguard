@@ -1,0 +1,113 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_lvjcc"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_nvxlv"]
+[ext_resource type="Texture2D" path="res://assets/towers/arcane.png" id="3_i5njh"]
+
+[sub_resource type="Resource" id="Resource_q2rm3"]
+script = ExtResource("1_lvjcc")
+id = "runes"
+name = "Sharpened Runes"
+adjective = "Runic"
+noun = "Glyph"
+title = "Runes"
+desc = "+20% damage per point."
+effect = "t.dmg *= 1.2"
+mastery_name = "Arcane Mark"
+mastery_desc = "Hits mark enemies to take +20% damage from everything for 2s."
+mastery_effect = "t.mark += 0.2"
+
+[sub_resource type="Resource" id="Resource_22xw4"]
+script = ExtResource("1_lvjcc")
+id = "hex"
+name = "Hex Brand"
+tag = "arcane"
+adjective = "Hexed"
+noun = "Brand"
+title = "Hexes"
+desc = "Hits brand enemies. Every second a branded enemy pulses 2% more per point of all the damage it has taken so far, to itself and enemies within 60. Ignores armor."
+effect = "t.hex += 0.02"
+mastery_name = "Hex Nova"
+mastery_desc = "Branded enemies explode when they die for 25% of all the damage they took, hitting enemies within 80."
+mastery_effect = "t.hex_nova = max(t.hex_nova, 0.25)"
+
+[sub_resource type="Resource" id="Resource_7xd6i"]
+script = ExtResource("1_lvjcc")
+id = "focus"
+name = "Arcane Focus"
+tag = "precision"
+adjective = "Focused"
+noun = "Lens"
+title = "Focus"
+desc = "Each hit in a row on the same enemy deals +10% more damage per point (5 stacks)."
+effect = "t.ramp += 0.1"
+mastery_name = "Executioner"
+mastery_desc = "Hits finish off non-boss enemies below 12% HP."
+mastery_effect = "t.execute += 0.12"
+
+[sub_resource type="Resource" id="Resource_86pgm"]
+script = ExtResource("1_lvjcc")
+id = "surge"
+name = "Mana Surge"
+tag = "arcane"
+adjective = "Surging"
+noun = "Nova"
+title = "Mana"
+desc = "Every 5th shot deals triple damage; each point makes it come 1 shot sooner."
+effect = "t.surge = 6 - rank"
+mastery_name = "Mana Nova"
+mastery_desc = "Every 6th shot also blasts every enemy in range for 50% damage."
+mastery_effect = "t.nova += 0.5"
+
+[sub_resource type="Resource" id="Resource_8yuko"]
+script = ExtResource("1_lvjcc")
+id = "quick"
+name = "Quickcast"
+tag = "speed"
+adjective = "Swift"
+noun = "Repeater"
+title = "Haste"
+desc = "Fires 14% faster per point."
+effect = "t.rate *= 0.86"
+mastery_name = "Echo"
+mastery_desc = "Every shot repeats a moment later for 40% damage."
+mastery_effect = "t.echo += 0.4"
+
+[resource]
+script = ExtResource("2_nvxlv")
+id = "arcane"
+name = "Arcane Bolt"
+dmg = 14.0
+rate = 0.5
+range = 120.0
+element_tag = "arcane"
+color = Color(1, 0.30980393, 0.7529412, 1)
+info = "Fires quick magic bolts at one enemy at a time. Steady, reliable damage that is good against anything."
+paths = Array[ExtResource("1_lvjcc")]([SubResource("Resource_q2rm3"), SubResource("Resource_22xw4"), SubResource("Resource_7xd6i"), SubResource("Resource_86pgm"), SubResource("Resource_8yuko")])
+signature_name = "Spellweave"
+signature_desc = "Every 5th bolt also applies Hex Brand, even without points in it."
+super_power_name = "Rift Collapse"
+super_power_desc = "drags every enemy in range back along the path for 1.5s, hits them for 6× damage, and they take 30% more damage for 5s"
+form_names = {
+"012": "Doomglyph Obelisk",
+"0123": "Sigil of the Void",
+"01234": "Arcanum Absolute",
+"0124": "Grimoire of Ruin",
+"013": "Hexstorm Spire",
+"0134": "Runic Maelstrom",
+"014": "Curseweaver",
+"023": "Starpiercer",
+"0234": "Archmage’s Lance",
+"024": "Spellblade Sentinel",
+"034": "Arcane Cataclysm",
+"123": "Voidbrand Monolith",
+"1234": "Eldritch Engine",
+"124": "Witchfire Lens",
+"134": "Plaguestar",
+"234": "Mana Gatling"
+}
+sheet = ExtResource("3_i5njh")
+shot_anchor = Vector2(24, 31)
+shot_turn = true
+fx_anchor_y = 0.75
+fire_frame = 1

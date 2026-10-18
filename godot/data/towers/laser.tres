@@ -1,0 +1,114 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_6i1nf"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_43s4b"]
+[ext_resource type="Texture2D" path="res://assets/towers/laser.png" id="3_l1caa"]
+
+[sub_resource type="Resource" id="Resource_jwh1q"]
+script = ExtResource("1_6i1nf")
+id = "chainl"
+name = "Chain Laser"
+tag = "chain"
+adjective = "Branching"
+noun = "Prism"
+title = "Chains"
+desc = "The beam jumps to 1 more enemy per point at 60% of its damage (heat included)."
+effect = "t.chain += 1
+t.chain_mul = max(t.chain_mul, 0.6)"
+mastery_name = "Prism Web"
+mastery_desc = "Chained beams deal full damage and don’t weaken with each jump."
+mastery_effect = "t.chain_mul = 1
+t.chain_keep = true"
+
+[sub_resource type="Resource" id="Resource_73obn"]
+script = ExtResource("1_6i1nf")
+id = "focusl"
+name = "Focusing Lens"
+tag = "precision"
+adjective = "Focused"
+noun = "Lens"
+title = "Focus"
+desc = "Each tick on the same target adds +3% more heat damage per point."
+effect = "t.ramp += 0.03"
+mastery_name = "Meltdown"
+mastery_desc = "At full heat the beam deals double damage."
+mastery_effect = "t.melt = true"
+
+[sub_resource type="Resource" id="Resource_o7tn8"]
+script = ExtResource("1_6i1nf")
+id = "sink"
+name = "Heat Sink"
+tag = "burn"
+adjective = "Smoldering"
+noun = "Core"
+title = "Embers"
+desc = "Holds 5 more heat stacks per point."
+effect = "t.ramp_max += 5"
+mastery_name = "Residual Heat"
+mastery_desc = "Switching targets only halves the heat instead of resetting it."
+mastery_effect = "t.retain = true"
+
+[sub_resource type="Resource" id="Resource_cdduv"]
+script = ExtResource("1_6i1nf")
+id = "amp"
+name = "Amplifier"
+adjective = "Blazing"
+noun = "Emitter"
+title = "Power"
+desc = "+20% damage per point."
+effect = "t.dmg *= 1.2"
+mastery_name = "Sear"
+mastery_desc = "Hits burn for 40% of their damage over 2s."
+mastery_effect = "t.burn += 0.4"
+
+[sub_resource type="Resource" id="Resource_71iak"]
+script = ExtResource("1_6i1nf")
+id = "lensr"
+name = "Long Lens"
+tag = "precision"
+adjective = "Farseeing"
+noun = "Beam"
+title = "Reach"
+desc = "+10% range per point."
+effect = "t.range *= 1.1"
+mastery_name = "Piercing Beam"
+mastery_desc = "The beam also burns through 3 enemies behind its target for 60% damage."
+mastery_effect = "t.pierce += 3"
+
+[resource]
+script = ExtResource("2_43s4b")
+id = "laser"
+name = "Prism Laser"
+cost = 110
+dmg = 5.0
+rate = 0.2
+range = 115.0
+beam = true
+element_tag = "precision"
+color = Color(1, 0.37254903, 0.43529412, 1)
+info = "Holds a steady beam on one enemy. Every tick on the same target heats the beam up for more damage (up to +160%). Switching targets cools it down. Melts bosses and tanks."
+paths = Array[ExtResource("1_6i1nf")]([SubResource("Resource_jwh1q"), SubResource("Resource_73obn"), SubResource("Resource_o7tn8"), SubResource("Resource_cdduv"), SubResource("Resource_71iak")])
+signature_name = "Overheat"
+signature_desc = "The beam heats up twice as fast."
+super_power_name = "Heaven Lance"
+super_power_desc = "a beam from orbit hits the toughest enemy in range for 30× damage and everything near it for 8×"
+form_names = {
+"012": "Prism Lattice",
+"0123": "Fusion Prism",
+"01234": "Eye of the Sun",
+"0124": "Kaleidoscope",
+"013": "Arc Lancer",
+"0134": "Hyperbeam Array",
+"014": "Spectrum Web",
+"023": "Refraction Core",
+"0234": "Crystal Nexus",
+"024": "Rainbow Reach",
+"034": "Photon Spear",
+"123": "Meltdown Eye",
+"1234": "Solar Cannon",
+"124": "Searing Gaze",
+"134": "Sunbeam Lance",
+"234": "Deathray"
+}
+sheet = ExtResource("3_l1caa")
+foot_y = 36.0

@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="UpgradeList" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_sh37g"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_hynwr"]
+
+[sub_resource type="Resource" id="Resource_8dxj1"]
+script = ExtResource("1_sh37g")
+id = "flawless"
+name = "Flawless"
+desc = "Lose no base HP."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_byyro"]
+script = ExtResource("1_sh37g")
+id = "last"
+name = "Last Stand"
+desc = "If a single enemy gets through, you lose the run."
+also_pools = PackedStringArray()
+pts = 3
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_s3w3c"]
+script = ExtResource("1_sh37g")
+id = "timed"
+name = "Against the Clock"
+desc = "Clear the wave before the timer runs out."
+also_pools = PackedStringArray()
+pts = 1
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_o10x3"]
+script = ExtResource("1_sh37g")
+id = "alive"
+name = "Unbroken"
+desc = "Your hero must not be knocked out."
+also_pools = PackedStringArray()
+pts = 1
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("2_hynwr")
+items = Array[ExtResource("1_sh37g")]([SubResource("Resource_8dxj1"), SubResource("Resource_byyro"), SubResource("Resource_s3w3c"), SubResource("Resource_o10x3")])

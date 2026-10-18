@@ -1,0 +1,86 @@
+[gd_resource type="Resource" script_class="HeroData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_dy0wv"]
+[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_vb7qr"]
+[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_y0hsd"]
+[ext_resource type="Texture2D" path="res://assets/heroes/oracle.png" id="4_q76ft"]
+
+[sub_resource type="Resource" id="Resource_207id"]
+script = ExtResource("1_dy0wv")
+id = "overclock"
+name = "Overclock Field"
+cd = 24.0
+r = 170.0
+dur = 6.0
+power = 0.6
+desc = "Towers within {f0(a.r)} fire {pct(a.power)} faster for {f1(a.dur)}s."
+
+[sub_resource type="Resource" id="Resource_putib"]
+script = ExtResource("1_dy0wv")
+id = "stasis"
+name = "Stasis Field"
+cd = 24.0
+r = 170.0
+dur = 6.0
+power = 0.6
+desc = "Enemies within {f0(a.r)} of where you cast it are slowed {pct(min(0.85, a.power * 0.75))} for {f1(a.dur)}s."
+
+[sub_resource type="Resource" id="Resource_vc421"]
+script = ExtResource("2_vb7qr")
+id = "resonance"
+name = "Resonance"
+desc = "Tower aura gives +{f1t(2.5 * r)}% more damage"
+effect = "h.aura += 0.025 * r"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_4doqw"]
+script = ExtResource("2_vb7qr")
+id = "longclock"
+name = "Long Overclock"
+desc = "Overclock Field lasts {f1(0.3 * r)}s longer"
+effect = "h.ab.dur += 0.3 * r"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_auynb"]
+script = ExtResource("2_vb7qr")
+id = "tithe"
+name = "Rift Tithe"
+desc = "Start each run with +{15 * r} gold"
+effect = "run.gold += 15 * r"
+also_pools = PackedStringArray()
+cost = "80 + 60 * r"
+stat_label = "Starting gold bonus"
+stat_value = "{15 * r}"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_fsbhq"]
+script = ExtResource("2_vb7qr")
+id = "widesig"
+name = "Wide Signal"
+desc = "All towers get +{f1t(1.5 * r)}% range"
+effect = "h.tower_range += 0.015 * r"
+also_pools = PackedStringArray()
+cost = "100 + 80 * r"
+heroes = PackedStringArray()
+
+[resource]
+script = ExtResource("3_y0hsd")
+id = "oracle"
+name = "Oracle"
+role = "Support"
+category = "support"
+color = Color(0.6901961, 0.4862745, 1, 1)
+desc = "Empowers towers. Nearby towers deal +15% damage, Overclock Field makes them fire much faster, and towers use 4 upgrade paths of 3 bigger points instead of 3 paths of 4."
+hp = 210.0
+dmg = 7.0
+block = 2
+regen = 3.0
+speed = 150.0
+aura = 0.15
+ability = SubResource("Resource_207id")
+alt = SubResource("Resource_putib")
+meta = Array[ExtResource("2_vb7qr")]([SubResource("Resource_vc421"), SubResource("Resource_4doqw"), SubResource("Resource_auynb"), SubResource("Resource_fsbhq")])
+sheet = ExtResource("4_q76ft")
