@@ -2,6 +2,18 @@
 
 Every change to Riftguard, newest first. Each section matches a merged pull request, and each GitHub release uses the newest section as its notes.
 
+## 0.25: Element mastery, collapsible spellbook, playlist crossfade
+
+- **Playlist crossfade:** in playlist mode each song fades into the next over 10 seconds.
+- **Element mastery:** the Wizard no longer uses hero mastery. Each element levels on its own from the mana you spend with it, and at mastery 10 that element unlocks a triple rune (for example Fire, Fire, Fire). Mixed triples like Fire, Fire, Water are gone. The Third Rune upgrade is removed and its shards refunded.
+- **Four elements per run,** picked on the Heroes page or right on the hero select screen.
+- **Element rest:** after a cast, each element used rests for 2 seconds before it can be readied again, shown on its rune key.
+- **Mana:** mana only regenerates during waves, and clearing a wave refills 30% of max mana.
+- **Spellbook:** collapsible, with the spells your elements can cast at the top and the rest folded below.
+- **Offense / Defense / Utility triangle** on the Heroes page and hero select shows what your element picks lean toward.
+- **Wizard upgrades fit the run:** an Attunement upgrade for each element you took (+12% to its spells), and Rime, Masonry and Zephyr only when your spells freeze, build walls or push.
+- **Spell visuals:** spells with painted effects no longer draw the old circles under them; spells without art always show a circle where they land.
+
 ## 0.24: Seamless roads, Neon Sage wizard, painted spell effects
 
 - **Seamless paths:** every map's road is now drawn as one continuous strip with rounded corners, curbs and centre lines in its tileset's colours, so there are no seams between tiles.
