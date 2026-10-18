@@ -104,8 +104,24 @@ func _run_uninstallers(found: String) -> void:
 		removed = true
 	Save.settings.electron_removed = true
 	Save.save_settings()
-	if removed and Ui.me:
-		Ui.me.toast("Removed the old version of Riftguard. This one replaces it and updates itself.")
+	if removed:
+		_new_engine_notice()
+
+
+## Tells players who had the old version why their progress is gone. Waits for any other pop-up to close first.
+func _new_engine_notice() -> void:
+	while Ui.me == null or Ui.me.modal_open():
+		await get_tree().create_timer(0.5).timeout
+	var box := Ui.me.open_modal(560, Ui.me.close_modal)
+	box.add_child(Kit.head("Welcome to the new Riftguard", 24))
+	box.add_child(Kit.rich("Riftguard has moved to a new game engine, Godot. From now on the game updates itself "
+		+ "whenever a new version comes out.\n\n"
+		+ "The old version has been uninstalled. Your old progress couldn’t come across to the new engine, so "
+		+ Kit.b("everything starts fresh") + ": Rift Shards, upgrades, mastery and unlocked maps. Sorry about that, "
+		+ "and thanks for playing!", 15, Kit.MUTED))
+	var row := Kit.hbox()
+	row.add_child(Kit.go("GOT IT", Ui.me.close_modal))
+	box.add_child(row)
 
 
 func _check() -> void:

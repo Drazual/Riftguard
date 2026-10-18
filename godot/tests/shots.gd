@@ -74,6 +74,10 @@ func _ready() -> void:
 	await _shot("11_end")
 	main.ui.menus.show_settings()
 	await _shot("12_settings")
+	main.ui.menus.close_settings()
+	main.ui.close_modal()
+	Updater._new_engine_notice()
+	await _shot("13_new_engine")
 	print("SHOTS DONE")
 	get_tree().quit()
 
