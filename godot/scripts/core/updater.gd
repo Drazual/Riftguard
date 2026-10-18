@@ -25,6 +25,8 @@ var _bar: ProgressBar
 
 func _ready() -> void:
 	_clean_old()
+	if OS.has_feature("windows") and OS.has_feature("template"):
+		_remove_electron_install()
 	if not enabled():
 		state = "off"
 		return
@@ -64,6 +66,46 @@ func _clean_old() -> void:
 	var old := exe_path() + ".old"
 	if FileAccess.file_exists(old):
 		DirAccess.remove_absolute(old)
+
+
+## The old Electron version installed itself (Riftguard-x.y.z-setup.exe). The first time this version runs, find that
+## install in the Windows uninstall list and run its uninstaller silently, so players only keep the new game.
+## The old version's progress is in its own folder, which the uninstaller leaves alone.
+func _remove_electron_install() -> void:
+	if Save.settings.get("electron_removed", false):
+		return
+	var t := Thread.new()
+	t.start(func():
+		var ps := "$k = 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'; " \
+			+ "Get-ItemProperty ('HKCU:\\' + $k), ('HKLM:\\' + $k) -ErrorAction SilentlyContinue | " \
+			+ "Where-Object { $_.DisplayName -like 'Riftguard*' -and $_.QuietUninstallString } | " \
+			+ "ForEach-Object { $_.QuietUninstallString + '|' + $_.InstallLocation }"
+		var out := []
+		OS.execute("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps], out)
+		_run_uninstallers.call_deferred(str(out[0]) if out.size() else "")
+		t.wait_to_finish.call_deferred())
+
+
+func _run_uninstallers(found: String) -> void:
+	var here := exe_path().get_base_dir().replace("/", "\\").to_lower()
+	var re := RegEx.create_from_string('^"([^"]+)"\\s*(.*)$')
+	var removed := false
+	for line in found.split("\n", false):
+		var parts := line.strip_edges().split("|")
+		var where := parts[1].strip_edges().to_lower() if parts.size() > 1 else ""
+		# never uninstall the folder this game is running from
+		if where != "" and here.begins_with(where.trim_suffix("\\")):
+			continue
+		var m := re.search(parts[0].strip_edges())
+		if m == null:
+			continue
+		var args := Array(m.get_string(2).split(" ", false))
+		OS.create_process(m.get_string(1), args)
+		removed = true
+	Save.settings.electron_removed = true
+	Save.save_settings()
+	if removed and Ui.me:
+		Ui.me.toast("Removed the old version of Riftguard. This one replaces it and updates itself.")
 
 
 func _check() -> void:
