@@ -3619,3 +3619,184 @@ func end_run(won: bool, quit := false) -> void:
 	M.runs = M.runs.slice(-25)
 	Save.save_meta()
 	modal.emit("end", { won = won, quit = quit, shards = shards, cores = S.cores, mastery = mastery, new_songs = new_songs, cleared = cleared })
+
+
+# ---------- player actions (mouse and keys) ----------
+func cell_at(x: float, y: float) -> Vector2i:
+	return Vector2i(floori(x / C), floori(y / C))
+
+
+func cancel_placing() -> bool:
+	if S.build == "" and S.merge_from == null and S.pending_build == null:
+		return false
+	S.build = ""
+	S.merge_from = null
+	S.pending_build = null
+	say("Cancelled.")
+	refresh("build_bar")
+	refresh("inspector")
+	return true
+
+
+## Hold position (H): the Vanguard and Sniper can lock themselves in place so a stray click never moves them.
+func can_hold() -> bool:
+	return S.hero.cls == "vanguard" or S.hero.cls == "sniper"
+
+
+func toggle_hold() -> void:
+	var h := S.hero
+	if S.over or not can_hold():
+		return
+	h.hold = not h.hold
+	h.tx = null
+	S.pending_build = null
+	held.clear()
+	say("Holding position: your hero won’t move until you press H again." if h.hold else "Your hero can move again.")
+	refresh("build_bar")
+	refresh("hero")
+
+
+## Aim point (F): Piercing Shot always fires toward it. Press F near it again to clear it.
+func toggle_aim() -> void:
+	var h := S.hero
+	if S.over or h.cls != "sniper":
+		return
+	var p = S.pointer
+	if S.aim != null and (p == null or (p as Vector2).distance_to(S.aim) < 30):
+		S.aim = null
+		say("Aim point cleared: Piercing Shot aims at the lead enemy.")
+	elif p != null:
+		S.aim = p
+		say("Aim point set: Piercing Shot fires toward it. Press F on it to clear.")
+	else:
+		say("Point at the board, then press F to set an aim point.")
+		return
+	refresh("build_bar")
+
+
+func move_hero(x: float, y: float) -> void:
+	if S.hero.ko > 0:
+		return
+	if S.hero.hold:
+		say("Holding position. Press H to move again.")
+		return
+	S.pending_build = null
+	S.hero.tx = clampf(x, 10, W - 10)
+	S.hero.ty = clampf(y, 10, H - 10)
+
+
+func handle_right(x: float, y: float) -> void:
+	if S.paused or S.over:
+		return
+	if cancel_placing():
+		return
+	move_hero(x, y)
+
+
+func handle_click(x: float, y: float, touch := false) -> void:
+	var cell := cell_at(x, y)
+	if S.user_pause and not S.over:
+		S.sel = pick_tower(cell.x, cell.y)
+		refresh("inspector")
+		return
+	if S.paused or S.over:
+		return
+	var t: Tower = tower_at(cell.x, cell.y) if S.build != "" else pick_tower(cell.x, cell.y)
+	if S.merge_from != null:
+		if t and t != S.merge_from:
+			try_merge(S.merge_from, t)
+		else:
+			S.merge_from = null
+			say("Merge cancelled.")
+			refresh("inspector")
+		return
+	# the Wizard casts its readied runes at the cursor
+	if S.hero.cls == "wizard" and S.runes.size() and S.build == "":
+		cast_runes(x, y)
+		return
+	if t:
+		S.sel = t
+		S.build = ""
+		S.pending_build = null
+		refresh("build_bar")
+		refresh("inspector")
+		return
+	if S.build != "":
+		var why := build_problem(cell.x, cell.y, S.build)
+		if why != "":
+			say(why)
+			return
+		if in_build_range(cell.x, cell.y):
+			place_tower(cell.x, cell.y, S.build)
+			return
+		var h := S.hero
+		var cx := cell.x * C + C / 2
+		var cy := cell.y * C + C / 2
+		var d := maxf(0.01, hyp(h.x - cx, h.y - cy))
+		var stop := h.build_range * 0.8
+		if h.hold:
+			say("Out of build range, and your hero is holding position (H).")
+			return
+		h.tx = cx + (h.x - cx) / d * stop
+		h.ty = cy + (h.y - cy) / d * stop
+		S.pending_build = { c = cell.x, r = cell.y, type = S.build }
+		return
+	if S.sel != null:
+		S.sel = null
+		refresh("inspector")
+	if touch or S.hero.cls == "wizard":
+		move_hero(x, y)
+
+
+func select_build(k: String) -> void:
+	if S.over or S.paused:
+		return
+	if S.build == k:
+		S.build = ""
+	elif S.gold >= tower_cost(k):
+		S.build = k
+		S.sel = null
+		S.merge_from = null
+	refresh("build_bar")
+	refresh("inspector")
+
+
+func toggle_pause() -> void:
+	if S == null or S.hero == null or S.over:
+		return
+	S.user_pause = not S.user_pause
+	S.paused = S.user_pause
+	if S.user_pause:
+		S.build = ""
+		S.pending_build = null
+		S.merge_from = null
+		refresh("inspector")
+	refresh("build_bar")
+
+
+func sell_selected() -> void:
+	if S.sel == null:
+		return
+	if S.user_pause:
+		say("Paused. Press P to resume.")
+		return
+	sell(S.sel)
+
+
+## Escape inside a run: unpause, drop readied runes, then clear the build or selection. Returns false when there was nothing to back out of.
+func esc_step() -> bool:
+	if S.user_pause:
+		toggle_pause()
+	elif S.runes.size():
+		S.runes = []
+		refresh("runes")
+	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null:
+		S.build = ""
+		S.merge_from = null
+		S.sel = null
+		S.pending_build = null
+		refresh("build_bar")
+		refresh("inspector")
+	else:
+		return false
+	return true

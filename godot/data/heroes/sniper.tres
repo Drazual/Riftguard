@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_5qh7a"]
 [ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_0pu25"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/sniper.tres" id="2_8b2t1"]
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_8b2t1"]
 [ext_resource type="Texture2D" path="res://assets/heroes/sniper.png" id="4_5gskk"]
 
@@ -77,4 +78,5 @@ crit = 0.1
 ability = SubResource("Resource_v0u3i")
 alt = SubResource("Resource_tdfem")
 meta = Array[ExtResource("2_0pu25")]([SubResource("Resource_pqs5a"), SubResource("Resource_7bjss"), SubResource("Resource_k5i7h"), SubResource("Resource_bck4n")])
+frames = ExtResource("2_8b2t1")
 sheet = ExtResource("4_5gskk")

@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="TowerData" format=3]
 
+[ext_resource type="SpriteFrames" path="res://art/towers/plasma.tres" id="1_cb24n"]
 [ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_llbkv"]
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_cb24n"]
 [ext_resource type="Texture2D" path="res://assets/towers/plasma.png" id="3_5ok33"]
@@ -109,6 +110,7 @@ form_names = {
 "134": "Thunder Howitzer",
 "234": "Cinder Gatling"
 }
+frames = ExtResource("1_cb24n")
 sheet = ExtResource("3_5ok33")
 foot_y = 40.0
 muzzle_y = 10.0

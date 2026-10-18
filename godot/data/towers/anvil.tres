@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="TowerData" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_hs41w"]
+[ext_resource type="SpriteFrames" path="res://art/towers/anvil.tres" id="1_psklc"]
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_psklc"]
 [ext_resource type="Texture2D" path="res://assets/towers/anvil.png" id="3_0xhmw"]
 
@@ -108,6 +109,7 @@ form_names = {
 "134": "Iron Vise",
 "234": "Seismic Bastion"
 }
+frames = ExtResource("1_psklc")
 sheet = ExtResource("3_0xhmw")
 foot_y = 39.0
 muzzle_y = 22.0

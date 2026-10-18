@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_rfdfd"]
 [ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_co4hv"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/wizard.tres" id="2_j0x7n"]
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_j0x7n"]
 [ext_resource type="Texture2D" path="res://assets/heroes/wizard.png" id="4_k6p42"]
 
@@ -58,4 +59,5 @@ mana_regen = 7.0
 spells = true
 ability = SubResource("Resource_j4fgp")
 meta = Array[ExtResource("2_co4hv")]([SubResource("Resource_8h5gq"), SubResource("Resource_w4a7k"), SubResource("Resource_llyg4")])
+frames = ExtResource("2_j0x7n")
 sheet = ExtResource("4_k6p42")

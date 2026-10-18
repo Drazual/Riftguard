@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="TowerData" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_6i1nf"]
+[ext_resource type="SpriteFrames" path="res://art/towers/laser.tres" id="1_43s4b"]
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_43s4b"]
 [ext_resource type="Texture2D" path="res://assets/towers/laser.png" id="3_l1caa"]
 
@@ -110,5 +111,6 @@ form_names = {
 "134": "Sunbeam Lance",
 "234": "Deathray"
 }
+frames = ExtResource("1_43s4b")
 sheet = ExtResource("3_l1caa")
 foot_y = 36.0

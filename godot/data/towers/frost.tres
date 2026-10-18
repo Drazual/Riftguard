@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="TowerData" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_4uqr0"]
+[ext_resource type="SpriteFrames" path="res://art/towers/frost.tres" id="1_110pk"]
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_110pk"]
 [ext_resource type="Texture2D" path="res://assets/towers/frost.png" id="3_odqda"]
 
@@ -109,6 +110,7 @@ form_names = {
 "134": "Hoarfrost Bloom",
 "234": "Stasis Crypt"
 }
+frames = ExtResource("1_110pk")
 sheet = ExtResource("3_odqda")
 foot_y = 41.0
 muzzle_y = 16.0

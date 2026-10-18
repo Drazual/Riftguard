@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="TowerData" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_lvjcc"]
+[ext_resource type="SpriteFrames" path="res://art/towers/arcane.tres" id="1_nvxlv"]
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_nvxlv"]
 [ext_resource type="Texture2D" path="res://assets/towers/arcane.png" id="3_i5njh"]
 
@@ -106,6 +107,7 @@ form_names = {
 "134": "Plaguestar",
 "234": "Mana Gatling"
 }
+frames = ExtResource("1_nvxlv")
 sheet = ExtResource("3_i5njh")
 shot_anchor = Vector2(24, 31)
 shot_turn = true

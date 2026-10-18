@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="HeroData" format=3]
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_8aiy5"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/striker.tres" id="2_jcdkq"]
 [ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_ygewa"]
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_jcdkq"]
 [ext_resource type="Texture2D" path="res://assets/heroes/striker.png" id="4_fek0u"]
@@ -78,4 +79,5 @@ speed = 165.0
 ability = SubResource("Resource_uk0wj")
 alt = SubResource("Resource_bymy4")
 meta = Array[ExtResource("2_ygewa")]([SubResource("Resource_ubv40"), SubResource("Resource_glpnq"), SubResource("Resource_7s1xb"), SubResource("Resource_m0nvr")])
+frames = ExtResource("2_jcdkq")
 sheet = ExtResource("4_fek0u")

@@ -32,5 +32,7 @@ extends Resource
 @export var alt: AbilityData
 ## Permanent upgrades bought with Rift Shards on the Heroes page.
 @export var meta: Array[UpgradeData] = []
-## 10 rows (idle 1-2, walk 1-4, fire 1-4) by 8 facings of 48px frames.
+## The hero's animations: idle_N, walk_N and fire_N for each facing N (0 = north, then clockwise).
+@export var frames: SpriteFrames
+## 10 rows (idle 1-2, walk 1-4, fire 1-4) by 8 facings of 48px frames (the source of the animations above).
 @export var sheet: Texture2D

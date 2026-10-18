@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_s1qux"]
 [ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_picai"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/vanguard.tres" id="2_yftxd"]
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_yftxd"]
 [ext_resource type="Texture2D" path="res://assets/heroes/vanguard.png" id="4_3ftpl"]
 
@@ -82,4 +83,5 @@ speed = 135.0
 ability = SubResource("Resource_hfr1b")
 alt = SubResource("Resource_bnd7b")
 meta = Array[ExtResource("2_picai")]([SubResource("Resource_ym1xd"), SubResource("Resource_isgv3"), SubResource("Resource_fh8k1"), SubResource("Resource_6vjy8")])
+frames = ExtResource("2_yftxd")
 sheet = ExtResource("4_3ftpl")

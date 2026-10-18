@@ -35,7 +35,10 @@ extends Resource
 ## Key: the positions (0-4) of the paths used, in order, e.g. "013". Value: the form's name.
 @export var form_names: Dictionary = {}
 @export_group("Art")
-## 6x4 sheet of 48px frames: idle, attack, recover, hit effect.
+## The tower's animations (idle, attack, recover, shot, fx, hit; the laser also has beam). Open the file to
+## change frames or speeds in the SpriteFrames editor.
+@export var frames: SpriteFrames
+## 6x4 sheet of 48px frames: idle, attack, recover, hit effect (the source of the animations above).
 @export var sheet: Texture2D
 ## Pixel row in the frame where the tower's base sits.
 @export var foot_y := 38.0

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_dy0wv"]
 [ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_vb7qr"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/oracle.tres" id="2_y0hsd"]
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_y0hsd"]
 [ext_resource type="Texture2D" path="res://assets/heroes/oracle.png" id="4_q76ft"]
 
@@ -83,4 +84,5 @@ aura = 0.15
 ability = SubResource("Resource_207id")
 alt = SubResource("Resource_putib")
 meta = Array[ExtResource("2_vb7qr")]([SubResource("Resource_vc421"), SubResource("Resource_4doqw"), SubResource("Resource_auynb"), SubResource("Resource_fsbhq")])
+frames = ExtResource("2_y0hsd")
 sheet = ExtResource("4_q76ft")
