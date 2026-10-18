@@ -1,0 +1,64 @@
+name: Godot build
+
+# Builds the Godot version of the game for Windows on every push to main that changes godot/,
+# and publishes it as a GitHub release tagged godot-v<version>. The game checks these releases
+# on launch and updates itself (see godot/scripts/core/updater.gd).
+on:
+  push:
+    branches: [main]
+    paths: ['godot/**', '.github/workflows/godot.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT: 4.7.2
+
+jobs:
+  windows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot and the export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT}-stable"
+          curl -fsSL -o godot.zip "$base/Godot_v${GODOT}-stable_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "$base/Godot_v${GODOT}-stable_export_templates.tpz"
+          unzip -q godot.zip && sudo mv "Godot_v${GODOT}-stable_linux.x86_64" /usr/local/bin/godot
+          mkdir -p ~/.local/share/godot/export_templates/${GODOT}.stable
+          unzip -q templates.tpz && mv templates/* ~/.local/share/godot/export_templates/${GODOT}.stable/
+      # Each build gets a higher version (major.minor from project.godot, patch = run number)
+      # so installed copies see it as an update.
+      - name: Set build version
+        id: version
+        run: |
+          MM="$(grep -oP '^config/version="\K[0-9]+\.[0-9]+' godot/project.godot)"
+          V="$MM.${{ github.run_number }}"
+          sed -i "s/^config\/version=.*/config\/version=\"$V\"/" godot/project.godot
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - name: Import
+        run: godot --headless --path godot --import 2>&1 | tee import.log; ! grep -q "SCRIPT ERROR" import.log
+      # A short headless run with every hero, to catch script errors before shipping.
+      - name: Test run
+        run: timeout 300 godot --headless --path godot res://tests/sim.tscn -- verdant 3 2>&1 | tee sim.log; grep -q "SIM DONE" sim.log && ! grep -q "SCRIPT ERROR" sim.log
+      - name: Export
+        run: |
+          mkdir -p godot/build
+          godot --headless --path godot --export-release "Windows" build/Riftguard.exe
+          test -s godot/build/Riftguard.exe
+      - name: Write release notes
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          {
+            echo "Download **Riftguard.exe** and run it. It plays without installing and updates itself when you open it."
+            echo
+            echo "This is the Godot version of the game. Built from ${{ github.sha }}."
+          } > release-notes.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: godot-v${{ steps.version.outputs.version }}
+          name: Riftguard ${{ steps.version.outputs.version }} (Godot)
+          body_path: release-notes.md
+          make_latest: false
+          files: godot/build/Riftguard.exe

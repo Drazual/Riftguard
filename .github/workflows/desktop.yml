@@ -5,6 +5,8 @@ name: Desktop build
 on:
   push:
     branches: [main]
+    # The Godot version has its own workflow (godot.yml).
+    paths-ignore: ['godot/**', '.github/workflows/godot.yml']
   workflow_dispatch:
 
 permissions:
