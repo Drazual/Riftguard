@@ -137,8 +137,10 @@ extends Resource
 @export var demonic_chance := 0.01
 ## How many enemies Gale holds at once in Bruiser Form (other heroes hold 1 or 2, tanks hold all).
 @export var bruiser_block := 6
-## Gold upgrades only roll at Legendary or rarer, and only in this share of level-ups.
-@export_range(0.0, 1.0) var gold_perk_chance := 1.0
+## Tank abilities (Vanguard, Gale) deal this share of the hero's max HP on top of their own damage.
+@export var tank_ability_hp := 0.04
+## Enemies the Wizard must push back (over all runs) to unlock the secret hero Gale.
+@export var gale_unlock_pushes := 500
 @export_multiline var level_offensive := "h.dmg *= 1.02\nh.range = iff(h.range < 9999, h.range * 1.01, h.range)\nh.rate /= 1.015"
 @export var level_offensive_text := "+2% damage, +1% range, +1.5% attack speed"
 @export_multiline var level_defensive := "h.grow_tank(0.03, 0.005, 0.002)"
@@ -149,6 +151,8 @@ extends Resource
 @export var level_special_text := "+4% spell damage, +3 max mana, +0.15 mana per second"
 @export_group("Wizard")
 @export var triple_at := 10
+## Element mastery needed in an element's parent to unlock it (Fire → Lightning, Earth → Nature, Water → Void, Air → Light).
+@export var element_unlock_at := 10
 @export var element_rest := 2.0
 ## Share of max mana refilled when a wave is cleared.
 @export var wave_mana_refill := 0.3

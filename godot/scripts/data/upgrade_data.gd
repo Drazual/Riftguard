@@ -20,7 +20,7 @@ extends Resource
 @export var ability := ""
 @export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret") var rarity := "any"
 @export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret") var min_rarity := "any"
-## Gold upgrades only appear at Legendary or rarer, and not every time (rules gold_perk_chance).
+## Gold upgrade (kept for the stats log; gold upgrades now live in the Legendary uniques).
 @export var gold := false
 ## Attack speed upgrade (never offered to the Wizard).
 @export var attack_speed := false

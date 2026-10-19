@@ -311,15 +311,23 @@ static func ability_text(g: Game, h: Hero) -> String:
 				keys.append("%s (%s)" % [Progress.SLOT_KEYS[i].to_upper(), DB.elements[load[i]].name.to_lower()])
 		return ("Ready elements with %s, then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Three of an element mastered to level %d: its ultimate. "
 			+ "Elements you cast rest for %ss. Spells cost mana, which flows only during waves; clearing a wave refills 30%% of it.") % [", ".join(keys), DB.rules.triple_at, f1t(DB.rules.element_rest)]
-	return ab_text(h.ab)
+	var t := ab_text(h.ab)
+	if t != "" and h.data and h.data.category == "defensive":
+		t += " Its damage grows with your max HP (+%d now)." % int(round(h.max_hp * DB.rules.tank_ability_hp))
+	return t
 
 
 static func ab_text(a: Ability) -> String:
 	if a == null or a.id == "":
 		return ""
+	var t: String
 	if DB.is_simple() and DB.simple_texts.has("ability:" + a.id):
-		return DB.simple_texts["ability:" + a.id]
-	return Fx.text(a.desc, { a = a })
+		t = DB.simple_texts["ability:" + a.id]
+	else:
+		t = Fx.text(a.desc, { a = a })
+	if a.id == "strike":
+		t += " Press once to show where it lands, then click or press again to fire."
+	return t
 
 
 static func f1t(v: float) -> String:

@@ -69,6 +69,17 @@ stat_label = "Rare and above odds"
 stat_value = "+{8 * r}%"
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="Resource_recov"]
+script = ExtResource("1_won34")
+id = "recovery"
+name = "Quick Recovery"
+desc = "Your hero respawns {5 * r}% faster"
+also_pools = PackedStringArray()
+cost = "60 + 50 * r"
+stat_label = "Respawn time"
+stat_value = "{f1(8 * (1 - 0.05 * r))}s"
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_wxiyj")
-items = Array[ExtResource("1_won34")]([SubResource("Resource_ra2ly"), SubResource("Resource_as853"), SubResource("Resource_dgvs6"), SubResource("Resource_q8cah"), SubResource("Resource_bhhkj"), SubResource("Resource_l7k5x")])
+items = Array[ExtResource("1_won34")]([SubResource("Resource_ra2ly"), SubResource("Resource_as853"), SubResource("Resource_dgvs6"), SubResource("Resource_q8cah"), SubResource("Resource_bhhkj"), SubResource("Resource_l7k5x"), SubResource("Resource_recov")])

@@ -20,6 +20,7 @@ func open(kind: String, data: Dictionary) -> void:
 		"shop": shop(data)
 		"wave_choice": wave_choice(data)
 		"end": end(data)
+		"secret": secret(data)
 
 
 func _title(box: VBoxContainer, text: String, col := Kit.TEXT) -> void:
@@ -213,6 +214,32 @@ func wave_choice(data: Dictionary) -> void:
 
 
 # ---------- the end of a run ----------
+## A secret hero was just unlocked.
+func secret(data: Dictionary) -> void:
+	var d: HeroData = DB.heroes[data.hero]
+	var box := ui.open_modal(560, func(): _close_secret())
+	box.add_child(Kit.rich(_path("Secret unlocked", Kit.PINK), 13))
+	var row := Kit.hbox(16)
+	var pic := Menus.Portrait.make(data.hero, 3)
+	row.add_child(pic)
+	var tv := Kit.vbox(6)
+	tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tv.add_child(Kit.head("A new hero: " + d.name + "!", 28, d.color))
+	tv.add_child(Kit.rich("All that wind you whipped up as the Wizard woke something. %s, the %s brawler, has joined your roster. Pick %s on the hero screen in your next run." % [Kit.b(d.name), d.role.to_lower(), d.name], 15, Kit.MUTED))
+	row.add_child(tv)
+	box.add_child(row)
+	var r := Kit.hbox()
+	r.add_child(Kit.go("AWESOME", func(): _close_secret()))
+	box.add_child(r)
+	Sound.play("level")
+
+
+func _close_secret() -> void:
+	ui.close_modal()
+	if game.S:
+		game.S.paused = false
+
+
 func end(data: Dictionary) -> void:
 	var S := game.S
 	var won: bool = data.won

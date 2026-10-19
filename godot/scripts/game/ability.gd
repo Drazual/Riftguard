@@ -40,6 +40,8 @@ var anchor := false
 var carpet := false
 var scorch := false
 var exec_r := false
+var follow_s := false
+var downdraft := false
 
 
 static func from_data(a: AbilityData) -> Ability:

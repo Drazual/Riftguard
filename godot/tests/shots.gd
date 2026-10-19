@@ -13,6 +13,7 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(out)
 	get_tree().create_timer(120).timeout.connect(func(): print("SHOTS TIMEOUT"); get_tree().quit(1))
 	seed(7)
+	Save.meta.secret_heroes = {}
 	for id in Menus.FIRST_TIPS:
 		Save.meta.tips[id] = true
 	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
@@ -72,12 +73,25 @@ func _ready() -> void:
 	main.ui.hide_screen()
 	g.end_run(false, true)
 	await _shot("11_end")
+	main.ui.menus.show_log()
+	for bt in main.ui.find_children("*", "Button", true, false):
+		if bt.flat and bt.is_visible_in_tree():
+			bt.pressed.emit()
+			break
+	await _shot("18_log_details")
+	main.ui.menus.show_heroes("wizard")
+	await _shot("19_wizard_elements")
+	main.ui.hide_screen()
 	main.ui.menus.show_settings()
 	await _shot("12_settings")
 	main.ui.menus.close_settings()
 	main.ui.close_modal()
 	Updater._new_engine_notice()
 	await _shot("13_new_engine")
+	main.ui.close_modal()
+	Save.meta.secret_heroes["gale"] = true
+	g.modal.emit("secret", { hero = "gale" })
+	await _shot("20_secret_popup")
 	main.ui.close_modal()
 	main.ui.menus.show_heroes("gale")
 	await _shot("14_gale_page")

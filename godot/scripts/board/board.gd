@@ -757,9 +757,14 @@ func _draw_flat() -> void:
 		_shadow(g, e.x, e.y + 4 / K, e.r * 2.2)
 	if h.tx != null and h.ko <= 0:
 		_ring(g, Vector2(h.tx, h.ty), 6, ca(hc, 0.5), 1)
-	# Orbital Strike lands on the cursor: show where while it's ready
-	if h.ab.id == "strike" and h.ko <= 0 and not (h.ab.t > 0) and S.pointer != null:
-		_ring(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.55), 1.5)
+	# Orbital Strike lands on the cursor: show where once it's readied
+	if S.strike_ready and h.ko <= 0 and S.pointer != null:
+		_ring(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.75), 2)
+		_circle(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.08))
+	# Piercing Shot in cursor mode: a faint line toward the cursor while it's charged
+	if h.ab.id == "pierce" and game.pierce_cursor() and h.ko <= 0 and not (h.ab.t > 0) and S.pointer != null:
+		var dv0: Vector2 = (S.pointer - h.pos()).normalized()
+		_line(g, h.pos(), h.pos() + dv0 * 1400, hx(0xffd36e, 0.3), 1)
 	if S.aim != null:
 		var a: Vector2 = S.aim
 		var ready := not (h.ab.t > 0)
@@ -957,6 +962,8 @@ func _draw_over() -> void:
 			_ring(o, hp, 21, hx(0xb07cff, 0.6 + 0.3 * sin(S.time * 6)), 1.5)
 		o.draw_rect(Rect2(hp.x - 16, htop, 32, 4), Color(0, 0, 0, 0.6))
 		o.draw_rect(Rect2(hp.x - 16, htop, 32 * h.hp / h.max_hp, 4), hx(0x5fe39a))
+		if h.shield > 0:
+			o.draw_rect(Rect2(hp.x - 16, htop, 32 * minf(1, h.shield / h.max_hp), 4), Color(0.37, 0.66, 1.0, 0.6))
 		if h.max_mana:
 			o.draw_rect(Rect2(hp.x - 16, htop + 5, 32, 3), Color(0, 0, 0, 0.6))
 			o.draw_rect(Rect2(hp.x - 16, htop + 5, 32 * h.mana / h.max_mana, 3), hx(0x5fa8ff))
