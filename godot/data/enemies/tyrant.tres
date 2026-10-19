@@ -14,6 +14,7 @@ atk = 120.0
 radius = 23.0
 color = Color(1, 0.18039216, 0.3019608, 1)
 armor = 0.55
+pushback_immune = true
 unslow = true
 info = "55% armor, can’t be slowed. Roar: every 10s stuns 4 towers for 4s and shrinks their range by 30% for 8s, then stuns your hero for 2s, knocks it back and cuts its damage by 40%. Enrages at 50% HP and summons 2 Juggernauts."
 counter = "Stuns still work. Save your ability for the enrage, and spread towers so the Roar can’t catch them all."

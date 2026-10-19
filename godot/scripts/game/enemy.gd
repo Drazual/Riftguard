@@ -21,6 +21,7 @@ var aura_armor := 0.0
 var regen := 0.0
 var steady := false
 var unslow := false
+var pushback_immune := false # push-back, knockback and pulls along the path do nothing
 var phase := false
 var split := 0
 var heal := 0.0

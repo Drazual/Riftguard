@@ -933,6 +933,9 @@ func _draw_over() -> void:
 			_circle(o, p - Vector2(0, e.r), 2.5, hx(0xff8a3d, 0.8))
 		if e.boss:
 			_ring(o, p, e.r + 4, hx(0xf2c14e), 2)
+		elif e.pushback_immune:
+			# anchored: a thick dark iron band says it can't be pushed back
+			_ring(o, p, e.r + 3, hx(0x3a4256, 0.95), 3)
 		if e.mark_t > 0 or e.spot_t > 0:
 			_ring(o, p, e.r + 7, hx(0xff2e4d, 0.9), 1.5)
 		var w := e.r * 2 + 4

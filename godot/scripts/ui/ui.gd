@@ -868,7 +868,7 @@ func render_enemy_codex() -> void:
 		return
 	for e: EnemyData in game.R.enemies:
 		if Save.meta.seen.get(e.id, false):
-			enemy_box.add_child(Kit.rich(Kit.b(Kit.c(e.name, e.color)) + "  " + Kit.c(DB.tx("enemy:" + e.id, e.info), Kit.MUTED) + "\n" + Kit.c("Counter: " + e.counter, Kit.GOLD), 13))
+			enemy_box.add_child(Kit.rich(Kit.b(Kit.c(e.name, e.color)) + "  " + Kit.c(DB.tx("enemy:" + e.id, e.info) + (" Can’t be pushed back." if e.pushback_immune or e.boss else ""), Kit.MUTED) + "\n" + Kit.c("Counter: " + e.counter, Kit.GOLD), 13))
 		else:
 			enemy_box.add_child(Kit.rich("???  " + Kit.c("Not met yet", Kit.MUTED), 13))
 

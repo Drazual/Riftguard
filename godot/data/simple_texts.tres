@@ -38,6 +38,7 @@ texts = {
 "curse:3": "New towers cost more to build.",
 "curse:4": "You lose some gold.",
 "curse:5": "Enemies move faster.",
+"enemy:anchor": "Chained down: it cannot be pushed back or knocked back.",
 "enemy:brute": "Has some armor, so weak hits do less.",
 "enemy:grunt": "A basic enemy with nothing special.",
 "enemy:juggernaut": "Huge HP, heavy armor and cannot be slowed.",

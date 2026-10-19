@@ -796,7 +796,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 			apply_hit(t, o, d * 0.6, false, aslow)
 	if t.gravity and t.shots % 5 == 0:
 		for e in in_range(target.x, target.y, 60):
-			if not e.boss:
+			if not e.pushback_immune:
 				e.d = maxf(0, e.d - t.gravity)
 		ring(target.x, target.y, 60, 0x9a7cff, 0.3)
 	if t.echo and not fake:
@@ -1014,10 +1014,11 @@ func super_power(t: Tower) -> bool:
 	match k:
 		"arcane":
 			hit.call(area, 6.0, func(e):
-				if not (e.push_t > 0):
-					e.push_spd = 0
-				e.push_t = maxf(e.push_t, 0.5 if e.boss else 1.5)
-				e.push_spd = maxf(e.push_spd, 120)
+				if not e.pushback_immune:
+					if not (e.push_t > 0):
+						e.push_spd = 0
+					e.push_t = maxf(e.push_t, 1.5)
+					e.push_spd = maxf(e.push_spd, 120)
 				e.brittle = maxf(e.brittle, 0.3)
 				e.brittle_t = maxf(e.brittle_t, 5))
 			for i in 3:
@@ -1344,7 +1345,7 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 		damage(e, ab_dmg(h, a) * mult)
 		e.stun_t = maxf(e.stun_t, a.stun * mult)
 		if a.magnet:
-			if not e.boss:
+			if not e.pushback_immune:
 				e.d = maxf(0, e.d - 50)
 			line(e.x, e.y, x, y, 0x9af0ff, 0.35, 2)
 	if h.taunt:
@@ -1360,7 +1361,7 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 				var rr := r * (1.3 + 0.3 * i)
 				for e in in_range(x, y, rr):
 					damage(e, ab_dmg(h, a) * 0.4)
-					if not e.boss:
+					if not e.pushback_immune:
 						e.d = maxf(0, e.d - 20)
 				ring(x, y, rr, 0x9af0ff, 0.35))
 	if a.molten:
@@ -1565,6 +1566,8 @@ func freeze_enemy(e: Enemy, s: float, h: Hero) -> void:
 
 
 func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
+	if e.pushback_immune:
+		return
 	if h.cls == "wizard" and not e.dead:
 		_wizard_push()
 	if not (e.push_t > 0):
@@ -2281,6 +2284,7 @@ func spawn(type: String, at_d := -1.0) -> void:
 	e.regen = R.tough_regen if has_tough("regen") else 0.0
 	e.steady = has_tough("steady")
 	e.unslow = d.unslow
+	e.pushback_immune = d.pushback_immune or d.boss
 	e.phase = d.phase
 	e.split = d.split
 	e.heal = d.heal
@@ -2947,7 +2951,7 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 				continue
 		if S.overclock_t > 0 and h.time_warp and e.pos().distance_to(S.overclock_at) <= h.ab.r:
 			slow_enemy(e, h.time_warp, 0.3)
-		if e.push_t > 0:
+		if e.push_t > 0 and not e.pushback_immune:
 			e.push_t -= dt
 			if e.stun_t > 0:
 				e.stun_t -= dt

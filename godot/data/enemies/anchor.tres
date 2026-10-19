@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_anch1"]
+
+[resource]
+script = ExtResource("1_anch1")
+id = "anchor"
+name = "Anchor"
+hp = 320.0
+speed = 30.0
+gold = 16
+lives = 2
+atk = 28.0
+radius = 14.0
+color = Color(0.4392157, 0.5137255, 0.6156863, 1)
+armor = 0.1
+pushback_immune = true
+first_wave = 10
+per_wave = 1
+info = "10% armor and chained to the ground: push-back and knockback do nothing to it."
+counter = "Walls, stuns, slows and raw damage. Don’t rely on blowing it back."
