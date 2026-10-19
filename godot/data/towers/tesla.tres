@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="TowerData" format=3]
+[gd_resource type="Resource" script_class="TowerData" format=3 uid="uid://gl6cv5xkm45x"]
 
-[ext_resource type="SpriteFrames" path="res://art/towers/tesla.tres" id="1_ui3f5"]
-[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_w7usc"]
-[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_ui3f5"]
-[ext_resource type="Texture2D" path="res://assets/towers/tesla.png" id="3_8kqpc"]
+[ext_resource type="SpriteFrames" uid="uid://dtx8enx1ph0l3" path="res://art/towers/tesla.tres" id="1_ui3f5"]
+[ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_w7usc"]
+[ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_ui3f5"]
+[ext_resource type="Texture2D" uid="uid://cf5i0sl10sok3" path="res://assets/towers/tesla.png" id="3_8kqpc"]
 
 [sub_resource type="Resource" id="Resource_rnw8n"]
 script = ExtResource("1_w7usc")
@@ -79,7 +79,7 @@ t.chain += 2"
 script = ExtResource("2_ui3f5")
 id = "tesla"
 name = "Tesla Coil"
-cost = 90
+cost = 80
 dmg = 12.0
 rate = 1.1
 range = 105.0

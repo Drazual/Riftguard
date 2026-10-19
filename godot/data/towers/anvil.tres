@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="TowerData" format=3]
+[gd_resource type="Resource" script_class="TowerData" format=3 uid="uid://deqbmbxbpxmig"]
 
-[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_hs41w"]
-[ext_resource type="SpriteFrames" path="res://art/towers/anvil.tres" id="1_psklc"]
-[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_psklc"]
-[ext_resource type="Texture2D" path="res://assets/towers/anvil.png" id="3_0xhmw"]
+[ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_hs41w"]
+[ext_resource type="SpriteFrames" uid="uid://dedni7v4etsd6" path="res://art/towers/anvil.tres" id="1_psklc"]
+[ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_psklc"]
+[ext_resource type="Texture2D" uid="uid://cehv1bborytul" path="res://assets/towers/anvil.png" id="3_0xhmw"]
 
 [sub_resource type="Resource" id="Resource_40c7c"]
 script = ExtResource("1_hs41w")
@@ -79,7 +79,7 @@ mastery_effect = "t.pact = true"
 script = ExtResource("2_psklc")
 id = "anvil"
 name = "Grave Anvil"
-cost = 90
+cost = 75
 dmg = 40.0
 rate = 1.6
 range = 70.0

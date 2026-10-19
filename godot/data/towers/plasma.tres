@@ -1,9 +1,9 @@
-[gd_resource type="Resource" script_class="TowerData" format=3]
+[gd_resource type="Resource" script_class="TowerData" format=3 uid="uid://crxqhyqh3vkfc"]
 
-[ext_resource type="SpriteFrames" path="res://art/towers/plasma.tres" id="1_cb24n"]
-[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_llbkv"]
-[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_cb24n"]
-[ext_resource type="Texture2D" path="res://assets/towers/plasma.png" id="3_5ok33"]
+[ext_resource type="SpriteFrames" uid="uid://p4ry4eajy2vl" path="res://art/towers/plasma.tres" id="1_cb24n"]
+[ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_llbkv"]
+[ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_cb24n"]
+[ext_resource type="Texture2D" uid="uid://d0gtgk0ooh6wn" path="res://assets/towers/plasma.png" id="3_5ok33"]
 
 [sub_resource type="Resource" id="Resource_pxjha"]
 script = ExtResource("1_llbkv")

@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="FusionList" format=3]
+[gd_resource type="Resource" script_class="FusionList" format=3 uid="uid://baipvtj1kp0ug"]
 
-[ext_resource type="Script" path="res://scripts/data/fusion_data.gd" id="1_7buld"]
-[ext_resource type="Script" path="res://scripts/data/fusion_list.gd" id="2_h8auc"]
+[ext_resource type="Script" uid="uid://bn4woud5ncdpm" path="res://scripts/data/fusion_data.gd" id="1_7buld"]
+[ext_resource type="Script" uid="uid://c6m54hh1vok2i" path="res://scripts/data/fusion_list.gd" id="2_h8auc"]
 
 [sub_resource type="Resource" id="Resource_s2oxb"]
 script = ExtResource("1_7buld")
