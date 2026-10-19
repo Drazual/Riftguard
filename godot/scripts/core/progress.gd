@@ -57,8 +57,16 @@ static func can_triple(el: String) -> bool:
 	return el_mastery(el).lvl >= DB.rules.triple_at
 
 
+## Secret heroes stay locked until their unlock is earned.
+static func hero_open(k: String) -> bool:
+	return not DB.heroes[k].secret or bool(Save.meta.secret_heroes.get(k, false))
+
+
 static func el_open(el: String) -> bool:
-	return BASE_ELS.has(el) or bool(Save.meta.wiz_els.get(el, false))
+	if BASE_ELS.has(el) or bool(Save.meta.wiz_els.get(el, false)):
+		return true
+	var par: String = DB.elements[el].parent if DB.elements.has(el) else ""
+	return par != "" and el_mastery(par).lvl >= DB.rules.element_unlock_at
 
 
 ## The elements taken on the next run (saved picks still open, at most 4; by default the first owned).

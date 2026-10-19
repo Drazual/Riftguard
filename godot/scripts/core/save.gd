@@ -47,7 +47,7 @@ func load_all() -> void:
 
 
 func _fill() -> void:
-	for k in ["specials", "heroes", "global", "best", "towers", "seen", "tower_global", "hero_stat", "played", "abilities", "forms", "tips", "el_stat", "wiz_els"]:
+	for k in ["specials", "heroes", "global", "best", "towers", "seen", "tower_global", "hero_stat", "played", "abilities", "forms", "tips", "el_stat", "wiz_els", "secret_heroes"]:
 		if not (meta.get(k) is Dictionary):
 			meta[k] = {}
 	for k in ["kills", "wins", "takedowns"]:

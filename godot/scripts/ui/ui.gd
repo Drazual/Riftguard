@@ -167,7 +167,8 @@ func _top_bar() -> Control:
 	var meters := Kit.vbox(3)
 	meters.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	meters.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hp_meter = Kit.meter(0, Kit.OK)
+	hp_meter = Kit.meter(0, Kit.OK, 15)
+	hp_meter.font_size = 11
 	xp_meter = Kit.meter(0, Kit.ARCANE)
 	meters.add_child(hp_meter)
 	meters.add_child(xp_meter)
@@ -483,6 +484,8 @@ func update_hud() -> void:
 	top_gold.text = str(int(floor(S.gold)))
 	top_lvl.text = ("KO %ds" % ceili(h.ko)) if h.ko > 0 else "Lv %d" % h.lvl
 	hp_meter.frac = h.hp / h.max_hp
+	hp_meter.over = h.shield / h.max_hp if h.shield > 0 else 0.0
+	hp_meter.text = hp_text(h)
 	xp_meter.frac = h.xp / h.next
 	ability_meter()
 	if floori(S.gold) != floori(last_bar_gold):
@@ -493,6 +496,14 @@ func update_hud() -> void:
 	if hero_t <= 0:
 		hero_t = 3
 		render_hero()
+
+
+## "350/420" plus the shield when there is one: "350/420 + 90 shield".
+func hp_text(h: Hero) -> String:
+	var s := "%d/%d" % [ceili(maxf(0, h.hp)), roundi(h.max_hp)]
+	if h.shield > 0:
+		s += "  +%d shield" % ceili(h.shield)
+	return s
 
 
 func _veil(on: bool) -> void:
@@ -557,7 +568,7 @@ func render_build_bar() -> void:
 	if S.hero.data.spells:
 		_rune_bar()
 	else:
-		ability_btn = Kit.button("%s  Q" % S.hero.ab.name, game.use_ability)
+		ability_btn = Kit.button(("Fire %s  Q" if S.strike_ready else "%s  Q") % S.hero.ab.name, func(): game.use_ability(), "OnButton" if S.strike_ready else "")
 		ability_fill = ColorRect.new()
 		ability_fill.color = Color(0.69, 0.49, 1, 0.45)
 		ability_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -570,7 +581,10 @@ func render_build_bar() -> void:
 		var hb := Kit.button(("Holding" if S.hero.hold else "Hold") + "  H", game.toggle_hold, "OnButton" if S.hero.hold else "")
 		Kit.tip_on(hb, func(): return Kit.b("Hold position") + "  " + Kit.c("H", Kit.GOLD) + "\n" + Kit.c("Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.", Kit.MUTED), "above")
 		build_bar.add_child(hb)
-	if S.hero.cls == "sniper":
+	if S.hero.cls == "sniper" and game.pierce_cursor():
+		var cb := Kit.button("Aim: cursor", func(): toast("Piercing Shot follows your cursor. Switch to aim points in Settings."))
+		build_bar.add_child(cb)
+	elif S.hero.cls == "sniper":
 		var ab := Kit.button(("Aim set" if S.aim != null else "Aim") + "  F", func():
 			if S.aim != null:
 				S.aim = null
@@ -882,8 +896,13 @@ func render_hero() -> void:
 	var abl := Kit.muted(ab_line)
 	Kit.tip_on(abl, func(): return UiText.ability_tip(game, h))
 	v.add_child(abl)
+	var hpm := Kit.meter(h.hp / h.max_hp, Kit.OK, 18)
+	hpm.over = h.shield / h.max_hp if h.shield > 0 else 0.0
+	hpm.font_size = 12
+	hpm.text = "HP " + hp_text(h)
+	v.add_child(hpm)
 	var f := func(x: float) -> String: return UiText.f0(x)
-	var rows := [["HP", "%s/%s" % [f.call(h.hp), f.call(h.max_hp)]], ["Damage", f.call(game.hero_dmg())], ["Kills", str(S.kills.hero)], ["Takedowns", str(S.takedowns.hero)]]
+	var rows := [["Damage", f.call(game.hero_dmg())], ["Kills", str(S.kills.hero)], ["Takedowns", str(S.takedowns.hero)]]
 	if d.category == "defensive":
 		rows.append(["Damage blocked", f.call(S.blocked)])
 	elif d.category == "support":
@@ -903,11 +922,22 @@ func render_hero() -> void:
 	if h.tithe: rows.append(["Kill gold (all)", "+%sg" % f.call(h.tithe)])
 	if h.mom_stacks: rows.append(["Momentum", "%d×" % h.mom_stacks])
 	if h.interest: rows.append(["Interest", UiText.pct(h.interest)])
-	v.add_child(Kit.stats(rows))
+	# the full stat sheet folds away (remembered between runs)
+	var open := bool(Save.settings.get("hero_stats_open", true))
+	var fold := Kit.button(("▾ " if open else "▸ ") + "Hero stats", func():
+		Save.settings.hero_stats_open = not bool(Save.settings.get("hero_stats_open", true))
+		Save.save_settings()
+		render_hero(), "FlatButton")
+	fold.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	v.add_child(fold)
+	var sheet := Kit.vbox(6)
+	sheet.visible = open
+	v.add_child(sheet)
+	sheet.add_child(Kit.stats(rows))
 	var lv := "%s (%d level%s so far): %s" % [Kit.b(Kit.c("Level bonus", Kit.GOLD)), h.lvl - 1, "" if h.lvl == 2 else "s", DB.tx("role:" + d.category, UiText.ROLE_LEVEL.get(d.category, "none") + " per level.")]
 	if h.xp_gain:
 		lv += " XP gain +%s." % UiText.pct(h.xp_gain)
-	v.add_child(Kit.muted(lv))
+	sheet.add_child(Kit.muted(lv))
 	var tags := Kit.flow(4)
 	for x: UpgradeData in game.R.heroics.items:
 		var r: int = S.heroics.get(x.id, 0)

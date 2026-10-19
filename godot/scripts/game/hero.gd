@@ -98,6 +98,16 @@ var hold := false
 # Gale: how far each normal hit pushes enemies back, and the Bruiser Form switch
 var knock := 0.0
 var bruiser := false
+var knock_slow := 0.0
+# Mythic and Legendary upgrades
+var free_cast := 0.0
+var mana_shield := false
+var aegis := false
+var debt := 0.0
+var free_build := 0
+var ab_crit := false
+var lifesteal := 0.0
+var overkill := false
 # boss debuffs on the hero
 var stun_t := 0.0
 var weak := 0.0

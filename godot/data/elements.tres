@@ -30,33 +30,33 @@ color = Color(0.84705883, 0.95686275, 0.93333334, 1)
 [sub_resource type="Resource" id="Resource_wk83x"]
 script = ExtResource("1_gbiod")
 id = "storm"
+parent = "fire"
 name = "Lightning"
 color = Color(0.6117647, 0.95686275, 0.8666667, 1)
-cost = 400
 blurb = "Chains between enemies and stuns them."
 
 [sub_resource type="Resource" id="Resource_47f0p"]
 script = ExtResource("1_gbiod")
 id = "nature"
+parent = "earth"
 name = "Nature"
 color = Color(0.49411765, 0.8784314, 0.41568628, 1)
-cost = 400
 blurb = "Roots enemies in place and poisons them."
 
 [sub_resource type="Resource" id="Resource_mhrt3"]
 script = ExtResource("1_gbiod")
 id = "void"
+parent = "water"
 name = "Void"
 color = Color(0.6901961, 0.4862745, 1, 1)
-cost = 600
 blurb = "Drags enemies back and makes them take more damage."
 
 [sub_resource type="Resource" id="Resource_jhgo0"]
 script = ExtResource("1_gbiod")
 id = "light"
+parent = "air"
 name = "Light"
 color = Color(0.9764706, 0.9019608, 0.63529414, 1)
-cost = 600
 blurb = "Piercing beams and heavy single hits, and some spells heal you."
 
 [resource]
