@@ -94,6 +94,7 @@ var wall_bonus := 1.0
 var wall_charges := 0
 var wall_t := 0.0
 var wall_cd_mul := 1.0
+var wall_dmg := 0.0 # damage per second (x spell power) to enemies held up by a wall
 var echo := 0.0
 var el_pow := {}
 var els: PackedStringArray = []

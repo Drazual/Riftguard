@@ -800,6 +800,32 @@ kind = "damage"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="Resource_wallspk"]
+script = ExtResource("1_ttpmk")
+id = "jagged_stone"
+name = "Jagged Stone"
+desc = "Enemies held up by your walls take {f0(m)} damage per second (grows with spell damage). Stacks."
+effect = "h.wall_dmg += m"
+m = 15.0
+pool = "wizard"
+also_pools = PackedStringArray()
+needs = "wall"
+kind = "wall_dmg"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_wallcd"]
+script = ExtResource("1_ttpmk")
+id = "quarry"
+name = "Quarry"
+desc = "Wall charges recharge {pct(m)} faster (never below 8s each). Stacks."
+effect = "h.wall_cd_mul *= 1 - m"
+m = 0.15
+pool = "wizard"
+also_pools = PackedStringArray()
+needs = "wall"
+kind = "wall_cd"
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_ogedp")
-items = Array[ExtResource("1_ttpmk")]([SubResource("Resource_8qpy0"), SubResource("Resource_4u7rw"), SubResource("Resource_sls2k"), SubResource("Resource_vxk2y"), SubResource("Resource_lyb04"), SubResource("Resource_14vm4"), SubResource("Resource_a5vhk"), SubResource("Resource_jql25"), SubResource("Resource_7ow2v"), SubResource("Resource_evm4r"), SubResource("Resource_m42uu"), SubResource("Resource_boi17"), SubResource("Resource_463pm"), SubResource("Resource_aff1t"), SubResource("Resource_1q21w"), SubResource("Resource_vcyug"), SubResource("Resource_nq8wt"), SubResource("Resource_1mp4t"), SubResource("Resource_660rp"), SubResource("Resource_egr0f"), SubResource("Resource_dufhs"), SubResource("Resource_kmkvr"), SubResource("Resource_n0p85"), SubResource("Resource_prtwt"), SubResource("Resource_ephru"), SubResource("Resource_fwnyi"), SubResource("Resource_5kjhc"), SubResource("Resource_28h3g"), SubResource("Resource_onjpc"), SubResource("Resource_5mddn"), SubResource("Resource_6updh"), SubResource("Resource_cfurh"), SubResource("Resource_2q40b"), SubResource("Resource_roejd"), SubResource("Resource_ohbmd"), SubResource("Resource_3ydcx"), SubResource("Resource_0ldq8"), SubResource("Resource_mwl36"), SubResource("Resource_45fu8"), SubResource("Resource_w42hl"), SubResource("Resource_b0e8l"), SubResource("Resource_nmip3"), SubResource("Resource_0o400"), SubResource("Resource_w03q5"), SubResource("Resource_bpxoq"), SubResource("Resource_qgpko"), SubResource("Resource_yi5an"), SubResource("Resource_vfveu"), SubResource("Resource_p6gy1"), SubResource("Resource_7pw1r"), SubResource("Resource_vhvbt"), SubResource("Resource_4qab1"), SubResource("Resource_4c3qk"), SubResource("Resource_ffcmc"), SubResource("Resource_yhdbq"), SubResource("Resource_0i8re"), SubResource("Resource_ne3im"), SubResource("Resource_vpjev"), SubResource("Resource_ax4tn"), SubResource("Resource_gale1"), SubResource("Resource_gale2"), SubResource("Resource_gale3"), SubResource("Resource_gale4"), SubResource("Resource_gale5")])
+items = Array[ExtResource("1_ttpmk")]([SubResource("Resource_8qpy0"), SubResource("Resource_4u7rw"), SubResource("Resource_sls2k"), SubResource("Resource_vxk2y"), SubResource("Resource_lyb04"), SubResource("Resource_14vm4"), SubResource("Resource_a5vhk"), SubResource("Resource_jql25"), SubResource("Resource_7ow2v"), SubResource("Resource_evm4r"), SubResource("Resource_m42uu"), SubResource("Resource_boi17"), SubResource("Resource_463pm"), SubResource("Resource_aff1t"), SubResource("Resource_1q21w"), SubResource("Resource_vcyug"), SubResource("Resource_nq8wt"), SubResource("Resource_1mp4t"), SubResource("Resource_660rp"), SubResource("Resource_egr0f"), SubResource("Resource_dufhs"), SubResource("Resource_kmkvr"), SubResource("Resource_n0p85"), SubResource("Resource_prtwt"), SubResource("Resource_ephru"), SubResource("Resource_fwnyi"), SubResource("Resource_5kjhc"), SubResource("Resource_28h3g"), SubResource("Resource_onjpc"), SubResource("Resource_5mddn"), SubResource("Resource_6updh"), SubResource("Resource_cfurh"), SubResource("Resource_2q40b"), SubResource("Resource_roejd"), SubResource("Resource_ohbmd"), SubResource("Resource_3ydcx"), SubResource("Resource_0ldq8"), SubResource("Resource_mwl36"), SubResource("Resource_45fu8"), SubResource("Resource_w42hl"), SubResource("Resource_b0e8l"), SubResource("Resource_nmip3"), SubResource("Resource_0o400"), SubResource("Resource_w03q5"), SubResource("Resource_bpxoq"), SubResource("Resource_qgpko"), SubResource("Resource_yi5an"), SubResource("Resource_vfveu"), SubResource("Resource_p6gy1"), SubResource("Resource_wallspk"), SubResource("Resource_wallcd"), SubResource("Resource_7pw1r"), SubResource("Resource_vhvbt"), SubResource("Resource_4qab1"), SubResource("Resource_4c3qk"), SubResource("Resource_ffcmc"), SubResource("Resource_yhdbq"), SubResource("Resource_0i8re"), SubResource("Resource_ne3im"), SubResource("Resource_vpjev"), SubResource("Resource_ax4tn"), SubResource("Resource_gale1"), SubResource("Resource_gale2"), SubResource("Resource_gale3"), SubResource("Resource_gale4"), SubResource("Resource_gale5")])

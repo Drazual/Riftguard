@@ -3000,6 +3000,8 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			if wall:
 				e.d = maxf(e.d, wall.d - e.r)
 				wall.hp -= e.atk * dt
+				if h.wall_dmg:
+					damage(e, h.wall_dmg * spell_pow(h) * dt)
 				e.still_t += dt
 			else:
 				e.d += step
