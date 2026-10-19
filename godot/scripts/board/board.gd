@@ -931,8 +931,14 @@ func _draw_over() -> void:
 			_ring(o, p, e.r + 2, ca(frost_col, 0.9), 2)
 		if e.burn_t > 0:
 			_circle(o, p - Vector2(0, e.r), 2.5, hx(0xff8a3d, 0.8))
+		if e.fire_t > 0:
+			# Fire spell burn: a flickering orange halo
+			_ring(o, p, e.r + 1, hx(0xff5d1f, 0.55 + 0.35 * sin(S.time * 18 + e.d)), 2)
 		if e.boss:
 			_ring(o, p, e.r + 4, hx(0xf2c14e), 2)
+		elif e.pushback_immune:
+			# anchored: a thick dark iron band says it can't be pushed back
+			_ring(o, p, e.r + 3, hx(0x3a4256, 0.95), 3)
 		if e.mark_t > 0 or e.spot_t > 0:
 			_ring(o, p, e.r + 7, hx(0xff2e4d, 0.9), 1.5)
 		var w := e.r * 2 + 4

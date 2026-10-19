@@ -90,6 +90,11 @@ var spell_cost := 1.0
 var freeze_bonus := 0.0
 var push_bonus := 1.0
 var wall_bonus := 1.0
+# Wizard wall charges: how many are ready, seconds banked toward the next, and the recharge-time multiplier
+var wall_charges := 0
+var wall_t := 0.0
+var wall_cd_mul := 1.0
+var wall_dmg := 0.0 # damage per second (x spell power) to enemies held up by a wall
 var echo := 0.0
 var el_pow := {}
 var els: PackedStringArray = []
@@ -147,6 +152,7 @@ static func make(id: String, base: Vector2) -> Hero:
 	h.max_mana = d.mana
 	h.mana_regen = d.mana_regen
 	h.knock = d.knock
+	h.wall_charges = DB.rules.wall_charges
 	h.build_range = DB.rules.build_range
 	h.aura_range = DB.rules.aura_range
 	h.respawn = DB.rules.respawn

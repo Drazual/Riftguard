@@ -156,5 +156,15 @@ extends Resource
 @export var element_rest := 2.0
 ## Share of max mana refilled when a wave is cleared.
 @export var wave_mana_refill := 0.3
+## Wall spells use charges: the stack size (runs start full), and seconds to regain one (one at a time, during waves).
+@export var wall_charges := 5
+@export var wall_recharge := 20.0
+## Recharge upgrades can't bring a charge below this many seconds.
+@export var wall_recharge_min := 8.0
+## Fire spells set enemies burning for this share of their max HP per second, for fire_burn_time seconds (hits refresh it).
+@export var fire_burn_pct := 0.01
+@export var fire_burn_time := 3.0
+## Bosses burn for this fraction of that.
+@export var fire_burn_boss := 0.25
 @export_group("Mastery")
 @export var mastery_max := 50

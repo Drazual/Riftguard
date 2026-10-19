@@ -25,6 +25,7 @@ const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", 
 
 var S: Run = null
 var _spilling := false
+var _fire_ctx := false # true while Fire-element spell damage is landing, so it sets enemies alight
 var R: GameRules
 var max_wave := 20
 var rng := RandomNumberGenerator.new()
@@ -98,7 +99,25 @@ func fx_add(f: Dictionary) -> void:
 
 
 func later(secs: float, fn: Callable) -> void:
+	if _fire_ctx:
+		var g := fn
+		fn = func(): _as_fire(g)
 	S.delayed.append({ at = S.time + secs, fn = fn })
+
+
+## Runs fn with Fire spell damage switched on (it sets enemies burning).
+func _as_fire(fn: Callable):
+	var was := _fire_ctx
+	_fire_ctx = true
+	var out = fn.call()
+	_fire_ctx = was
+	return out
+
+
+## Fire spells burn: a share of max HP per second for a few seconds. A new hit refreshes it, it never stacks.
+func fire_burn(e: Enemy) -> void:
+	e.fire_t = R.fire_burn_time
+	e.fire_pct = R.fire_burn_pct * (R.fire_burn_boss if e.boss else 1.0)
 
 
 func zone(z: Dictionary) -> Dictionary:
@@ -106,6 +125,8 @@ func zone(z: Dictionary) -> Dictionary:
 		z.color = _c(z.color)
 	if not z.has("T"):
 		z.T = z.t
+	if _fire_ctx:
+		z.fire = true
 	for k in ["dps", "slow", "brk", "end_freeze"]:
 		if not z.has(k):
 			z[k] = 0.0
@@ -495,6 +516,8 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
 	if dealt > 0:
 		e.hit_by[src if tw else "hero"] = true
 	e.hp -= amt
+	if _fire_ctx and not tw and amt > 0 and e.hp > 0:
+		fire_burn(e)
 	var h := S.hero
 	if not tw and h.lifesteal and dealt > 0 and h.ko <= 0:
 		h.hp = minf(h.max_hp, h.hp + dealt * h.lifesteal)
@@ -796,7 +819,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 			apply_hit(t, o, d * 0.6, false, aslow)
 	if t.gravity and t.shots % 5 == 0:
 		for e in in_range(target.x, target.y, 60):
-			if not e.boss:
+			if not e.pushback_immune:
 				e.d = maxf(0, e.d - t.gravity)
 		ring(target.x, target.y, 60, 0x9a7cff, 0.3)
 	if t.echo and not fake:
@@ -1014,10 +1037,11 @@ func super_power(t: Tower) -> bool:
 	match k:
 		"arcane":
 			hit.call(area, 6.0, func(e):
-				if not (e.push_t > 0):
-					e.push_spd = 0
-				e.push_t = maxf(e.push_t, 0.5 if e.boss else 1.5)
-				e.push_spd = maxf(e.push_spd, 120)
+				if not e.pushback_immune:
+					if not (e.push_t > 0):
+						e.push_spd = 0
+					e.push_t = maxf(e.push_t, 1.5)
+					e.push_spd = maxf(e.push_spd, 120)
 				e.brittle = maxf(e.brittle, 0.3)
 				e.brittle_t = maxf(e.brittle_t, 5))
 			for i in 3:
@@ -1344,7 +1368,7 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 		damage(e, ab_dmg(h, a) * mult)
 		e.stun_t = maxf(e.stun_t, a.stun * mult)
 		if a.magnet:
-			if not e.boss:
+			if not e.pushback_immune:
 				e.d = maxf(0, e.d - 50)
 			line(e.x, e.y, x, y, 0x9af0ff, 0.35, 2)
 	if h.taunt:
@@ -1360,7 +1384,7 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 				var rr := r * (1.3 + 0.3 * i)
 				for e in in_range(x, y, rr):
 					damage(e, ab_dmg(h, a) * 0.4)
-					if not e.boss:
+					if not e.pushback_immune:
 						e.d = maxf(0, e.d - 20)
 				ring(x, y, rr, 0x9af0ff, 0.35))
 	if a.molten:
@@ -1565,6 +1589,8 @@ func freeze_enemy(e: Enemy, s: float, h: Hero) -> void:
 
 
 func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
+	if e.pushback_immune:
+		return
 	if h.cls == "wizard" and not e.dead:
 		_wizard_push()
 	if not (e.push_t > 0):
@@ -1691,10 +1717,18 @@ func wall_spot(x: float, y: float):
 	return { d = d, x = best.x, y = best.y, across = absf(b.x - a.x) > absf(b.y - a.y) }
 
 
+## Seconds for one wall charge to come back.
+func wall_recharge_time(h: Hero) -> float:
+	return maxf(R.wall_recharge_min, R.wall_recharge * h.wall_cd_mul)
+
+
 func raise_wall(h: Hero, x: float, y: float, hp: float, dur: float, pow: float, slam_dmg: float, more := {}) -> bool:
+	if h.wall_charges < 1:
+		return false
 	var p = wall_spot(x, y)
 	if p == null:
 		return false
+	h.wall_charges -= 1
 	var w := { d = p.d, x = p.x, y = p.y, across = p.across, hp = hp * h.wall_bonus, max = hp * h.wall_bonus, t = dur, T = dur,
 		art = "greatwall" if slam_dmg else "stonewall", born = S.time, thorns = 0.0, color = null }
 	w.merge(more, true)
@@ -1759,6 +1793,8 @@ func _spell_burst(sp: SpellData, h: Hero, x: float, y: float, p: float) -> void:
 
 ## Casts a spell at (x, y) with power p. Returns false when it can't be cast there (walls off the path).
 func cast_spell(key: String, h: Hero, x: float, y: float, p: float) -> bool:
+	if not _fire_ctx and Array(key.split("+")).has("fire"):
+		return _as_fire(func(): return cast_spell(key, h, x, y, p))
 	var sp: SpellData = DB.spells[key]
 	var r := sp.r * h.spell_r
 	var each = _spell_each(sp, h, p)
@@ -1938,6 +1974,9 @@ func cast_runes(x: float, y: float) -> void:
 	if S.time < h.cast_t:
 		return
 	var mana: float = r.mana * h.spell_cost
+	if r.spell.delivery == "wall" and h.wall_charges < 1:
+		say("No wall charges left: next one in %ds." % ceili(wall_recharge_time(h) - h.wall_t))
+		return
 	if h.mana < mana:
 		say("Not enough mana for %s (%d needed)." % [r.spell.name, ceili(mana)])
 		return
@@ -2281,6 +2320,7 @@ func spawn(type: String, at_d := -1.0) -> void:
 	e.regen = R.tough_regen if has_tough("regen") else 0.0
 	e.steady = has_tough("steady")
 	e.unslow = d.unslow
+	e.pushback_immune = d.pushback_immune or d.boss
 	e.phase = d.phase
 	e.split = d.split
 	e.heal = d.heal
@@ -2605,7 +2645,10 @@ func update(dt: float) -> void:
 				elif hyp(e.x - z.x, e.y - z.y) > z.r:
 					continue
 				if z.dps:
-					damage(e, z.dps * dt, z.get("src"), 1)
+					if z.get("fire", false):
+						_as_fire(func(): damage(e, z.dps * dt, z.get("src"), 1))
+					else:
+						damage(e, z.dps * dt, z.get("src"), 1)
 				if z.slow:
 					slow_enemy(e, z.slow, 0.3)
 				if z.brk and not e.dead:
@@ -2698,6 +2741,15 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 		h.hp = minf(h.max_hp, h.hp + (h.regen + h.max_hp * sb("regen")) * dt)
 	if h.max_mana and S.wave_active:
 		h.mana = minf(h.max_mana, h.mana + h.mana_regen * (1 + sb("mana")) * dt)
+	# Wall charges come back one at a time while below the cap (like mana, only during a wave).
+	if h.data.spells and S.wave_active and h.wall_charges < R.wall_charges:
+		h.wall_t += dt
+		if h.wall_t >= wall_recharge_time(h):
+			h.wall_t = 0.0
+			h.wall_charges += 1
+			refresh("runes")
+	elif h.wall_charges >= R.wall_charges:
+		h.wall_t = 0.0
 	h.cd -= dt
 	# Sniper: has to stand still for h.brace seconds before it can shoot.
 	if h.brace:
@@ -2945,9 +2997,14 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			damage(e, e.burn_dps * dt, e.burn_src, 1)
 			if e.dead:
 				continue
+		if e.fire_t > 0:
+			e.fire_t -= dt
+			damage(e, e.max * e.fire_pct * dt, null, 1)
+			if e.dead:
+				continue
 		if S.overclock_t > 0 and h.time_warp and e.pos().distance_to(S.overclock_at) <= h.ab.r:
 			slow_enemy(e, h.time_warp, 0.3)
-		if e.push_t > 0:
+		if e.push_t > 0 and not e.pushback_immune:
 			e.push_t -= dt
 			if e.stun_t > 0:
 				e.stun_t -= dt
@@ -2976,6 +3033,8 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			if wall:
 				e.d = maxf(e.d, wall.d - e.r)
 				wall.hp -= e.atk * dt
+				if h.wall_dmg:
+					damage(e, h.wall_dmg * spell_pow(h) * dt)
 				e.still_t += dt
 			else:
 				e.d += step

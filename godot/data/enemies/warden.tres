@@ -16,6 +16,7 @@ color = Color(1, 0.18039216, 0.3019608, 1)
 armor = 0.5
 info = "50% armor. Rift Lock: every 9s stuns 3 random towers for 4s and makes them attack 40% slower for 8s. Also stuns your hero for 1.5s and makes it take 30% more damage. Summons Grunts at 75%, 50% and 25% HP."
 counter = "Grounded makes stuns shorter. Armor-piercing towers help."
+pushback_immune = true
 boss = true
 big_boss = true
 cores = 2
