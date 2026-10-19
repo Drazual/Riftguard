@@ -641,7 +641,9 @@ func _all_hero_paths(d: TowerData) -> Array:
 func _locked_hero_card() -> Control:
 	var ch := Choice.new(Kit.LINE)
 	ch.add(Kit.label("SECRET HERO", 11, Kit.MUTED, Kit.display))
-	ch.add(Kit.head("??? · Locked", 20, Kit.MUTED))
+	var lt := Kit.head("I got pushback about this hero being locked", 20, Kit.MUTED)
+	lt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ch.add(lt)
 	ch.add("Someone is waiting to be found. Keep playing and you might unlock them.", 13)
 	ch.disabled = true
 	ch.modulate = Color(1, 1, 1, 0.7)
@@ -667,7 +669,7 @@ func show_heroes(sel := "vanguard") -> void:
 			roster.add_child(Kit.muted("More heroes coming."))
 		for k in list:
 			if not Progress.hero_open(k):
-				var lk := _roster_btn("???", "Secret hero · locked", Kit.MUTED, false, func(): ui.toast("A secret hero. Keep playing to find out how to unlock it."))
+				var lk := _roster_btn("I got pushback about this hero being locked", "Secret hero · locked", Kit.MUTED, false, func(): ui.toast("A secret hero. Keep playing to find out how to unlock it."))
 				roster.add_child(lk)
 				continue
 			roster.add_child(_roster_btn(DB.heroes[k].name, "%s · %s" % [DB.hero_ability(k).name if not DB.heroes[k].spells else "Spellcraft", UiText.hero_mastery_text(k)], DB.heroes[k].color, k == sel, func(): show_heroes(k)))
@@ -742,7 +744,9 @@ func _roster_btn(name: String, sub: String, col: Color, on: bool, cb: Callable) 
 	var ch := Choice.new(col if on else Kit.LINE, Kit.PANEL2 if on else Kit.PANEL)
 	ch.pad = 10
 	ch.add(Kit.c(sub.to_upper(), Kit.MUTED), 10)
-	ch.add(Kit.label(name, 16, col, Kit.display_bold))
+	var nl := Kit.label(name, 16, col, Kit.display_bold)
+	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ch.add(nl)
 	ch.pressed.connect(cb)
 	return ch
 
