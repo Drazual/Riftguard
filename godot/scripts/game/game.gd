@@ -25,6 +25,7 @@ const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", 
 
 var S: Run = null
 var _spilling := false
+var _fire_ctx := false # true while Fire-element spell damage is landing, so it sets enemies alight
 var R: GameRules
 var max_wave := 20
 var rng := RandomNumberGenerator.new()
@@ -98,7 +99,25 @@ func fx_add(f: Dictionary) -> void:
 
 
 func later(secs: float, fn: Callable) -> void:
+	if _fire_ctx:
+		var g := fn
+		fn = func(): _as_fire(g)
 	S.delayed.append({ at = S.time + secs, fn = fn })
+
+
+## Runs fn with Fire spell damage switched on (it sets enemies burning).
+func _as_fire(fn: Callable):
+	var was := _fire_ctx
+	_fire_ctx = true
+	var out = fn.call()
+	_fire_ctx = was
+	return out
+
+
+## Fire spells burn: a share of max HP per second for a few seconds. A new hit refreshes it, it never stacks.
+func fire_burn(e: Enemy) -> void:
+	e.fire_t = R.fire_burn_time
+	e.fire_pct = R.fire_burn_pct * (R.fire_burn_boss if e.boss else 1.0)
 
 
 func zone(z: Dictionary) -> Dictionary:
@@ -106,6 +125,8 @@ func zone(z: Dictionary) -> Dictionary:
 		z.color = _c(z.color)
 	if not z.has("T"):
 		z.T = z.t
+	if _fire_ctx:
+		z.fire = true
 	for k in ["dps", "slow", "brk", "end_freeze"]:
 		if not z.has(k):
 			z[k] = 0.0
@@ -495,6 +516,8 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
 	if dealt > 0:
 		e.hit_by[src if tw else "hero"] = true
 	e.hp -= amt
+	if _fire_ctx and not tw and amt > 0 and e.hp > 0:
+		fire_burn(e)
 	var h := S.hero
 	if not tw and h.lifesteal and dealt > 0 and h.ko <= 0:
 		h.hp = minf(h.max_hp, h.hp + dealt * h.lifesteal)
@@ -1770,6 +1793,8 @@ func _spell_burst(sp: SpellData, h: Hero, x: float, y: float, p: float) -> void:
 
 ## Casts a spell at (x, y) with power p. Returns false when it can't be cast there (walls off the path).
 func cast_spell(key: String, h: Hero, x: float, y: float, p: float) -> bool:
+	if not _fire_ctx and Array(key.split("+")).has("fire"):
+		return _as_fire(func(): return cast_spell(key, h, x, y, p))
 	var sp: SpellData = DB.spells[key]
 	var r := sp.r * h.spell_r
 	var each = _spell_each(sp, h, p)
@@ -2620,7 +2645,10 @@ func update(dt: float) -> void:
 				elif hyp(e.x - z.x, e.y - z.y) > z.r:
 					continue
 				if z.dps:
-					damage(e, z.dps * dt, z.get("src"), 1)
+					if z.get("fire", false):
+						_as_fire(func(): damage(e, z.dps * dt, z.get("src"), 1))
+					else:
+						damage(e, z.dps * dt, z.get("src"), 1)
 				if z.slow:
 					slow_enemy(e, z.slow, 0.3)
 				if z.brk and not e.dead:
@@ -2967,6 +2995,11 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 		if e.burn_t > 0:
 			e.burn_t -= dt
 			damage(e, e.burn_dps * dt, e.burn_src, 1)
+			if e.dead:
+				continue
+		if e.fire_t > 0:
+			e.fire_t -= dt
+			damage(e, e.max * e.fire_pct * dt, null, 1)
 			if e.dead:
 				continue
 		if S.overclock_t > 0 and h.time_warp and e.pos().distance_to(S.overclock_at) <= h.ab.r:
