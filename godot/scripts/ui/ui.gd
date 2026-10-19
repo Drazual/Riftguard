@@ -626,9 +626,12 @@ func _ignore_mouse(n: Node) -> void:
 func _rune_bar() -> void:
 	var S := game.S
 	var box := Kit.hbox(4)
+	# in the tree first, so the buttons pick up the FlatButton style from the UI theme
+	build_bar.add_child(box)
 	for k in S.rune_keys:
 		var el: ElementData = DB.elements[S.rune_keys[k]]
 		var bt := Kit.button("%s  %s" % [el.name, k.to_upper()], game.ready_rune.bind(k), "FlatButton")
+		box.add_child(bt)
 		var sb: StyleBoxFlat = bt.get_theme_stylebox("normal").duplicate()
 		sb.border_color = el.color
 		bt.add_theme_stylebox_override("normal", sb)
@@ -647,7 +650,6 @@ func _rune_bar() -> void:
 		bt.set_meta("cd", cd)
 		bt.set_meta("el", S.rune_keys[k])
 		rune_btns[k] = bt
-		box.add_child(bt)
 	var tip_fn := func() -> String:
 		var r = game.resolve_runes(S.runes)
 		var t := Kit.b("Runes") + "\n"
@@ -673,7 +675,6 @@ func _rune_bar() -> void:
 		wall_meter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		Kit.tip_on(wall_meter, func(): return Kit.b("Wall charges") + "\n" + Kit.c("Each wall spell uses a charge (plus its mana). Up to %d; one comes back every %ss during a wave." % [DB.rules.wall_charges, UiText.f1(game.wall_recharge_time(S.hero))], Kit.MUTED), "above")
 		box.add_child(wall_meter)
-	build_bar.add_child(box)
 
 
 func render_runes() -> void:
