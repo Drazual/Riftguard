@@ -726,12 +726,15 @@ func render_inspector() -> void:
 	if t.stun_t > 0:
 		v.add_child(Kit.rich(Kit.c("Stunned by a boss: %ss left." % UiText.f1(t.stun_t), Kit.DANGER), 14))
 	var rows := []
-	if t.support:
+	if t.hero_buff:
+		rows.append(["Hero damage", "+" + UiText.pct(t.hb_dmg)])
+		rows.append(["Hero armor", "+" + UiText.pct(t.hb_armor)])
+	elif t.support:
 		rows.append(["Buff", "+" + UiText.pct(t.b_dmg)])
 	else:
 		rows.append(["Damage", UiText.dmg_with_buff(game, t)])
 		rows.append(["Slams/s" if t.type == "anvil" else "Shots/s", UiText.f2(1 / (t.rate * S.mod_tower_rate))])
-	rows += [["Range", UiText.f0(game.t_range(t))], ["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
+	rows += ([] if t.hero_buff else [["Range", UiText.f0(game.t_range(t))]]) + [["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
 	v.add_child(Kit.stats(rows))
 	if not DB.is_simple():
 		v.add_child(Kit.rich(UiText.bullets(UiText.tower_traits(game, t)), 13))

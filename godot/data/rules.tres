@@ -21,6 +21,7 @@
 [ext_resource type="Resource" path="res://data/lists/global_meta.tres" id="19_yl4lr"]
 [ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="20_8v02n"]
 [ext_resource type="Resource" path="res://data/heroes/vanguard.tres" id="21_q4uiu"]
+[ext_resource type="Resource" path="res://data/heroes/gale.tres" id="21_gale"]
 [ext_resource type="Resource" path="res://data/heroes/striker.tres" id="22_ie4xd"]
 [ext_resource type="Resource" path="res://data/heroes/oracle.tres" id="23_4544t"]
 [ext_resource type="Resource" path="res://data/heroes/sniper.tres" id="24_7lomy"]
@@ -52,13 +53,14 @@
 [ext_resource type="Resource" path="res://data/towers/anvil.tres" id="50_ytjuc"]
 [ext_resource type="Resource" path="res://data/towers/laser.tres" id="51_e1yeg"]
 [ext_resource type="Resource" path="res://data/towers/mortar.tres" id="52_lmywk"]
+[ext_resource type="Resource" path="res://data/towers/shrine.tres" id="52_shrine"]
 [ext_resource type="Resource" path="res://data/lists/uniques.tres" id="53_3y6qg"]
 
 [resource]
 script = ExtResource("36_dyxie")
 maps = Array[PackedScene]([ExtResource("28_uun50"), ExtResource("29_4oven"), ExtResource("30_8apho"), ExtResource("31_5ena3")])
-towers = Array[ExtResource("44_wis7q")]([ExtResource("45_q6xdd"), ExtResource("46_cp3rw"), ExtResource("47_j25d5"), ExtResource("48_cut3q"), ExtResource("49_i6c5q"), ExtResource("50_ytjuc"), ExtResource("51_e1yeg"), ExtResource("52_lmywk")])
-heroes = Array[ExtResource("20_8v02n")]([ExtResource("21_q4uiu"), ExtResource("22_ie4xd"), ExtResource("23_4544t"), ExtResource("24_7lomy"), ExtResource("25_4m1h7")])
+towers = Array[ExtResource("44_wis7q")]([ExtResource("45_q6xdd"), ExtResource("46_cp3rw"), ExtResource("47_j25d5"), ExtResource("48_cut3q"), ExtResource("49_i6c5q"), ExtResource("50_ytjuc"), ExtResource("51_e1yeg"), ExtResource("52_lmywk"), ExtResource("52_shrine")])
+heroes = Array[ExtResource("20_8v02n")]([ExtResource("21_q4uiu"), ExtResource("21_gale"), ExtResource("22_ie4xd"), ExtResource("23_4544t"), ExtResource("24_7lomy"), ExtResource("25_4m1h7")])
 enemies = Array[ExtResource("5_jubtq")]([ExtResource("6_ck0sn"), ExtResource("7_43m5s"), ExtResource("8_kraj1"), ExtResource("9_y4dam"), ExtResource("10_6su6i"), ExtResource("11_crh1k"), ExtResource("12_hx3fw"), ExtResource("13_28wb3"), ExtResource("14_crwaq"), ExtResource("15_q7b7u"), ExtResource("16_kviac"), ExtResource("17_2q5pp")])
 spells = ExtResource("41_r3umf")
 elements = ExtResource("4_0y5sd")

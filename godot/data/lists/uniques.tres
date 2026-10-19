@@ -180,6 +180,18 @@ rarity = "secret"
 kind = "unique:heart"
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="Resource_bruiser"]
+script = ExtResource("1_7nimu")
+id = "bruiser"
+name = "Bruiser Form"
+desc = "Gale becomes a Bruiser: 3.5x damage, 25% faster attacks, +20% max HP, +5% damage reduction and harder knockback, but holds 6 enemies at once instead of every one."
+effect = "h.bruiser_form()"
+pool = "gale"
+rarity = "legendary"
+kind = "unique:bruiser"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_rcrdk")
-items = Array[ExtResource("1_7nimu")]([SubResource("Resource_pkb4r"), SubResource("Resource_n25rt"), SubResource("Resource_eiime"), SubResource("Resource_keaw6"), SubResource("Resource_5n6a3"), SubResource("Resource_57bt0"), SubResource("Resource_eh5dn"), SubResource("Resource_gkh4h"), SubResource("Resource_yj2hb"), SubResource("Resource_oulxl"), SubResource("Resource_d7c2o"), SubResource("Resource_q0lof"), SubResource("Resource_8crli"), SubResource("Resource_hhy0p")])
+items = Array[ExtResource("1_7nimu")]([SubResource("Resource_pkb4r"), SubResource("Resource_n25rt"), SubResource("Resource_eiime"), SubResource("Resource_keaw6"), SubResource("Resource_5n6a3"), SubResource("Resource_57bt0"), SubResource("Resource_eh5dn"), SubResource("Resource_gkh4h"), SubResource("Resource_yj2hb"), SubResource("Resource_oulxl"), SubResource("Resource_d7c2o"), SubResource("Resource_q0lof"), SubResource("Resource_8crli"), SubResource("Resource_hhy0p"), SubResource("Resource_bruiser")])
