@@ -1694,10 +1694,18 @@ func wall_spot(x: float, y: float):
 	return { d = d, x = best.x, y = best.y, across = absf(b.x - a.x) > absf(b.y - a.y) }
 
 
+## Seconds for one wall charge to come back.
+func wall_recharge_time(h: Hero) -> float:
+	return maxf(R.wall_recharge_min, R.wall_recharge * h.wall_cd_mul)
+
+
 func raise_wall(h: Hero, x: float, y: float, hp: float, dur: float, pow: float, slam_dmg: float, more := {}) -> bool:
+	if h.wall_charges < 1:
+		return false
 	var p = wall_spot(x, y)
 	if p == null:
 		return false
+	h.wall_charges -= 1
 	var w := { d = p.d, x = p.x, y = p.y, across = p.across, hp = hp * h.wall_bonus, max = hp * h.wall_bonus, t = dur, T = dur,
 		art = "greatwall" if slam_dmg else "stonewall", born = S.time, thorns = 0.0, color = null }
 	w.merge(more, true)
@@ -1941,6 +1949,9 @@ func cast_runes(x: float, y: float) -> void:
 	if S.time < h.cast_t:
 		return
 	var mana: float = r.mana * h.spell_cost
+	if r.spell.delivery == "wall" and h.wall_charges < 1:
+		say("No wall charges left: next one in %ds." % ceili(wall_recharge_time(h) - h.wall_t))
+		return
 	if h.mana < mana:
 		say("Not enough mana for %s (%d needed)." % [r.spell.name, ceili(mana)])
 		return
@@ -2702,6 +2713,15 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 		h.hp = minf(h.max_hp, h.hp + (h.regen + h.max_hp * sb("regen")) * dt)
 	if h.max_mana and S.wave_active:
 		h.mana = minf(h.max_mana, h.mana + h.mana_regen * (1 + sb("mana")) * dt)
+	# Wall charges come back one at a time while below the cap (like mana, only during a wave).
+	if h.data.spells and S.wave_active and h.wall_charges < R.wall_charges:
+		h.wall_t += dt
+		if h.wall_t >= wall_recharge_time(h):
+			h.wall_t = 0.0
+			h.wall_charges += 1
+			refresh("runes")
+	elif h.wall_charges >= R.wall_charges:
+		h.wall_t = 0.0
 	h.cd -= dt
 	# Sniper: has to stand still for h.brace seconds before it can shoot.
 	if h.brace:

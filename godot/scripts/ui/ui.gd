@@ -51,6 +51,7 @@ var ability_fill: ColorRect
 var rune_btns := {}
 var rune_cast: RichTextLabel
 var mana_meter: Kit.Meter
+var wall_meter: Kit.Meter
 var mode_timer: Label
 
 var hud_t := 0.0
@@ -534,6 +535,7 @@ func render_build_bar() -> void:
 	ability_btn = null
 	rune_cast = null
 	mana_meter = null
+	wall_meter = null
 	var mode_tag: String = (" · " + S.mode.name) if S.mode.kind != "normal" else ""
 	for i in S.loadout.size():
 		var k: String = S.loadout[i]
@@ -664,6 +666,13 @@ func _rune_bar() -> void:
 	mana_meter.custom_minimum_size = Vector2(70, 6)
 	mana_meter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.add_child(mana_meter)
+	if S.hero.can.get("wall", false):
+		# wall charges: "Walls 3/5", the bar fills as the next charge comes back
+		wall_meter = Kit.meter(0, Color("#c8a46a"))
+		wall_meter.custom_minimum_size = Vector2(84, 16)
+		wall_meter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		Kit.tip_on(wall_meter, func(): return Kit.b("Wall charges") + "\n" + Kit.c("Each wall spell uses a charge (plus its mana). Up to %d; one comes back every %ss during a wave." % [DB.rules.wall_charges, UiText.f1(game.wall_recharge_time(S.hero))], Kit.MUTED), "above")
+		box.add_child(wall_meter)
 	build_bar.add_child(box)
 
 
@@ -689,6 +698,10 @@ func ability_meter() -> void:
 	var h := S.hero
 	if mana_meter and is_instance_valid(mana_meter) and h.max_mana:
 		mana_meter.frac = h.mana / h.max_mana
+	if wall_meter and is_instance_valid(wall_meter):
+		var full := h.wall_charges >= DB.rules.wall_charges
+		wall_meter.frac = 1.0 if full else h.wall_t / game.wall_recharge_time(h)
+		wall_meter.text = "Walls %d/%d" % [h.wall_charges, DB.rules.wall_charges]
 	for k in rune_btns:
 		var bt: Button = rune_btns[k]
 		if not is_instance_valid(bt):
