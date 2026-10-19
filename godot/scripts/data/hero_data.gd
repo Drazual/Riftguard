@@ -24,6 +24,8 @@ extends Resource
 ## Seconds it must stand still before each shot (Sniper).
 @export var brace := 0.0
 @export var crit := 0.0
+## How far each normal hit pushes the enemy back along the path (Gale).
+@export var knock := 0.0
 @export var mana := 0.0
 @export var mana_regen := 0.0
 ## Casts spells instead of attacking (Wizard).

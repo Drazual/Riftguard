@@ -87,15 +87,21 @@ extends Resource
 @export var level_range_text := "+3 range"
 @export_multiline var ascend_range := "t.range *= 1.1\nt.b_dmg += 0.05"
 @export var ascend_range_text := "+10% range and +5% to its damage buff"
+@export_multiline var level_hero := "t.hb_dmg += 0.01\nt.hb_armor += 0.003"
+@export var level_hero_text := "+1% hero damage and +0.3% hero damage reduction"
+@export_multiline var ascend_hero := "t.hb_dmg += 0.1\nt.hb_armor += 0.05\nt.hb_regen += 0.004"
+@export var ascend_hero_text := "+10% hero damage, +5% damage reduction and more regen"
 @export_group("Enemies and waves")
 @export var armor_cap := 0.6
+## Bosses can go past the normal armor cap, up to this.
+@export var boss_armor_cap := 0.75
 ## Every enemy's HP is multiplied by this.
 @export var enemy_hp_mult := 1.25
 ## Normal enemy HP x (1 + a(n-1) + b(n-1)^2) on wave n.
 @export var hp_growth_a := 0.55
 @export var hp_growth_b := 0.1
 ## Boss HP x (1 + this x (wave - 5)).
-@export var boss_hp_growth := 0.15
+@export var boss_hp_growth := 0.2
 @export var grunts_base := 8
 @export var grunts_per_wave := 3
 @export var runners_from := 2
@@ -129,6 +135,10 @@ extends Resource
 @export var rarity_mults: PackedFloat32Array = [1.0, 1.4, 1.9, 2.6, 3.5, 4.5]
 @export var rarity_weights: PackedFloat32Array = [50.0, 25.0, 15.0, 6.5, 3.0, 0.5]
 @export var demonic_chance := 0.01
+## How many enemies Gale holds at once in Bruiser Form (other heroes hold 1 or 2, tanks hold all).
+@export var bruiser_block := 6
+## Gold upgrades only roll at Legendary or rarer, and only in this share of level-ups.
+@export_range(0.0, 1.0) var gold_perk_chance := 1.0
 @export_multiline var level_offensive := "h.dmg *= 1.02\nh.range = iff(h.range < 9999, h.range * 1.01, h.range)\nh.rate /= 1.015"
 @export var level_offensive_text := "+2% damage, +1% range, +1.5% attack speed"
 @export_multiline var level_defensive := "h.grow_tank(0.03, 0.005, 0.002)"

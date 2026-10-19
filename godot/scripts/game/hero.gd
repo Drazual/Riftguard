@@ -95,6 +95,17 @@ var el_pow := {}
 var els: PackedStringArray = []
 var can := {}
 var hold := false
+# Gale: how far each normal hit pushes enemies back, and the Bruiser Form switch
+var knock := 0.0
+var bruiser := false
+# boss debuffs on the hero
+var stun_t := 0.0
+var weak := 0.0
+var weak_t := 0.0
+var shred := 0.0
+var shred_t := 0.0
+var drag := 0.0
+var drag_t := 0.0
 var aim_x := 0.0
 var aim_y := 0.0
 var atk_at := -99.0
@@ -125,6 +136,7 @@ static func make(id: String, base: Vector2) -> Hero:
 	h.mana = d.mana
 	h.max_mana = d.mana
 	h.mana_regen = d.mana_regen
+	h.knock = d.knock
 	h.build_range = DB.rules.build_range
 	h.aura_range = DB.rules.aura_range
 	h.respawn = DB.rules.respawn
@@ -140,6 +152,20 @@ func grow_tank(hp_frac: float, armor_add: float, regen_frac: float) -> void:
 	hp = minf(max_hp, hp + add)
 	armor = minf(0.75, armor + armor_add)
 	regen += max_hp * regen_frac
+
+
+## Gale's Bruiser Form: far more damage and a bit tougher, but holds a set number of enemies instead of every one.
+func bruiser_form() -> void:
+	if bruiser:
+		return
+	bruiser = true
+	dmg *= 3.5
+	rate /= 1.25
+	block = DB.rules.bruiser_block
+	max_hp = roundf(max_hp * 1.2)
+	hp = max_hp
+	armor = minf(0.75, armor + 0.05)
+	knock *= 1.5
 
 
 ## Elemental Attunement: spells using this element deal more damage (several stack).

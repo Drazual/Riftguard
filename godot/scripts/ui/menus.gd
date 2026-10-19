@@ -616,6 +616,16 @@ func special_row(x: UpgradeData, redraw: Callable) -> Control:
 	return _row_box(h)
 
 
+## Every path a Hero Shrine can offer, once each.
+func _all_hero_paths(d: TowerData) -> Array:
+	var out := []
+	for ps in d.hero_paths:
+		for p in ps.paths:
+			if not out.has(p):
+				out.append(p)
+	return out
+
+
 func show_heroes(sel := "vanguard") -> void:
 	queue_tip("heroes")
 	var redraw := func(): show_heroes(sel)
@@ -733,11 +743,13 @@ func show_towers(sel := "arcane") -> void:
 	v.add_child(Kit.head(d.name, 20, d.color))
 	v.add_child(Kit.muted(DB.tx("tower:" + sel, d.info), 14))
 	var rows := []
-	if d.support:
+	if d.hero_buff:
+		rows.append(["Hero buff", "+10% damage, 5% less damage taken"])
+	elif d.support:
 		rows.append(["Buff", "+15% damage"])
 	else:
 		rows += [["Damage", UiText.f0(d.dmg)], ["Shots/s", UiText.f2(1 / d.rate)]]
-	rows += [["Range", UiText.f0(d.range)], ["Cost", str(d.cost)], ["Main effect", UiText.main_effect(sel)]]
+	rows += ([] if d.hero_buff else [["Range", UiText.f0(d.range)]]) + [["Cost", str(d.cost)], ["Main effect", UiText.main_effect(sel)]]
 	v.add_child(Kit.stats(rows, 3))
 	section(v, "Stats")
 	var won := 0
@@ -747,65 +759,70 @@ func show_towers(sel := "arcane") -> void:
 	v.add_child(Kit.stats([["Total kills", str(int(M.kills.towers.get(sel, 0)))], ["Total takedowns", str(int(M.takedowns.towers.get(sel, 0)))], ["Maps beaten with it", "%d/%d" % [won, DB.map_order.size()]]], 3))
 	v.add_child(UiText.mastery_box("towers", sel))
 	section(v, "Paths")
-	for p: TowerPath in d.paths:
+	for ps: TowerPathSet in d.hero_paths:
+		var who: String = DB.heroes[ps.hero].name if DB.heroes.has(ps.hero) else "Other heroes"
+		v.add_child(Kit.rich(Kit.b(who) + "  " + Kit.c(", ".join(ps.paths.map(func(p): return p.name)), Kit.MUTED), 14))
+	for p: TowerPath in (_all_hero_paths(d) if d.hero_paths.size() else d.paths):
 		v.add_child(Kit.rich(Kit.b(p.name) + "  " + Kit.c(DB.tx("path:" + sel + ":" + p.id, p.desc), Kit.MUTED) + "\n" + Kit.c("Mastery: %s. %s" % [p.mastery_name, DB.tx("mastery:" + sel + ":" + p.id, p.mastery_desc)], Kit.ARCANE), 14))
-	section(v, "Boss Core upgrade", null, Kit.PINK)
-	var has_sig := bool(TM.get("sig", 0))
-	var sh := Kit.hbox(12)
-	var sv := Kit.vbox(2)
-	sv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sv.add_child(Kit.rich(Kit.b(Kit.c("Signature: " + d.signature_name, Kit.PINK)) + "  " + Kit.c("MYTHIC", Kit.PINK), 15))
-	sv.add_child(Kit.muted(DB.tx("sig:" + sel, d.signature_desc)))
-	sh.add_child(sv)
-	var sb := Kit.button("Owned" if has_sig else "⬢ %d" % game.R.signature_cores, func():
-		if TM.get("sig", 0) or M.cores < game.R.signature_cores:
-			return
-		M.cores -= game.R.signature_cores
-		TM.sig = 1
-		Save.save_meta()
-		Sound.play("level")
-		redraw.call())
-	sb.disabled = has_sig or M.get("cores", 0) < game.R.signature_cores
-	sb.custom_minimum_size = Vector2(110, 0)
-	sb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	sh.add_child(sb)
-	v.add_child(_row_box(sh))
-	section(v, "Discoveries")
-	v.add_child(Kit.muted("Hidden until you find them in a run."))
-	var recipes := game.R.recipes.items.filter(func(r): return Array(r.key.split("+")).has(sel) and r.key.split("+").size() == 2)
-	var found := recipes.filter(func(r): return Save.codex.get(r.key, false))
-	var mlist := Kit.vbox(4)
-	mlist.add_child(Kit.label("Merges: %d/%d found" % [found.size(), recipes.size()], 15, Kit.TEXT, Kit.display))
-	for r: RecipeData in recipes:
-		var p := r.key.split("+")
-		var other: String = p[1] if p[0] == sel else p[0]
-		if Save.codex.get(r.key, false):
-			mlist.add_child(Kit.rich(Kit.b(Kit.c(r.name, Kit.TECH)) + "  " + Kit.c("%s + %s. %s" % [d.name, DB.towers[other].name, DB.tx("recipe:" + r.key, r.desc)], Kit.MUTED), 13))
-		else:
-			mlist.add_child(Kit.rich(Kit.b("???") + "  " + Kit.c("Merge a level %d %s with another tower type to discover this." % [game.R.max_level, d.name], Kit.MUTED), 13))
-	v.add_child(mlist)
-	var forms: Array = d.form_names.keys()
-	var ffound := forms.filter(func(k): return M.forms.get(sel + ":" + k, false))
-	var flist := Kit.vbox(4)
-	flist.add_child(Kit.label("Path combinations: %d/%d found" % [ffound.size(), forms.size()], 15, Kit.TEXT, Kit.display))
-	var more := Kit.vbox(4)
-	more.visible = false
-	var fb := Kit.button("▸ Show", func(): pass, "FlatButton")
-	fb.pressed.connect(func():
-		more.visible = not more.visible
-		fb.text = "▾ Hide" if more.visible else "▸ Show")
-	fb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	flist.add_child(fb)
-	for k in forms:
-		if M.forms.get(sel + ":" + k, false):
-			var names := []
-			for ch in k:
-				names.append(d.paths[int(ch)].name)
-			more.add_child(Kit.rich(Kit.b(Kit.c(d.form_names[k], Kit.TECH)) + "  " + Kit.c(" + ".join(names), Kit.MUTED), 13))
-		else:
-			more.add_child(Kit.rich(Kit.b("???") + "  " + Kit.c("Level a %s with %d paths to discover this form." % [d.name, k.length()], Kit.MUTED), 13))
-	flist.add_child(more)
-	v.add_child(flist)
+	# the Hero Shrine has no Signature, merges or named forms
+	if not d.hero_buff:
+		section(v, "Boss Core upgrade", null, Kit.PINK)
+		var has_sig := bool(TM.get("sig", 0))
+		var sh := Kit.hbox(12)
+		var sv := Kit.vbox(2)
+		sv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sv.add_child(Kit.rich(Kit.b(Kit.c("Signature: " + d.signature_name, Kit.PINK)) + "  " + Kit.c("MYTHIC", Kit.PINK), 15))
+		sv.add_child(Kit.muted(DB.tx("sig:" + sel, d.signature_desc)))
+		sh.add_child(sv)
+		var sb := Kit.button("Owned" if has_sig else "⬢ %d" % game.R.signature_cores, func():
+			if TM.get("sig", 0) or M.cores < game.R.signature_cores:
+				return
+			M.cores -= game.R.signature_cores
+			TM.sig = 1
+			Save.save_meta()
+			Sound.play("level")
+			redraw.call())
+		sb.disabled = has_sig or M.get("cores", 0) < game.R.signature_cores
+		sb.custom_minimum_size = Vector2(110, 0)
+		sb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sh.add_child(sb)
+		v.add_child(_row_box(sh))
+		section(v, "Discoveries")
+		v.add_child(Kit.muted("Hidden until you find them in a run."))
+		var recipes := game.R.recipes.items.filter(func(r): return Array(r.key.split("+")).has(sel) and r.key.split("+").size() == 2)
+		var found := recipes.filter(func(r): return Save.codex.get(r.key, false))
+		var mlist := Kit.vbox(4)
+		mlist.add_child(Kit.label("Merges: %d/%d found" % [found.size(), recipes.size()], 15, Kit.TEXT, Kit.display))
+		for r: RecipeData in recipes:
+			var p := r.key.split("+")
+			var other: String = p[1] if p[0] == sel else p[0]
+			if Save.codex.get(r.key, false):
+				mlist.add_child(Kit.rich(Kit.b(Kit.c(r.name, Kit.TECH)) + "  " + Kit.c("%s + %s. %s" % [d.name, DB.towers[other].name, DB.tx("recipe:" + r.key, r.desc)], Kit.MUTED), 13))
+			else:
+				mlist.add_child(Kit.rich(Kit.b("???") + "  " + Kit.c("Merge a level %d %s with another tower type to discover this." % [game.R.max_level, d.name], Kit.MUTED), 13))
+		v.add_child(mlist)
+		var forms: Array = d.form_names.keys()
+		var ffound := forms.filter(func(k): return M.forms.get(sel + ":" + k, false))
+		var flist := Kit.vbox(4)
+		flist.add_child(Kit.label("Path combinations: %d/%d found" % [ffound.size(), forms.size()], 15, Kit.TEXT, Kit.display))
+		var more := Kit.vbox(4)
+		more.visible = false
+		var fb := Kit.button("▸ Show", func(): pass, "FlatButton")
+		fb.pressed.connect(func():
+			more.visible = not more.visible
+			fb.text = "▾ Hide" if more.visible else "▸ Show")
+		fb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		flist.add_child(fb)
+		for k in forms:
+			if M.forms.get(sel + ":" + k, false):
+				var names := []
+				for ch in k:
+					names.append(d.paths[int(ch)].name)
+				more.add_child(Kit.rich(Kit.b(Kit.c(d.form_names[k], Kit.TECH)) + "  " + Kit.c(" + ".join(names), Kit.MUTED), 13))
+			else:
+				more.add_child(Kit.rich(Kit.b("???") + "  " + Kit.c("Level a %s with %d paths to discover this form." % [d.name, k.length()], Kit.MUTED), 13))
+		flist.add_child(more)
+		v.add_child(flist)
 	cols.add_child(c)
 	box.add_child(cols)
 	var all := Kit.card()

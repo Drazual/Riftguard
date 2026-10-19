@@ -1,0 +1,245 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_tp"]
+[ext_resource type="Script" path="res://scripts/data/tower_path_set.gd" id="2_ps"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="3_td"]
+[ext_resource type="SpriteFrames" path="res://art/towers/shrine.tres" id="4_fr"]
+[ext_resource type="Texture2D" path="res://assets/towers/shrine.png" id="5_sh"]
+
+[sub_resource type="Resource" id="Path_fury"]
+script = ExtResource("1_tp")
+id = "fury"
+name = "Battle Fury"
+tag = "power"
+adjective = "Furious"
+noun = "Altar"
+title = "Fury"
+desc = "Your hero deals +10% damage per point."
+effect = "t.hb_dmg += 0.1"
+mastery_name = "Warlord"
+mastery_desc = "Your hero deals +25% damage to bosses."
+mastery_effect = "t.hb_boss += 0.25"
+
+[sub_resource type="Resource" id="Path_ironwill"]
+script = ExtResource("1_tp")
+id = "ironwill"
+name = "Iron Will"
+tag = "power"
+adjective = "Iron"
+noun = "Bastion"
+title = "Will"
+desc = "Your hero takes 4% less damage per point."
+effect = "t.hb_armor += 0.04"
+mastery_name = "Unyielding"
+mastery_desc = "Your hero heals 1% of max HP per second."
+mastery_effect = "t.hb_regen += 0.01"
+
+[sub_resource type="Resource" id="Path_spring"]
+script = ExtResource("1_tp")
+id = "spring"
+name = "Vital Spring"
+tag = "arcane"
+adjective = "Living"
+noun = "Spring"
+title = "Life"
+desc = "Your hero heals 0.4% of max HP per second per point."
+effect = "t.hb_regen += 0.004"
+mastery_name = "Lifeward"
+mastery_desc = "Every 12s of a wave, your hero gets a shield worth 20% of max HP for 6s."
+mastery_effect = "t.hb_shield += 0.2"
+
+[sub_resource type="Resource" id="Path_tailwind"]
+script = ExtResource("1_tp")
+id = "tailwind"
+name = "Tailwind"
+tag = "speed"
+adjective = "Swift"
+noun = "Wind"
+title = "Haste"
+desc = "Your hero’s ability recharges 7% faster per point."
+effect = "t.hb_cdr += 0.07"
+mastery_name = "Second Wind"
+mastery_desc = "Your hero’s ability recharges another 15% faster."
+mastery_effect = "t.hb_cdr += 0.15"
+
+[sub_resource type="Resource" id="Path_quick"]
+script = ExtResource("1_tp")
+id = "quick"
+name = "Quickdraw"
+tag = "speed"
+adjective = "Quick"
+noun = "Idol"
+title = "Speed"
+desc = "Your hero attacks 7% faster per point."
+effect = "t.hb_rate += 0.07"
+mastery_name = "Flurry"
+mastery_desc = "Your hero attacks another 15% faster."
+mastery_effect = "t.hb_rate += 0.15"
+
+[sub_resource type="Resource" id="Path_reach"]
+script = ExtResource("1_tp")
+id = "reach"
+name = "Long Reach"
+tag = "precision"
+adjective = "Far"
+noun = "Spire"
+title = "Reach"
+desc = "Your hero’s attacks reach 7% farther per point."
+effect = "t.hb_range += 0.07"
+mastery_name = "Hawkeye"
+mastery_desc = "Your hero gets +10% crit chance."
+mastery_effect = "t.hb_crit += 0.1"
+
+[sub_resource type="Resource" id="Path_keen"]
+script = ExtResource("1_tp")
+id = "keen"
+name = "Keen Eye"
+tag = "precision"
+adjective = "Keen"
+noun = "Eye"
+title = "Aim"
+desc = "Your hero gets +4% crit chance per point."
+effect = "t.hb_crit += 0.04"
+mastery_name = "Headhunter"
+mastery_desc = "Your hero deals +30% damage to bosses."
+mastery_effect = "t.hb_boss += 0.3"
+
+[sub_resource type="Resource" id="Path_amplify"]
+script = ExtResource("1_tp")
+id = "amplify"
+name = "Amplify"
+tag = "arcane"
+adjective = "Radiant"
+noun = "Choir"
+title = "Song"
+desc = "Your hero’s tower aura is 8% stronger per point."
+effect = "t.hb_aura += 0.08"
+mastery_name = "Resonance"
+mastery_desc = "Your hero’s tower aura is another 20% stronger."
+mastery_effect = "t.hb_aura += 0.2"
+
+[sub_resource type="Resource" id="Path_font"]
+script = ExtResource("1_tp")
+id = "font"
+name = "Arcane Font"
+tag = "arcane"
+adjective = "Arcane"
+noun = "Font"
+title = "Spells"
+desc = "Your spells deal +7% damage per point."
+effect = "t.hb_spell += 0.07"
+mastery_name = "Archmagus"
+mastery_desc = "Your spells deal another 15% damage."
+mastery_effect = "t.hb_spell += 0.15"
+
+[sub_resource type="Resource" id="Path_well"]
+script = ExtResource("1_tp")
+id = "well"
+name = "Mana Well"
+tag = "arcane"
+adjective = "Deep"
+noun = "Well"
+title = "Mana"
+desc = "Your mana refills 10% faster per point."
+effect = "t.hb_mana += 0.1"
+mastery_name = "Overflow"
+mastery_desc = "Your mana refills another 25% faster."
+mastery_effect = "t.hb_mana += 0.25"
+
+[sub_resource type="Resource" id="Path_bruiser"]
+script = ExtResource("1_tp")
+id = "bruiser"
+name = "Bruiser Training"
+tag = "power"
+adjective = "Brutal"
+noun = "Ring"
+title = "Brawling"
+desc = "Gale deals +8% damage per point."
+effect = "t.hb_dmg += 0.08"
+mastery_name = "Bruiser Form"
+mastery_desc = "Gale becomes a Bruiser for the rest of the run: 3.5x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
+mastery_effect = "t.hb_bruiser = 1"
+
+[sub_resource type="Resource" id="Path_galeforce"]
+script = ExtResource("1_tp")
+id = "galeforce"
+name = "Gale Force"
+tag = "burst"
+adjective = "Howling"
+noun = "Gale"
+title = "Storms"
+desc = "Gale’s hits and abilities knock enemies 20% farther per point."
+effect = "t.hb_knock += 0.2"
+mastery_name = "Hurricane"
+mastery_desc = "Knockback is another 40% stronger."
+mastery_effect = "t.hb_knock += 0.4"
+
+[sub_resource type="Resource" id="Path_wall"]
+script = ExtResource("1_tp")
+id = "wall"
+name = "Shield Wall"
+tag = "power"
+adjective = "Walled"
+noun = "Keep"
+title = "Walls"
+desc = "Your hero takes 3% less damage per point. In Bruiser Form, Gale also holds 1 more enemy per point."
+effect = "t.hb_armor += 0.03
+t.hb_block += 1"
+mastery_name = "Fortress"
+mastery_desc = "Your hero takes another 8% less damage."
+mastery_effect = "t.hb_armor += 0.08"
+
+[sub_resource type="Resource" id="Set_any"]
+script = ExtResource("2_ps")
+hero = ""
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_quick")])
+
+[sub_resource type="Resource" id="Set_vanguard"]
+script = ExtResource("2_ps")
+hero = "vanguard"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_fury"), SubResource("Path_quick")])
+
+[sub_resource type="Resource" id="Set_gale"]
+script = ExtResource("2_ps")
+hero = "gale"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_bruiser"), SubResource("Path_galeforce"), SubResource("Path_wall"), SubResource("Path_spring"), SubResource("Path_tailwind")])
+
+[sub_resource type="Resource" id="Set_striker"]
+script = ExtResource("2_ps")
+hero = "striker"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_quick"), SubResource("Path_reach"), SubResource("Path_keen"), SubResource("Path_tailwind")])
+
+[sub_resource type="Resource" id="Set_sniper"]
+script = ExtResource("2_ps")
+hero = "sniper"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_keen"), SubResource("Path_quick"), SubResource("Path_tailwind"), SubResource("Path_spring")])
+
+[sub_resource type="Resource" id="Set_oracle"]
+script = ExtResource("2_ps")
+hero = "oracle"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_amplify"), SubResource("Path_tailwind"), SubResource("Path_spring"), SubResource("Path_ironwill"), SubResource("Path_fury")])
+
+[sub_resource type="Resource" id="Set_wizard"]
+script = ExtResource("2_ps")
+hero = "wizard"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_font"), SubResource("Path_well"), SubResource("Path_spring"), SubResource("Path_ironwill"), SubResource("Path_fury")])
+
+[resource]
+script = ExtResource("3_td")
+id = "shrine"
+name = "Hero Shrine"
+cost = 120
+dmg = 0.0
+range = 60.0
+support = true
+level_bonus = "hero"
+element_tag = "arcane"
+color = Color(1, 0.84, 0.43, 1)
+info = "Never attacks. Buffs your hero wherever it is on the map: +10% damage and 5% less damage taken. Its upgrade paths are made for the hero you picked. You can only build one."
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_quick")])
+hero_buff = true
+hero_paths = Array[ExtResource("2_ps")]([SubResource("Set_any"), SubResource("Set_vanguard"), SubResource("Set_gale"), SubResource("Set_striker"), SubResource("Set_sniper"), SubResource("Set_oracle"), SubResource("Set_wizard")])
+frames = ExtResource("4_fr")
+sheet = ExtResource("5_sh")
+foot_y = 37.0
+muzzle_y = 22.0

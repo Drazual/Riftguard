@@ -20,11 +20,14 @@ extends Resource
 ## Lobs slow shells that land a moment later.
 @export var lob := false
 ## What every level-up adds on top of the path point: dmg, rate or range (see GameRules).
-@export_enum("dmg", "rate", "range") var level_bonus := "dmg"
+@export_enum("dmg", "rate", "range", "hero") var level_bonus := "dmg"
 @export_enum("power", "arcane", "precision", "speed", "burst", "burn", "slow", "chain", "multi") var element_tag := "power"
 @export var color := Color.WHITE
 @export_multiline var info := ""
 @export var paths: Array[TowerPath] = []
+## Hero Shrine: never attacks and buffs your hero wherever it is. Its paths come from `hero_paths`, picked by hero.
+@export var hero_buff := false
+@export var hero_paths: Array[TowerPathSet] = []
 @export_group("Signature (Boss Core upgrade)")
 @export var signature_name := ""
 @export_multiline var signature_desc := ""

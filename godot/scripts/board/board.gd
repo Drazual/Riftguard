@@ -273,7 +273,7 @@ func _sync_towers(S: Run, speed: float) -> void:
 			t.hit_at = t.pos()
 		s.position = Vector2(t.x, SY(t.y))
 		s.offset = Vector2(-24, -d.foot_y + FOOT * PX)
-		s.modulate = Color("#666677") if t.stun_t > 0 else Color.WHITE
+		s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
 		s.speed_scale = speed
 		if t.shot_at != s.get_meta("st"):
 			s.set_meta("st", t.shot_at)
@@ -891,6 +891,8 @@ func _draw_over() -> void:
 			var a0 := S.time * 6
 			_arc(o, tp + Vector2(0, -14), 20, a0, a0 + 1.4, Color(1, 1, 1, 0.8), 2)
 			_arc(o, tp + Vector2(0, -14), 24, -PI / 2, -PI / 2 + TAU * (t.stun_t / maxf(0.01, t.stun_max if t.stun_max else 1.0)), hx(0xff2e4d, 0.9), 3)
+		if t.curse_t > 0:
+			_ring(o, tp + Vector2(0, -6), 19 + sin(S.time * 5), hx(0xb07cff, 0.7), 1.5)
 		# level pips: small dots under the base, gold then pink past level 5
 		for i in t.lvl:
 			_circle(o, Vector2(tp.x - 10 + (i % 5) * 5, tp.y + FOOT + 4 + (0 if i >= 5 else 3)), 1.6, hx(0xff6fd8 if i >= 5 else 0xf2c14e))
@@ -946,6 +948,13 @@ func _draw_over() -> void:
 			_arc(o, hp, 28, -PI / 2, -PI / 2 + TAU * h.shield / maxf(1, h.shield_max), hx(0x9af0ff, 0.9), 3)
 		if h.od_t > 0:
 			_ring(o, hp, 24, hx(0xff6f6f, 0.5 + 0.4 * sin(S.time * 20)), 2)
+		if h.stun_t > 0:
+			var a0 := S.time * 6
+			for i in 3:
+				var ang := a0 + i * TAU / 3
+				_circle(o, Vector2(hp.x + cos(ang) * 14, htop - 6 + sin(ang) * 4), 2.5, hx(0xffd36e, 0.95))
+		if h.weak_t > 0 or h.shred_t > 0 or h.drag_t > 0:
+			_ring(o, hp, 21, hx(0xb07cff, 0.6 + 0.3 * sin(S.time * 6)), 1.5)
 		o.draw_rect(Rect2(hp.x - 16, htop, 32, 4), Color(0, 0, 0, 0.6))
 		o.draw_rect(Rect2(hp.x - 16, htop, 32 * h.hp / h.max_hp, 4), hx(0x5fe39a))
 		if h.max_mana:

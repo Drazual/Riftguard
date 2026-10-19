@@ -78,6 +78,41 @@ func _ready() -> void:
 	main.ui.close_modal()
 	Updater._new_engine_notice()
 	await _shot("13_new_engine")
+	main.ui.close_modal()
+	main.ui.menus.show_heroes("gale")
+	await _shot("14_gale_page")
+	main.ui.menus.show_towers("shrine")
+	await _shot("15_shrine_page")
+	main.ui.hide_screen()
+	main.ui.menus.new_run("verdant")
+	main.ui.menus.start_run("gale", ["shrine", "arcane", "frost", "plasma", "tesla"])
+	g = main.game
+	S = g.S
+	S.gold = 5000
+	var spots := 0
+	for c in range(2, 18):
+		for r in range(2, 11):
+			var k: String = ["shrine", "arcane", "frost", "plasma", "tesla"][spots % 5]
+			if spots < 6 and g.build_problem(c, r, k) == "":
+				g.place_tower(c, r, k)
+				spots += 1
+	g.start_wave()
+	S.spawn_q = ["knight", "grunt", "grunt", "brute", "grunt"]
+	for i in 260:
+		await get_tree().process_frame
+	var lead := g.lead_enemy()
+	if lead:
+		S.hero.x = lead.x - 30
+		S.hero.y = lead.y
+	g.use_ability()
+	for i in 12:
+		await get_tree().process_frame
+	await _shot("16_gale_run")
+	for t in S.towers:
+		if t.hero_buff:
+			S.sel = t
+			main.ui.render_inspector()
+	await _shot("17_shrine_inspect")
 	print("SHOTS DONE")
 	get_tree().quit()
 
