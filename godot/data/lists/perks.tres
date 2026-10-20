@@ -9,7 +9,7 @@ id = "blade"
 name = "Plasma Blade"
 desc = "+{pct(m)} of your starting hero damage."
 effect = "h.dmg += h.base_dmg * m"
-m = 0.32
+m = 0.16
 pool = "offensive"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -22,7 +22,7 @@ name = "Rune Plating"
 desc = "+{round(m)} max HP and a full heal."
 effect = "h.max_hp += round(m)
 h.hp = h.max_hp"
-m = 100.0
+m = 50.0
 pool = "defensive"
 also_pools = PackedStringArray()
 kind = "hp"
@@ -34,7 +34,7 @@ id = "mend"
 name = "Nanite Mend"
 desc = "+{f1(m)} HP regen per second."
 effect = "h.regen += m"
-m = 6.0
+m = 3.0
 pool = "defensive"
 also_pools = PackedStringArray()
 kind = "heal"
@@ -46,7 +46,7 @@ id = "arch"
 name = "Architect"
 desc = "New towers cost {pct(min(0.5, m))} less to build."
 effect = "h.cost_mul *= 1 - min(0.5, m)"
-m = 0.14
+m = 0.07
 pool = "support"
 also_pools = PackedStringArray()
 kind = "cost"
@@ -58,7 +58,7 @@ id = "engineer"
 name = "Engineer"
 desc = "Tower upgrades (level-ups) cost {pct(min(0.5, m))} less."
 effect = "h.lvl_mul *= 1 - min(0.5, m)"
-m = 0.16
+m = 0.08
 pool = "support"
 also_pools = PackedStringArray()
 kind = "cost"
@@ -71,7 +71,7 @@ name = "Long Reach"
 desc = "+{pct(m)} build range and all towers get +{pct(m / 4)} range."
 effect = "h.build_range *= 1 + m
 h.tower_range += m / 4"
-m = 0.4
+m = 0.2
 pool = "support"
 also_pools = PackedStringArray()
 kind = "range"
@@ -83,7 +83,7 @@ id = "siphon"
 name = "Siphon"
 desc = "Heal {round(m)} HP for every enemy you help take down (one you hit or were holding)."
 effect = "h.siphon += round(m)"
-m = 6.0
+m = 3.0
 pool = "defensive"
 also_pools = PackedStringArray()
 kind = "heal"
@@ -96,7 +96,7 @@ name = "Rift Boots"
 desc = "+{pct(m)} move speed and +{pct(m / 2)} of your starting attack speed."
 effect = "h.speed *= 1 + m
 h.rate = 1 / (1 / h.rate + m / 2 / h.base_rate)"
-m = 0.3
+m = 0.15
 also_pools = PackedStringArray()
 attack_speed = true
 kind = "speed"
@@ -108,7 +108,7 @@ id = "taunt"
 name = "Taunt"
 desc = "After Shield Slam, enemies within 120 stop and attack you for {f1(m)}s."
 effect = "h.taunt += m"
-m = 4.0
+m = 2.0
 pool = "vanguard"
 also_pools = PackedStringArray()
 kind = "taunt"
@@ -120,7 +120,7 @@ id = "shell"
 name = "Hardlight Shell"
 desc = "Take {pct(m)} less damage (up to 75%)."
 effect = "h.armor = min(0.75, h.armor + m)"
-m = 0.16
+m = 0.08
 pool = "vanguard"
 also_pools = PackedStringArray()
 kind = "shell"
@@ -132,7 +132,7 @@ id = "thorns"
 name = "Thorn Field"
 desc = "Enemies you block take {round(m)} damage per second."
 effect = "h.thorns += m"
-m = 16.0
+m = 8.0
 pool = "vanguard"
 also_pools = PackedStringArray()
 kind = "thorns"
@@ -144,7 +144,7 @@ id = "seismic"
 name = "Seismic Power"
 desc = "{h.ab.name} is +{pct(m)} stronger (damage{iff(h.ab.id == 'bulwark', ', shield size', '')})."
 effect = "h.ab.dmg += h.ab.base_dmg * m"
-m = 0.6
+m = 0.3
 pool = "vanguard"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -156,7 +156,7 @@ id = "after"
 name = "Aftershock"
 desc = "{h.ab.name} recharges {pct(min(0.5, m))} faster."
 effect = "h.ab.cd = max(6, h.ab.cd * (1 - min(0.5, m)))"
-m = 0.2
+m = 0.1
 pool = "vanguard"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -168,7 +168,7 @@ id = "daze"
 name = "Concussion"
 desc = "Shield Slam stuns {f1(m)}s longer."
 effect = "h.ab.stun += m"
-m = 0.8
+m = 0.4
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "slam"
@@ -182,7 +182,7 @@ name = "Fortify"
 desc = "+{pct(m)} max HP."
 effect = "h.max_hp = round(h.max_hp * (1 + m))
 h.hp = h.max_hp"
-m = 0.3
+m = 0.15
 pool = "defensive"
 also_pools = PackedStringArray()
 kind = "hp"
@@ -194,7 +194,7 @@ id = "crit"
 name = "Weak Point"
 desc = "+{pct(m)} crit chance."
 effect = "h.crit = min(0.75, h.crit + m)"
-m = 0.16
+m = 0.08
 pool = "offensive"
 also_pools = PackedStringArray()
 kind = "crit"
@@ -206,7 +206,7 @@ id = "critdmg"
 name = "Lethal Edge"
 desc = "+{pct(m)} crit damage."
 effect = "h.crit_dmg += m"
-m = 0.5
+m = 0.25
 pool = "offensive"
 also_pools = PackedStringArray()
 kind = "crit"
@@ -218,7 +218,7 @@ id = "split"
 name = "Split Shot"
 desc = "Attacks hit {max(1, round(m))} more enemy."
 effect = "h.multi = min(6, h.multi + max(1, round(m)))"
-m = 2.0
+m = 1.0
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "split"
@@ -230,7 +230,7 @@ id = "scope"
 name = "Long Barrel"
 desc = "+{pct(m)} attack range."
 effect = "h.range *= 1 + m"
-m = 0.24
+m = 0.12
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "range"
@@ -242,7 +242,7 @@ id = "clock"
 name = "Overclock"
 desc = "+{pct(m)} of your starting attack speed."
 effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
-m = 0.3
+m = 0.15
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "speed"
@@ -254,7 +254,7 @@ id = "core"
 name = "Nova Core"
 desc = "Rift Nova deals +{pct(m)} damage."
 effect = "h.ab.dmg += h.ab.base_dmg * m"
-m = 0.6
+m = 0.3
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "nova"
@@ -267,7 +267,7 @@ id = "nfocus"
 name = "Rift Focus"
 desc = "{h.ab.name} recharges {pct(min(0.5, m))} faster."
 effect = "h.ab.cd = max(6, h.ab.cd * (1 - min(0.5, m)))"
-m = 0.2
+m = 0.1
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -279,7 +279,7 @@ id = "wide"
 name = "Wide Nova"
 desc = "Rift Nova radius +{pct(m)}."
 effect = "h.ab.r *= 1 + m"
-m = 0.24
+m = 0.12
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "nova"
@@ -292,7 +292,7 @@ id = "momentum"
 name = "Momentum"
 desc = "Each kill by your hero gives +{pct(m)} of your starting attack speed for 4s, stacking up to 10 times."
 effect = "h.momentum += m"
-m = 0.06
+m = 0.03
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "speed"
@@ -304,7 +304,7 @@ id = "rapid"
 name = "Rapid Construction"
 desc = "Towers you build within your aura get their first {max(1, round(m))} level-up{iff(round(m) > 1, 's', '')} free."
 effect = "h.rapid += max(1, round(m))"
-m = 1.2
+m = 0.6
 pool = "oracle"
 also_pools = PackedStringArray()
 min_rarity = "rare"
@@ -317,7 +317,7 @@ id = "aura"
 name = "Commander Aura"
 desc = "Towers near you deal +{pct(m)} more damage."
 effect = "h.aura += m"
-m = 0.16
+m = 0.08
 pool = "oracle"
 also_pools = PackedStringArray()
 kind = "aura"
@@ -330,7 +330,7 @@ name = "Signal Boost"
 desc = "Aura reaches {pct(m)} farther and all towers get +{pct(m / 3)} range."
 effect = "h.aura_range *= 1 + m
 h.tower_range += m / 3"
-m = 0.3
+m = 0.15
 pool = "oracle"
 also_pools = PackedStringArray()
 kind = "range"
@@ -342,7 +342,7 @@ id = "surge"
 name = "Power Surge"
 desc = "{iff(h.ab.id == 'stasis', 'Stasis Field slows ' + pct(m * 0.75) + ' more.', 'Overclock Field speeds towers up ' + pct(m) + ' more.')}"
 effect = "h.ab.power += m"
-m = 0.3
+m = 0.15
 pool = "oracle"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -354,7 +354,7 @@ id = "extend"
 name = "Extended Field"
 desc = "{h.ab.name} lasts {f1(m)}s longer."
 effect = "h.ab.dur += m"
-m = 3.0
+m = 1.5
 pool = "oracle"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -366,7 +366,7 @@ id = "chill"
 name = "Chilling Presence"
 desc = "Towers near you also slow enemies by {pct(m)}."
 effect = "h.aura_slow = min(0.6, h.aura_slow + m)"
-m = 0.16
+m = 0.08
 pool = "oracle"
 also_pools = PackedStringArray()
 kind = "chill"
@@ -378,7 +378,7 @@ id = "brace"
 name = "Quick Brace"
 desc = "Brace {pct(min(0.6, m))} faster."
 effect = "h.brace = max(0.25, h.brace * (1 - min(0.6, m)))"
-m = 0.3
+m = 0.15
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "brace"
@@ -390,7 +390,7 @@ id = "caliber"
 name = "Heavy Caliber"
 desc = "+{pct(m)} of your starting hero damage."
 effect = "h.dmg += h.base_dmg * m"
-m = 0.4
+m = 0.2
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -402,7 +402,7 @@ id = "chamber"
 name = "Fast Chamber"
 desc = "+{pct(m)} of your starting attack speed."
 effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
-m = 0.24
+m = 0.12
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "speed"
@@ -414,7 +414,7 @@ id = "penetrate"
 name = "Penetrator"
 desc = "Shots also hit {max(1, round(m))} enemy near the target for 50% damage."
 effect = "h.pierce += max(1, round(m))"
-m = 2.0
+m = 1.0
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "penetrate"
@@ -426,7 +426,7 @@ id = "apround"
 name = "Armor-Piercing Rounds"
 desc = "{h.ab.name} deals +{pct(m)} damage."
 effect = "h.ab.mult *= 1 + m"
-m = 0.6
+m = 0.3
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -438,7 +438,7 @@ id = "spotter"
 name = "Spotter"
 desc = "Your target takes +{pct(m)} damage from towers for 3s."
 effect = "h.spotter += m"
-m = 0.2
+m = 0.1
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "spotter"
@@ -450,7 +450,7 @@ id = "headhunter"
 name = "Headhunter"
 desc = "+{pct(m)} hero damage to bosses."
 effect = "h.headhunter += m"
-m = 0.5
+m = 0.25
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -462,7 +462,7 @@ id = "steady"
 name = "Steady Aim"
 desc = "{h.ab.name} recharges {pct(min(0.5, m))} faster."
 effect = "h.ab.cd = max(5, h.ab.cd * (1 - min(0.5, m)))"
-m = 0.2
+m = 0.1
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -474,7 +474,7 @@ id = "barrier"
 name = "Hardened Barrier"
 desc = "Bulwark Shield lasts {f1(m)}s longer."
 effect = "h.ab.dur += m"
-m = 2.0
+m = 1.0
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "bulwark"
@@ -487,7 +487,7 @@ id = "adren"
 name = "Adrenaline"
 desc = "Overdrive lasts {f1(m)}s longer."
 effect = "h.ab.dur += m"
-m = 2.0
+m = 1.0
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "overdrive"
@@ -500,7 +500,7 @@ id = "redline"
 name = "Redline"
 desc = "Overdrive gives +{pct(m)} more attack speed."
 effect = "h.ab.power += m"
-m = 0.5
+m = 0.25
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "overdrive"
@@ -513,7 +513,7 @@ id = "payload"
 name = "Bigger Payload"
 desc = "Orbital Strike blast is {pct(m)} wider."
 effect = "h.ab.r *= 1 + m"
-m = 0.3
+m = 0.15
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "strike"
@@ -526,7 +526,7 @@ id = "arcpow"
 name = "Arcane Power"
 desc = "Spells deal +{pct(m)} of their starting damage."
 effect = "h.spell += h.base_spell * m"
-m = 0.3
+m = 0.15
 pool = "wizard"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -539,7 +539,7 @@ name = "Deep Reserves"
 desc = "+{round(m)} max mana and a full refill."
 effect = "h.max_mana += round(m)
 h.mana = h.max_mana"
-m = 40.0
+m = 20.0
 pool = "wizard"
 also_pools = PackedStringArray()
 kind = "mana"
@@ -551,7 +551,7 @@ id = "manaflow"
 name = "Mana Spring"
 desc = "+{f1(m)} mana per second."
 effect = "h.mana_regen += m"
-m = 3.0
+m = 1.5
 pool = "wizard"
 also_pools = PackedStringArray()
 kind = "mana"
@@ -563,7 +563,7 @@ id = "thrift"
 name = "Spell Thrift"
 desc = "Spells cost {pct(min(0.5, m))} less mana (up to 50%)."
 effect = "h.spell_cost = max(0.5, h.spell_cost * (1 - min(0.5, m)))"
-m = 0.14
+m = 0.07
 pool = "wizard"
 also_pools = PackedStringArray()
 kind = "mana"
@@ -575,7 +575,7 @@ id = "reachsp"
 name = "Wide Casting"
 desc = "Spells cover +{pct(m)} more area."
 effect = "h.spell_r *= 1 + m"
-m = 0.2
+m = 0.1
 pool = "wizard"
 also_pools = PackedStringArray()
 kind = "range"
@@ -587,7 +587,7 @@ id = "rime"
 name = "Rime"
 desc = "Freezes last {f1(m)}s longer."
 effect = "h.freeze_bonus += m"
-m = 0.6
+m = 0.3
 pool = "wizard"
 also_pools = PackedStringArray()
 needs = "freeze"
@@ -600,7 +600,7 @@ id = "masonry"
 name = "Masonry"
 desc = "Stone walls have +{pct(m)} HP."
 effect = "h.wall_bonus *= 1 + m"
-m = 0.5
+m = 0.25
 pool = "wizard"
 also_pools = PackedStringArray()
 needs = "wall"
@@ -613,7 +613,7 @@ id = "zephyr"
 name = "Zephyr"
 desc = "Enemies you blow back are pushed {pct(m)} longer."
 effect = "h.push_bonus *= 1 + m"
-m = 0.4
+m = 0.2
 pool = "wizard"
 also_pools = PackedStringArray()
 needs = "push"
@@ -626,7 +626,7 @@ id = "att_fire"
 name = "Fire Attunement"
 desc = "Spells that use fire deal +{pct(m)} damage."
 effect = "h.attune('fire', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "fire"
@@ -639,7 +639,7 @@ id = "att_water"
 name = "Water Attunement"
 desc = "Spells that use water deal +{pct(m)} damage."
 effect = "h.attune('water', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "water"
@@ -652,7 +652,7 @@ id = "att_earth"
 name = "Earth Attunement"
 desc = "Spells that use earth deal +{pct(m)} damage."
 effect = "h.attune('earth', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "earth"
@@ -665,7 +665,7 @@ id = "att_air"
 name = "Air Attunement"
 desc = "Spells that use air deal +{pct(m)} damage."
 effect = "h.attune('air', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "air"
@@ -678,7 +678,7 @@ id = "att_storm"
 name = "Lightning Attunement"
 desc = "Spells that use lightning deal +{pct(m)} damage."
 effect = "h.attune('storm', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "storm"
@@ -691,7 +691,7 @@ id = "att_nature"
 name = "Nature Attunement"
 desc = "Spells that use nature deal +{pct(m)} damage."
 effect = "h.attune('nature', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "nature"
@@ -704,7 +704,7 @@ id = "att_void"
 name = "Void Attunement"
 desc = "Spells that use void deal +{pct(m)} damage."
 effect = "h.attune('void', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "void"
@@ -717,7 +717,7 @@ id = "att_light"
 name = "Light Attunement"
 desc = "Spells that use light deal +{pct(m)} damage."
 effect = "h.attune('light', m)"
-m = 0.24
+m = 0.12
 pool = "wizard"
 also_pools = PackedStringArray()
 element = "light"
@@ -730,7 +730,7 @@ id = "alchemy"
 name = "Alchemist"
 desc = "Tower merges cost {pct(min(0.8, m))} less."
 effect = "h.merge_mul *= 1 - min(0.8, m)"
-m = 0.3
+m = 0.15
 pool = "support"
 also_pools = PackedStringArray()
 kind = "cost"
@@ -742,7 +742,7 @@ id = "gust"
 name = "Gust"
 desc = "Your hits knock enemies back {pct(m)} farther."
 effect = "h.knock *= 1 + m"
-m = 0.3
+m = 0.15
 pool = "gale"
 kind = "knock"
 also_pools = PackedStringArray()
@@ -755,7 +755,7 @@ name = "Cyclone"
 desc = "Whirlwind Strike throws enemies {pct(m)} farther and its shield is {pct(m)} bigger."
 effect = "h.ab.power *= 1 + m
 h.ab.mult *= 1 + m"
-m = 0.2
+m = 0.1
 pool = "gale"
 ability = "whirl"
 kind = "whirl"
@@ -769,7 +769,7 @@ name = "Jet Stream"
 desc = "Air Stream deals +{pct(m)} damage and stuns {f1(m * 2)}s longer."
 effect = "h.ab.dmg += h.ab.base_dmg * m
 h.ab.stun += m * 2"
-m = 0.24
+m = 0.12
 pool = "gale"
 ability = "stream"
 kind = "stream"
@@ -782,7 +782,7 @@ id = "bracing"
 name = "Bracing Winds"
 desc = "Take {pct(m * 0.5)} less damage."
 effect = "h.armor = min(0.75, h.armor + m * 0.5)"
-m = 0.12
+m = 0.06
 pool = "gale"
 kind = "tough"
 also_pools = PackedStringArray()
@@ -794,7 +794,7 @@ id = "knuckles"
 name = "Iron Knuckles"
 desc = "+{pct(m)} of your starting hero damage."
 effect = "h.dmg += h.base_dmg * m"
-m = 0.16
+m = 0.08
 pool = "gale"
 kind = "damage"
 also_pools = PackedStringArray()
@@ -806,7 +806,7 @@ id = "jagged_stone"
 name = "Jagged Stone"
 desc = "Enemies held up by your walls take {f0(m)} damage per second (grows with spell damage). Stacks."
 effect = "h.wall_dmg += m"
-m = 30.0
+m = 15.0
 pool = "wizard"
 also_pools = PackedStringArray()
 needs = "wall"
@@ -819,7 +819,7 @@ id = "quarry"
 name = "Quarry"
 desc = "Wall charges recharge {pct(m)} faster (never below 8s each). Stacks."
 effect = "h.wall_cd_mul *= 1 - m"
-m = 0.3
+m = 0.15
 pool = "wizard"
 also_pools = PackedStringArray()
 needs = "wall"
