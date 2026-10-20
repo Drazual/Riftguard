@@ -4,13 +4,19 @@ extends RefCounted
 
 const BASE_ELS := ["fire", "water", "earth", "air"]
 const SLOT_KEYS := ["q", "w", "e", "r"]
+## Heroes and the Wizard's elements need this many times the tower mastery points per level.
+const HERO_NEED := 2
 ## How many points one unit of each role's mastery stat is worth (a kill, or 100 damage blocked).
 const ROLE_PER := { defensive = 100.0, offensive = 1.0, support = 1.0, special = 1.0 }
 const ROLE_NAME := { defensive = "damage blocked", offensive = "kills", support = "assisted kills", special = "kills" }
 
 
-static func mastery_need(lvl: int) -> int:
-	return 10 * lvl * (lvl + 1)
+static func mastery_need(lvl: int, k := 1) -> int:
+	return 10 * k * lvl * (lvl + 1)
+
+
+static func _mastery_lvl(pts: int, k: int) -> int:
+	return int(floor((sqrt(1 + 0.4 * pts / k) - 1) / 2))
 
 
 static func _beaten(won: Dictionary) -> int:
@@ -37,9 +43,10 @@ static func mastery_of(kind: String, k: String) -> Dictionary:
 	var beaten := _beaten(Save.meta.wins[kind].get(k, {}))
 	var mx: int = DB.rules.mastery_max
 	var cap := mini(mx, 10 * (beaten + 1))
-	var raw := int(floor((sqrt(1 + 0.4 * kills) - 1) / 2))
+	var f := HERO_NEED if kind == "heroes" else 1
+	var raw := _mastery_lvl(kills, f)
 	var lvl := mini(raw, cap)
-	return { kills = kills, lvl = lvl, cap = cap, capped = raw >= cap and cap < mx, prev = mastery_need(lvl), next = mastery_need(lvl + 1) if lvl < mx else -1,
+	return { kills = kills, lvl = lvl, cap = cap, capped = raw >= cap and cap < mx, prev = mastery_need(lvl, f), next = mastery_need(lvl + 1, f) if lvl < mx else -1,
 		next_map = DB.map_order[beaten] if beaten < DB.map_order.size() else "" }
 
 
@@ -49,8 +56,8 @@ static func el_mastery(el: String, extra := 0.0) -> Dictionary:
 	var beaten := _beaten(Save.meta.wins.heroes.get("wizard", {}))
 	var mx: int = DB.rules.mastery_max
 	var cap := mini(mx, 10 * (beaten + 1))
-	var lvl := mini(cap, int(floor((sqrt(1 + 0.4 * pts) - 1) / 2)))
-	return { pts = pts, lvl = lvl, cap = cap, prev = mastery_need(lvl), next = mastery_need(lvl + 1) if lvl < mx else -1 }
+	var lvl := mini(cap, _mastery_lvl(pts, HERO_NEED))
+	return { pts = pts, lvl = lvl, cap = cap, prev = mastery_need(lvl, HERO_NEED), next = mastery_need(lvl + 1, HERO_NEED) if lvl < mx else -1 }
 
 
 static func can_triple(el: String) -> bool:
