@@ -29,6 +29,8 @@ var parents: PackedStringArray = []
 var tags: PackedStringArray = []
 var fusions: Array = [] # FusionData
 var up_start := 0
+## Which enemy in range it shoots: "first" (farthest along the path), "strong" (most HP), "close" (nearest the tower) or "last" (nearest the entrance).
+var aim := "first"
 
 # Beacon buffs this tower gives (and Rift Beacon path bonuses).
 var b_dmg := 0.0
