@@ -851,7 +851,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	if t.gravity and t.shots % 5 == 0:
 		for e in in_range(target.x, target.y, 60):
 			if not e.pushback_immune:
-				e.d = maxf(0, e.d - t.gravity)
+				e.d = back_d(e, t.gravity)
 		ring(target.x, target.y, 60, 0x9a7cff, 0.3)
 	if t.echo and not fake:
 		S.echoes.append({ t = t, target = target, d = d * t.echo, at = S.time + 0.25, aslow = aslow })
@@ -1400,7 +1400,7 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 		e.stun_t = maxf(e.stun_t, a.stun * mult)
 		if a.magnet:
 			if not e.pushback_immune:
-				e.d = maxf(0, e.d - 50)
+				e.d = back_d(e, 50)
 			line(e.x, e.y, x, y, 0x9af0ff, 0.35, 2)
 	if h.taunt:
 		for e in in_range(x, y, maxf(120, r)):
@@ -1416,7 +1416,7 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 				for e in in_range(x, y, rr):
 					damage(e, ab_dmg(h, a) * 0.4)
 					if not e.pushback_immune:
-						e.d = maxf(0, e.d - 20)
+						e.d = back_d(e, 20)
 				ring(x, y, rr, 0x9af0ff, 0.35))
 	if a.molten:
 		zone({ x = x, y = y, r = r * 0.8, t = 4.0, dps = a.dmg * 0.6, slow = 0.35, color = 0xff8a3d })
@@ -1628,6 +1628,12 @@ func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
 		e.push_spd = 0
 	e.push_t = maxf(e.push_t, (0.35 if e.boss else 1.0) * dur * h.push_bonus)
 	e.push_spd = maxf(e.push_spd, spd)
+
+
+## Moves an enemy back along the path, but never off the map: it stops on the first road tile
+## (one still walking in from off the map isn't moved).
+func back_d(e: Enemy, amt: float) -> float:
+	return maxf(minf(e.d, MapInfo.C), e.d - amt)
 
 
 func hit_area(x: float, y: float, r: float, dmg: float, each = null) -> void:
@@ -3039,7 +3045,7 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			e.push_t -= dt
 			if e.stun_t > 0:
 				e.stun_t -= dt
-			e.d = maxf(0, e.d - e.push_spd * dt)
+			e.d = back_d(e, e.push_spd * dt)
 		elif e.stun_t > 0:
 			e.stun_t -= dt
 		elif e.taunt_t > 0 and h.ko <= 0:

@@ -29,6 +29,7 @@
 [ext_resource type="Resource" path="res://data/heroes/wizard.tres" id="25_4m1h7"]
 [ext_resource type="Resource" path="res://data/lists/heroics.tres" id="26_23vll"]
 [ext_resource type="Resource" path="res://data/lists/legendary_relics.tres" id="27_wud1j"]
+[ext_resource type="PackedScene" path="res://maps/canal_crossing.tscn" id="27_canal"]
 [ext_resource type="PackedScene" path="res://maps/sunset_outpost.tscn" id="28_uun50"]
 [ext_resource type="PackedScene" path="res://maps/neon_boardwalk.tscn" id="29_4oven"]
 [ext_resource type="PackedScene" path="res://maps/chroma_reactor.tscn" id="30_8apho"]
@@ -59,7 +60,7 @@
 
 [resource]
 script = ExtResource("36_dyxie")
-maps = Array[PackedScene]([ExtResource("28_uun50"), ExtResource("29_4oven"), ExtResource("30_8apho"), ExtResource("31_5ena3")])
+maps = Array[PackedScene]([ExtResource("27_canal"), ExtResource("28_uun50"), ExtResource("29_4oven"), ExtResource("30_8apho"), ExtResource("31_5ena3")])
 towers = Array[ExtResource("44_wis7q")]([ExtResource("45_q6xdd"), ExtResource("46_cp3rw"), ExtResource("47_j25d5"), ExtResource("48_cut3q"), ExtResource("49_i6c5q"), ExtResource("50_ytjuc"), ExtResource("51_e1yeg"), ExtResource("52_lmywk"), ExtResource("52_shrine")])
 heroes = Array[ExtResource("20_8v02n")]([ExtResource("21_q4uiu"), ExtResource("21_gale"), ExtResource("22_ie4xd"), ExtResource("23_4544t"), ExtResource("24_7lomy"), ExtResource("25_4m1h7")])
 enemies = Array[ExtResource("5_jubtq")]([ExtResource("6_ck0sn"), ExtResource("7_43m5s"), ExtResource("8_kraj1"), ExtResource("9_y4dam"), ExtResource("10_6su6i"), ExtResource("11_crh1k"), ExtResource("12_hx3fw"), ExtResource("13_28wb3"), ExtResource("17_anchr"), ExtResource("14_crwaq"), ExtResource("15_q7b7u"), ExtResource("16_kviac"), ExtResource("17_2q5pp")])

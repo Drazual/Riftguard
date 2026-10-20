@@ -1048,6 +1048,11 @@ func bake_ground(m: MapInfo) -> void:
 ## the platform's front face.
 func make_ground(m: MapInfo) -> Image:
 	var top := int(TOP * PX)
+	if m.scene.backdrop:
+		var bd := _tile_image(m.scene.backdrop).duplicate()
+		if bd.get_size() != Vector2i(ART_W, ART_H):
+			bd.resize(ART_W, ART_H, Image.INTERPOLATE_NEAREST)
+		return bd
 	var img := Image.create(ART_W, ART_H, false, Image.FORMAT_RGBA8)
 	var px := func(x: int, y: int, w: int, h: int, col: Color) -> void:
 		img.fill_rect(Rect2i(x, y, w, h), col)

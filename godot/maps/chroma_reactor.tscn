@@ -7,7 +7,7 @@
 script = ExtResource("1_3s162")
 id = "warped"
 map_name = "Chroma Reactor"
-tier = "Level 3"
+tier = "Level 4"
 theme = "reactor"
 waves = 30
 shard_mult = 2.0

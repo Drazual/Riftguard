@@ -7,7 +7,7 @@
 script = ExtResource("1_akx41")
 id = "maelstrom"
 map_name = "Spiral Rift Garden"
-tier = "Level 4"
+tier = "Level 5"
 theme = "garden"
 waves = 35
 shard_mult = 2.5
