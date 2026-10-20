@@ -28,8 +28,8 @@ desc = "Calls a strike where your cursor is on the map (or the toughest enemy). 
 script = ExtResource("2_0pu25")
 id = "rounds"
 name = "Heavy Rounds"
-desc = "+{5 * r}% damage"
-effect = "h.dmg *= 1 + 0.05 * r"
+desc = "+{8 * r}% damage"
+effect = "h.dmg *= 1 + 0.08 * r"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 

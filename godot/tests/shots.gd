@@ -55,6 +55,22 @@ func _ready() -> void:
 		S.sel = S.towers[0]
 		main.ui.render_inspector()
 	await _shot("06_inspect")
+	var sel_size := main.board.size
+	for tw in S.towers:
+		S.sel = tw
+		main.ui.render_inspector()
+		for i in 3:
+			await get_tree().process_frame
+		if main.board.size != sel_size:
+			print("SHOTS board size changed with %s selected: %s" % [tw.type, main.board.size])
+	S.sel = null
+	main.ui.render_inspector()
+	for i in 4:
+		await get_tree().process_frame
+	print("SHOTS board size selected %s, deselected %s" % [sel_size, main.board.size])
+	main.ui.menus.show_settings()
+	await _shot("06b_pause_menu")
+	main.ui.menus.close_settings()
 	S.pending_levels = 1
 	for i in 5:
 		await get_tree().process_frame
@@ -127,6 +143,30 @@ func _ready() -> void:
 			S.sel = t
 			main.ui.render_inspector()
 	await _shot("17_shrine_inspect")
+	S.sel = null
+	g.end_run(false, true)
+	main.ui.close_modal()
+	main.ui.menus.new_run("coral")
+	main.ui.menus.start_run("striker", Array(DB.tower_order).slice(0, 5))
+	g = main.game
+	S = g.S
+	S.gold = 3000
+	spots = 0
+	for cell in [Vector2i(3, 4), Vector2i(7, 3), Vector2i(12, 4), Vector2i(17, 4), Vector2i(18, 8), Vector2i(14, 7), Vector2i(10, 10), Vector2i(6, 8)]:
+		var k: String = DB.tower_order[spots % 5]
+		if g.build_problem(cell.x, cell.y, k) == "":
+			g.place_tower(cell.x, cell.y, k)
+		spots += 1
+	g.start_wave()
+	for i in 240:
+		await get_tree().process_frame
+		if main.ui.modal_open():
+			main.ui.close_modal()
+			g.pick_offer(0)
+	await _shot("21_coral_run")
+	for i in 20:
+		await get_tree().process_frame
+	await _shot("21b_coral_run")
 	print("SHOTS DONE")
 	get_tree().quit()
 

@@ -56,6 +56,8 @@ var over: Node2D # upright overlay: bars, rings, cores
 var top: Node2D # shots, beams, bursts
 var spell_frames: SpriteFrames = preload("res://art/fx/spells.tres")
 var ground_for = null
+var ground_anim: Array[ImageTexture] = []
+var ground_anim_t := 0.0
 var frame_no := 0
 var tip_tower: Tower = null
 var shake_t := 0.0
@@ -190,6 +192,7 @@ func sync(dt: float) -> void:
 	var S := _S()
 	if S and S.map and ground_for != S.map:
 		bake_ground(S.map)
+	_animate_ground(dt)
 	if shake_t > 0:
 		shake_t -= dt
 		var a := shake_amt * ART_W * (shake_t / shake_dur if shake_dur > 0 else 0.0)
@@ -1042,6 +1045,25 @@ func _tile_image(tex: Texture2D) -> Image:
 func bake_ground(m: MapInfo) -> void:
 	ground_for = m
 	ground.texture = ImageTexture.create_from_image(make_ground(m))
+	ground_anim.clear()
+	if m.scene and m.scene.backdrop and m.scene.backdrop_frames.size() > 1:
+		for tex in m.scene.backdrop_frames:
+			var img := _tile_image(tex)
+			if img.get_size() != Vector2i(ART_W, ART_H):
+				img = img.duplicate()
+				img.resize(ART_W, ART_H, Image.INTERPOLATE_NEAREST)
+			ground_anim.append(ImageTexture.create_from_image(img))
+		ground.texture = ground_anim[0]
+
+
+## Animated backdrops loop on real time, so the beach keeps moving while the game is paused.
+func _animate_ground(dt: float) -> void:
+	if ground_anim.size() < 2:
+		return
+	ground_anim_t += dt
+	var i := int(ground_anim_t * ground_for.scene.backdrop_fps) % ground_anim.size()
+	if ground.texture != ground_anim[i]:
+		ground.texture = ground_anim[i]
 
 
 ## Draws the board into an image at art resolution: the back wall, the painted tiles, the road, props and

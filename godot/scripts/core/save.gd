@@ -147,7 +147,8 @@ func map_won(id: String) -> bool:
 
 func map_unlocked(id: String) -> bool:
 	var i := DB.map_order.find(id)
-	return i <= 0 or map_won(DB.map_order[i - 1])
+	# a map you have already played stays open even if a new stage was added before it
+	return i <= 0 or map_won(DB.map_order[i - 1]) or meta.best.has(id)
 
 
 # ---------- the old desktop app's save ----------

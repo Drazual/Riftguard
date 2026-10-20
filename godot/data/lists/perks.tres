@@ -9,7 +9,7 @@ id = "blade"
 name = "Plasma Blade"
 desc = "+{pct(m)} hero damage."
 effect = "h.dmg *= 1 + m"
-m = 0.4
+m = 0.32
 pool = "offensive"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -390,7 +390,7 @@ id = "caliber"
 name = "Heavy Caliber"
 desc = "+{pct(m)} hero damage."
 effect = "h.dmg *= 1 + m"
-m = 0.5
+m = 0.4
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -794,7 +794,7 @@ id = "knuckles"
 name = "Iron Knuckles"
 desc = "+{pct(m)} hero damage."
 effect = "h.dmg *= 1 + m"
-m = 0.2
+m = 0.16
 pool = "gale"
 kind = "damage"
 also_pools = PackedStringArray()

@@ -22,6 +22,7 @@ var top_lvl: Label
 var hp_meter: Kit.Meter
 var xp_meter: Kit.Meter
 var build_bar: HFlowContainer
+var corner_bar: HBoxContainer
 var hero_card: PanelContainer
 var inspector: PanelContainer
 var codex_box: VBoxContainer
@@ -253,12 +254,23 @@ func _board_frame() -> Control:
 	toast_box.anchor_right = 1
 	toast_box.offset_left = -330
 	toast_box.offset_right = -10
-	toast_box.offset_top = 10
+	toast_box.offset_top = 58
 	toast_label = Kit.rich("", 13)
 	toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast_box.add_child(toast_label)
 	toast_box.visible = false
 	area.add_child(toast_box)
+	# pause, game speed and the wave button, in the top right corner of the map
+	var corner := PanelContainer.new()
+	corner.theme_type_variation = "Bar"
+	corner.anchor_left = 1
+	corner.anchor_right = 1
+	corner.offset_right = -10
+	corner.offset_top = 10
+	corner.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	corner_bar = Kit.hbox(6)
+	corner.add_child(corner_bar)
+	area.add_child(corner)
 	return frame
 
 
@@ -266,6 +278,8 @@ func _side() -> Control:
 	var sc := ScrollContainer.new()
 	sc.custom_minimum_size = Vector2(340, 0)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# keep room for the scroll bar so the board doesn't shift when a tall inspector appears or goes
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE
 	var v := Kit.vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(v)
@@ -596,15 +610,18 @@ func render_build_bar() -> void:
 				toast("Point at the board and press F to set an aim point."), "OnButton" if S.aim != null else "")
 		Kit.tip_on(ab, func(): return Kit.b("Aim point") + "  " + Kit.c("F", Kit.GOLD) + "\n" + Kit.c("Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.", Kit.MUTED), "above")
 		build_bar.add_child(ab)
-	build_bar.add_child(Kit.spacer())
-	build_bar.add_child(Kit.button(("Resume" if S.user_pause else "Pause") + "  P", game.toggle_pause, "OnButton" if S.user_pause else ""))
-	build_bar.add_child(Kit.button("%d×" % S.speed, func():
+	Kit.clear(corner_bar)
+	var wl := Kit.label("WAVE %d/%d%s" % [S.wave, game.max_wave, mode_tag.to_upper()], 13, Kit.TEXT, Kit.display)
+	wl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	corner_bar.add_child(wl)
+	corner_bar.add_child(Kit.button(("Resume" if S.user_pause else "Pause") + "  P", game.toggle_pause, "OnButton" if S.user_pause else ""))
+	corner_bar.add_child(Kit.button("%d×" % S.speed, func():
 		S.speed = 1 if S.speed == 3 else S.speed + 1
 		render_build_bar()))
-	var wave_txt: String = ("Wave %d%s" % [S.wave, mode_tag]) if S.wave_active else ("Start wave %d%s  Space" % [S.wave + 1, mode_tag])
+	var wave_txt: String = "Wave running" if S.wave_active else ("Start wave %d  Space" % (S.wave + 1))
 	var wb := Kit.go(wave_txt, game.start_wave)
 	wb.disabled = S.wave_active or S.over
-	build_bar.add_child(wb)
+	corner_bar.add_child(wb)
 	_veil(S.user_pause and not S.over)
 	ability_meter()
 	render_runes()
@@ -765,7 +782,7 @@ func render_inspector() -> void:
 	rows += ([] if t.hero_buff else [["Range", UiText.f0(game.t_range(t))]]) + [["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
 	v.add_child(Kit.stats(rows))
 	if not t.support and not t.hero_buff and t.type != "anvil":
-		var aims := Kit.hbox(4)
+		var aims := Kit.flow(4)
 		aims.add_child(Kit.label("Target  T", 12, Kit.MUTED))
 		for a in Game.AIMS:
 			var ab := Kit.button(Game.AIM_NAMES[a], game.set_aim.bind(t, a), "OnButton" if t.aim == a else "")
