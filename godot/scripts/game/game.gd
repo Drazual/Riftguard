@@ -257,6 +257,7 @@ func start_run(hero_id: String, towers: Array) -> void:
 	apply_specials(S.hero)
 	S.hero.base_dmg = S.hero.dmg
 	S.hero.base_spell = S.hero.spell
+	S.hero.base_rate = S.hero.rate
 	S.hero.ab.base_dmg = S.hero.ab.dmg
 	S.paused = false
 	if S.hero.data.spells:
@@ -2896,7 +2897,7 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 
 
 func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
-	h.cd = h.rate / (1 + h.momentum * h.mom_stacks) / (1 + h.ab.power if h.od_t > 0 else 1.0) / (1 + sb("rate")) / (1 - h.drag if h.drag_t > 0 else 1.0)
+	h.cd = 1 / (1 / h.rate + h.momentum * h.mom_stacks / h.base_rate) / (1 + h.ab.power if h.od_t > 0 else 1.0) / (1 + sb("rate")) / (1 - h.drag if h.drag_t > 0 else 1.0)
 	h.attacks += 1
 	sfx("snipe" if h.brace else "shot")
 	var ts := inr if h.bullet_storm and h.attacks % int(h.bullet_storm) == 0 else inr.slice(0, 1 + int(h.multi) + (2 if h.od_t > 0 and h.ab.afterimg else 0))

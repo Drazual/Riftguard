@@ -93,9 +93,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "boots"
 name = "Rift Boots"
-desc = "+{pct(m)} move speed and +{pct(m / 2)} attack speed."
+desc = "+{pct(m)} move speed and +{pct(m / 2)} of your starting attack speed."
 effect = "h.speed *= 1 + m
-h.rate /= 1 + m / 2"
+h.rate = 1 / (1 / h.rate + m / 2 / h.base_rate)"
 m = 0.3
 also_pools = PackedStringArray()
 attack_speed = true
@@ -240,8 +240,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "clock"
 name = "Overclock"
-desc = "+{pct(m)} attack speed."
-effect = "h.rate /= 1 + m"
+desc = "+{pct(m)} of your starting attack speed."
+effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
 m = 0.3
 pool = "striker"
 also_pools = PackedStringArray()
@@ -290,7 +290,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "momentum"
 name = "Momentum"
-desc = "Each kill by your hero gives +{pct(m)} attack speed for 4s, stacking up to 10 times."
+desc = "Each kill by your hero gives +{pct(m)} of your starting attack speed for 4s, stacking up to 10 times."
 effect = "h.momentum += m"
 m = 0.06
 pool = "striker"
@@ -400,8 +400,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "chamber"
 name = "Fast Chamber"
-desc = "+{pct(m)} attack speed."
-effect = "h.rate /= 1 + m"
+desc = "+{pct(m)} of your starting attack speed."
+effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
 m = 0.24
 pool = "sniper"
 also_pools = PackedStringArray()

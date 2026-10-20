@@ -17,10 +17,13 @@ var dmg := 10.0
 ## Damage and spell power at the start of the run (after shard upgrades). Common, uncommon and rare damage
 ## upgrades add a share of these; mythic and higher ones multiply the damage as it is now.
 var base_dmg := 10.0
+var base_spell := 1.0
 ## The Sniper's targeting choice, like a tower's: first, last, strong (most HP, so bosses first) or close.
 var target := "strong"
-var base_spell := 1.0
 var rate := 0.6
+## Seconds between attacks at the start of the run. Common to legendary attack speed upgrades add a share
+## of this speed; mythic and higher ones multiply the speed as it is now.
+var base_rate := 0.6
 var cd := 0.0
 var range := 100.0
 var block := 1
@@ -146,6 +149,7 @@ static func make(id: String, base: Vector2) -> Hero:
 	h.max_hp = d.hp
 	h.dmg = d.dmg
 	h.rate = d.rate
+	h.base_rate = d.rate
 	h.range = d.range
 	h.block = d.block
 	h.regen = d.regen
