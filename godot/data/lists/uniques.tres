@@ -226,8 +226,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "bounty"
 name = "Bounty Sigil"
-desc = "Enemies your hero kills drop +4 gold."
-effect = "h.bounty += 4"
+desc = "Enemies your hero kills drop 40% more gold."
+effect = "h.bounty += 0.4"
 pool = "offensive"
 also_pools = PackedStringArray("special")
 rarity = "legendary"
@@ -239,8 +239,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "tithe"
 name = "War Tithe"
-desc = "Every enemy killed by anything drops +1 gold."
-effect = "h.tithe += 1"
+desc = "Every enemy killed by anything drops 10% more gold."
+effect = "h.tithe += 0.1"
 pool = "defensive"
 also_pools = PackedStringArray("support")
 rarity = "legendary"
@@ -252,7 +252,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "interest"
 name = "Investments"
-desc = "Earn 4% interest on your gold after each wave."
+desc = "Earn 4% interest on your gold after each wave (up to 15% in all)."
 effect = "h.interest += 0.04"
 pool = "oracle"
 also_pools = PackedStringArray()
@@ -283,6 +283,7 @@ effect = "run.mod_gold += 1"
 pool = "any"
 also_pools = PackedStringArray()
 rarity = "secret"
+gold = true
 kind = "unique:midas"
 heroes = PackedStringArray()
 

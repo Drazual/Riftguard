@@ -486,7 +486,7 @@ func update_hud() -> void:
 			boss = e
 	boss_bar.visible = boss != null
 	if boss:
-		boss_name.text = DB.enemies[boss.type].name + (" · if it reaches your base, the run is lost" if Game.BIG_BOSS.has(boss.type) else " · costs 5 base HP if it gets through")
+		boss_name.text = DB.enemies[boss.type].name + (" · if it reaches your base, the run is lost" if Game.BIG_BOSS.has(boss.type) else " · costs %d base HP if it gets through" % DB.enemies[boss.type].lives)
 		boss_fill.frac = maxf(0, boss.hp) / boss.max
 		var danger := Game.BIG_BOSS.has(boss.type) and boss.d / S.map.path_len >= 0.75
 		boss_warn.visible = danger
@@ -963,8 +963,8 @@ func render_hero() -> void:
 	rows += [["Armor", UiText.pct(h.armor)], ["Blocks", UiText.block_text(h.block)], ["Regen/s", UiText.f1(h.regen)], ["Respawn", UiText.f1(h.respawn) + "s"],
 		["Build range", f.call(h.build_range)], ["Move speed", f.call(h.speed)]]
 	if h.aura: rows.append(["Tower aura", "+" + UiText.pct(h.aura)])
-	if h.bounty: rows.append(["Hero kill gold", "+%sg" % f.call(h.bounty)])
-	if h.tithe: rows.append(["Kill gold (all)", "+%sg" % f.call(h.tithe)])
+	if h.bounty: rows.append(["Hero kill gold", "+" + UiText.pct(h.bounty)])
+	if h.tithe: rows.append(["Kill gold (all)", "+" + UiText.pct(h.tithe)])
 	if h.mom_stacks: rows.append(["Momentum", "%d×" % h.mom_stacks])
 	if h.interest: rows.append(["Interest", UiText.pct(h.interest)])
 	# the full stat sheet folds away (remembered between runs)

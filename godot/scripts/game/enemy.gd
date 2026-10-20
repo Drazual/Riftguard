@@ -51,6 +51,9 @@ var heal_t := 1.0
 var slowed_for := 0.0
 var push_t := 0.0
 var push_spd := 0.0
+## Wizard push-backs in a row (they wear off) and when the last one landed.
+var push_n := 0
+var push_at := -99.0
 var taunt_t := 0.0
 var spot := 0.0
 var spot_t := 0.0

@@ -75,6 +75,8 @@ func level_up(data: Dictionary) -> void:
 		ch.add(_path(("Demonic " if o.demonic else "") + r.name + " · " + game.pool_name(o), col), 12)
 		ch.add(Kit.b(o.perk.name), 16, Kit.TEXT)
 		ch.add(game.perk_desc(o), 13, Kit.MUTED)
+		if o.get("bonus"):
+			ch.add(Kit.c("Plus Rare %s: %s" % [o.bonus.perk.name, game.perk_desc(o.bonus)], Kit.RAR.get("rare", Kit.MUTED)), 12)
 		if not DB.is_simple():
 			ch.add(Kit.c(UiText.preview_run(game, func(): game.apply_offer(o), o.perk.name), Kit.TECH), 12)
 		if o.demonic:
