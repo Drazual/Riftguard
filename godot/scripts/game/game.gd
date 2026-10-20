@@ -347,9 +347,9 @@ func level_cost(t: Tower, opt) -> int:
 	var n := t.ups_of(opt.id) if opt else 0
 	var base: float
 	if t.hybrid:
-		base = t.up_start * (1 + 0.3 * n)
+		base = t.up_start * (1 + 0.3 * n) * R.hybrid_level_price
 	else:
-		base = t.base_cost * (R.oracle_level_cost_mult if path_max() == 3 else R.level_cost_mult) * (n + 1)
+		base = t.base_cost * (R.oracle_level_cost_mult if path_max() == 3 else R.level_cost_mult) * (n + 1) * DB.towers[t.type].level_price
 	return int(round(base * R.level_cost_extra * S.hero.lvl_mul * (1 - 0.025 * rank(Save.meta.tower_global, "cost")) * map_price()))
 
 

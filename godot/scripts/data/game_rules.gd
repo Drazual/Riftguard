@@ -71,6 +71,8 @@ extends Resource
 @export var level_cost_mult := 2.5
 @export var oracle_level_cost_mult := 3.1
 @export var level_cost_extra := 1.15
+## Hybrid and super tower level-ups are multiplied by this.
+@export var hybrid_level_price := 0.75
 ## Seconds between a super tower's signature powers.
 @export var super_cooldown := 5.0
 ## Boss Cores for a tower's Signature.

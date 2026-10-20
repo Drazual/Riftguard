@@ -10,7 +10,7 @@ const ROLE_NAME := { defensive = "damage blocked", offensive = "kills", support 
 
 
 static func mastery_need(lvl: int) -> int:
-	return 5 * lvl * (lvl + 1)
+	return 10 * lvl * (lvl + 1)
 
 
 static func _beaten(won: Dictionary) -> int:
@@ -37,7 +37,7 @@ static func mastery_of(kind: String, k: String) -> Dictionary:
 	var beaten := _beaten(Save.meta.wins[kind].get(k, {}))
 	var mx: int = DB.rules.mastery_max
 	var cap := mini(mx, 10 * (beaten + 1))
-	var raw := int(floor((sqrt(1 + 0.8 * kills) - 1) / 2))
+	var raw := int(floor((sqrt(1 + 0.4 * kills) - 1) / 2))
 	var lvl := mini(raw, cap)
 	return { kills = kills, lvl = lvl, cap = cap, capped = raw >= cap and cap < mx, prev = mastery_need(lvl), next = mastery_need(lvl + 1) if lvl < mx else -1,
 		next_map = DB.map_order[beaten] if beaten < DB.map_order.size() else "" }
@@ -49,7 +49,7 @@ static func el_mastery(el: String, extra := 0.0) -> Dictionary:
 	var beaten := _beaten(Save.meta.wins.heroes.get("wizard", {}))
 	var mx: int = DB.rules.mastery_max
 	var cap := mini(mx, 10 * (beaten + 1))
-	var lvl := mini(cap, int(floor((sqrt(1 + 0.8 * pts) - 1) / 2)))
+	var lvl := mini(cap, int(floor((sqrt(1 + 0.4 * pts) - 1) / 2)))
 	return { pts = pts, lvl = lvl, cap = cap, prev = mastery_need(lvl), next = mastery_need(lvl + 1) if lvl < mx else -1 }
 
 

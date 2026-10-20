@@ -6,6 +6,8 @@ extends Resource
 @export var id := ""
 @export var name := ""
 @export var cost := 50
+## Level-up prices are multiplied by this (0.75 = a quarter off).
+@export var level_price := 0.75
 @export var dmg := 10.0
 ## Seconds between shots.
 @export var rate := 1.0

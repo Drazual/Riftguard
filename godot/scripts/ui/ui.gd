@@ -782,7 +782,7 @@ func render_inspector() -> void:
 	rows += ([] if t.hero_buff else [["Range", UiText.f0(game.t_range(t))]]) + [["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
 	v.add_child(Kit.stats(rows))
 	if not t.support and not t.hero_buff and t.type != "anvil":
-		v.add_child(_aim_row(t.aim, game.set_aim.bind(t)))
+		v.add_child(_aim_row(t.aim, func(a: String): game.set_aim(t, a)))
 	if not DB.is_simple():
 		v.add_child(Kit.rich(UiText.bullets(UiText.tower_traits(game, t)), 13))
 	if S.merge_from == t:
@@ -911,8 +911,10 @@ func _aim_row(current: String, pick: Callable) -> Control:
 	var aims := Kit.flow(4)
 	aims.add_child(Kit.label("Target  T", 12, Kit.MUTED))
 	for a in Game.AIMS:
-		var ab := Kit.button(Game.AIM_NAMES[a], pick.bind(a), "OnButton" if current == a else "")
+		var ab := Kit.button(Game.AIM_NAMES[a], func(): pick.call(a), "OnButton" if current == a else "")
 		ab.add_theme_font_size_override("font_size", 12)
+		# the hero card and inspector rebuild often during a wave, so act on the press, not the release
+		ab.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
 		Kit.tip_on(ab, func(): return { first = "The enemy farthest along the path.", last = "The enemy nearest the entrance.", strong = "The enemy with the most HP.",
 			close = "The nearest enemy." }[a])
 		aims.add_child(ab)

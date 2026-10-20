@@ -78,6 +78,7 @@ mastery_effect = "t.echo += 0.4"
 script = ExtResource("2_nvxlv")
 id = "arcane"
 name = "Arcane Bolt"
+level_price = 0.85
 dmg = 14.0
 rate = 0.5
 range = 180.0
