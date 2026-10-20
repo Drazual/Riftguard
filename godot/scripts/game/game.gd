@@ -176,6 +176,37 @@ func by_d_desc(a, b) -> bool:
 	return a.d > b.d
 
 
+const AIMS := ["first", "last", "strong", "close"]
+const AIM_NAMES := { first = "First", last = "Last", strong = "Strongest", close = "Closest" }
+
+
+## Orders the enemies in a tower's range by its targeting choice, best target first.
+func sort_targets(t: Tower, list: Array) -> void:
+	match t.aim:
+		"strong":
+			list.sort_custom(func(a, b): return a.hp > b.hp or (a.hp == b.hp and a.d > b.d))
+		"close":
+			list.sort_custom(func(a, b): return hyp(a.x - t.x, a.y - t.y) < hyp(b.x - t.x, b.y - t.y))
+		"last":
+			list.sort_custom(func(a, b): return a.d < b.d)
+		_:
+			list.sort_custom(by_d_desc)
+
+
+func set_aim(t: Tower, aim: String) -> void:
+	t.aim = aim
+	refresh("inspector")
+
+
+## T: the selected tower moves to its next targeting choice.
+func cycle_aim() -> void:
+	var t: Tower = S.sel if S else null
+	if t == null or not S.towers.has(t) or t.support or t.hero_buff:
+		return
+	set_aim(t, AIMS[(AIMS.find(t.aim) + 1) % AIMS.size()])
+	say("%s targets: %s" % [tower_name(t), AIM_NAMES[t.aim]])
+
+
 func live_enemies() -> Array:
 	return S.enemies.filter(func(e): return not e.dead)
 
@@ -3140,7 +3171,7 @@ func _towers_step(h: Hero, dt: float) -> void:
 						anvil_slam(t, a, 1.0))
 			continue
 		var targets := in_range(t.x, t.y, t_range(t))
-		targets.sort_custom(by_d_desc)
+		sort_targets(t, targets)
 		targets = targets.slice(0, 1 + int(t.multi))
 		if t.lob:
 			if targets.size():
@@ -3818,6 +3849,7 @@ func try_merge(a: Tower, b: Tower) -> void:
 	m.tags = PackedStringArray(tags)
 	m.ramp_max = maxf(10.0 if a.beam or b.beam else 5.0, maxf(a.ramp_max if not a.beam else 0.0, b.ramp_max if not b.beam else 0.0))
 	m.hybrid = true
+	m.aim = b.aim if b.aim != "first" else a.aim
 	m.dmg_total = a.dmg_total + b.dmg_total
 	m.kills = a.kills + b.kills
 	var key := ""

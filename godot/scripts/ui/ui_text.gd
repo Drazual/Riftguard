@@ -38,7 +38,8 @@ static func main_effect(k: String) -> String:
 # ---------- what a tower does ----------
 static func traits(g: Game, t: Tower) -> Array:
 	var S := g.S
-	var out := ["Shoots the enemy closest to your base" + (", plus %d more at once." % int(t.multi) if t.multi else ".")]
+	var who: String = { first = "closest to your base", last = "nearest the entrance", strong = "with the most HP", close = "nearest this tower" }.get(t.aim, "closest to your base")
+	var out := ["Shoots the enemy " + who + (", plus %d more at once." % int(t.multi) if t.multi else ".")]
 	if t.splash: out.append("Explodes on hit, damaging all enemies within %s." % f0(t.splash))
 	if t.slow: out.append("Slows enemies by %d%% for %ss." % [int(round(minf(0.85, t.slow + S.mod_slow) * 100)), f1(t.slow_dur if t.slow_dur else 1.6)])
 	if t.chain: out.append("Lightning jumps to %d more enemies at %s damage, less each jump." % [int(t.chain), pct(t.chain_mul if t.chain_mul else 0.7)])

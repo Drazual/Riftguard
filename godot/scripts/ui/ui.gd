@@ -764,6 +764,16 @@ func render_inspector() -> void:
 		rows.append(["Slams/s" if t.type == "anvil" else "Shots/s", UiText.f2(1 / (t.rate * S.mod_tower_rate))])
 	rows += ([] if t.hero_buff else [["Range", UiText.f0(game.t_range(t))]]) + [["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
 	v.add_child(Kit.stats(rows))
+	if not t.support and not t.hero_buff and t.type != "anvil":
+		var aims := Kit.hbox(4)
+		aims.add_child(Kit.label("Target  T", 12, Kit.MUTED))
+		for a in Game.AIMS:
+			var ab := Kit.button(Game.AIM_NAMES[a], game.set_aim.bind(t, a), "OnButton" if t.aim == a else "")
+			ab.add_theme_font_size_override("font_size", 12)
+			Kit.tip_on(ab, func(): return { first = "The enemy farthest along the path.", last = "The enemy nearest the entrance.", strong = "The enemy with the most HP.",
+				close = "The enemy nearest this tower." }[a])
+			aims.add_child(ab)
+		v.add_child(aims)
 	if not DB.is_simple():
 		v.add_child(Kit.rich(UiText.bullets(UiText.tower_traits(game, t)), 13))
 	if S.merge_from == t:
@@ -868,7 +878,7 @@ func render_codex() -> void:
 			h.add_child(Kit.spacer())
 			h.add_child(Kit.label("Undiscovered", 13, Kit.MUTED))
 		codex_box.add_child(h)
-	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, Space start wave, Esc settings."))
+	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, T change the selected tower’s target, Space start wave, Esc settings."))
 
 
 func render_enemy_codex() -> void:
@@ -1086,6 +1096,8 @@ func _key(ev: InputEventKey) -> void:
 		game.toggle_hold()
 	elif k == KEY_F:
 		game.toggle_aim()
+	elif k == KEY_T:
+		game.cycle_aim()
 	elif k == KEY_SPACE:
 		if not ev.echo:
 			game.start_wave()

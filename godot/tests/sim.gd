@@ -34,11 +34,18 @@ func _run(hero: String, map_id: String, max_waves: int) -> void:
 	S.hero.x = mid.x
 	S.hero.y = mid.y
 	var steps := 0
+	var wave_steps := 0
 	while not S.over and steps < 400000 and S.wave <= max_waves:
 		steps += 1
+		wave_steps += 1
+		# a wave the bot can stall forever (say, pushing everything back to the entrance) ends the run
+		if wave_steps > 30 * 600:
+			print("STALL: wave %d still running after 600s with %d enemies" % [S.wave, S.enemies.size()])
+			break
 		if not S.wave_active and not S.paused:
 			_spend()
 			game.start_wave()
+			wave_steps = 0
 		if S.wave_active and steps % 20 == 0:
 			_spend()
 		if S.hero.data.spells and steps % 15 == 0:
