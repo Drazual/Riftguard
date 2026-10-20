@@ -787,7 +787,10 @@ func _draw_flat() -> void:
 		if HX.get("wither", 0):
 			_circle(g, h.pos(), 90 + 20 * HX.wither, hx(0x7a2e5a, 0.12))
 		if h.range < 9999:
-			_ring(g, h.pos(), h.range, ca(hc, 0.15), 1)
+			# a tinted disc with a dark-backed bright edge, so the reach reads on busy, light maps
+			_circle(g, h.pos(), h.range, ca(hc, 0.16))
+			_ring(g, h.pos(), h.range, Color(0.06, 0.03, 0.12, 0.7), 8)
+			_ring(g, h.pos(), h.range, ca(hc.lightened(0.2), 1.0), 4)
 		if h.hold:
 			g.draw_rect(Rect2(h.x - 17, h.y - 17, 34, 34), hx(0xf2c14e, 0.9), false, 2)
 		_shadow(g, h.x, h.y, 30)
