@@ -786,7 +786,7 @@ func _draw_flat() -> void:
 		var HX := S.heroics
 		if HX.get("wither", 0):
 			_circle(g, h.pos(), 90 + 20 * HX.wither, hx(0x7a2e5a, 0.12))
-		if h.range < 9999:
+		if h.range < 9999 and S.hero_sel:
 			# a tinted disc with a dark-backed bright edge, so the reach reads on busy, light maps
 			_circle(g, h.pos(), h.range, ca(hc, 0.16))
 			_ring(g, h.pos(), h.range, Color(0.06, 0.03, 0.12, 0.7), 8)
@@ -994,6 +994,23 @@ func _draw_over() -> void:
 			var gp := Vector2(sh.x0 + (sh.x1 - sh.x0) * u, sh.y0 + (sh.y1 - sh.y0) * u)
 			var arc := minf(140, Vector2(sh.x1 - sh.x0, sh.y1 - sh.y0).length() * 0.4) * sin(PI * u)
 			_circle(o, Vector2(gp.x, SY(gp.y) - arc), 5 + 2 * sh.mult, sh.tw.color)
+	# Razor Discs spin flat at knee height, with a shadow on the ground under them
+	for dk: Dictionary in S.discs:
+		if dk.wait > 0:
+			continue
+		var r: float = dk.r
+		o.draw_set_transform(Vector2(dk.x, SY(dk.y)), 0, Vector2(1, 0.45))
+		o.draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.25))
+		o.draw_set_transform(Vector2(dk.x, SY(dk.y) - 10), 0, Vector2(1, 0.6))
+		for i in 8:
+			var a0: float = dk.spin + i * TAU / 8
+			o.draw_colored_polygon(PackedVector2Array([Vector2.from_angle(a0) * r * 0.9, Vector2.from_angle(a0) * (r + 5), Vector2.from_angle(a0 + 0.45) * r * 0.9]),
+				Color(0.95, 0.98, 1) if i % 2 else hx(0xffe28c))
+		o.draw_circle(Vector2.ZERO, r, hx(0xaacee2))
+		o.draw_arc(Vector2.ZERO, r, 0, TAU, 24, dk.tw.color, 2)
+		o.draw_arc(Vector2.ZERO, r * 0.6, dk.spin, dk.spin + PI * 0.8, 10, Color(1, 1, 1, 0.8), 2)
+		o.draw_circle(Vector2.ZERO, r * 0.22, hx(0xff6fd8))
+		o.draw_set_transform(Vector2.ZERO)
 	# wall HP shows above each wall
 	for w: Dictionary in S.walls:
 		var k := maxf(0, w.hp / w.max)

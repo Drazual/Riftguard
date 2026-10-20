@@ -11,7 +11,7 @@ func _ready() -> void:
 	if args.size():
 		out = args[0]
 	DirAccess.make_dir_recursive_absolute(out)
-	get_tree().create_timer(120).timeout.connect(func(): print("SHOTS TIMEOUT"); get_tree().quit(1))
+	get_tree().create_timer(220).timeout.connect(func(): print("SHOTS TIMEOUT"); get_tree().quit(1))
 	seed(7)
 	Save.meta.secret_heroes = {}
 	for id in Menus.FIRST_TIPS:
@@ -207,6 +207,46 @@ func _ready() -> void:
 					print("SHOTS crit number %s at %.0f,%.0f t %.2f" % [f.text, f.x, f.y, f.t])
 			break
 	await _shot("22_sniper_crits")
+	# Razor Discs: two towers with different paths, thrown into a wave; the hero is selected so its range shows
+	g.end_run(false, true)
+	main.ui.close_modal()
+	main.ui.menus.new_run("canal")
+	main.ui.menus.start_run("vanguard", ["disc", "plasma", "frost", "arcane", "tesla"])
+	g = main.game
+	S = g.S
+	S.gold = 99999
+	var builds := [[8, 5, ["loader", "sear"]], [11, 9, ["flight", "ricochet", "honed"]]]
+	for b in builds:
+		g.place_tower(b[0], b[1], "disc")
+		var dt: Tower = S.towers[-1]
+		for pid in b[2]:
+			for o in g.tower_options(dt):
+				if o.id == pid:
+					for i in 4:
+						g.level_tower(dt, o)
+		print("SHOTS disc at %d,%d lvl %d hits %.0f trail %.2f volley %.0f return %s unbound %s" % [b[0], b[1], dt.lvl, dt.disc_hits, dt.disc_trail, dt.disc_volley, dt.disc_return, dt.disc_unbound])
+	S.hero_sel = true
+	S.speed = 3
+	S.hero.x = 140
+	S.hero.y = 470
+	S.hero.tx = 140
+	S.hero.ty = 470
+	var seen := 0
+	for i in 2400:
+		if not S.wave_active and not main.ui.modal_open():
+			g.start_wave()
+		await get_tree().process_frame
+		if main.ui.modal_open():
+			main.ui.close_modal()
+			g.pick_offer(0)
+		seen = maxi(seen, S.discs.size())
+		if S.discs.size() >= 2 and S.zones.size() >= 2:
+			break
+	print("SHOTS discs in flight %d (max %d) zones %d" % [S.discs.size(), seen, S.zones.size()])
+	S.speed = 1
+	S.sel = S.towers[0]
+	main.ui.render_inspector()
+	await _shot("23_razor_disc")
 	print("SHOTS DONE")
 	get_tree().quit()
 

@@ -251,6 +251,62 @@ name = "Tempest Engine"
 color = Color(0.78431374, 0.9607843, 1, 1)
 desc = "A storm of scalding, freezing, crackling blasts. Nothing in range moves fast."
 
+[sub_resource type="Resource" id="Resource_disc0"]
+script = ExtResource("1_qr0rf")
+key = "anvil+disc"
+name = "Grinder Press"
+color = Color(0.78, 0.82, 0.86, 1)
+desc = "Hammers enemies with heavy cutting blows that carry through to the enemies behind. Grave Anvil weight with Razor Disc edges."
+
+[sub_resource type="Resource" id="Resource_disc1"]
+script = ExtResource("1_qr0rf")
+key = "arcane+disc"
+name = "Rune Glaive"
+color = Color(0.72, 0.78, 1, 1)
+desc = "Rapid rune-etched blades that cut through the first enemy into the ones behind it. Arcane speed with Razor Disc reach."
+
+[sub_resource type="Resource" id="Resource_disc2"]
+script = ExtResource("1_qr0rf")
+key = "beacon+disc"
+name = "Halo Blade"
+color = Color(1, 0.93, 0.62, 1)
+desc = "A gleaming blade that cuts through a line of enemies and lifts the towers around it."
+
+[sub_resource type="Resource" id="Resource_disc3"]
+script = ExtResource("1_qr0rf")
+key = "disc+frost"
+name = "Frost Saw"
+color = Color(0.66, 0.95, 1, 1)
+desc = "Icy sawblades that slow every enemy they cut through. Razor Disc reach with Frost control."
+
+[sub_resource type="Resource" id="Resource_disc4"]
+script = ExtResource("1_qr0rf")
+key = "disc+laser"
+name = "Laser Lathe"
+color = Color(1, 0.62, 0.8, 1)
+desc = "A spinning cutting beam that heats up on its target and slices the enemies behind it."
+
+[sub_resource type="Resource" id="Resource_disc5"]
+script = ExtResource("1_qr0rf")
+key = "disc+mortar"
+name = "Sawblade Mortar"
+color = Color(0.95, 0.9, 0.7, 1)
+desc = "Lobs heavy blade shells that burst and shred whatever stands behind the blast."
+
+[sub_resource type="Resource" id="Resource_disc6"]
+script = ExtResource("1_qr0rf")
+key = "disc+plasma"
+name = "Plasma Buzzsaw"
+color = Color(1, 0.6, 0.45, 1)
+desc = "Molten sawblades that explode on impact and keep cutting into the enemies behind."
+
+[sub_resource type="Resource" id="Resource_disc7"]
+script = ExtResource("1_qr0rf")
+key = "disc+tesla"
+name = "Storm Saw"
+color = Color(0.6, 1, 0.92, 1)
+desc = "Charged blades whose cuts arc lightning from enemy to enemy."
+
 [resource]
 script = ExtResource("2_gi7il")
-items = Array[ExtResource("1_qr0rf")]([SubResource("Resource_cva3j"), SubResource("Resource_saffi"), SubResource("Resource_60uhn"), SubResource("Resource_g3ece"), SubResource("Resource_630s8"), SubResource("Resource_wl3uf"), SubResource("Resource_gatsr"), SubResource("Resource_va2u2"), SubResource("Resource_n77hu"), SubResource("Resource_w7uvs"), SubResource("Resource_bwwdc"), SubResource("Resource_3swbl"), SubResource("Resource_b4kp3"), SubResource("Resource_v6x13"), SubResource("Resource_icrax"), SubResource("Resource_cebf4"), SubResource("Resource_p02b3"), SubResource("Resource_11y47"), SubResource("Resource_a2h4w"), SubResource("Resource_p01o1"), SubResource("Resource_ie8b8"), SubResource("Resource_tubq7"), SubResource("Resource_oi2ti"), SubResource("Resource_l1lpg"), SubResource("Resource_4qxas"), SubResource("Resource_kxskh"), SubResource("Resource_tboei"), SubResource("Resource_coxg1"), SubResource("Resource_sxjhp"), SubResource("Resource_ayfo3"), SubResource("Resource_o2y2g"), SubResource("Resource_dsfg2"), SubResource("Resource_bcell")])
+items = Array[ExtResource("1_qr0rf")]([SubResource("Resource_cva3j"), SubResource("Resource_saffi"), SubResource("Resource_60uhn"), SubResource("Resource_g3ece"), SubResource("Resource_630s8"), SubResource("Resource_wl3uf"), SubResource("Resource_gatsr"), SubResource("Resource_va2u2"), SubResource("Resource_n77hu"), SubResource("Resource_w7uvs"), SubResource("Resource_bwwdc"), SubResource("Resource_3swbl"), SubResource("Resource_b4kp3"), SubResource("Resource_v6x13"), SubResource("Resource_icrax"), SubResource("Resource_cebf4"), SubResource("Resource_p02b3"), SubResource("Resource_11y47"), SubResource("Resource_a2h4w"), SubResource("Resource_p01o1"), SubResource("Resource_ie8b8"), SubResource("Resource_tubq7"), SubResource("Resource_oi2ti"), SubResource("Resource_l1lpg"), SubResource("Resource_4qxas"), SubResource("Resource_kxskh"), SubResource("Resource_tboei"), SubResource("Resource_coxg1"), SubResource("Resource_sxjhp"), SubResource("Resource_ayfo3"), SubResource("Resource_o2y2g"), SubResource("Resource_dsfg2"), SubResource("Resource_bcell"), SubResource("Resource_disc0"), SubResource("Resource_disc1"), SubResource("Resource_disc2"), SubResource("Resource_disc3"), SubResource("Resource_disc4"), SubResource("Resource_disc5"), SubResource("Resource_disc6"), SubResource("Resource_disc7")])
