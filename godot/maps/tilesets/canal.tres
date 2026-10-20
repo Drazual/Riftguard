@@ -1,0 +1,29 @@
+[gd_resource type="TileSet" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/maps/canal_tiles.png" id="1_canal"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_props.png" id="2_canal"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_ground"]
+texture = ExtResource("1_canal")
+texture_region_size = Vector2i(32, 24)
+0:0/0 = 0
+0:0/0/custom_data_0 = "ground"
+1:0/0 = 0
+1:0/0/custom_data_0 = "path"
+2:0/0 = 0
+2:0/0/custom_data_0 = "water"
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_props"]
+texture = ExtResource("2_canal")
+texture_region_size = Vector2i(32, 24)
+0:0/0 = 0
+0:0/0/custom_data_0 = "prop"
+
+[resource]
+tile_size = Vector2i(32, 24)
+custom_data_layer_0/name = "kind"
+custom_data_layer_0/type = 4
+custom_data_layer_1/name = "weight"
+custom_data_layer_1/type = 3
+sources/0 = SubResource("TileSetAtlasSource_ground")
+sources/1 = SubResource("TileSetAtlasSource_props")

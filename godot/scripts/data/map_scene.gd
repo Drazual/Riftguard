@@ -11,6 +11,10 @@ extends Node2D
 @export var tier := "Level 1"
 ## The tileset look used for the road colours: sunset, boardwalk, reactor or garden.
 @export_enum("sunset", "boardwalk", "reactor", "garden") var theme := "sunset"
+## A finished picture of the whole board (768x416, the grid starting 32 pixels down) drawn instead of the
+## painted tiles, road and props. The Ground and Props layers then only say where the road, water and
+## blocked tiles are, so keep them matching the picture.
+@export var backdrop: Texture2D
 @export var waves := 20
 @export var shard_mult := 1.0
 @export var enemy_hp := 1.0

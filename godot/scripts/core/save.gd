@@ -58,12 +58,26 @@ func _fill() -> void:
 				meta[k][sub] = {}
 	if not (meta.get("runs") is Array):
 		meta.runs = []
+	_carry_first_stage()
 	for id in DB.tower_order:
 		if not (meta.towers.get(id) is Dictionary):
 			meta.towers[id] = {}
 	for id in DB.hero_order:
 		if not (meta.heroes.get(id) is Dictionary):
 			meta.heroes[id] = {}
+
+
+## Canal Crossing became the first stage after Sunset Outpost. A save that already beat Sunset Outpost counts
+## Canal Crossing as beaten too, so no map or mastery level locks again.
+func _carry_first_stage() -> void:
+	if not map_won("verdant") or meta.best.has("canal"):
+		return
+	meta.best["canal"] = meta.best["verdant"].duplicate()
+	for kind in ["towers", "heroes"]:
+		for k in meta.wins[kind]:
+			var w = meta.wins[kind][k]
+			if w is Dictionary and w.get("verdant", false):
+				w["canal"] = true
 
 
 func _merge(into: Dictionary, from: Dictionary) -> void:

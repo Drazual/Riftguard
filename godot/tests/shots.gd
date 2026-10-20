@@ -21,7 +21,7 @@ func _ready() -> void:
 	await _shot("01_menu")
 	main.ui.menus.show_map_select()
 	await _shot("02_maps")
-	main.ui.menus.new_run("verdant")
+	main.ui.menus.new_run("canal")
 	await _shot("03_heroes")
 	main.ui.menus.start_run("vanguard", Array(DB.tower_order).slice(0, 5))
 	await _shot("04_run")
@@ -98,7 +98,7 @@ func _ready() -> void:
 	main.ui.menus.show_towers("shrine")
 	await _shot("15_shrine_page")
 	main.ui.hide_screen()
-	main.ui.menus.new_run("verdant")
+	main.ui.menus.new_run("canal")
 	main.ui.menus.start_run("gale", ["shrine", "arcane", "frost", "plasma", "tesla"])
 	g = main.game
 	S = g.S
