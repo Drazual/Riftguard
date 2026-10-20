@@ -68,7 +68,7 @@ func load_all() -> void:
 	simple_texts = rules.simple_texts.texts if rules.simple_texts else {}
 	rarities.clear()
 	rar.clear()
-	var ids := ["common", "uncommon", "rare", "mythic", "legendary", "secret"]
+	var ids := ["common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_legendary", "secret_mythic", "developer"]
 	for i in ids.size():
 		var x := { id = ids[i], name = rules.rarity_names[i], mult = rules.rarity_mults[i], w = rules.rarity_weights[i] }
 		rarities.append(x)

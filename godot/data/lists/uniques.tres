@@ -226,8 +226,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "bounty"
 name = "Bounty Sigil"
-desc = "Enemies your hero kills drop +4 gold."
-effect = "h.bounty += 4"
+desc = "Enemies your hero kills drop 40% more gold."
+effect = "h.bounty += 0.4"
 pool = "offensive"
 also_pools = PackedStringArray("special")
 rarity = "legendary"
@@ -239,8 +239,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "tithe"
 name = "War Tithe"
-desc = "Every enemy killed by anything drops +1 gold."
-effect = "h.tithe += 1"
+desc = "Every enemy killed by anything drops 10% more gold."
+effect = "h.tithe += 0.1"
 pool = "defensive"
 also_pools = PackedStringArray("support")
 rarity = "legendary"
@@ -252,7 +252,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "interest"
 name = "Investments"
-desc = "Earn 4% interest on your gold after each wave."
+desc = "Earn 4% interest on your gold after each wave (up to 15% in all)."
 effect = "h.interest += 0.04"
 pool = "oracle"
 also_pools = PackedStringArray()
@@ -283,6 +283,7 @@ effect = "run.mod_gold += 1"
 pool = "any"
 also_pools = PackedStringArray()
 rarity = "secret"
+gold = true
 kind = "unique:midas"
 heroes = PackedStringArray()
 
@@ -298,6 +299,126 @@ rarity = "secret"
 kind = "unique:heart"
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="U_sl_overlord"]
+script = ExtResource("1_7nimu")
+id = "sl_overlord"
+name = "Rift Overlord"
+desc = "All towers deal double damage."
+effect = "run.mod_tower_dmg += 1.0"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "secret_legendary"
+kind = "unique:sl_overlord"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_sl_titan"]
+script = ExtResource("1_7nimu")
+id = "sl_titan"
+name = "Titan Blood"
+desc = "Triple max HP and a full heal, plus 50% more hero and spell damage."
+effect = "h.max_hp = round(h.max_hp * 3)\nh.hp = h.max_hp\nh.dmg *= 1.5\nh.spell *= 1.5"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "secret_legendary"
+kind = "unique:sl_titan"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_sl_dilation"]
+script = ExtResource("1_7nimu")
+id = "sl_dilation"
+name = "Time Dilation"
+desc = "All towers fire 40% faster and your ability recharges twice as fast."
+effect = "run.mod_tower_rate *= 0.6\nh.ab.cd = h.ab.cd / 2"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "secret_legendary"
+kind = "unique:sl_dilation"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_sm_horizon"]
+script = ExtResource("1_7nimu")
+id = "sm_horizon"
+name = "Event Horizon"
+desc = "Every enemy from now on has 30% less HP, bosses too."
+effect = "run.mod_enemy_hp *= 0.7"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "secret_mythic"
+kind = "unique:sm_horizon"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_sm_engine"]
+script = ExtResource("1_7nimu")
+id = "sm_engine"
+name = "Philosopher's Engine"
+desc = "Every tower you build starts with 4 free level-ups, and level-ups cost 30% less."
+effect = "h.free_build += 4\nh.lvl_mul *= 0.7"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "secret_mythic"
+kind = "unique:sm_engine"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_sm_godhand"]
+script = ExtResource("1_7nimu")
+id = "sm_godhand"
+name = "Godhand"
+desc = "Triple hero damage and spell damage."
+effect = "h.dmg *= 3\nh.spell *= 3"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "secret_mythic"
+kind = "unique:sm_godhand"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_dev_money"]
+script = ExtResource("1_7nimu")
+id = "dev_money"
+name = "Infinite Money Glitch"
+desc = "Enemies drop 5× gold, and you get 500 gold right now."
+effect = "run.mod_gold += 4\nrun.gold += 500"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "developer"
+kind = "unique:dev_money"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_dev_console"]
+script = ExtResource("1_7nimu")
+id = "dev_console"
+name = "Debug Console"
+desc = "All towers deal 4× damage and fire twice as fast."
+effect = "run.mod_tower_dmg += 3\nrun.mod_tower_rate *= 0.5"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "developer"
+kind = "unique:dev_console"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_dev_noclip"]
+script = ExtResource("1_7nimu")
+id = "dev_noclip"
+name = "Noclip"
+desc = "Your hero deals 5× damage, attacks twice as fast and finishes non-boss enemies below 50% HP. Once per wave, a fatal blow leaves you at full HP."
+effect = "h.dmg *= 5\nh.spell *= 5\nh.rate *= 0.5\nh.execute = max(h.execute, 0.5)\nh.unbreakable = true"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "developer"
+kind = "unique:dev_noclip"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="U_dev_lives"]
+script = ExtResource("1_7nimu")
+id = "dev_lives"
+name = "Extra Lives Cheat"
+desc = "Your base gains 100 HP."
+effect = "run.lives += 100"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "developer"
+kind = "unique:dev_lives"
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_rcrdk")
-items = Array[ExtResource("1_7nimu")]([SubResource("U_echo"), SubResource("U_archmage"), SubResource("U_manashield"), SubResource("U_aegis"), SubResource("U_unbreak"), SubResource("U_exec"), SubResource("U_stasisL"), SubResource("U_storm"), SubResource("U_master"), SubResource("U_warp"), SubResource("U_deadeye"), SubResource("U_overwatch"), SubResource("U_abcrit"), SubResource("U_bruiser"), SubResource("U_eyestorm"), SubResource("U_downdraft"), SubResource("U_lifesteal"), SubResource("U_overkill"), SubResource("U_bounty"), SubResource("U_tithe"), SubResource("U_interest"), SubResource("U_sun"), SubResource("U_midas"), SubResource("U_heart")])
+items = Array[ExtResource("1_7nimu")]([SubResource("U_echo"), SubResource("U_archmage"), SubResource("U_manashield"), SubResource("U_aegis"), SubResource("U_unbreak"), SubResource("U_exec"), SubResource("U_stasisL"), SubResource("U_storm"), SubResource("U_master"), SubResource("U_warp"), SubResource("U_deadeye"), SubResource("U_overwatch"), SubResource("U_abcrit"), SubResource("U_bruiser"), SubResource("U_eyestorm"), SubResource("U_downdraft"), SubResource("U_lifesteal"), SubResource("U_overkill"), SubResource("U_bounty"), SubResource("U_tithe"), SubResource("U_interest"), SubResource("U_sun"), SubResource("U_midas"), SubResource("U_heart"), SubResource("U_sl_overlord"), SubResource("U_sl_titan"), SubResource("U_sl_dilation"), SubResource("U_sm_horizon"), SubResource("U_sm_engine"), SubResource("U_sm_godhand"), SubResource("U_dev_money"), SubResource("U_dev_console"), SubResource("U_dev_noclip"), SubResource("U_dev_lives")])

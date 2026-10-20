@@ -117,6 +117,10 @@ extends Resource
 @export var wave_gold_base := 25
 @export var wave_gold_per_wave := 5
 @export var shop_every := 10
+## Gold upgrades (Bounty Sigil, War Tithe, Investments, Midas Touch, Gold Rush, Rift Treasury) are not offered before this wave.
+@export var gold_from_wave := 8
+## Investments can never pay more than this share of your gold per wave.
+@export var interest_cap := 0.15
 @export_group("Hard and Challenge rules")
 @export var tough_hp := 1.4
 @export var tough_armor := 0.15
@@ -133,14 +137,23 @@ extends Resource
 @export var shards_per_boss := 15
 @export var shards_for_win := 60
 @export_group("Hero upgrades")
-@export var rarity_names: PackedStringArray = ["Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret"]
-@export var rarity_mults: PackedFloat32Array = [1.0, 1.4, 1.9, 2.6, 3.5, 4.5]
-@export var rarity_weights: PackedFloat32Array = [50.0, 25.0, 15.0, 6.5, 3.0, 0.5]
+## One entry per rarity: Common, Uncommon, Rare, Mythic, Legendary, Secret, Secret Legendary, Secret Mythic, Developer.
+## Each tier past Secret is half as likely as the one before it.
+@export var rarity_names: PackedStringArray = ["Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret", "Secret Legendary", "Secret Mythic", "Developer"]
+@export var rarity_mults: PackedFloat32Array = [1.0, 1.4, 1.9, 2.6, 3.5, 4.5, 6.0, 8.0, 12.0]
+@export var rarity_weights: PackedFloat32Array = [50.0, 25.0, 15.0, 6.5, 3.0, 0.5, 0.25, 0.125, 0.0625]
 @export var demonic_chance := 0.01
+## Chance the third upgrade slot offers a tower upgrade (any hero): base, + this much per tower upgrade taken, up to max.
+## From 3 tower upgrades taken, one hero slot can turn into a tower slot too (twice the lean as a chance).
+@export var tower_slot_base := 0.3
+@export var tower_slot_lean := 0.15
+@export var tower_slot_max := 0.8
 ## How many enemies Gale holds at once in Bruiser Form (other heroes hold 1 or 2, tanks hold all).
 @export var bruiser_block := 6
 ## Tank abilities (Vanguard, Gale) deal this share of the hero's max HP on top of their own damage.
 @export var tank_ability_hp := 0.04
+## Tank attacks (Vanguard, Gale) deal this share of the hero's max HP on top of their damage, so HP upgrades also add damage.
+@export var tank_attack_hp := 0.02
 ## Enemies the Wizard must push back (over all runs) to unlock the secret hero Gale.
 @export var gale_unlock_pushes := 500
 @export_multiline var level_offensive := "h.dmg *= 1.02\nh.range = iff(h.range < 9999, h.range * 1.01, h.range)\nh.rate /= 1.015"
@@ -159,10 +172,13 @@ extends Resource
 ## Share of max mana refilled when a wave is cleared.
 @export var wave_mana_refill := 0.3
 ## Wall spells use charges: the stack size (runs start full), and seconds to regain one (one at a time, during waves).
-@export var wall_charges := 5
+@export var wall_charges := 3
 @export var wall_recharge := 20.0
 ## Recharge upgrades can't bring a charge below this many seconds.
 @export var wall_recharge_min := 8.0
+## Wizard push-backs wear off: an enemy pushed again within push_wear_time seconds is pushed this much as long, per push.
+@export var push_wear := 0.5
+@export var push_wear_time := 3.0
 ## Fire spells set enemies burning for this share of their max HP per second, for fire_burn_time seconds (hits refresh it).
 @export var fire_burn_pct := 0.01
 @export var fire_burn_time := 3.0

@@ -20,7 +20,7 @@ const SHOT_SPEED := 800.0
 const ATK_FPS := 24.0
 const ORACLE_RANKS := [0, 2, 3, 4]
 const BOSS_CORES := { knight = 1, warden = 2, tyrant = 5 }
-const BIG_BOSS := { warden = true, tyrant = true }
+const BIG_BOSS := { tyrant = true }
 const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", "knock", "crit", "boss", "aura", "spell", "mana", "shield", "bruiser"]
 
 var S: Run = null
@@ -464,7 +464,8 @@ func tower_mode_mul() -> float:
 
 func hero_dmg() -> float:
 	var h := S.hero
-	return h.dmg * (R.lone_hero if S.mode.get("challenge", "") == "lone" else 1.0) * (1 + sb("dmg")) * (1 - h.weak if h.weak_t > 0 else 1.0)
+	var base := h.dmg + (h.max_hp * R.tank_attack_hp if h.data.category == "defensive" else 0.0)
+	return base * (R.lone_hero if S.mode.get("challenge", "") == "lone" else 1.0) * (1 + sb("dmg")) * (1 - h.weak if h.weak_t > 0 else 1.0)
 
 
 ## A Hero Shrine buff to the hero (dmg, rate, armor, regen, cdr, range, block, knock, crit, boss, aura, spell, mana, shield).
@@ -594,7 +595,8 @@ func _kill(e: Enemy, src) -> void:
 	e.dead = true
 	var h := S.hero
 	var by_hero: bool = not (src is Tower)
-	var g: float = e.gold * S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe
+	# Bounty Sigil and War Tithe add a share of the enemy's own gold, so they grow with the game instead of doubling it early.
+	var g: float = e.gold * (S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe)
 	if not by_hero and src.buff and src.buff.gold:
 		g *= 1 + src.buff.gold
 	if not by_hero and src.buff and src.buff.rush and randf() < 0.08:
@@ -1737,6 +1739,15 @@ func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
 	e.push_spd = maxf(e.push_spd, spd)
 
 
+## A spell's push-back wears off: each push on the same enemy within R.push_wear_time seconds is R.push_wear as long.
+func spell_push(e: Enemy, dur: float, spd: float, h: Hero) -> void:
+	if S.time - e.push_at > R.push_wear_time:
+		e.push_n = 0
+	push_back(e, dur * pow(R.push_wear, e.push_n), spd, h)
+	e.push_n += 1
+	e.push_at = S.time
+
+
 ## Moves an enemy back along the path, but never off the map: it stops on the first road tile
 ## (one still walking in from off the map isn't moved).
 func back_d(e: Enemy, amt: float) -> float:
@@ -1895,7 +1906,7 @@ func launch(h: Hero, x: float, y: float, color, size: float, land: Callable) -> 
 
 
 ## What one enemy hit by a spell gets: freezes, stuns, roots, push-back, poison, exposure, armor break.
-func _spell_each(sp: SpellData, h: Hero, p: float):
+func _spell_each(sp: SpellData, h: Hero, p: float, push_only := []):
 	var any := sp.freeze or sp.stun or sp.root or sp.push or sp.poison_dps or sp.expose or sp.armor_break
 	if not any:
 		return null
@@ -1906,8 +1917,8 @@ func _spell_each(sp: SpellData, h: Hero, p: float):
 			e.stun_t = maxf(e.stun_t, sp.stun_boss if e.boss else sp.stun)
 		if sp.root:
 			root_enemy(e, sp.root)
-		if sp.push:
-			push_back(e, sp.push, sp.push_speed, h)
+		if sp.push and (push_only.is_empty() or push_only.has(e)):
+			spell_push(e, sp.push, sp.push_speed, h)
 		if sp.poison_dps:
 			e.burn_t = maxf(e.burn_t, sp.poison_time)
 			e.burn_dps = maxf(e.burn_dps, sp.poison_dps * p)
@@ -1922,7 +1933,12 @@ func _spell_each(sp: SpellData, h: Hero, p: float):
 ## The blast of an area spell at (x, y): damage, effects, burning ground, the ring and the shake.
 func _spell_burst(sp: SpellData, h: Hero, x: float, y: float, p: float) -> void:
 	var r := sp.r * h.spell_r
-	var each = _spell_each(sp, h, p)
+	var push_only := []
+	if sp.push and sp.push_max > 0:
+		push_only = in_range(x, y, r)
+		push_only.sort_custom(func(a, b): return hyp(a.x - x, a.y - y) < hyp(b.x - x, b.y - y))
+		push_only = push_only.slice(0, sp.push_max)
+	var each = _spell_each(sp, h, p, push_only)
 	if sp.dmg or each:
 		hit_area(x, y, r, sp.dmg * p, each)
 	if sp.burn_time:
@@ -2262,7 +2278,7 @@ func wave_reward(n: int, kind: String, pts := 0):
 	# every challenge wave you clear gives a free hero upgrade
 	var out := { gold = gold, perk = true, relic = null }
 	if pts >= 5:
-		out.relic = pick(R.relics.items.filter(func(x): return (x.repeat or not owned.has(x.id)) and (not x.offensive_only or hero_cat() == "offensive")))
+		out.relic = pick(R.relics.items.filter(func(x): return gold_ok(x) and (x.repeat or not owned.has(x.id)) and (not x.offensive_only or hero_cat() == "offensive")))
 	out.label = "+%d gold" % gold + (", a free hero upgrade" if out.perk else "") + (" and the %s relic (%s)" % [out.relic.name, relic_desc(out.relic).trim_suffix(".")] if out.relic else "")
 	return out
 
@@ -2392,7 +2408,7 @@ func end_wave() -> void:
 		msgs.append("+%d from coins" % (25 * S.coins.size()))
 		S.coins = []
 	if S.hero.interest:
-		var i := int(round(S.gold * minf(0.3, S.hero.interest)))
+		var i := int(round(S.gold * minf(R.interest_cap, S.hero.interest)))
 		S.gold += i
 		msgs.append("+%d interest" % i)
 	var r = S.mode.get("reward")
@@ -3210,7 +3226,7 @@ func _leak(e: Enemy) -> bool:
 	var big := BIG_BOSS.has(e.type)
 	ring(S.map.base.x, S.map.base.y, 120 if big else 30, 0xff5d6c, 0.6, e.boss)
 	do_shake(0.02 if e.boss else 0.004, 450 if e.boss else 120)
-	# Big bosses end the run if they get through; mini bosses cost 5 base HP.
+	# The Tyrant ends the run if it gets through; other bosses cost their lives in base HP.
 	if big:
 		if S.mod_phoenix:
 			S.mod_phoenix = false
@@ -3340,6 +3356,20 @@ func roll_rarity() -> Dictionary:
 	return DB.rarities[0]
 
 
+## The rarities past Legendary, rarest first: each offers its own game-changers, falling back to the next tier down.
+const SECRET_TIERS := ["developer", "secret_mythic", "secret_legendary", "secret"]
+
+
+## Developer upgrades need the run's hero at max mastery.
+func dev_ok() -> bool:
+	return Progress.mastery_of("heroes", S.hero.cls).lvl >= R.mastery_max
+
+
+## Gold upgrades only show up from R.gold_from_wave on, so an early one can't snowball the whole run.
+func gold_ok(p: UpgradeData) -> bool:
+	return not p.gold or S.wave >= R.gold_from_wave
+
+
 func _min_ok(p: UpgradeData, rarity: Dictionary) -> bool:
 	return p.min_rarity == "any" or p.min_rarity == "" or rarity.mult >= DB.rar[p.min_rarity].mult
 
@@ -3379,8 +3409,19 @@ func roll_perks() -> Array:
 		return not (p.attack_speed and h.data.spells) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false))
 	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
-	var slots := ["hero", "hero", "hero" if randf() < 0.3 else "shared"]
+	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
+	# of them you already took, so a run leans toward the hero or the towers depending on what it gets.
+	var towers_taken := S.picks.filter(func(x): return x.perk.pool == "tower").size()
+	var tower_chance := minf(R.tower_slot_max, R.tower_slot_base + R.tower_slot_lean * towers_taken)
+	var slots := ["hero", "hero", "tower" if randf() < tower_chance else ("hero" if randf() < 0.3 else "shared")]
+	if towers_taken >= 3 and randf() < R.tower_slot_lean * 2:
+		slots[0] = "tower"
 	slots.shuffle()
+	var slot_ok := func(p: UpgradeData, slot: String) -> bool:
+		match slot:
+			"hero": return p.pool == h.cls
+			"tower": return p.pool == "tower"
+		return shared.call(p)
 	for slot in slots:
 		var rarity := roll_rarity()
 		var demonic := randf() < R.demonic_chance
@@ -3393,9 +3434,15 @@ func roll_perks() -> Array:
 		var perk: UpgradeData = null
 		var list := "perk"
 		var rar := rarity
-		if rarity.id == "secret":
-			perk = pick(R.uniques.items.filter(func(u): return u.rarity == "secret" and not owns(u.id) and fresh.call(u)))
-			list = "unique"
+		if SECRET_TIERS.has(rarity.id):
+			# Developer upgrades are only for a hero at max mastery; anyone else gets a Secret Mythic roll instead.
+			var tier: String = rarity.id if rarity.id != "developer" or dev_ok() else "secret_mythic"
+			for t in SECRET_TIERS.slice(SECRET_TIERS.find(tier)):
+				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and not owns(u.id) and fresh.call(u) and gold_ok(u)))
+				if perk:
+					list = "unique"
+					rar = DB.rar[t]
+					break
 			if perk == null:
 				list = "perk"
 				rar = DB.rar.legendary
@@ -3403,7 +3450,7 @@ func roll_perks() -> Array:
 			# game-changers: this tier first, then the other one, then a Rare stat upgrade
 			var tiers := ["legendary", "mythic"] if rar.id == "legendary" else ["mythic", "legendary"]
 			for tier in tiers:
-				var uniq := R.uniques.items.filter(func(u): return u.rarity == tier and mine.call(u) and ab_ok.call(u) and allowed.call(u) and not owns(u.id) and fresh.call(u))
+				var uniq := R.uniques.items.filter(func(u): return u.rarity == tier and mine.call(u) and ab_ok.call(u) and allowed.call(u) and not owns(u.id) and fresh.call(u) and gold_ok(u))
 				var mods := R.ability_mods.items.filter(func(m): return m.pool == h.cls and m.ability == h.ab.id and (m.min_rarity == "legendary") == (tier == "legendary") \
 					and not h.ab.has_mod(m.id) and fresh.call(m))
 				var both := uniq + mods
@@ -3415,7 +3462,7 @@ func roll_perks() -> Array:
 			if perk == null:
 				rar = DB.rar.rare
 		if perk == null:
-			var pool := func(p: UpgradeData) -> bool: return (p.pool == h.cls if slot == "hero" else shared.call(p)) and ab_ok.call(p) and fits.call(p) and _min_ok(p, rar)
+			var pool := func(p: UpgradeData) -> bool: return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) and _min_ok(p, rar)
 			# If every kind in this pool is already on offer, fall back to anything not already shown.
 			perk = pick(weighted.call(R.perks.items.filter(func(p): return pool.call(p) and fresh.call(p))))
 			if perk == null:
@@ -3423,7 +3470,16 @@ func roll_perks() -> Array:
 			if perk == null:
 				perk = pick(R.perks.items.filter(func(p): return (pool.call(p) or shared.call(p)) and allowed.call(p) and not taken.has(p.id)))
 		if perk:
-			out.append(make_offer(perk, list, rar, demonic and list == "perk"))
+			var o := make_offer(perk, list, rar, demonic and list == "perk")
+			# A game-changer takes the slot of a stat upgrade, so it also brings a Rare one and is never a step down.
+			if list != "perk":
+				var stat: UpgradeData = pick(R.perks.items.filter(func(p): return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) \
+					and _min_ok(p, DB.rar.rare) and not taken.has(p.id)))
+				if stat == null:
+					stat = pick(R.perks.items.filter(func(p): return (p.pool == h.cls or shared.call(p)) and ab_ok.call(p) and fits.call(p)))
+				if stat:
+					o["bonus"] = make_offer(stat, "perk", DB.rar.rare, false)
+			out.append(o)
 	return out
 
 
@@ -3456,6 +3512,8 @@ func owned_count(id: String) -> int:
 
 func apply_offer(o: Dictionary) -> void:
 	Fx.run(o.perk.effect, { h = S.hero, run = S, m = o.m })
+	if o.get("bonus"):
+		apply_offer(o.bonus)
 
 
 var offers: Array = []
@@ -3482,6 +3540,8 @@ func pick_offer(i: int) -> void:
 	if o.demonic:
 		Fx.run(o.curse.effect, { run = S, h = h, k = o.k })
 	S.picks.append(o)
+	if o.get("bonus"):
+		S.picks.append(o.bonus)
 	if o.list == "mod":
 		ring(h.x, h.y, 60, 0xff6fd8, 0.8, true)
 		say(h.ab.name + " upgraded: " + o.perk.name + "!")
@@ -3520,7 +3580,7 @@ func heroic_desc(x: UpgradeData, r: int) -> String:
 ## After a boss: 3 new heroic powers, plus options to rank up ones you own (up to rank 3).
 func show_heroic() -> void:
 	S.paused = true
-	var fresh := R.heroics.items.filter(func(x): return not S.heroics.get(x.id, 0) and (x.heroes.is_empty() or x.heroes.has(S.hero.cls)))
+	var fresh := R.heroics.items.filter(func(x): return gold_ok(x) and not S.heroics.get(x.id, 0) and (x.heroes.is_empty() or x.heroes.has(S.hero.cls)))
 	fresh.shuffle()
 	heroic_fresh = fresh.slice(0, 3)
 	var owned := R.heroics.items.filter(func(x): return S.heroics.get(x.id, 0) and S.heroics[x.id] < 3)
