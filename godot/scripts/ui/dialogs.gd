@@ -48,7 +48,7 @@ func _card(rar_id: String, demonic := false) -> Choice:
 	if demonic:
 		ch.accent = Kit.DANGER
 		ch.glow = Color(Kit.DANGER, 0.25)
-	elif rar_id in ["mythic", "legendary", "secret", "heroic"]:
+	elif rar_id in ["mythic", "legendary", "secret", "secret_legendary", "secret_mythic", "developer", "heroic"]:
 		ch.glow = Color(col, 0.18)
 	ch.custom_minimum_size = Vector2(190, 0)
 	ch.size_flags_vertical = Control.SIZE_FILL

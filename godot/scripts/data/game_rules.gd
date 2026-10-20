@@ -137,10 +137,17 @@ extends Resource
 @export var shards_per_boss := 15
 @export var shards_for_win := 60
 @export_group("Hero upgrades")
-@export var rarity_names: PackedStringArray = ["Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret"]
-@export var rarity_mults: PackedFloat32Array = [1.0, 1.4, 1.9, 2.6, 3.5, 4.5]
-@export var rarity_weights: PackedFloat32Array = [50.0, 25.0, 15.0, 6.5, 3.0, 0.5]
+## One entry per rarity: Common, Uncommon, Rare, Mythic, Legendary, Secret, Secret Legendary, Secret Mythic, Developer.
+## Each tier past Secret is half as likely as the one before it.
+@export var rarity_names: PackedStringArray = ["Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret", "Secret Legendary", "Secret Mythic", "Developer"]
+@export var rarity_mults: PackedFloat32Array = [1.0, 1.4, 1.9, 2.6, 3.5, 4.5, 6.0, 8.0, 12.0]
+@export var rarity_weights: PackedFloat32Array = [50.0, 25.0, 15.0, 6.5, 3.0, 0.5, 0.25, 0.125, 0.0625]
 @export var demonic_chance := 0.01
+## Chance the third upgrade slot offers a tower upgrade (any hero): base, + this much per tower upgrade taken, up to max.
+## From 3 tower upgrades taken, one hero slot can turn into a tower slot too (twice the lean as a chance).
+@export var tower_slot_base := 0.3
+@export var tower_slot_lean := 0.15
+@export var tower_slot_max := 0.8
 ## How many enemies Gale holds at once in Bruiser Form (other heroes hold 1 or 2, tanks hold all).
 @export var bruiser_block := 6
 ## Tank abilities (Vanguard, Gale) deal this share of the hero's max HP on top of their own damage.

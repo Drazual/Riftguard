@@ -13,13 +13,13 @@ extends Resource
 @export_multiline var effect := ""
 ## Base strength (m before rarity).
 @export var m := 0.0
-## Who can be offered it: any, offensive, defensive, support, or a hero id.
+## Who can be offered it: any, offensive, defensive, support, tower (any hero, in the tower slot), or a hero id.
 @export var pool := "any"
 @export var also_pools: PackedStringArray = []
 ## Only for this ability (slam, nova, bulwark, ...). Empty = any.
 @export var ability := ""
-@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret") var rarity := "any"
-@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret") var min_rarity := "any"
+@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_legendary", "secret_mythic", "developer") var rarity := "any"
+@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_legendary", "secret_mythic", "developer") var min_rarity := "any"
 ## Gold upgrade (kept for the stats log; gold upgrades now live in the Legendary uniques).
 @export var gold := false
 ## Attack speed upgrade (never offered to the Wizard).

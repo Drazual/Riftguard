@@ -3356,6 +3356,15 @@ func roll_rarity() -> Dictionary:
 	return DB.rarities[0]
 
 
+## The rarities past Legendary, rarest first: each offers its own game-changers, falling back to the next tier down.
+const SECRET_TIERS := ["developer", "secret_mythic", "secret_legendary", "secret"]
+
+
+## Developer upgrades need the run's hero at max mastery.
+func dev_ok() -> bool:
+	return Progress.mastery_of("heroes", S.hero.cls).lvl >= R.mastery_max
+
+
 ## Gold upgrades only show up from R.gold_from_wave on, so an early one can't snowball the whole run.
 func gold_ok(p: UpgradeData) -> bool:
 	return not p.gold or S.wave >= R.gold_from_wave
@@ -3400,8 +3409,19 @@ func roll_perks() -> Array:
 		return not (p.attack_speed and h.data.spells) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false))
 	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
-	var slots := ["hero", "hero", "hero" if randf() < 0.3 else "shared"]
+	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
+	# of them you already took, so a run leans toward the hero or the towers depending on what it gets.
+	var towers_taken := S.picks.filter(func(x): return x.perk.pool == "tower").size()
+	var tower_chance := minf(R.tower_slot_max, R.tower_slot_base + R.tower_slot_lean * towers_taken)
+	var slots := ["hero", "hero", "tower" if randf() < tower_chance else ("hero" if randf() < 0.3 else "shared")]
+	if towers_taken >= 3 and randf() < R.tower_slot_lean * 2:
+		slots[0] = "tower"
 	slots.shuffle()
+	var slot_ok := func(p: UpgradeData, slot: String) -> bool:
+		match slot:
+			"hero": return p.pool == h.cls
+			"tower": return p.pool == "tower"
+		return shared.call(p)
 	for slot in slots:
 		var rarity := roll_rarity()
 		var demonic := randf() < R.demonic_chance
@@ -3414,9 +3434,15 @@ func roll_perks() -> Array:
 		var perk: UpgradeData = null
 		var list := "perk"
 		var rar := rarity
-		if rarity.id == "secret":
-			perk = pick(R.uniques.items.filter(func(u): return u.rarity == "secret" and not owns(u.id) and fresh.call(u) and gold_ok(u)))
-			list = "unique"
+		if SECRET_TIERS.has(rarity.id):
+			# Developer upgrades are only for a hero at max mastery; anyone else gets a Secret Mythic roll instead.
+			var tier: String = rarity.id if rarity.id != "developer" or dev_ok() else "secret_mythic"
+			for t in SECRET_TIERS.slice(SECRET_TIERS.find(tier)):
+				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and not owns(u.id) and fresh.call(u) and gold_ok(u)))
+				if perk:
+					list = "unique"
+					rar = DB.rar[t]
+					break
 			if perk == null:
 				list = "perk"
 				rar = DB.rar.legendary
@@ -3436,7 +3462,7 @@ func roll_perks() -> Array:
 			if perk == null:
 				rar = DB.rar.rare
 		if perk == null:
-			var pool := func(p: UpgradeData) -> bool: return (p.pool == h.cls if slot == "hero" else shared.call(p)) and ab_ok.call(p) and fits.call(p) and _min_ok(p, rar)
+			var pool := func(p: UpgradeData) -> bool: return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) and _min_ok(p, rar)
 			# If every kind in this pool is already on offer, fall back to anything not already shown.
 			perk = pick(weighted.call(R.perks.items.filter(func(p): return pool.call(p) and fresh.call(p))))
 			if perk == null:
@@ -3447,7 +3473,7 @@ func roll_perks() -> Array:
 			var o := make_offer(perk, list, rar, demonic and list == "perk")
 			# A game-changer takes the slot of a stat upgrade, so it also brings a Rare one and is never a step down.
 			if list != "perk":
-				var stat: UpgradeData = pick(R.perks.items.filter(func(p): return (p.pool == h.cls if slot == "hero" else shared.call(p)) and ab_ok.call(p) and fits.call(p) \
+				var stat: UpgradeData = pick(R.perks.items.filter(func(p): return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) \
 					and _min_ok(p, DB.rar.rare) and not taken.has(p.id)))
 				if stat == null:
 					stat = pick(R.perks.items.filter(func(p): return (p.pool == h.cls or shared.call(p)) and ab_ok.call(p) and fits.call(p)))
