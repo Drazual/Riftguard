@@ -141,8 +141,14 @@ func _init() -> void:
 		th.set_stylebox(st, "OptionButton", _box(PANEL if st != "hover" else PANEL2, TECH if st == "hover" else LINE, 1, 5, 8))
 	th.set_font("font", "OptionButton", body)
 	th.set_stylebox("panel", "PopupMenu", _box(PANEL, LINE, 1, 4, 6))
-	th.set_stylebox("slider", "HSlider", _box(PANEL2, LINE, 1, 3, 0))
+	# a slider's track is as tall as its stylebox margins, so they need some height or only the knob shows
+	var track := _box(PANEL2, LINE, 1, 3, 0)
+	track.content_margin_top = 3
+	track.content_margin_bottom = 3
+	th.set_stylebox("slider", "HSlider", track)
 	var grab := _box(TECH, TECH, 0, 3, 0)
+	grab.content_margin_top = 3
+	grab.content_margin_bottom = 3
 	th.set_stylebox("grabber_area", "HSlider", grab)
 	th.set_stylebox("grabber_area_highlight", "HSlider", grab)
 	var sc := _box(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 3, 0)

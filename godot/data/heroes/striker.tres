@@ -28,8 +28,8 @@ desc = "For {f1(a.dur)}s you attack {pct(a.power)} faster."
 script = ExtResource("2_ygewa")
 id = "honed"
 name = "Honed Edge"
-desc = "+{5 * r}% damage"
-effect = "h.dmg *= 1 + 0.05 * r"
+desc = "+{8 * r}% damage"
+effect = "h.dmg *= 1 + 0.08 * r"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 

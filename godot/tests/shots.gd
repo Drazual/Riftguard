@@ -55,6 +55,22 @@ func _ready() -> void:
 		S.sel = S.towers[0]
 		main.ui.render_inspector()
 	await _shot("06_inspect")
+	var sel_size := main.board.size
+	for tw in S.towers:
+		S.sel = tw
+		main.ui.render_inspector()
+		for i in 3:
+			await get_tree().process_frame
+		if main.board.size != sel_size:
+			print("SHOTS board size changed with %s selected: %s" % [tw.type, main.board.size])
+	S.sel = null
+	main.ui.render_inspector()
+	for i in 4:
+		await get_tree().process_frame
+	print("SHOTS board size selected %s, deselected %s" % [sel_size, main.board.size])
+	main.ui.menus.show_settings()
+	await _shot("06b_pause_menu")
+	main.ui.menus.close_settings()
 	S.pending_levels = 1
 	for i in 5:
 		await get_tree().process_frame

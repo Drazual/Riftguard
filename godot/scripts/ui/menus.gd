@@ -1024,12 +1024,19 @@ func _slider(name: String, v: float, cb: Callable, on_release := Callable()) -> 
 	s.max_value = 1
 	s.step = 0.05
 	s.value = v
-	s.custom_minimum_size = Vector2(220, 16)
+	s.custom_minimum_size = Vector2(200, 16)
 	s.focus_mode = Control.FOCUS_NONE
 	s.value_changed.connect(cb)
 	if on_release.is_valid():
 		s.drag_ended.connect(func(_c): on_release.call())
-	return _setting_row(name, s)
+	var h := Kit.hbox(10)
+	h.add_child(s)
+	var pct := Kit.label("%d%%" % roundi(v * 100), 13, Kit.MUTED)
+	pct.custom_minimum_size = Vector2(40, 0)
+	pct.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	h.add_child(pct)
+	s.value_changed.connect(func(x): pct.text = "%d%%" % roundi(x * 100))
+	return _setting_row(name, h)
 
 
 func _select(name: String, items: Array, at: int, cb: Callable) -> Control:
@@ -1235,7 +1242,7 @@ func show_settings() -> void:
 			ui.render_inspector()
 			ui.render_hero()
 			ui.render_enemy_codex()))
-	var row := Kit.hbox()
+	var row := Kit.flow(8)
 	row.add_child(Kit.go("RESUME" if in_run else "DONE", close_settings))
 	if in_run:
 		row.add_child(Kit.button("RESTART RUN", func():

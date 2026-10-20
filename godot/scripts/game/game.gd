@@ -2311,6 +2311,9 @@ func end_wave() -> void:
 		S.need_choice = true
 	if S.wave % R.shop_every == 0:
 		S.need_shop = true
+	# a free hero upgrade from the wave reward opens its pick right away
+	if S.pending_levels > 0 and not S.user_pause:
+		show_level_up()
 
 
 func fail_req(why: String) -> void:
