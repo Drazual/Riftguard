@@ -127,7 +127,7 @@ func zone(z: Dictionary) -> Dictionary:
 		z.T = z.t
 	if _fire_ctx:
 		z.fire = true
-	for k in ["dps", "slow", "brk", "end_freeze"]:
+	for k in ["dps", "slow", "brk", "end_freeze", "vuln"]:
 		if not z.has(k):
 			z[k] = 0.0
 	S.zones.append(z)
@@ -964,6 +964,84 @@ func land_shell(sh: Dictionary) -> void:
 	do_shake(0.004, 110)
 
 
+## Razor Disc: throws a big spinning disc in a straight line at where the enemy will be. It cuts through every
+## enemy it touches until it has used its hits (a boss uses 3), then stops, or flies back with Boomerang.
+## Returns the direction thrown, so a volley can follow the same line.
+func throw_disc(t: Tower, e, mult := 1.0, dir = null, hits := -1) -> Vector2:
+	var sig: bool = S.sig.get("disc", false) and t.base_types().has("disc")
+	if dir == null:
+		var T: float = hyp(e.x - t.x, e.y - t.y) / t.disc_speed
+		var lead: float = 0.0 if e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * T
+		var aim: Vector2 = pos_at(minf(S.map.path_len, e.d + lead)) - t.pos()
+		dir = (aim if aim.length() > 1 else Vector2(e.x - t.x, e.y - t.y)).normalized()
+	var dmg := t.dmg * mult * S.mod_tower_dmg * tower_mode_mul()
+	if t.buff:
+		dmg *= 1 + t.buff.dmg
+	if S.hero.aura > 0 and near_aura(t):
+		dmg *= 1 + S.hero.aura * (1 + sb("aura"))
+	if t == S.drained:
+		dmg *= 0.5
+	var n := float(hits) if hits > 0 else t.disc_hits + (3 if sig else 0)
+	t.shots += 1
+	t.shot_at = S.time
+	t.fired_at = S.time
+	t.hit_at = null
+	sfx("shot")
+	S.discs.append({ tw = t, x = t.x, y = t.y, dir = dir, speed = t.disc_speed, r = t.disc_r * (1.25 if sig else 1.0), dmg = dmg,
+		hits = n, left = 1e9 if t.disc_unbound else n, hit = {}, flown = 0.0, reach = t.disc_reach, back = false, spin = randf() * TAU,
+		tx = t.x, ty = t.y, wait = fire_lead(t), done = false })
+	return dir
+
+
+func move_discs(dt: float) -> void:
+	for dk in S.discs:
+		var t: Tower = dk.tw
+		if not S.towers.has(t):
+			dk.done = true
+			continue
+		if dk.wait > 0:
+			dk.wait -= dt
+			continue
+		var step: float = dk.speed * dt
+		if dk.back:
+			var to := t.pos() - Vector2(dk.x, dk.y)
+			if to.length() <= step:
+				dk.done = true
+				continue
+			dk.dir = to.normalized()
+		dk.x += dk.dir.x * step
+		dk.y += dk.dir.y * step
+		dk.flown += step
+		dk.spin += dt * 20
+		if t.disc_trail and hyp(dk.x - dk.tx, dk.y - dk.ty) >= 30:
+			zone({ line = true, x1 = dk.tx, y1 = dk.ty, x2 = dk.x, y2 = dk.y, x = (dk.tx + dk.x) / 2, y = (dk.ty + dk.y) / 2, r = dk.r * 0.7,
+				t = 4.0 if t.disc_scorch else 2.0, dps = t.dmg * S.mod_tower_dmg * 0.35 if t.disc_scorch else 0.0, vuln = t.disc_trail,
+				color = col(0xff8a3d), src = t })
+			dk.tx = dk.x
+			dk.ty = dk.y
+		for e in S.enemies:
+			if dk.left <= 0:
+				break
+			if e.dead or dk.hit.has(e) or hyp(e.x - dk.x, e.y - dk.y) > dk.r + e.r:
+				continue
+			dk.hit[e] = true
+			dk.left -= 3 if e.boss and not t.disc_heavy else 1
+			if t.disc_trail:
+				e.brittle = maxf(e.brittle, t.disc_trail)
+				e.brittle_t = maxf(e.brittle_t, 2.0)
+			apply_hit(t, e, dk.dmg * (1.5 if e.boss and t.disc_heavy else 1.0))
+			ring(e.x, e.y, e.r + 6, t.color, 0.15)
+		var off: bool = dk.x < -30 or dk.x > W + 30 or dk.y < -30 or dk.y > H + 30
+		if dk.left <= 0 or off or (not dk.back and not t.disc_unbound and dk.flown >= dk.reach):
+			if t.disc_return and not dk.back:
+				dk.back = true
+				dk.left = 1e9 if t.disc_unbound else dk.hits
+				dk.hit = {}
+			elif not dk.back or dk.left <= 0:
+				dk.done = true
+	S.discs = S.discs.filter(func(dk): return not dk.done)
+
+
 ## Effects that trigger once per shot rather than per target.
 func shot_effects(t: Tower, dmg: float) -> void:
 	var R_ := t_range(t)
@@ -1152,6 +1230,11 @@ func super_power(t: Tower) -> bool:
 			fx_add({ k = "pillar", x = top.x, y = top.y, w = 16.0, color = col(0xff6fa0), t = 0.9 })
 			ring(top.x, top.y, 70, 0xff6fa0, 0.7, true)
 			do_shake(0.02, 300)
+		"disc":
+			for i in 8:
+				throw_disc(t, null, 3.0, Vector2.from_angle(i * TAU / 8 + randf() * 0.3), 10)
+			ring(t.x, t.y, 60, 0x8cf0ff, 0.6, true)
+			do_shake(0.012, 300)
 		"mortar":
 			for i in 10:
 				later(0.3 + i * 0.12, func():
@@ -2538,6 +2621,7 @@ func restart_wave(reason: String) -> void:
 	S.delayed = []
 	S.echoes = []
 	S.shells = []
+	S.discs = []
 	S.proj = []
 	S.spawn_q = make_wave(S.wave, S.mode)
 	S.spawn_t = 1.5
@@ -2701,7 +2785,7 @@ func update(dt: float) -> void:
 				break
 	for z in S.zones:
 		z.t -= dt
-		if z.dps or z.slow:
+		if z.dps or z.slow or z.vuln:
 			for e in S.enemies:
 				if e.dead:
 					continue
@@ -2720,6 +2804,9 @@ func update(dt: float) -> void:
 				if z.brk and not e.dead:
 					e.brk = maxf(e.brk, z.brk)
 					e.brk_t = maxf(e.brk_t, 0.3)
+				if z.vuln and not e.dead:
+					e.brittle = maxf(e.brittle, z.vuln)
+					e.brittle_t = maxf(e.brittle_t, 2.0)
 		if z.end_freeze and z.t <= 0:
 			for e in in_range(z.x, z.y, z.r):
 				freeze_enemy(e, z.end_freeze, h)
@@ -2742,6 +2829,7 @@ func update(dt: float) -> void:
 			land_shell(sh)
 	move_shots(dt)
 	S.shells = S.shells.filter(func(sh): return not sh.done)
+	move_discs(dt)
 	_towers_step(h, dt)
 	if h.ko <= 0:
 		for c in S.coins:
@@ -3208,6 +3296,14 @@ func _towers_step(h: Hero, dt: float) -> void:
 		var targets := in_range(t.x, t.y, t_range(t))
 		sort_targets(t, targets)
 		targets = targets.slice(0, 1 + int(t.multi))
+		if t.type == "disc":
+			if targets.size():
+				t.cd = t.rate * S.mod_tower_rate
+				for e in targets:
+					var dir := throw_disc(t, e)
+					for i in int(t.disc_volley):
+						later(0.18 * (i + 1), func(): if S.towers.has(t): throw_disc(t, null, 1.0, dir))
+			continue
 		if t.lob:
 			if targets.size():
 				t.cd = t.rate * S.mod_tower_rate
@@ -3572,6 +3668,7 @@ func new_tower(type: String, c: int, r: int) -> Tower:
 	t.beam = d.beam
 	t.ramp_max = 20.0 if d.beam else 5.0
 	t.lob = d.lob
+	t.disc_reach = d.range * 2.2
 	t.color = d.color
 	t.base_cost = d.cost
 	return t
@@ -3944,6 +4041,9 @@ func try_merge(a: Tower, b: Tower) -> void:
 	m.hex_nova = maxf(a.hex_nova, b.hex_nova)
 	if m.parents.has("anvil"):
 		m.crush = maxf(m.crush, 0.5)
+	# a hybrid fires normal shots, so the Razor Disc's cutting lives on as pierce
+	if m.parents.has("disc"):
+		m.pierce = maxf(m.pierce, 3)
 	# Fast + heavy parents would otherwise get the big hit at the fast rate: keep damage per second within 2.6x
 	# the stronger parent's (6x for supers).
 	var dps_cap := (6.0 if m.is_super else 2.6) * maxf(a.dmg / a.rate, b.dmg / b.rate)
@@ -4201,10 +4301,19 @@ func handle_click(x: float, y: float, touch := false) -> void:
 		return
 	if t:
 		S.sel = t
+		S.hero_sel = false
 		S.build = ""
 		S.pending_build = null
 		refresh("build_bar")
 		refresh("inspector")
+		return
+	# clicking the hero selects it, which shows its attack range; clicking anywhere else lets go
+	var on_hero := S.build == "" and hero_hit(x, y)
+	S.hero_sel = on_hero and not S.hero_sel
+	if on_hero:
+		if S.sel != null:
+			S.sel = null
+			refresh("inspector")
 		return
 	if S.build != "":
 		var why := build_problem(cell.x, cell.y, S.build)
@@ -4233,6 +4342,12 @@ func handle_click(x: float, y: float, touch := false) -> void:
 		move_hero(x, y)
 
 
+## The hero stands upright, so its body reaches up the screen from the spot it stands on.
+func hero_hit(x: float, y: float) -> bool:
+	var h := S.hero
+	return h.ko <= 0 and absf(x - h.x) <= 20 and h.y - y >= -14 and h.y - y <= 55
+
+
 func select_build(k: String) -> void:
 	if S.over or S.paused:
 		return
@@ -4241,6 +4356,7 @@ func select_build(k: String) -> void:
 	elif S.gold >= tower_cost(k):
 		S.build = k
 		S.sel = null
+		S.hero_sel = false
 		S.merge_from = null
 	refresh("build_bar")
 	refresh("inspector")
@@ -4275,7 +4391,8 @@ func esc_step() -> bool:
 	elif S.runes.size():
 		S.runes = []
 		refresh("runes")
-	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null:
+	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null or S.hero_sel:
+		S.hero_sel = false
 		S.build = ""
 		S.merge_from = null
 		S.sel = null

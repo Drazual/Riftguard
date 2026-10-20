@@ -30,6 +30,8 @@ var enemies: Array = [] # Enemy
 var towers: Array = [] # Tower
 var fx: Array = [] # Dictionary
 var sel = null # Tower
+## The hero is selected (clicked): shows its attack range.
+var hero_sel := false
 var build := ""
 var merge_from = null
 var pending_build = null # {c, r, type}
@@ -59,6 +61,8 @@ var runes: Array = []
 var rune_keys := {}
 var delayed: Array = []
 var shells: Array = []
+## Razor Disc projectiles in flight.
+var discs: Array = []
 var proj: Array = []
 var beams: Array = []
 var kills := { hero = 0, towers = {} }

@@ -4,7 +4,7 @@ extends SceneTree
 
 
 func _init() -> void:
-	for id in ["anvil", "arcane", "beacon", "frost", "laser", "mortar", "plasma", "tesla"]:
+	for id in ["anvil", "arcane", "beacon", "disc", "frost", "laser", "mortar", "plasma", "tesla"]:
 		_tower(id)
 	for id in ["oracle", "sniper", "striker", "vanguard", "wizard"]:
 		_hero(id)

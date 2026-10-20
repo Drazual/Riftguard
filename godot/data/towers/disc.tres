@@ -1,0 +1,118 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="SpriteFrames" path="res://art/towers/disc.tres" id="1_771xw"]
+[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_path"]
+[ext_resource type="Script" path="res://scripts/data/tower_path_set.gd" id="2_0goco"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_data"]
+[ext_resource type="Texture2D" path="res://assets/towers/disc.png" id="3_sheet"]
+
+[sub_resource type="Resource" id="Resource_dhone"]
+script = ExtResource("1_path")
+id = "honed"
+name = "Honed Edge"
+adjective = "Honed"
+noun = "Cleaver"
+title = "Edges"
+desc = "+20% damage per point."
+effect = "t.dmg *= 1.2"
+mastery_name = "Heavy Disc"
+mastery_desc = "Bosses only count as 1 hit instead of 3, and take +50% damage from the disc."
+mastery_effect = "t.disc_heavy = true"
+
+[sub_resource type="Resource" id="Resource_dflight"]
+script = ExtResource("1_path")
+id = "flight"
+name = "Long Flight"
+tag = "multi"
+adjective = "Soaring"
+noun = "Glaive"
+title = "Flight"
+desc = "Each disc hits 2 more enemies and flies 10% farther per point."
+effect = "t.disc_hits += 2
+t.disc_reach *= 1.1"
+mastery_name = "Endless Arc"
+mastery_desc = "No hit limit: discs cut through everything until they leave the map."
+mastery_effect = "t.disc_unbound = true"
+
+[sub_resource type="Resource" id="Resource_dsear"]
+script = ExtResource("1_path")
+id = "sear"
+name = "Searing Path"
+tag = "burn"
+adjective = "Searing"
+noun = "Brand"
+title = "Embers"
+desc = "Discs leave a burning trail. Enemies hit by a disc or crossing its trail take +8% damage per point for 2s."
+effect = "t.disc_trail += 0.08"
+mastery_name = "Scorched Trail"
+mastery_desc = "The trail lasts twice as long and burns for 35% of the disc's damage every second."
+mastery_effect = "t.disc_scorch = true"
+
+[sub_resource type="Resource" id="Resource_dload"]
+script = ExtResource("1_path")
+id = "loader"
+name = "Quick Loader"
+tag = "speed"
+adjective = "Rapid"
+noun = "Thrower"
+title = "Volleys"
+desc = "Throws 12% faster per point."
+effect = "t.rate *= 0.88"
+mastery_name = "Disc Volley"
+mastery_desc = "Every throw sends 2 more discs right behind the first, along the same line."
+mastery_effect = "t.disc_volley = 2"
+
+[sub_resource type="Resource" id="Resource_dricochet"]
+script = ExtResource("1_path")
+id = "ricochet"
+name = "Ricochet"
+tag = "precision"
+adjective = "Returning"
+noun = "Boomerang"
+title = "Return"
+desc = "Discs are 15% bigger and fly 10% faster per point."
+effect = "t.disc_r *= 1.15
+t.disc_speed *= 1.1"
+mastery_name = "Boomerang"
+mastery_desc = "A disc that runs out of hits (or reaches the map's edge) flies back to the tower with its hit count reset, cutting through enemies again."
+mastery_effect = "t.disc_return = true"
+
+[resource]
+script = ExtResource("2_data")
+id = "disc"
+name = "Razor Disc"
+cost = 150
+dmg = 40.0
+rate = 2.2
+range = 200.0
+element_tag = "multi"
+color = Color(0.54901963, 0.9411765, 1, 1)
+info = "Throws a big spinning disc in a straight line. It cuts through the first 6 enemies it touches (bosses count as 3), so place it where the path runs straight toward it. Shreds crowds of small enemies, weak against bosses."
+paths = Array[ExtResource("1_path")]([SubResource("Resource_dhone"), SubResource("Resource_dflight"), SubResource("Resource_dsear"), SubResource("Resource_dload"), SubResource("Resource_dricochet")])
+signature_name = "Twin Edge"
+signature_desc = "Discs are 25% bigger and hit 3 more enemies."
+super_power_name = "Saw Storm"
+super_power_desc = "hurls 8 discs outward in every direction, each cutting through 10 enemies for 3× damage"
+form_names = {
+"012": "Siege Cleaver",
+"0123": "Butcher's Carousel",
+"01234": "Eternal Sawblade",
+"0124": "Homing Cleaver",
+"013": "Guillotine Battery",
+"0134": "Reaper's Return",
+"014": "Headsman's Boomerang",
+"023": "Molten Shredder",
+"0234": "Hellwheel",
+"024": "Brand Boomerang",
+"034": "Whirling Carousel",
+"123": "Ember Storm",
+"1234": "Wildfire Halo",
+"124": "Comet Glaive",
+"134": "Ring of Blades",
+"234": "Phoenix Disc"
+}
+frames = ExtResource("1_771xw")
+sheet = ExtResource("3_sheet")
+foot_y = 41.0
+muzzle_y = 18.0
+fire_frame = 3
