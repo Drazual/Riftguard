@@ -15,10 +15,12 @@ extends Node2D
 ## painted tiles, road and props. The Ground and Props layers then only say where the road, water and
 ## blocked tiles are, so keep them matching the picture.
 @export var backdrop: Texture2D
-## Optional: the backdrop as a loop of frames (all 768x416) so water, palms and signs can move. The board
-## cycles them at backdrop_fps; keep the first frame the same picture as `backdrop`.
+## Optional: the backdrop as frames (all 768x416) so water, palms and signs can move. The board eases back
+## and forth through the first backdrop_span of them, crossfading, once every backdrop_period seconds; keep
+## the first frame the same picture as `backdrop`. A small span keeps the motion subtle.
 @export var backdrop_frames: Array[Texture2D] = []
-@export var backdrop_fps := 5.0
+@export var backdrop_span := 2
+@export var backdrop_period := 7.0
 @export var waves := 20
 @export var shard_mult := 1.0
 @export var enemy_hp := 1.0

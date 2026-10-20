@@ -58,6 +58,7 @@ var spell_frames: SpriteFrames = preload("res://art/fx/spells.tres")
 var ground_for = null
 var ground_anim: Array[ImageTexture] = []
 var ground_anim_t := 0.0
+var ground_blend := ShaderMaterial.new()
 var frame_no := 0
 var tip_tower: Tower = null
 var shake_t := 0.0
@@ -86,6 +87,7 @@ func _ready() -> void:
 	ground = Sprite2D.new()
 	ground.centered = false
 	ground.scale = Vector2(1 / PX, 1 / PX)
+	ground_blend.shader = preload("res://scripts/board/ground_blend.gdshader")
 	world.add_child(ground)
 	flat = _layer("Flat", _draw_flat)
 	flat.position = Vector2(0, TOP)
@@ -1062,16 +1064,22 @@ func bake_ground(m: MapInfo) -> void:
 				img.resize(ART_W, ART_H, Image.INTERPOLATE_NEAREST)
 			ground_anim.append(ImageTexture.create_from_image(img))
 		ground.texture = ground_anim[0]
+	ground.material = ground_blend if ground_anim.size() > 1 else null
 
 
-## Animated backdrops loop on real time, so the beach keeps moving while the game is paused.
+## Animated backdrops run on real time, so the beach keeps moving while the game is paused. They ease from
+## the first frame to the last of the span and back, crossfading each neighbouring pair.
 func _animate_ground(dt: float) -> void:
 	if ground_anim.size() < 2:
 		return
 	ground_anim_t += dt
-	var i := int(ground_anim_t * ground_for.scene.backdrop_fps) % ground_anim.size()
-	if ground.texture != ground_anim[i]:
-		ground.texture = ground_anim[i]
+	var sc: MapScene = ground_for.scene
+	var span := clampi(sc.backdrop_span, 2, ground_anim.size())
+	var p := (0.5 - 0.5 * cos(TAU * ground_anim_t / sc.backdrop_period)) * (span - 1)
+	var i := mini(int(p), span - 2)
+	ground.texture = ground_anim[i]
+	ground_blend.set_shader_parameter("next_frame", ground_anim[i + 1])
+	ground_blend.set_shader_parameter("blend", p - i)
 
 
 ## Draws the board into an image at art resolution: the back wall, the painted tiles, the road, props and
