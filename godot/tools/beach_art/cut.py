@@ -77,28 +77,32 @@ def cut_cell(a, thr, core=0):
     return Image.fromarray(rgba, 'RGBA')
 
 
+def cut_strip(path, y0, y1, thr, anchor, core=0):
+    """One row of 6 frames from a sheet, cut out and lined up in a strip of equal cells."""
+    im = np.asarray(Image.open(path).convert('RGB')).astype(np.float64)
+    frames = []
+    for i in range(6):
+        x0, x1 = i * 256 + 4, (i + 1) * 256 - 4
+        f = cut_cell(im[y0:y1, x0:x1], thr, core)
+        frames.append((f, f.getbbox()))
+    # one box for every frame, lined up on the anchor
+    W = max(bb[2] - bb[0] for _, bb in frames)
+    H = max(bb[3] - bb[1] for _, bb in frames)
+    out = Image.new('RGBA', (W * 6, H), (0, 0, 0, 0))
+    for i, (f, bb) in enumerate(frames):
+        w, h = bb[2] - bb[0], bb[3] - bb[1]
+        y = H - h if anchor == 'base' else round((H - h) / 2)
+        out.alpha_composite(f.crop(bb), (i * W + round((W - w) / 2), y))
+    return out
+
+
 def main():
     meta = {}
     for name, (sheet, y0, y1, thr, anchor) in ANIMS.items():
-        im = np.asarray(Image.open(os.path.join(SRC, sheet)).convert('RGB')).astype(np.float64)
-        frames = []
-        for i in range(6):
-            x0, x1 = i * 256 + 4, (i + 1) * 256 - 4
-            f = cut_cell(im[y0:y1, x0:x1], thr, 80 if anchor == 'centre' and name != 'fountain' else 0)
-            bb = f.getbbox()
-            frames.append((f, bb))
-        # one box for every frame, lined up on the anchor
-        ws = [bb[2] - bb[0] for _, bb in frames]
-        hs = [bb[3] - bb[1] for _, bb in frames]
-        W, H = max(ws), max(hs)
-        out = Image.new('RGBA', (W * 6, H), (0, 0, 0, 0))
-        for i, (f, bb) in enumerate(frames):
-            w, h = bb[2] - bb[0], bb[3] - bb[1]
-            y = H - h if anchor == 'base' else round((H - h) / 2)
-            out.alpha_composite(f.crop(bb), (i * W + round((W - w) / 2), y))
+        out = cut_strip(os.path.join(SRC, sheet), y0, y1, thr, anchor, 80 if anchor == 'centre' and name != 'fountain' else 0)
         out.save(os.path.join(ROOT, 'spr', name + '.png'))
-        meta[name] = [W, H]
-        print(name, W, H)
+        meta[name] = [out.width // 6, out.height]
+        print(name, out.width // 6, out.height)
     # water tiles and shore pieces are taken as they are (no background to remove inside them)
     wat = Image.open(os.path.join(SRC, 'water.png')).convert('RGB')
     for name, (y0, y1) in {'deep': (66, 264), 'mid': (296, 498), 'shallow': (532, 724)}.items():

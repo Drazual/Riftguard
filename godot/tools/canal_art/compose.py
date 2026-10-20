@@ -1,4 +1,5 @@
-"""Builds the Canal Crossing backdrop (768x416 art pixels) and its logic grid from the Neon City sheets."""
+"""Builds the Canal Crossing backdrop, six 768x416 frames (the water, palms, umbrellas, lamps, signs, fans, boats,
+the entry gate and the rift move between them), and its logic grid from the Neon City sheets."""
 import json, os, random
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
@@ -63,18 +64,6 @@ img = Image.fromarray(np.clip(g, 0, 255).astype(np.uint8))
 d = ImageDraw.Draw(img)
 
 
-def water_px(x0, y0, w, h):
-    rs = np.random.RandomState(x0 * 7 + y0)
-    yy = np.arange(h)[:, None]
-    blk = np.zeros((h, w, 3), np.float32)
-    blk[:] = np.array([4, 104, 138])
-    blk += (np.sin((yy + y0) / 9.0) * 4)[..., None]
-    blk += rs.normal(0, 3, (h, w, 1))
-    for _ in range(int(w * h / 260)):
-        x, y = rs.randint(0, w - 12), rs.randint(0, h - 2)
-        ln = rs.randint(6, 18)
-        blk[y:y + 2, x:x + ln] = blk[y:y + 2, x:x + ln] * 0.4 + np.array([90, 220, 230]) * 0.6
-    return Image.fromarray(np.clip(blk, 0, 255).astype(np.uint8))
 
 
 def is_water(c, r):
@@ -85,12 +74,21 @@ def is_water(c, r):
     return (c, r) in water or ((c, r) in pset and c in (13, 14))
 
 
-# water (including under the bridges and the rows past the grid edges)
+# water (including under the bridges and the rows past the grid edges): painted in a key colour here and filled
+# with the animated water frames at the end
+KEY = (255, 0, 255)
+CHANNEL = (13, 14)
+
+
+def channel_side(c, n):
+    """the canal's long walls come with the animated wall tiles, so no stone lip or railing is drawn there"""
+    return c in CHANNEL and n[0] not in CHANNEL and n[0] in (12, 15)
+
 for r in range(-PRE, ROWS + 1):
     for c in range(COLS):
         if is_water(c, r):
             x, y = td(c, r)
-            img.paste(water_px(x, y, TD, TD), (x, y))
+            d.rectangle((x, y, x + TD - 1, y + TD - 1), fill=KEY)
 
 # canal walls: a stone lip on every water edge that meets land
 STONE = (214, 186, 206)
@@ -103,7 +101,7 @@ for r in range(-PRE, ROWS + 1):
         x, y = td(c, r)
         for dc, dr in ((0, -1), (0, 1), (-1, 0), (1, 0)):
             n = (c + dc, r + dr)
-            if n[0] < 0 or n[0] >= COLS or is_water(*n):
+            if n[0] < 0 or n[0] >= COLS or is_water(*n) or channel_side(c, n):
                 continue
             if dr == -1:
                 d.rectangle((x, y, x + TD - 1, y + 5), fill=STONE); d.rectangle((x, y + 6, x + TD - 1, y + 10), fill=SHADE)
@@ -247,7 +245,7 @@ for r in range(ROWS):
         x, y = td(c, r)
         for dc, dr in ((0, -1), (0, 1), (-1, 0), (1, 0)):
             n = (c + dc, r + dr)
-            if not (0 <= n[0] < COLS) or not is_water(*n) or n in pset:
+            if not (0 <= n[0] < COLS) or not is_water(*n) or n in pset or channel_side(n[0], (c, r)):
                 continue
             if dr == 1:
                 ry = y + TD - 8
@@ -265,35 +263,36 @@ for r in range(ROWS):
                 for py_ in range(y + 2, y + TD, 16):
                     d.rectangle((rx - 2, py_, rx + 5, py_ + 4), fill=(120, 96, 140))
 
-# squash the ground into the 3/4 view
-ground = img.resize((W2, int(TDH * 0.75)), Image.LANCZOS)
-canvas = Image.new('RGBA', (W2, H2), (16, 18, 35, 255))
-canvas.paste(ground, (0, OY - PRE * CH))
-
-
 def spr(name):
     p = 'spr/%s.png' % name
     return Image.open(p if os.path.exists(p) else name + '.png').convert('RGBA')
 
 
-props = []  # (sort key, image, x, y)
+NF = 6
 
 
-def place(name, c0, r0, c1, r1, width=None, flip=False, rot=0, block=True, dy=0, shadow=True, height=None):
-    s = spr(name)
+def frames(name):
+    """an animated sprite: 'anim:palm_box' is the six frames in spr/anim_palm_box.png"""
+    s = spr('anim_' + name)
+    w = s.width // NF
+    return [s.crop((i * w, 0, (i + 1) * w, s.height)) for i in range(NF)]
+
+
+props = []  # (sort key, frames, phase, x, y, shadow, cx, by, fw)
+
+
+def place(name, c0, r0, c1, r1, width=None, flip=False, rot=0, block=True, dy=0, shadow=True, height=None, phase=0, dx=0):
+    fs = frames(name[5:]) if name.startswith('anim:') else [spr(name)]
     if rot:
-        s = s.rotate(rot, expand=True)
+        fs = [f.rotate(rot, expand=True) for f in fs]
     if flip:
-        s = s.transpose(Image.FLIP_LEFT_RIGHT)
+        fs = [f.transpose(Image.FLIP_LEFT_RIGHT) for f in fs]
     fw = (c1 - c0 + 1) * CW
-    if height:
-        sc = height / s.height
-    else:
-        sc = (width or fw * 0.9) / s.width
-    s = s.resize((max(1, round(s.width * sc)), max(1, round(s.height * sc))), Image.LANCZOS)
-    cx = c0 * CW + fw / 2
+    sc = height / fs[0].height if height else (width or fw * 0.9) / fs[0].width
+    fs = [f.resize((max(1, round(f.width * sc)), max(1, round(f.height * sc))), Image.LANCZOS) for f in fs]
+    cx = c0 * CW + fw / 2 + dx
     by = OY + (r1 + 1) * CH - 4 + dy
-    props.append(((r1, c0), s, round(cx - s.width / 2), round(by - s.height), shadow, cx, by, fw))
+    props.append(((r1, c0), fs, phase, round(cx - fs[0].width / 2), round(by - fs[0].height), shadow, cx, by, fw))
     if block:
         for c in range(c0, c1 + 1):
             for r in range(max(0, r0), min(ROWS - 1, r1) + 1):
@@ -301,44 +300,47 @@ def place(name, c0, r0, c1, r1, width=None, flip=False, rot=0, block=True, dy=0,
 
 
 # rift portal at the base and the entry gate where the road comes in
-place('rift', 10, 3, 10, 3, width=60, block=False, dy=0, shadow=False)
-place('gate', 3, -1, 3, -1, width=44, rot=180, block=False, shadow=False)
+place('anim:rift_ring', 10, 3, 10, 3, width=62, block=False, dy=4, shadow=False)
+place('anim:entry', 3, -1, 3, -1, width=52, rot=180, block=False, shadow=False)
+place('anim:arrow', 3, 0, 3, 0, height=40, block=False, shadow=False, dy=-6, phase=2)
 
 # left edge
 place('b4', 0, 0, 1, 3, width=128)        # apartment block
-place('palm', 0, 4, 1, 4, width=112)
+place('anim:palm_box', 0, 4, 1, 4, width=112, phase=0)
 place('b3', 0, 5, 1, 8, width=128)        # clinic
 place('vendD', 0, 9, 0, 9, height=70)
 place('vendS', 1, 9, 1, 9, height=70)
-place('b0', 0, 10, 1, 13, width=128)      # diner
-place('parasol', 2, 13, 2, 13, height=60)
+place('anim:palm_box', 0, 10, 1, 11, width=112, phase=4)
+place('anim:diner_front', 0, 12, 1, 13, width=132, phase=2)    # diner
+place('anim:umbrella', 2, 13, 2, 13, height=64, phase=3)
 place('tree', 2, 14, 2, 14, height=58)
 # top edge
-place('palm', 4, 0, 4, 0, width=66)
-place('b2', 5, 0, 7, 1, width=172)        # arcade
-place('vendD', 8, 1, 8, 1, height=70)
+place('anim:palm_pot', 4, 0, 4, 0, height=80, phase=1)
+place('anim:arcade_front', 5, 0, 7, 1, width=176)    # arcade, its sign and windows flicker
+place('anim:fan', 8, 1, 8, 1, width=56, phase=1)
 place('b1', 9, 0, 11, 1, width=172)       # convenience store
 place('lampB', 12, 1, 12, 1, height=78)
-place('lampA', 12, 2, 12, 2, height=72)
-place('lampA', 15, 2, 15, 2, height=72)
+place('anim:lamp', 12, 2, 12, 2, height=74, phase=4)
+place('anim:lamp', 15, 2, 15, 2, height=74, phase=2)
 place('b5', 16, 0, 18, 1, width=150)      # police
 place('tree', 19, 0, 19, 0, height=60)
 place('policeE', 20, 0, 21, 0, width=104, block=False)
 place('coupeN', 22, 0, 22, 1, height=92, block=False)
 place('taxiN', 23, 0, 23, 1, height=92, block=False)
-place('flowers', 20, 2, 20, 2, width=60)
+place('anim:flowerbed', 20, 2, 20, 2, width=60, phase=5)
 place('hydrant', 21, 2, 21, 2, height=44)
 # right edge
 place('b6', 20, 3, 22, 6, width=184)      # office
-place('palm', 23, 4, 23, 4, width=66)
-place('lampA', 23, 6, 23, 6, height=72)
+place('anim:palm_pot', 23, 4, 23, 4, height=80, phase=0)
+place('anim:lamp', 23, 6, 23, 6, height=74, phase=3)
 place('ramen', 20, 8, 22, 9, width=184)
-place('parasol', 23, 8, 23, 8, height=60)
+place('anim:ramen_sign', 20, 9, 22, 9, width=124, block=False, shadow=False, dy=-74, phase=3)
+place('anim:umbrella', 23, 8, 23, 8, height=64, phase=1)
 place('cafe', 20, 11, 21, 11, width=96)
-place('parasol', 22, 11, 22, 11, height=60)
-place('flowers', 23, 11, 23, 11, width=60)
-place('lampA', 15, 11, 15, 11, height=72)
-place('lampA', 12, 11, 12, 11, height=72)
+place('anim:umbrella', 22, 11, 22, 11, height=64, phase=4)
+place('anim:flowerbed', 23, 11, 23, 11, width=60, phase=2)
+place('anim:lamp', 15, 11, 15, 11, height=74, phase=5)
+place('anim:lamp', 12, 11, 12, 11, height=74, phase=0)
 # bottom edge
 place('coupeN', 4, 12, 4, 13, height=92, block=False)
 place('sportN', 5, 12, 5, 13, height=92, block=False)
@@ -346,45 +348,78 @@ place('vanN', 6, 13, 6, 14, height=96, block=False)
 place('b7', 7, 12, 9, 14, width=184, dy=150)   # parking garage roof, running off the bottom
 place('foodcart', 10, 12, 10, 12, width=70)
 place('b1', 10, 13, 12, 14, width=172, dy=170, flip=True)
-place('palm', 11, 12, 12, 12, width=104)
+place('anim:palm_box', 11, 12, 12, 12, width=104, phase=3)
 # inside the loop
 place('fountain', 7, 6, 8, 7, width=124)
 place('bench', 5, 8, 5, 8, width=60)
-place('palm', 10, 8, 11, 8, width=104)
-place('lampA', 12, 5, 12, 5, height=72)
+place('anim:palm_box', 10, 8, 11, 8, width=104, phase=1)
+place('anim:lamp', 12, 5, 12, 5, height=74, phase=4)
 place('neonpalm', 16, 6, 16, 6, height=104)
 place('bench', 9, 2, 9, 2, width=60)
-place('flowers', 6, 2, 6, 2, width=60)
+place('anim:flowerbed', 6, 2, 6, 2, width=60, phase=2)
 place('trash', 4, 2, 4, 2, height=40)
 place('succulent', 12, 7, 12, 7, height=40)
 place('hydrant', 15, 7, 15, 7, height=44)
 place('bikerack', 16, 9, 16, 9, width=56)
-place('flowers', 19, 1, 19, 1, width=60)
-place('trash', 19, 11, 19, 11, height=40)
+place('anim:flowerbed', 19, 1, 19, 1, width=60, phase=5)
+place('anim:fan', 19, 11, 19, 11, width=52, phase=4)
 place('bollard', 2, 0, 2, 0, height=36)
 place('hedge', 4, 11, 4, 11, width=60)
 place('lampB', 8, 11, 8, 11, height=78)
 place('succulent', 2, 6, 2, 6, height=40)
 place('atm', 23, 3, 23, 3, height=60)
+# boats on the water
+place('anim:boat', 13, 6, 14, 7, height=96, block=False, shadow=False, phase=1)
+place('anim:speedboat', 16, 13, 17, 13, width=104, block=False, shadow=False, dy=10, phase=4)
+place('anim:boat', 22, 12, 22, 13, height=88, block=False, shadow=False, flip=True, phase=0)
 
 props.sort(key=lambda p: (p[0][0], p[0][1]))
 sh = Image.new('RGBA', (W2, H2), (0, 0, 0, 0))
 shd = ImageDraw.Draw(sh)
-for key, s, x, y, shadow, cx, by, fw in props:
+for key, fs, ph, x, y, shadow, cx, by, fw in props:
     if shadow:
-        rx = min(fw, s.width) * 0.45
+        rx = min(fw, fs[0].width) * 0.45
         shd.ellipse((cx - rx, by - 9, cx + rx, by + 5), fill=(16, 18, 35, 90))
-canvas.alpha_composite(sh.filter(ImageFilter.GaussianBlur(2)))
-for key, s, x, y, shadow, cx, by, fw in props:
-    canvas.alpha_composite(s, (max(-s.width + 1, x), y) if y >= 0 else (x, 0), (0, 0) if y >= 0 else (0, -y))
+sh = sh.filter(ImageFilter.GaussianBlur(2))
 
 for p in pset:
     blocked.discard(p)
 for w_ in water:
     blocked.discard(w_)
 
-out = canvas.resize((768, 416), Image.LANCZOS)
-out.save('canal_backdrop.png')
-canvas.save('canal_2x.png')
+
+def water_tiles(name, size):
+    s = spr('anim_water_' + name).convert('RGB')
+    w = s.width // NF
+    return [s.crop((i * w, 0, (i + 1) * w, s.height)).resize((size, size), Image.LANCZOS) for i in range(NF)]
+
+
+open_w = water_tiles('open', 128)
+wall_l, wall_r = water_tiles('wall_l', TD), water_tiles('wall_r', TD)
+key = (np.asarray(img)[..., :3] == np.array(KEY)).all(-1)
+os.makedirs('out', exist_ok=True)
+for k in range(NF):
+    wat = Image.new('RGB', img.size)
+    for y in range(0, TDH, 128):
+        for x in range(0, W2, 128):
+            wat.paste(open_w[k], (x, y))
+    for r in range(-PRE, ROWS + 1):  # the canal itself: its walls are part of the animated tiles
+        wat.paste(wall_l[k], td(13, r))
+        wat.paste(wall_r[k], td(14, r))
+    top = Image.fromarray(np.where(key[..., None], np.asarray(wat), np.asarray(img)[..., :3]).astype(np.uint8))
+    ground = top.resize((W2, int(TDH * 0.75)), Image.LANCZOS)
+    canvas = Image.new('RGBA', (W2, H2), (16, 18, 35, 255))
+    canvas.paste(ground, (0, OY - PRE * CH))
+    canvas.alpha_composite(sh)
+    for key_, fs, ph, x, y, shadow, cx, by, fw in props:
+        f = fs[(k + ph) % len(fs)]
+        fx = x + round((fs[0].width - f.width) / 2)
+        if y < 0:
+            canvas.alpha_composite(f.crop((0, -y, f.width, f.height)), (max(0, fx), 0))
+        else:
+            canvas.alpha_composite(f, (max(0, fx), y))
+    canvas.resize((768, 416), Image.LANCZOS).save('out/canal_%d.png' % k)
+    if k == 0:
+        canvas.save('out/canal_2x.png')
 json.dump({'path': path, 'water': sorted(water), 'blocked': sorted(blocked)}, open('canal_layout.json', 'w'))
 print('blocked', len(blocked), 'water', len(water), 'path', len(path))

@@ -182,11 +182,16 @@ const AIM_NAMES := { first = "First", last = "Last", strong = "Strongest", close
 
 ## Orders the enemies in a tower's range by its targeting choice, best target first.
 func sort_targets(t: Tower, list: Array) -> void:
-	match t.aim:
+	sort_by_aim(t.aim, t.x, t.y, list)
+
+
+## Orders enemies for a targeting choice (first, last, strong, close) seen from x, y.
+func sort_by_aim(aim: String, x: float, y: float, list: Array) -> void:
+	match aim:
 		"strong":
 			list.sort_custom(func(a, b): return a.hp > b.hp or (a.hp == b.hp and a.d > b.d))
 		"close":
-			list.sort_custom(func(a, b): return hyp(a.x - t.x, a.y - t.y) < hyp(b.x - t.x, b.y - t.y))
+			list.sort_custom(func(a, b): return hyp(a.x - x, a.y - y) < hyp(b.x - x, b.y - y))
 		"last":
 			list.sort_custom(func(a, b): return a.d < b.d)
 		_:
@@ -198,9 +203,19 @@ func set_aim(t: Tower, aim: String) -> void:
 	refresh("inspector")
 
 
-## T: the selected tower moves to its next targeting choice.
+## The Sniper picks its target the same way towers do.
+func set_hero_aim(aim: String) -> void:
+	S.hero.target = aim
+	refresh("hero")
+
+
+## T: the selected tower (or, with none selected, the Sniper) moves to its next targeting choice.
 func cycle_aim() -> void:
 	var t: Tower = S.sel if S else null
+	if (t == null or not S.towers.has(t)) and S and S.hero and S.hero.cls == "sniper":
+		set_hero_aim(AIMS[(AIMS.find(S.hero.target) + 1) % AIMS.size()])
+		say("Sniper targets: %s" % AIM_NAMES[S.hero.target])
+		return
 	if t == null or not S.towers.has(t) or t.support or t.hero_buff:
 		return
 	set_aim(t, AIMS[(AIMS.find(t.aim) + 1) % AIMS.size()])
@@ -240,6 +255,9 @@ func start_run(hero_id: String, towers: Array) -> void:
 	S.hero = Hero.make(hero_id, S.map.base)
 	apply_hero_meta(S.hero)
 	apply_specials(S.hero)
+	S.hero.base_dmg = S.hero.dmg
+	S.hero.base_spell = S.hero.spell
+	S.hero.ab.base_dmg = S.hero.ab.dmg
 	S.paused = false
 	if S.hero.data.spells:
 		var load := wiz_loadout()
@@ -526,7 +544,8 @@ func armor_of(e: Enemy, src) -> float:
 
 ## src: the Tower that dealt it, or null for the hero and spells.
 ## pierce: 0 normal, 1 ignores armor (burns, zones, executes), 2 = Hex Brand pulse (ignores armor and doesn't feed the brand).
-func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
+## crit: a critical hit, shown as a number popping up over the enemy.
+func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false) -> void:
 	if e.dead:
 		return
 	var tw: bool = src is Tower
@@ -536,6 +555,8 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
 	if not pierce:
 		amt *= 1 - armor_of(e, src)
 	var dealt := minf(amt, e.hp)
+	if crit:
+		fx_add({ k = "num", x = e.x + randf_range(-8, 8), y = e.y, text = UiText.f0(amt), color = 0xffd36e, t = 1.3, r = e.r })
 	if pierce != 2:
 		e.taken += dealt
 	if tw:
@@ -1375,7 +1396,8 @@ func orbital_strike(h: Hero, a: Ability) -> void:
 	ring(at.x, at.y, a.r, 0xff5d6c, 0.8)
 	var boom := func(x: float, y: float, r: float, mult: float):
 		for e in in_range(x, y, r):
-			damage(e, hero_dmg() * a.mult * mult * (1 + h.headhunter if e.boss else 1.0) * ab_crit_mul(h))
+			var cm := ab_crit_mul(h)
+			damage(e, hero_dmg() * a.mult * mult * (1 + h.headhunter if e.boss else 1.0) * cm, null, 0, cm > 1)
 		line(x, 0, x, y, 0xffffff, 0.25, 10 * mult)
 		ring(x, y, r, 0xffd36e, 0.5, true)
 		if a.scorch:
@@ -1541,11 +1563,12 @@ func piercing_shot(h: Hero, a: Ability) -> void:
 	var hit := pierce_line(h, a, goal)
 	var kills := 0
 	for e in hit:
-		var d := base * (1 + h.headhunter if e.boss else 1.0) * ab_crit_mul(h)
+		var cm := ab_crit_mul(h)
+		var d := base * (1 + h.headhunter if e.boss else 1.0) * cm
 		var ex: bool = a.exec_r and not e.boss and (e.hp - d) / e.max <= 0.3
 		if ex:
 			d = e.hp + 1
-		damage(e, d, null, 1 if ex else 0)
+		damage(e, d, null, 1 if ex else 0, cm > 1 and not ex)
 		if e.dead:
 			kills += 1
 		if a.cluster:
@@ -2135,8 +2158,8 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	return q
 
 
-## Hard: modest gold per toughness rule. Challenge: gold per point of difficulty, a hero upgrade from 4 points and a relic
-## from 5. Legendary and Secret waves keep their relic, but it is only paid if the requirement is met.
+## Hard: modest gold per toughness rule. Challenge: gold per point of difficulty, a free hero upgrade, and a relic
+## from 5 points. Legendary and Secret waves pay a relic and a free hero upgrade, only if the requirement is met.
 func wave_reward(n: int, kind: String, pts := 0):
 	if kind == "normal":
 		return null
@@ -2148,11 +2171,12 @@ func wave_reward(n: int, kind: String, pts := 0):
 		var pool := src.items.filter(func(r): return r.repeat or not owned.has(r.id))
 		var relic: UpgradeData = pick(pool) if pool.size() else R.relics.find("repair")
 		var g := (120 if kind == "secret" else 80) + 8 * n
-		return { gold = g, relic = relic, perk = false, label = "%s relic: %s (%s) and +%d gold" % [DB.rar[kind].name, relic.name, relic_desc(relic).trim_suffix("."), g] }
+		return { gold = g, relic = relic, perk = true, label = "%s relic: %s (%s), +%d gold and a free hero upgrade" % [DB.rar[kind].name, relic.name, relic_desc(relic).trim_suffix("."), g] }
 	var gold := int(round((15 + 3 * n if kind == "hard" else 12 + 3 * n) * pts))
 	if kind == "hard":
 		return { gold = gold, perk = false, relic = null, label = "+%d gold" % gold }
-	var out := { gold = gold, perk = pts >= 4, relic = null }
+	# every challenge wave you clear gives a free hero upgrade
+	var out := { gold = gold, perk = true, relic = null }
 	if pts >= 5:
 		out.relic = pick(R.relics.items.filter(func(x): return (x.repeat or not owned.has(x.id)) and (not x.offensive_only or hero_cat() == "offensive")))
 	out.label = "+%d gold" % gold + (", a free hero upgrade" if out.perk else "") + (" and the %s relic (%s)" % [out.relic.name, relic_desc(out.relic).trim_suffix(".")] if out.relic else "")
@@ -2218,7 +2242,8 @@ func choose_mode(i: int) -> void:
 
 
 func start_wave() -> void:
-	if S.wave_active or S.over or S.paused:
+	# a reward or choice still waiting to open (a hero upgrade, the wave choice, the shop) comes first
+	if S.wave_active or S.over or S.paused or S.pending_levels > 0 or S.need_choice or S.need_shop or S.pending_heroic > 0 or S.pending_boon != "":
 		return
 	S.wave += 1
 	S.spawn_q = make_wave(S.wave, S.mode)
@@ -2798,8 +2823,8 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 	h.py = h.y
 	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0:
 		var inr := in_range(h.x, h.y, hero_range(h))
-		if h.brace:
-			inr.sort_custom(func(a, b): return (a.boss and not b.boss) or (a.boss == b.boss and a.d > b.d))
+		if h.cls == "sniper":
+			sort_by_aim(h.target, h.x, h.y, inr)
 		else:
 			inr.sort_custom(by_d_desc)
 		if inr.size():
@@ -2895,7 +2920,7 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 		var ex: bool = h.execute and not t.boss and (t.hp - dmg) / t.max <= h.execute
 		if ex:
 			dmg = t.hp + 1
-		damage(t, dmg, null, 1 if ex else 0)
+		damage(t, dmg, null, 1 if ex else 0, crit and not ex)
 		if h.knock and not t.dead:
 			# Gale: every hit shoves the enemy back a little (bosses barely move)
 			push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)

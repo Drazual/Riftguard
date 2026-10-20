@@ -167,6 +167,46 @@ func _ready() -> void:
 	for i in 20:
 		await get_tree().process_frame
 	await _shot("21b_coral_run")
+	g.end_run(false, true)
+	main.ui.close_modal()
+	main.ui.menus.new_run("canal")
+	main.ui.menus.start_run("sniper", Array(DB.tower_order).slice(0, 5))
+	g = main.game
+	S = g.S
+	S.hero.crit = 1.0
+	for i in 4:
+		g.offers = g.roll_perks()
+		g.offers[0] = g.offers[0].duplicate()
+		g.offers[0].perk = g.R.perks.find("caliber")
+		S.pending_levels += 1
+		g.pick_offer(0)
+	main.ui.render_hero()
+	g.start_wave()
+	for i in 200:
+		await get_tree().process_frame
+		if main.ui.modal_open():
+			main.ui.close_modal()
+			g.pick_offer(0)
+	S.hero.x = S.map.pos_at(S.map.path_len * 0.3).x
+	S.hero.y = S.map.pos_at(S.map.path_len * 0.3).y + 40
+	for i in 90:
+		await get_tree().process_frame
+		if main.ui.modal_open():
+			main.ui.close_modal()
+			g.pick_offer(0)
+		if i % 20 == 0:
+			S.hero.cd = 0
+	for i in 300:
+		await get_tree().process_frame
+		if main.ui.modal_open():
+			main.ui.close_modal()
+			g.pick_offer(0)
+		if S.fx.any(func(f): return f.k == "num"):
+			for f in S.fx:
+				if f.k == "num":
+					print("SHOTS crit number %s at %.0f,%.0f t %.2f" % [f.text, f.x, f.y, f.t])
+			break
+	await _shot("22_sniper_crits")
 	print("SHOTS DONE")
 	get_tree().quit()
 
