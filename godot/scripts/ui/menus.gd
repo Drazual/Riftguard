@@ -573,7 +573,8 @@ func meta_row(def: UpgradeData, obj: Dictionary, key: String, id: String, redraw
 	if DB.is_simple() and DB.simple_texts.has(easy_key):
 		v.add_child(Kit.muted(DB.simple_texts[easy_key]))
 	else:
-		v.add_child(Kit.muted(Fx.text(def.desc, { r = r }) if r else "Not bought"))
+		# an upgrade not bought yet says what one rank gives
+		v.add_child(Kit.muted(Fx.text(def.desc, { r = r }) if r else "Not bought. Each rank: %s." % Fx.text(def.desc, { r = 1 }).trim_suffix(".")))
 		if not maxed:
 			v.add_child(Kit.rich(UiText.meta_delta(def, key, id, r), 12, Kit.OK))
 	h.add_child(v)
