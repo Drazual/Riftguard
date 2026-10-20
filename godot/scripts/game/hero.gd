@@ -14,6 +14,12 @@ var base_hp := 200.0
 var hp := 200.0
 var max_hp := 200.0
 var dmg := 10.0
+## Damage and spell power at the start of the run (after shard upgrades). Common, uncommon and rare damage
+## upgrades add a share of these; mythic and higher ones multiply the damage as it is now.
+var base_dmg := 10.0
+## The Sniper's targeting choice, like a tower's: first, last, strong (most HP, so bosses first) or close.
+var target := "strong"
+var base_spell := 1.0
 var rate := 0.6
 var cd := 0.0
 var range := 100.0

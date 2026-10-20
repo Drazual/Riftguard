@@ -782,15 +782,7 @@ func render_inspector() -> void:
 	rows += ([] if t.hero_buff else [["Range", UiText.f0(game.t_range(t))]]) + [["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
 	v.add_child(Kit.stats(rows))
 	if not t.support and not t.hero_buff and t.type != "anvil":
-		var aims := Kit.flow(4)
-		aims.add_child(Kit.label("Target  T", 12, Kit.MUTED))
-		for a in Game.AIMS:
-			var ab := Kit.button(Game.AIM_NAMES[a], game.set_aim.bind(t, a), "OnButton" if t.aim == a else "")
-			ab.add_theme_font_size_override("font_size", 12)
-			Kit.tip_on(ab, func(): return { first = "The enemy farthest along the path.", last = "The enemy nearest the entrance.", strong = "The enemy with the most HP.",
-				close = "The enemy nearest this tower." }[a])
-			aims.add_child(ab)
-		v.add_child(aims)
+		v.add_child(_aim_row(t.aim, game.set_aim.bind(t)))
 	if not DB.is_simple():
 		v.add_child(Kit.rich(UiText.bullets(UiText.tower_traits(game, t)), 13))
 	if S.merge_from == t:
@@ -914,6 +906,19 @@ func render_enemy_codex() -> void:
 			enemy_box.add_child(Kit.rich("???  " + Kit.c("Not met yet", Kit.MUTED), 13))
 
 
+## The targeting buttons (First, Last, Strongest, Closest) for a tower or the Sniper; `pick` gets the choice.
+func _aim_row(current: String, pick: Callable) -> Control:
+	var aims := Kit.flow(4)
+	aims.add_child(Kit.label("Target  T", 12, Kit.MUTED))
+	for a in Game.AIMS:
+		var ab := Kit.button(Game.AIM_NAMES[a], pick.bind(a), "OnButton" if current == a else "")
+		ab.add_theme_font_size_override("font_size", 12)
+		Kit.tip_on(ab, func(): return { first = "The enemy farthest along the path.", last = "The enemy nearest the entrance.", strong = "The enemy with the most HP.",
+			close = "The nearest enemy." }[a])
+		aims.add_child(ab)
+	return aims
+
+
 func render_hero() -> void:
 	var S := game.S
 	if S == null or S.hero == null:
@@ -937,11 +942,8 @@ func render_hero() -> void:
 	var abl := Kit.muted(ab_line)
 	Kit.tip_on(abl, func(): return UiText.ability_tip(game, h))
 	v.add_child(abl)
-	var hpm := Kit.meter(h.hp / h.max_hp, Kit.OK, 18)
-	hpm.over = h.shield / h.max_hp if h.shield > 0 else 0.0
-	hpm.font_size = 12
-	hpm.text = "HP " + hp_text(h)
-	v.add_child(hpm)
+	if h.cls == "sniper":
+		v.add_child(_aim_row(h.target, game.set_hero_aim))
 	var f := func(x: float) -> String: return UiText.f0(x)
 	var rows := [["Damage", f.call(game.hero_dmg())], ["Kills", str(S.kills.hero)], ["Takedowns", str(S.takedowns.hero)]]
 	if d.category == "defensive":
@@ -991,10 +993,26 @@ func render_hero() -> void:
 		var tg := Kit.tag(Kit.c("✦ " + rec.boon_name, Kit.HEROIC), Kit.HEROIC)
 		Kit.tip_on(tg, func(): return DB.tx("boon:" + k, rec.boon_desc))
 		tags.add_child(tg)
+	# the same upgrade picked again stacks into one tag (Fast Chambers ×6), coloured by its rarest copy
+	var stacks := {}
+	var order := []
 	for o in S.picks:
-		var col: Color = Kit.RAR.get(o.rarity.id, Kit.TEXT)
-		var tg := Kit.tag(Kit.c(("☠ " if o.demonic else "") + o.perk.name, Kit.TEXT if o.rarity.id == "common" else col), Kit.DANGER if o.demonic else (Kit.LINE if o.rarity.id == "common" else col), Color("#2a1220") if o.demonic else Kit.PANEL2)
-		Kit.tip_on(tg, func(): return game.perk_desc(o) + ((" Curse: " + game.curse_desc(o)) if o.demonic else ""))
+		var key: String = o.perk.id + ("!" if o.demonic else "")
+		if not stacks.has(key):
+			stacks[key] = []
+			order.append(key)
+		stacks[key].append(o)
+	var rank_of := func(o) -> int: return Kit.RAR.keys().find(o.rarity.id)
+	for key in order:
+		var list: Array = stacks[key]
+		var top: Dictionary = list[0]
+		for o in list:
+			if rank_of.call(o) > rank_of.call(top):
+				top = o
+		var col: Color = Kit.RAR.get(top.rarity.id, Kit.TEXT)
+		var label: String = ("☠ " if top.demonic else "") + top.perk.name + (" ×%d" % list.size() if list.size() > 1 else "")
+		var tg := Kit.tag(Kit.c(label, Kit.TEXT if top.rarity.id == "common" else col), Kit.DANGER if top.demonic else (Kit.LINE if top.rarity.id == "common" else col), Color("#2a1220") if top.demonic else Kit.PANEL2)
+		Kit.tip_on(tg, func(): return "\n".join(list.map(func(o): return (o.rarity.name + ": " if list.size() > 1 else "") + game.perk_desc(o) + ((" Curse: " + game.curse_desc(o)) if o.demonic else ""))))
 		tags.add_child(tg)
 	for r: UpgradeData in S.relics:
 		var tg := Kit.tag(Kit.c(r.name, Kit.GOLD), Kit.GOLD)

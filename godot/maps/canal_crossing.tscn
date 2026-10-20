@@ -1,7 +1,12 @@
 [gd_scene format=4]
 
 [ext_resource type="Script" path="res://scripts/data/map_scene.gd" id="1_cc1cn"]
-[ext_resource type="Texture2D" path="res://assets/maps/canal_backdrop.png" id="2_ye6l8"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_0.png" id="2_ye6l8"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_1.png" id="2_cf1"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_2.png" id="2_cf2"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_3.png" id="2_cf3"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_4.png" id="2_cf4"]
+[ext_resource type="Texture2D" path="res://assets/maps/canal_5.png" id="2_cf5"]
 [ext_resource type="TileSet" path="res://maps/tilesets/canal.tres" id="3_66n7c"]
 
 [node name="CanalCrossing" type="Node2D" unique_id=304778781]
@@ -10,6 +15,7 @@ id = "canal"
 map_name = "Canal Crossing"
 theme = "boardwalk"
 backdrop = ExtResource("2_ye6l8")
+backdrop_frames = Array[Texture2D]([ExtResource("2_ye6l8"), ExtResource("2_cf1"), ExtResource("2_cf2"), ExtResource("2_cf3"), ExtResource("2_cf4"), ExtResource("2_cf5")])
 desc = "The first stage. A neon canal district: the road crosses the water twice on its way to the rift. No modifiers."
 
 [node name="BackdropPreview" type="Sprite2D" parent="." unique_id=2908694]

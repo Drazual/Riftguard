@@ -1010,6 +1010,14 @@ func _draw_over() -> void:
 		elif f.k == "line":
 			var l1: float = f.l1 if f.get("l1") != null else 12.0
 			_line(o, Vector2(f.x1, SY(f.y1) - l1), Vector2(f.x2, SY(f.y2) - 12), ca(fc, a), f.w)
+		elif f.k == "num":
+			# a crit: the damage number pops up over the enemy and floats away
+			var q := 1 - a
+			var sz := int(24 + 12 * minf(1, q * 6) - 6 * q)
+			var p := Vector2(f.x - 60, SY(f.y) - f.r * 2 - 14 - 30 * q)
+			var col := ca(fc, minf(1, a * 3.5))
+			o.draw_string_outline(Kit.display_bold, p, f.text + "!", HORIZONTAL_ALIGNMENT_CENTER, 120, sz, 6, Color(0.08, 0.04, 0.1, col.a))
+			o.draw_string(Kit.display_bold, p, f.text + "!", HORIZONTAL_ALIGNMENT_CENTER, 120, sz, col)
 		elif f.k == "pillar":
 			# a beam straight down from the sky
 			var y := SY(f.y)

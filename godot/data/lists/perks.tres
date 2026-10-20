@@ -7,8 +7,8 @@
 script = ExtResource("1_ttpmk")
 id = "blade"
 name = "Plasma Blade"
-desc = "+{pct(m)} hero damage."
-effect = "h.dmg *= 1 + m"
+desc = "+{pct(m)} of your starting hero damage."
+effect = "h.dmg += h.base_dmg * m"
 m = 0.32
 pool = "offensive"
 also_pools = PackedStringArray()
@@ -143,7 +143,7 @@ script = ExtResource("1_ttpmk")
 id = "seismic"
 name = "Seismic Power"
 desc = "{h.ab.name} is +{pct(m)} stronger (damage{iff(h.ab.id == 'bulwark', ', shield size', '')})."
-effect = "h.ab.dmg *= 1 + m"
+effect = "h.ab.dmg += h.ab.base_dmg * m"
 m = 0.6
 pool = "vanguard"
 also_pools = PackedStringArray()
@@ -253,7 +253,7 @@ script = ExtResource("1_ttpmk")
 id = "core"
 name = "Nova Core"
 desc = "Rift Nova deals +{pct(m)} damage."
-effect = "h.ab.dmg *= 1 + m"
+effect = "h.ab.dmg += h.ab.base_dmg * m"
 m = 0.6
 pool = "striker"
 also_pools = PackedStringArray()
@@ -388,8 +388,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "caliber"
 name = "Heavy Caliber"
-desc = "+{pct(m)} hero damage."
-effect = "h.dmg *= 1 + m"
+desc = "+{pct(m)} of your starting hero damage."
+effect = "h.dmg += h.base_dmg * m"
 m = 0.4
 pool = "sniper"
 also_pools = PackedStringArray()
@@ -524,8 +524,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "arcpow"
 name = "Arcane Power"
-desc = "Spells deal +{pct(m)} damage."
-effect = "h.spell *= 1 + m"
+desc = "Spells deal +{pct(m)} of their starting damage."
+effect = "h.spell += h.base_spell * m"
 m = 0.3
 pool = "wizard"
 also_pools = PackedStringArray()
@@ -767,7 +767,7 @@ script = ExtResource("1_ttpmk")
 id = "jetstream"
 name = "Jet Stream"
 desc = "Air Stream deals +{pct(m)} damage and stuns {f1(m * 2)}s longer."
-effect = "h.ab.dmg *= 1 + m
+effect = "h.ab.dmg += h.ab.base_dmg * m
 h.ab.stun += m * 2"
 m = 0.24
 pool = "gale"
@@ -792,8 +792,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "knuckles"
 name = "Iron Knuckles"
-desc = "+{pct(m)} hero damage."
-effect = "h.dmg *= 1 + m"
+desc = "+{pct(m)} of your starting hero damage."
+effect = "h.dmg += h.base_dmg * m"
 m = 0.16
 pool = "gale"
 kind = "damage"
