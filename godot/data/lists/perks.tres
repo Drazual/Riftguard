@@ -110,6 +110,7 @@ desc = "After Shield Slam, enemies within 120 stop and attack you for {f1(m)}s."
 effect = "h.taunt += m"
 m = 2.0
 pool = "vanguard"
+ability = "slam"
 also_pools = PackedStringArray()
 kind = "taunt"
 heroes = PackedStringArray()

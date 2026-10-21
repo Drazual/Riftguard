@@ -17,7 +17,7 @@ const OK := Color("#5fe39a")
 const HEROIC := Color("#ffb35d")
 const PINK := Color("#ff6fd8")
 const RAR := { common = Color("#aab2d4"), uncommon = Color("#5fe39a"), rare = Color("#5fa8ff"), mythic = Color("#ff6fd8"), legendary = Color("#f2c14e"),
-	secret = Color("#b07cff"), secret_legendary = Color("#ffe08a"), secret_mythic = Color("#ff9cf0"), developer = Color("#4dffd2"), heroic = Color("#ffb35d") }
+	secret = Color("#b07cff"), secret_mythic = Color("#ff9cf0"), secret_legendary = Color("#ffe08a"), developer = Color("#4dffd2"), heroic = Color("#ffb35d") }
 
 static var display: Font = preload("res://ui/display_font.tres")
 static var display_bold: Font = preload("res://ui/display_bold_font.tres")
