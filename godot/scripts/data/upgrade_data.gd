@@ -18,8 +18,8 @@ extends Resource
 @export var also_pools: PackedStringArray = []
 ## Only for this ability (slam, nova, bulwark, ...). Empty = any.
 @export var ability := ""
-@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_legendary", "secret_mythic", "developer") var rarity := "any"
-@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_legendary", "secret_mythic", "developer") var min_rarity := "any"
+@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_mythic", "secret_legendary", "developer") var rarity := "any"
+@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_mythic", "secret_legendary", "developer") var min_rarity := "any"
 ## Gold upgrade (kept for the stats log; gold upgrades now live in the Legendary uniques).
 @export var gold := false
 ## Attack speed upgrade (never offered to the Wizard).
@@ -48,6 +48,8 @@ extends Resource
 @export var offensive_only := false
 ## Heroic powers: which heroes get them.
 @export var heroes: PackedStringArray = []
-## Specials: Boss Core cost and the hero it belongs to.
+## Specials: Boss Core cost and the hero it belongs to (set `ability` too when it only works with one of the hero's abilities).
 @export var cores := 0
 @export var hero := ""
+## Specials: uniques the run starts with.
+@export var gives: PackedStringArray = []

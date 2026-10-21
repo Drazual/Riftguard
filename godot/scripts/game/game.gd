@@ -299,15 +299,24 @@ func give_unique(id: String) -> void:
 	S.picks.append({ perk = u, list = "unique", rarity = DB.rar.legendary, demonic = false, m = u.m })
 
 
+## Owned, and for this run's hero and ability.
+func special_on(id: String) -> bool:
+	var x: UpgradeData = R.specials.find(id)
+	return x != null and S.specials.get(id, false) and (x.hero == "" or x.hero == S.hero.cls) and (x.ability == "" or x.ability == S.hero.ab.id)
+
+
 func apply_specials(h: Hero) -> void:
 	var sp := S.specials
-	if sp.get("bulwarkS", false) and h.cls == "vanguard":
-		give_unique("aegis")
-		give_unique("unbreak")
+	# A hero's specials work only for that hero, and an ability's only when that ability is the one picked.
+	for x: UpgradeData in R.specials.items:
+		if x.hero == "" or not special_on(x.id):
+			continue
+		for id in x.gives:
+			give_unique(id)
+		Fx.run(x.effect, { h = h, run = S, m = x.m })
+	if special_on("bulwarkS"):
 		h.unbreak_max = 2
 		h.unbreak_left = 2
-	if sp.get("galeS", false) and h.cls == "gale":
-		give_unique("bruiser")
 	if sp.get("sovereign", false):
 		var pool := R.uniques.items.filter(func(x): return x.rarity == "legendary" and x.pool == h.cls and (x.ability == "" or x.ability == h.ab.id) and not owns(x.id))
 		var u = pick(pool)
@@ -649,9 +658,9 @@ func _kill(e: Enemy, src) -> void:
 		if h.od_t > 0 and h.ab.bloodrush and h.od_bonus < 4:
 			h.od_t += 0.4
 			h.od_bonus += 0.4
-		if S.specials.get("oneshot", false) and h.brace:
+		if special_on("oneshot") and h.brace:
 			h.brace_t = maxf(h.brace_t, h.brace * 0.5)
-		if S.specials.get("dancer", false) and h.cls == "striker":
+		if special_on("dancer"):
 			h.dance_kills += 1
 			if h.dance_kills % 8 == 0:
 				later(0.05, func(): if S.hero.ko <= 0: cast_ability(true))
@@ -1737,6 +1746,10 @@ func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
 		e.push_spd = 0
 	e.push_t = maxf(e.push_t, (0.35 if e.boss else 1.0) * dur * h.push_bonus)
 	e.push_spd = maxf(e.push_spd, spd)
+	# Tailwind: enemies Gale knocks back take more damage from towers for a moment
+	if h.cls == "gale":
+		e.spot = maxf(e.spot if e.spot_t > 0 else 0.0, R.tailwind)
+		e.spot_t = maxf(e.spot_t, R.tailwind_time)
 
 
 ## A spell's push-back wears off: each push on the same enemy within R.push_wear_time seconds is R.push_wear as long.
@@ -2352,7 +2365,7 @@ func start_wave() -> void:
 	S.wave_active = true
 	S.hero.unbreak_left = S.hero.unbreak_max
 	S.boss_warned = false
-	S.one_shot_ready = bool(S.specials.get("oneshot", false)) and S.hero.cls == "sniper"
+	S.one_shot_ready = special_on("oneshot")
 	S.ws = { wave = S.wave, mode = S.mode.name, lives_lost = 0, kills = 0, gold = 0.0, hero_dmg = 0.0, hero_kos = 0, start = S.time, enemies = S.spawn_q.size() }
 	# Against the Clock: time to spawn everything, plus 20s (plus 50s with a boss).
 	S.req_failed = false
@@ -3265,7 +3278,7 @@ func _leak(e: Enemy) -> bool:
 
 
 func _towers_step(h: Hero, dt: float) -> void:
-	var conductor: bool = S.specials.get("conductor", false) and h.cls == "oracle"
+	var conductor: bool = special_on("conductor")
 	compute_buffs()
 	for t in S.towers:
 		if t.curse_t > 0:
@@ -3357,7 +3370,7 @@ func roll_rarity() -> Dictionary:
 
 
 ## The rarities past Legendary, rarest first: each offers its own game-changers, falling back to the next tier down.
-const SECRET_TIERS := ["developer", "secret_mythic", "secret_legendary", "secret"]
+const SECRET_TIERS := ["developer", "secret_legendary", "secret_mythic", "secret"]
 
 
 ## Developer upgrades need the run's hero at max mastery.
@@ -3435,10 +3448,10 @@ func roll_perks() -> Array:
 		var list := "perk"
 		var rar := rarity
 		if SECRET_TIERS.has(rarity.id):
-			# Developer upgrades are only for a hero at max mastery; anyone else gets a Secret Mythic roll instead.
-			var tier: String = rarity.id if rarity.id != "developer" or dev_ok() else "secret_mythic"
+			# Developer upgrades are only for a hero at max mastery; anyone else gets a Secret Legendary roll instead.
+			var tier: String = rarity.id if rarity.id != "developer" or dev_ok() else "secret_legendary"
 			for t in SECRET_TIERS.slice(SECRET_TIERS.find(tier)):
-				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and not owns(u.id) and fresh.call(u) and gold_ok(u)))
+				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and ab_ok.call(u) and not owns(u.id) and fresh.call(u) and gold_ok(u)))
 				if perk:
 					list = "unique"
 					rar = DB.rar[t]

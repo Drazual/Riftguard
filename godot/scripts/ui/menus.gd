@@ -610,6 +610,8 @@ func special_row(x: UpgradeData, redraw: Callable) -> Control:
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(Kit.rich(Kit.b(Kit.c(x.name, col)) + "  " + Kit.c(DB.rar[x.rarity].name.to_upper() if DB.rar.has(x.rarity) else "", col), 15))
 	v.add_child(Kit.muted(DB.tx("special:" + x.id, x.desc)))
+	if x.ability != "" and DB.hero_ability(x.hero).id != x.ability:
+		v.add_child(Kit.label("Does nothing until you pick this ability.", 12, Kit.PINK))
 	h.add_child(v)
 	var b := Kit.button("Owned" if own else "⬢ %d" % x.cores, func():
 		if Save.meta.specials.get(x.id, false) or Save.meta.cores < x.cores:

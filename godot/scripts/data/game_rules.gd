@@ -137,11 +137,11 @@ extends Resource
 @export var shards_per_boss := 15
 @export var shards_for_win := 60
 @export_group("Hero upgrades")
-## One entry per rarity: Common, Uncommon, Rare, Mythic, Legendary, Secret, Secret Legendary, Secret Mythic, Developer.
+## One entry per rarity: Common, Uncommon, Rare, Mythic, Legendary, Secret, Secret Mythic, Secret Legendary, Developer.
 ## Each tier past Secret is half as likely as the one before it.
-@export var rarity_names: PackedStringArray = ["Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret", "Secret Legendary", "Secret Mythic", "Developer"]
+@export var rarity_names: PackedStringArray = ["Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret", "Secret Mythic", "Secret Legendary", "Developer"]
 @export var rarity_mults: PackedFloat32Array = [1.0, 1.4, 1.9, 2.6, 3.5, 4.5, 6.0, 8.0, 12.0]
-@export var rarity_weights: PackedFloat32Array = [50.0, 25.0, 15.0, 6.5, 3.0, 0.5, 0.25, 0.125, 0.0625]
+@export var rarity_weights: PackedFloat32Array = [53.4, 26.7, 15.9625, 2.0, 1.0, 0.5, 0.25, 0.125, 0.0625]
 @export var demonic_chance := 0.01
 ## Chance the third upgrade slot offers a tower upgrade (any hero): base, + this much per tower upgrade taken, up to max.
 ## From 3 tower upgrades taken, one hero slot can turn into a tower slot too (twice the lean as a chance).
@@ -156,6 +156,9 @@ extends Resource
 @export var tank_attack_hp := 0.02
 ## Enemies the Wizard must push back (over all runs) to unlock the secret hero Gale.
 @export var gale_unlock_pushes := 500
+## Tailwind: enemies Gale knocks back take this much more damage from towers, for this many seconds.
+@export var tailwind := 0.15
+@export var tailwind_time := 2.0
 @export_multiline var level_offensive := "h.dmg *= 1.02\nh.range = iff(h.range < 9999, h.range * 1.01, h.range)\nh.rate /= 1.015"
 @export var level_offensive_text := "+2% damage, +1% range, +1.5% attack speed"
 @export_multiline var level_defensive := "h.grow_tank(0.03, 0.005, 0.002)"

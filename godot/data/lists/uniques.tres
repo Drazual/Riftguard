@@ -307,7 +307,7 @@ desc = "All towers deal double damage."
 effect = "run.mod_tower_dmg += 1.0"
 pool = "any"
 also_pools = PackedStringArray()
-rarity = "secret_legendary"
+rarity = "secret_mythic"
 kind = "unique:sl_overlord"
 heroes = PackedStringArray()
 
@@ -319,7 +319,7 @@ desc = "Triple max HP and a full heal, plus 50% more hero and spell damage."
 effect = "h.max_hp = round(h.max_hp * 3)\nh.hp = h.max_hp\nh.dmg *= 1.5\nh.spell *= 1.5"
 pool = "any"
 also_pools = PackedStringArray()
-rarity = "secret_legendary"
+rarity = "secret_mythic"
 kind = "unique:sl_titan"
 heroes = PackedStringArray()
 
@@ -331,7 +331,7 @@ desc = "All towers fire 40% faster and your ability recharges twice as fast."
 effect = "run.mod_tower_rate *= 0.6\nh.ab.cd = h.ab.cd / 2"
 pool = "any"
 also_pools = PackedStringArray()
-rarity = "secret_legendary"
+rarity = "secret_mythic"
 kind = "unique:sl_dilation"
 heroes = PackedStringArray()
 
@@ -343,7 +343,7 @@ desc = "Every enemy from now on has 30% less HP, bosses too."
 effect = "run.mod_enemy_hp *= 0.7"
 pool = "any"
 also_pools = PackedStringArray()
-rarity = "secret_mythic"
+rarity = "secret_legendary"
 kind = "unique:sm_horizon"
 heroes = PackedStringArray()
 
@@ -355,7 +355,7 @@ desc = "Every tower you build starts with 4 free level-ups, and level-ups cost 3
 effect = "h.free_build += 4\nh.lvl_mul *= 0.7"
 pool = "any"
 also_pools = PackedStringArray()
-rarity = "secret_mythic"
+rarity = "secret_legendary"
 kind = "unique:sm_engine"
 heroes = PackedStringArray()
 
@@ -367,7 +367,7 @@ desc = "Triple hero damage and spell damage."
 effect = "h.dmg *= 3\nh.spell *= 3"
 pool = "any"
 also_pools = PackedStringArray()
-rarity = "secret_mythic"
+rarity = "secret_legendary"
 kind = "unique:sm_godhand"
 heroes = PackedStringArray()
 
