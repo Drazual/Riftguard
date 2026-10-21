@@ -2142,7 +2142,7 @@ func cast_runes(x: float, y: float) -> void:
 	if r == null or h.ko > 0 or S.over or S.paused:
 		return
 	if S.mode.get("challenge", "") == "benched":
-		say("Benched: your hero can’t attack this wave.")
+		say("Benched: your hero can’t attack or cast spells this wave.")
 		return
 	if S.time < h.cast_t:
 		return
@@ -3379,6 +3379,11 @@ func dev_ok() -> bool:
 
 
 ## Gold upgrades only show up from R.gold_from_wave on, so an early one can't snowball the whole run.
+## Tank heroes don't get hero damage upgrades, except Gale once it is in Bruiser Form.
+func dmg_ok(p: UpgradeData) -> bool:
+	return not p.hero_damage or S.hero.data.category != "defensive" or S.hero.bruiser
+
+
 func gold_ok(p: UpgradeData) -> bool:
 	return not p.gold or S.wave >= R.gold_from_wave
 
@@ -3419,7 +3424,7 @@ func roll_perks() -> Array:
 	var mine := func(p: UpgradeData) -> bool: return p.pool == h.cls or p.also_pools.has(h.cls) or shared.call(p)
 	# Wizard upgrades only come for what this run's elements can do; the Wizard never sees attack speed.
 	var allowed := func(p: UpgradeData) -> bool:
-		return not (p.attack_speed and h.data.spells) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false))
+		return not (p.attack_speed and h.data.spells) and dmg_ok(p) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false))
 	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
 	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
@@ -3451,7 +3456,7 @@ func roll_perks() -> Array:
 			# Developer upgrades are only for a hero at max mastery; anyone else gets a Secret Legendary roll instead.
 			var tier: String = rarity.id if rarity.id != "developer" or dev_ok() else "secret_legendary"
 			for t in SECRET_TIERS.slice(SECRET_TIERS.find(tier)):
-				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and ab_ok.call(u) and not owns(u.id) and fresh.call(u) and gold_ok(u)))
+				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and ab_ok.call(u) and dmg_ok(u) and not owns(u.id) and fresh.call(u) and gold_ok(u)))
 				if perk:
 					list = "unique"
 					rar = DB.rar[t]
@@ -3629,7 +3634,7 @@ func show_shop() -> void:
 	shop_demonic = randf() < (0.1 if S.specials.get("pact", false) else 0.01)
 	var scale := 1 + S.wave / 20.0
 	shop_free = bool(S.specials.get("bazaar", false))
-	var list := R.shop.items.duplicate()
+	var list := R.shop.items.filter(dmg_ok)
 	list.shuffle()
 	shop_items = []
 	var i := 0
@@ -3907,9 +3912,6 @@ func discover_form(t: Tower) -> void:
 
 
 func level_tower(t: Tower, o: Dictionary) -> void:
-	if S.user_pause:
-		say("Paused: press Space or P to resume first.")
-		return
 	var lc := level_cost(t, o)
 	if S.gold < lc or t.lvl >= R.max_level or path_state(t, o) != "open":
 		return
@@ -4349,11 +4351,7 @@ func handle_right(x: float, y: float) -> void:
 
 func handle_click(x: float, y: float, touch := false) -> void:
 	var cell := cell_at(x, y)
-	if S.user_pause and not S.over:
-		S.sel = pick_tower(cell.x, cell.y)
-		refresh("inspector")
-		return
-	if S.paused or S.over:
+	if S.over or (S.paused and not S.user_pause):
 		return
 	var t: Tower = tower_at(cell.x, cell.y) if S.build != "" else pick_tower(cell.x, cell.y)
 	if S.merge_from != null:
@@ -4364,12 +4362,12 @@ func handle_click(x: float, y: float, touch := false) -> void:
 			say("Merge cancelled.")
 			refresh("inspector")
 		return
-	if S.strike_ready and S.build == "":
+	if S.strike_ready and S.build == "" and not S.user_pause:
 		S.pointer = Vector2(x, y)
 		use_ability()
 		return
 	# the Wizard casts its readied runes at the cursor
-	if S.hero.cls == "wizard" and S.runes.size() and S.build == "":
+	if S.hero.cls == "wizard" and S.runes.size() and S.build == "" and not S.user_pause:
 		cast_runes(x, y)
 		return
 	if t:
@@ -4396,6 +4394,9 @@ func handle_click(x: float, y: float, touch := false) -> void:
 		if in_build_range(cell.x, cell.y):
 			place_tower(cell.x, cell.y, S.build)
 			return
+		if S.user_pause:
+			say("Out of build range, and your hero can't walk there while paused.")
+			return
 		var h := S.hero
 		var cx := cell.x * C + C / 2
 		var cy := cell.y * C + C / 2
@@ -4411,7 +4412,7 @@ func handle_click(x: float, y: float, touch := false) -> void:
 	if S.sel != null:
 		S.sel = null
 		refresh("inspector")
-	if touch or S.hero.cls == "wizard":
+	if (touch or S.hero.cls == "wizard") and not S.user_pause:
 		move_hero(x, y)
 
 
@@ -4422,7 +4423,7 @@ func hero_hit(x: float, y: float) -> bool:
 
 
 func select_build(k: String) -> void:
-	if S.over or S.paused:
+	if S.over or (S.paused and not S.user_pause):
 		return
 	if S.build == k:
 		S.build = ""
@@ -4440,19 +4441,13 @@ func toggle_pause() -> void:
 		return
 	S.user_pause = not S.user_pause
 	S.paused = S.user_pause
-	if S.user_pause:
-		S.build = ""
-		S.pending_build = null
-		S.merge_from = null
-		refresh("inspector")
+	# towers can still be built, levelled, merged and sold while paused; the hero just can't walk off to build
+	S.pending_build = null
 	refresh("build_bar")
 
 
 func sell_selected() -> void:
 	if S.sel == null:
-		return
-	if S.user_pause:
-		say("Paused. Press P to resume.")
 		return
 	sell(S.sel)
 

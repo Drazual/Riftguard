@@ -209,7 +209,7 @@ func _board_frame() -> Control:
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_veil.add_child(pl)
-	var ps := Kit.label("Press P or Resume to continue. You can still look at towers.", 13, Kit.MUTED)
+	var ps := Kit.label("Press P or Resume to continue. You can still build, upgrade and sell towers.", 13, Kit.MUTED)
 	ps.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_veil.add_child(ps)
 	area.add_child(pause_veil)
@@ -829,9 +829,6 @@ func render_inspector() -> void:
 	var row := Kit.hbox(6)
 	if can_merge:
 		var mb := Kit.button("%s · %d" % ["Super merge" if t.hybrid else "Merge", game.merge_cost(t)], func():
-			if S.user_pause:
-				toast("Paused. Press P to resume.")
-				return
 			S.merge_from = t
 			render_inspector()
 			toast(("Pick another level %d hybrid." if t.hybrid else "Pick a level %d tower of another type.") % R.max_level))
@@ -1125,7 +1122,7 @@ func _key(ev: InputEventKey) -> void:
 		if i < S.loadout.size():
 			game.select_build(S.loadout[i])
 	elif k == KEY_R:
-		if not S.paused and not S.over and not game.cancel_placing():
+		if (not S.paused or S.user_pause) and not S.over and not game.cancel_placing():
 			game.sell_selected()
 	elif k == KEY_Q:
 		game.use_ability()

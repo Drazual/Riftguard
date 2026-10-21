@@ -366,6 +366,7 @@ name = "Godhand"
 desc = "Triple hero damage and spell damage."
 effect = "h.dmg *= 3\nh.spell *= 3"
 pool = "any"
+hero_damage = true
 also_pools = PackedStringArray()
 rarity = "secret_legendary"
 kind = "unique:sm_godhand"

@@ -26,7 +26,7 @@ texts = {
 "boon:frost+plasma": "Enemies near your hero take damage and slow down.",
 "boon:frost+tesla": "Your hero's attacks jump to more enemies and slow them.",
 "boon:plasma+tesla": "Lightning strikes random enemies every few seconds.",
-"challenge:benched": "Your hero can’t attack.",
+"challenge:benched": "Your hero can’t attack or cast spells.",
 "challenge:blitz": "Enemies move faster.",
 "challenge:iron": "Every enemy is a Brute.",
 "challenge:lone": "Towers deal less damage but your hero deals more.",

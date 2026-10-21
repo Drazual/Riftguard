@@ -798,6 +798,7 @@ effect = "h.dmg += h.base_dmg * m"
 m = 0.08
 pool = "gale"
 kind = "damage"
+hero_damage = true
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 
