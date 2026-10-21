@@ -22,6 +22,8 @@ extends Resource
 @export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_mythic", "secret_legendary", "developer") var min_rarity := "any"
 ## Gold upgrade (kept for the stats log; gold upgrades now live in the Legendary uniques).
 @export var gold := false
+## Raises the hero's own attack damage: tank heroes only get it once they hit hard (Gale in Bruiser Form).
+@export var hero_damage := false
 ## Attack speed upgrade (never offered to the Wizard).
 @export var attack_speed := false
 ## Wizard: only when the run's spells can freeze, wall or push.
