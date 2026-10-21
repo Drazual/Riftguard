@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="HeroData" format=3]
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://3slmmd50tora"]
 
-[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_5qh7a"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_0pu25"]
-[ext_resource type="SpriteFrames" path="res://art/heroes/sniper.tres" id="2_8b2t1"]
-[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_8b2t1"]
-[ext_resource type="Texture2D" path="res://assets/heroes/sniper.png" id="4_5gskk"]
+[ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_5qh7a"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_0pu25"]
+[ext_resource type="SpriteFrames" uid="uid://cavoi57slxq8j" path="res://art/heroes/sniper.tres" id="2_8b2t1"]
+[ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_8b2t1"]
+[ext_resource type="Texture2D" uid="uid://do5py3jyxpkd2" path="res://assets/heroes/sniper.png" id="4_5gskk"]
 
 [sub_resource type="Resource" id="Resource_v0u3i"]
 script = ExtResource("1_5qh7a")
@@ -73,7 +73,7 @@ hp = 170.0
 dmg = 48.0
 rate = 2.4
 range = 9999.0
-brace = 1.2
+brace = 2.0
 crit = 0.1
 ability = SubResource("Resource_v0u3i")
 alt = SubResource("Resource_tdfem")

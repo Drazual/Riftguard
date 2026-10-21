@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_6i1nf"]
 [ext_resource type="SpriteFrames" uid="uid://ddlqyi6kad3qh" path="res://art/towers/laser.tres" id="1_43s4b"]
 [ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_43s4b"]
+[ext_resource type="Script" uid="uid://cxq3fjvt4y47u" path="res://scripts/data/tower_path_set.gd" id="2_l1caa"]
 [ext_resource type="Texture2D" uid="uid://cf3jk1v0fo7j3" path="res://assets/towers/laser.png" id="3_l1caa"]
 
 [sub_resource type="Resource" id="Resource_jwh1q"]

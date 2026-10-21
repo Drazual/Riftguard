@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="HeroData" format=3]
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://stbiuubd3c1m"]
 
-[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_ab"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_up"]
-[ext_resource type="SpriteFrames" path="res://art/heroes/gale.tres" id="3_fr"]
-[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="4_hd"]
-[ext_resource type="Texture2D" path="res://assets/heroes/gale.png" id="5_sh"]
+[ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_ab"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_up"]
+[ext_resource type="SpriteFrames" uid="uid://bgrxhil3j28yl" path="res://art/heroes/gale.tres" id="3_fr"]
+[ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="4_hd"]
+[ext_resource type="Texture2D" uid="uid://ifirifpbsd3i" path="res://assets/heroes/gale.png" id="5_sh"]
 
 [sub_resource type="Resource" id="Resource_whirl"]
 script = ExtResource("1_ab")
@@ -47,8 +47,8 @@ id = "galeforce"
 name = "Gale Force"
 desc = "Hits knock enemies back {8 * r}% farther"
 effect = "h.knock *= 1 + 0.08 * r"
-cost = "80 + 60 * r"
 also_pools = PackedStringArray()
+cost = "80 + 60 * r"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_m3"]
@@ -57,8 +57,8 @@ id = "tempest"
 name = "Tempest Training"
 desc = "Abilities deal +{8 * r}% damage"
 effect = "h.ab.dmg *= 1 + 0.08 * r"
-cost = "80 + 60 * r"
 also_pools = PackedStringArray()
+cost = "80 + 60 * r"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_m4"]
@@ -67,8 +67,8 @@ id = "secondwind"
 name = "Second Wind"
 desc = "+{f1(0.6 * r)} HP regen per second"
 effect = "h.regen += 0.6 * r"
-cost = "100 + 80 * r"
 also_pools = PackedStringArray()
+cost = "100 + 80 * r"
 heroes = PackedStringArray()
 
 [resource]
@@ -86,7 +86,6 @@ range = 70.0
 block = 999
 armor = 0.12
 regen = 4.5
-speed = 140.0
 knock = 14.0
 ability = SubResource("Resource_whirl")
 alt = SubResource("Resource_stream")

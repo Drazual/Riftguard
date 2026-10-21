@@ -1,13 +1,13 @@
-[gd_resource type="Theme" format=3]
+[gd_resource type="Theme" format=3 uid="uid://dfagvmcskl2te"]
 
 [ext_resource type="FontVariation" path="res://ui/display_font.tres" id="1_rtqkv"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_disabled.png" id="2_47c11"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_hover.png" id="3_2j8s8"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_normal.png" id="4_mo6nk"]
-[ext_resource type="Texture2D" path="res://assets/ui/btn_pressed.png" id="5_qijjd"]
+[ext_resource type="Texture2D" uid="uid://rs2r062f0whi" path="res://assets/ui/btn_disabled.png" id="2_47c11"]
+[ext_resource type="Texture2D" uid="uid://cwqsdppu8wokm" path="res://assets/ui/btn_hover.png" id="3_2j8s8"]
+[ext_resource type="Texture2D" uid="uid://ds12n5dcwkxad" path="res://assets/ui/btn_normal.png" id="4_mo6nk"]
+[ext_resource type="Texture2D" uid="uid://dmj7x8eqx8rdl" path="res://assets/ui/btn_pressed.png" id="5_qijjd"]
 [ext_resource type="FontVariation" path="res://ui/display_bold_font.tres" id="6_de4b7"]
-[ext_resource type="FontFile" path="res://assets/fonts/Barlow-Regular.ttf" id="7_yipae"]
-[ext_resource type="FontFile" path="res://assets/fonts/Barlow-SemiBold.ttf" id="8_qxik8"]
+[ext_resource type="FontFile" uid="uid://hywkaymmcrh" path="res://assets/fonts/Barlow-Regular.ttf" id="7_yipae"]
+[ext_resource type="FontFile" uid="uid://b01vvmsdo2mc1" path="res://assets/fonts/Barlow-SemiBold.ttf" id="8_qxik8"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_iag4h"]
 content_margin_left = 6.0

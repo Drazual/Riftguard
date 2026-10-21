@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="UpgradeList" format=3]
+[gd_resource type="Resource" script_class="UpgradeList" format=3 uid="uid://cuc3s4mske6p4"]
 
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_7nimu"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_rcrdk"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="1_7nimu"]
+[ext_resource type="Script" uid="uid://dc0q6jhs6auw6" path="res://scripts/data/upgrade_list.gd" id="2_rcrdk"]
 
 [sub_resource type="Resource" id="Resource_pkb4r"]
 script = ExtResource("1_7nimu")
@@ -187,9 +187,9 @@ name = "Bruiser Form"
 desc = "Gale becomes a Bruiser: 3.5x damage, 25% faster attacks, +20% max HP, +5% damage reduction and harder knockback, but holds 6 enemies at once instead of every one."
 effect = "h.bruiser_form()"
 pool = "gale"
+also_pools = PackedStringArray()
 rarity = "legendary"
 kind = "unique:bruiser"
-also_pools = PackedStringArray()
 heroes = PackedStringArray()
 
 [resource]

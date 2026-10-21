@@ -1,7 +1,7 @@
-[gd_resource type="TileSet" format=3]
+[gd_resource type="TileSet" format=3 uid="uid://dgxxwubi8isox"]
 
-[ext_resource type="Texture2D" path="res://assets/maps/boardwalk_tiles.png" id="1_oeks6"]
-[ext_resource type="Texture2D" path="res://assets/maps/boardwalk_props.png" id="2_aec86"]
+[ext_resource type="Texture2D" uid="uid://bsgoly8iu0boa" path="res://assets/maps/boardwalk_tiles.png" id="1_oeks6"]
+[ext_resource type="Texture2D" uid="uid://bj4lfy5eufl6s" path="res://assets/maps/boardwalk_props.png" id="2_aec86"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_lst6s"]
 texture = ExtResource("1_oeks6")

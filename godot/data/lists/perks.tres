@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="UpgradeList" format=3]
+[gd_resource type="Resource" script_class="UpgradeList" format=3 uid="uid://rwoauoj6e22d"]
 
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_ttpmk"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_ogedp"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="1_ttpmk"]
+[ext_resource type="Script" uid="uid://dc0q6jhs6auw6" path="res://scripts/data/upgrade_list.gd" id="2_ogedp"]
 
 [sub_resource type="Resource" id="Resource_8qpy0"]
 script = ExtResource("1_ttpmk")
@@ -797,8 +797,8 @@ desc = "Your hits knock enemies back {pct(m)} farther."
 effect = "h.knock *= 1 + m"
 m = 0.15
 pool = "gale"
-kind = "knock"
 also_pools = PackedStringArray()
+kind = "knock"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_gale2"]
@@ -810,9 +810,9 @@ effect = "h.ab.power *= 1 + m
 h.ab.mult *= 1 + m"
 m = 0.1
 pool = "gale"
+also_pools = PackedStringArray()
 ability = "whirl"
 kind = "whirl"
-also_pools = PackedStringArray()
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_gale3"]
@@ -824,9 +824,9 @@ effect = "h.ab.dmg *= 1 + m
 h.ab.stun += m * 2"
 m = 0.12
 pool = "gale"
+also_pools = PackedStringArray()
 ability = "stream"
 kind = "stream"
-also_pools = PackedStringArray()
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_gale4"]
@@ -837,8 +837,8 @@ desc = "Take {pct(m * 0.5)} less damage."
 effect = "h.armor = min(0.75, h.armor + m * 0.5)"
 m = 0.06
 pool = "gale"
-kind = "tough"
 also_pools = PackedStringArray()
+kind = "tough"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_gale5"]
@@ -849,8 +849,8 @@ desc = "+{pct(m)} hero damage."
 effect = "h.dmg *= 1 + m"
 m = 0.1
 pool = "gale"
-kind = "damage"
 also_pools = PackedStringArray()
+kind = "damage"
 heroes = PackedStringArray()
 
 [resource]

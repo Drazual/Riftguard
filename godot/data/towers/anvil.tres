@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_hs41w"]
 [ext_resource type="SpriteFrames" uid="uid://dedni7v4etsd6" path="res://art/towers/anvil.tres" id="1_psklc"]
+[ext_resource type="Script" uid="uid://cxq3fjvt4y47u" path="res://scripts/data/tower_path_set.gd" id="2_0xhmw"]
 [ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_psklc"]
 [ext_resource type="Texture2D" uid="uid://cehv1bborytul" path="res://assets/towers/anvil.png" id="3_0xhmw"]
 

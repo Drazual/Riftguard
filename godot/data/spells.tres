@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="SpellList" format=3]
+[gd_resource type="Resource" script_class="SpellList" format=3 uid="uid://cv6icsu0k4h1n"]
 
-[ext_resource type="Script" path="res://scripts/data/spell_data.gd" id="1_0q7j1"]
-[ext_resource type="Script" path="res://scripts/data/spell_list.gd" id="2_giy6c"]
+[ext_resource type="Script" uid="uid://r6113bu58fyj" path="res://scripts/data/spell_data.gd" id="1_0q7j1"]
+[ext_resource type="Script" uid="uid://bxnl25ubi008i" path="res://scripts/data/spell_list.gd" id="2_giy6c"]
 
 [sub_resource type="Resource" id="Resource_6xnee"]
 script = ExtResource("1_0q7j1")

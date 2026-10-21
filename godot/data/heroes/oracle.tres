@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="HeroData" format=3]
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://bnagvrjvo5oa1"]
 
-[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_dy0wv"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_vb7qr"]
-[ext_resource type="SpriteFrames" path="res://art/heroes/oracle.tres" id="2_y0hsd"]
-[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_y0hsd"]
-[ext_resource type="Texture2D" path="res://assets/heroes/oracle.png" id="4_q76ft"]
+[ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_dy0wv"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_vb7qr"]
+[ext_resource type="SpriteFrames" uid="uid://clxwcel6y2h0g" path="res://art/heroes/oracle.tres" id="2_y0hsd"]
+[ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_y0hsd"]
+[ext_resource type="Texture2D" uid="uid://ejuidjhfkcg0" path="res://assets/heroes/oracle.png" id="4_q76ft"]
 
 [sub_resource type="Resource" id="Resource_207id"]
 script = ExtResource("1_dy0wv")

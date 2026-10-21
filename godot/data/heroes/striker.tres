@@ -1,10 +1,10 @@
-[gd_resource type="Resource" script_class="HeroData" format=3]
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://bqxits25lqsme"]
 
-[ext_resource type="Script" path="res://scripts/data/ability_data.gd" id="1_8aiy5"]
-[ext_resource type="SpriteFrames" path="res://art/heroes/striker.tres" id="2_jcdkq"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="2_ygewa"]
-[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="3_jcdkq"]
-[ext_resource type="Texture2D" path="res://assets/heroes/striker.png" id="4_fek0u"]
+[ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_8aiy5"]
+[ext_resource type="SpriteFrames" uid="uid://x8ux4h2g5ccs" path="res://art/heroes/striker.tres" id="2_jcdkq"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_ygewa"]
+[ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_jcdkq"]
+[ext_resource type="Texture2D" uid="uid://bnfwnmxor8r33" path="res://assets/heroes/striker.png" id="4_fek0u"]
 
 [sub_resource type="Resource" id="Resource_uk0wj"]
 script = ExtResource("1_8aiy5")

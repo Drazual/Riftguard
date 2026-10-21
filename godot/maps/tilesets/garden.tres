@@ -1,7 +1,7 @@
-[gd_resource type="TileSet" format=3]
+[gd_resource type="TileSet" format=3 uid="uid://dixic2x1cowb1"]
 
-[ext_resource type="Texture2D" path="res://assets/maps/garden_tiles.png" id="1_fn5ec"]
-[ext_resource type="Texture2D" path="res://assets/maps/garden_props.png" id="2_eapum"]
+[ext_resource type="Texture2D" uid="uid://cindqru2hw4f5" path="res://assets/maps/garden_tiles.png" id="1_fn5ec"]
+[ext_resource type="Texture2D" uid="uid://dflhstejsg6c5" path="res://assets/maps/garden_props.png" id="2_eapum"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_8lemr"]
 texture = ExtResource("1_fn5ec")

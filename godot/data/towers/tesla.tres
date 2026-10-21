@@ -2,6 +2,7 @@
 
 [ext_resource type="SpriteFrames" uid="uid://dtx8enx1ph0l3" path="res://art/towers/tesla.tres" id="1_ui3f5"]
 [ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_w7usc"]
+[ext_resource type="Script" uid="uid://cxq3fjvt4y47u" path="res://scripts/data/tower_path_set.gd" id="2_8kqpc"]
 [ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_ui3f5"]
 [ext_resource type="Texture2D" uid="uid://cf5i0sl10sok3" path="res://assets/towers/tesla.png" id="3_8kqpc"]
 

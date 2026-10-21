@@ -1,7 +1,7 @@
-[gd_resource type="Resource" script_class="UpgradeList" format=3]
+[gd_resource type="Resource" script_class="UpgradeList" format=3 uid="uid://k2hdtppkequd"]
 
-[ext_resource type="Script" path="res://scripts/data/upgrade_data.gd" id="1_txdmo"]
-[ext_resource type="Script" path="res://scripts/data/upgrade_list.gd" id="2_lghwh"]
+[ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="1_txdmo"]
+[ext_resource type="Script" uid="uid://dc0q6jhs6auw6" path="res://scripts/data/upgrade_list.gd" id="2_lghwh"]
 
 [sub_resource type="Resource" id="Resource_jjrov"]
 script = ExtResource("1_txdmo")
@@ -102,11 +102,11 @@ script = ExtResource("1_txdmo")
 id = "galeS"
 name = "Born Bruiser"
 desc = "Gale starts every run in Bruiser Form."
+also_pools = PackedStringArray()
 rarity = "mythic"
+heroes = PackedStringArray()
 cores = 30
 hero = "gale"
-also_pools = PackedStringArray()
-heroes = PackedStringArray()
 
 [resource]
 script = ExtResource("2_lghwh")

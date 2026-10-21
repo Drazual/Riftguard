@@ -1,16 +1,15 @@
-[gd_resource type="Resource" script_class="TowerData" format=3]
+[gd_resource type="Resource" script_class="TowerData" format=3 uid="uid://2qtvljwo0edw"]
 
-[ext_resource type="Script" path="res://scripts/data/tower_path.gd" id="1_tp"]
-[ext_resource type="Script" path="res://scripts/data/tower_path_set.gd" id="2_ps"]
-[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="3_td"]
-[ext_resource type="SpriteFrames" path="res://art/towers/shrine.tres" id="4_fr"]
-[ext_resource type="Texture2D" path="res://assets/towers/shrine.png" id="5_sh"]
+[ext_resource type="Script" uid="uid://vlepjv24x12f" path="res://scripts/data/tower_path.gd" id="1_tp"]
+[ext_resource type="Script" uid="uid://cxq3fjvt4y47u" path="res://scripts/data/tower_path_set.gd" id="2_ps"]
+[ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="3_td"]
+[ext_resource type="SpriteFrames" uid="uid://bbriy71hnn38q" path="res://art/towers/shrine.tres" id="4_fr"]
+[ext_resource type="Texture2D" uid="uid://cai0xyap2jtve" path="res://assets/towers/shrine.png" id="5_sh"]
 
 [sub_resource type="Resource" id="Path_fury"]
 script = ExtResource("1_tp")
 id = "fury"
 name = "Battle Fury"
-tag = "power"
 adjective = "Furious"
 noun = "Altar"
 title = "Fury"
@@ -24,7 +23,6 @@ mastery_effect = "t.hb_boss += 0.25"
 script = ExtResource("1_tp")
 id = "ironwill"
 name = "Iron Will"
-tag = "power"
 adjective = "Iron"
 noun = "Bastion"
 title = "Will"
@@ -76,6 +74,61 @@ mastery_name = "Flurry"
 mastery_desc = "Your hero attacks another 15% faster."
 mastery_effect = "t.hb_rate += 0.15"
 
+[sub_resource type="Resource" id="Set_any"]
+script = ExtResource("2_ps")
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_quick")])
+
+[sub_resource type="Resource" id="Set_vanguard"]
+script = ExtResource("2_ps")
+hero = "vanguard"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_fury"), SubResource("Path_quick")])
+
+[sub_resource type="Resource" id="Path_bruiser"]
+script = ExtResource("1_tp")
+id = "bruiser"
+name = "Bruiser Training"
+adjective = "Brutal"
+noun = "Ring"
+title = "Brawling"
+desc = "Gale deals +8% damage per point."
+effect = "t.hb_dmg += 0.08"
+mastery_name = "Bruiser Form"
+mastery_desc = "Gale becomes a Bruiser for the rest of the run: 3.5x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
+mastery_effect = "t.hb_bruiser = 1"
+
+[sub_resource type="Resource" id="Path_galeforce"]
+script = ExtResource("1_tp")
+id = "galeforce"
+name = "Gale Force"
+tag = "burst"
+adjective = "Howling"
+noun = "Gale"
+title = "Storms"
+desc = "Gale’s hits and abilities knock enemies 20% farther per point."
+effect = "t.hb_knock += 0.2"
+mastery_name = "Hurricane"
+mastery_desc = "Knockback is another 40% stronger."
+mastery_effect = "t.hb_knock += 0.4"
+
+[sub_resource type="Resource" id="Path_wall"]
+script = ExtResource("1_tp")
+id = "wall"
+name = "Shield Wall"
+adjective = "Walled"
+noun = "Keep"
+title = "Walls"
+desc = "Your hero takes 3% less damage per point. In Bruiser Form, Gale also holds 1 more enemy per point."
+effect = "t.hb_armor += 0.03
+t.hb_block += 1"
+mastery_name = "Fortress"
+mastery_desc = "Your hero takes another 8% less damage."
+mastery_effect = "t.hb_armor += 0.08"
+
+[sub_resource type="Resource" id="Set_gale"]
+script = ExtResource("2_ps")
+hero = "gale"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_bruiser"), SubResource("Path_galeforce"), SubResource("Path_wall"), SubResource("Path_spring"), SubResource("Path_tailwind")])
+
 [sub_resource type="Resource" id="Path_reach"]
 script = ExtResource("1_tp")
 id = "reach"
@@ -104,6 +157,16 @@ mastery_name = "Headhunter"
 mastery_desc = "Your hero deals +30% damage to bosses."
 mastery_effect = "t.hb_boss += 0.3"
 
+[sub_resource type="Resource" id="Set_striker"]
+script = ExtResource("2_ps")
+hero = "striker"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_quick"), SubResource("Path_reach"), SubResource("Path_keen"), SubResource("Path_tailwind")])
+
+[sub_resource type="Resource" id="Set_sniper"]
+script = ExtResource("2_ps")
+hero = "sniper"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_keen"), SubResource("Path_quick"), SubResource("Path_tailwind"), SubResource("Path_spring")])
+
 [sub_resource type="Resource" id="Path_amplify"]
 script = ExtResource("1_tp")
 id = "amplify"
@@ -117,6 +180,11 @@ effect = "t.hb_aura += 0.08"
 mastery_name = "Resonance"
 mastery_desc = "Your hero’s tower aura is another 20% stronger."
 mastery_effect = "t.hb_aura += 0.2"
+
+[sub_resource type="Resource" id="Set_oracle"]
+script = ExtResource("2_ps")
+hero = "oracle"
+paths = Array[ExtResource("1_tp")]([SubResource("Path_amplify"), SubResource("Path_tailwind"), SubResource("Path_spring"), SubResource("Path_ironwill"), SubResource("Path_fury")])
 
 [sub_resource type="Resource" id="Path_font"]
 script = ExtResource("1_tp")
@@ -145,79 +213,6 @@ effect = "t.hb_mana += 0.1"
 mastery_name = "Overflow"
 mastery_desc = "Your mana refills another 25% faster."
 mastery_effect = "t.hb_mana += 0.25"
-
-[sub_resource type="Resource" id="Path_bruiser"]
-script = ExtResource("1_tp")
-id = "bruiser"
-name = "Bruiser Training"
-tag = "power"
-adjective = "Brutal"
-noun = "Ring"
-title = "Brawling"
-desc = "Gale deals +8% damage per point."
-effect = "t.hb_dmg += 0.08"
-mastery_name = "Bruiser Form"
-mastery_desc = "Gale becomes a Bruiser for the rest of the run: 3.5x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
-mastery_effect = "t.hb_bruiser = 1"
-
-[sub_resource type="Resource" id="Path_galeforce"]
-script = ExtResource("1_tp")
-id = "galeforce"
-name = "Gale Force"
-tag = "burst"
-adjective = "Howling"
-noun = "Gale"
-title = "Storms"
-desc = "Gale’s hits and abilities knock enemies 20% farther per point."
-effect = "t.hb_knock += 0.2"
-mastery_name = "Hurricane"
-mastery_desc = "Knockback is another 40% stronger."
-mastery_effect = "t.hb_knock += 0.4"
-
-[sub_resource type="Resource" id="Path_wall"]
-script = ExtResource("1_tp")
-id = "wall"
-name = "Shield Wall"
-tag = "power"
-adjective = "Walled"
-noun = "Keep"
-title = "Walls"
-desc = "Your hero takes 3% less damage per point. In Bruiser Form, Gale also holds 1 more enemy per point."
-effect = "t.hb_armor += 0.03
-t.hb_block += 1"
-mastery_name = "Fortress"
-mastery_desc = "Your hero takes another 8% less damage."
-mastery_effect = "t.hb_armor += 0.08"
-
-[sub_resource type="Resource" id="Set_any"]
-script = ExtResource("2_ps")
-hero = ""
-paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_quick")])
-
-[sub_resource type="Resource" id="Set_vanguard"]
-script = ExtResource("2_ps")
-hero = "vanguard"
-paths = Array[ExtResource("1_tp")]([SubResource("Path_ironwill"), SubResource("Path_spring"), SubResource("Path_tailwind"), SubResource("Path_fury"), SubResource("Path_quick")])
-
-[sub_resource type="Resource" id="Set_gale"]
-script = ExtResource("2_ps")
-hero = "gale"
-paths = Array[ExtResource("1_tp")]([SubResource("Path_bruiser"), SubResource("Path_galeforce"), SubResource("Path_wall"), SubResource("Path_spring"), SubResource("Path_tailwind")])
-
-[sub_resource type="Resource" id="Set_striker"]
-script = ExtResource("2_ps")
-hero = "striker"
-paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_quick"), SubResource("Path_reach"), SubResource("Path_keen"), SubResource("Path_tailwind")])
-
-[sub_resource type="Resource" id="Set_sniper"]
-script = ExtResource("2_ps")
-hero = "sniper"
-paths = Array[ExtResource("1_tp")]([SubResource("Path_fury"), SubResource("Path_keen"), SubResource("Path_quick"), SubResource("Path_tailwind"), SubResource("Path_spring")])
-
-[sub_resource type="Resource" id="Set_oracle"]
-script = ExtResource("2_ps")
-hero = "oracle"
-paths = Array[ExtResource("1_tp")]([SubResource("Path_amplify"), SubResource("Path_tailwind"), SubResource("Path_spring"), SubResource("Path_ironwill"), SubResource("Path_fury")])
 
 [sub_resource type="Resource" id="Set_wizard"]
 script = ExtResource("2_ps")
