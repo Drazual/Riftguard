@@ -157,7 +157,7 @@ title = "Brawling"
 desc = "Gale deals +8% damage per point."
 effect = "t.hb_dmg += 0.08"
 mastery_name = "Bruiser Form"
-mastery_desc = "Gale becomes a Bruiser for the rest of the run: 3.5x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
+mastery_desc = "Gale becomes a Bruiser for the rest of the run: 2x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
 mastery_effect = "t.hb_bruiser = 1"
 
 [sub_resource type="Resource" id="Path_galeforce"]
