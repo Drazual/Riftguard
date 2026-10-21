@@ -86,6 +86,7 @@ global_meta = ExtResource("19_yl4lr")
 tower_global = ExtResource("43_vbnph")
 specials = ExtResource("40_ktw5r")
 simple_texts = ExtResource("39_urqb4")
+tank_attack_hp = 0.04
 rarity_names = PackedStringArray("Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret", "Secret Mythic", "Secret Legendary", "Developer")
 rarity_mults = PackedFloat32Array(1, 1.4, 1.9, 2.6, 3.5, 4.5, 6, 8, 12)
 rarity_weights = PackedFloat32Array(53.4, 26.7, 15.9625, 2, 1, 0.5, 0.25, 0.125, 0.0625)

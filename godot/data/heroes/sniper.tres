@@ -21,7 +21,7 @@ id = "strike"
 name = "Orbital Strike"
 cd = 16.0
 r = 90.0
-mult = 5.0
+mult = 3.5
 desc = "Calls a strike where your cursor is on the map (or the toughest enemy). After 0.8s it hits everything within {f0(a.r)} for {f1(a.mult)}× damage."
 
 [sub_resource type="Resource" id="Resource_pqs5a"]
@@ -73,7 +73,7 @@ hp = 170.0
 dmg = 160.0
 rate = 2.4
 range = 9999.0
-brace = 1.2
+brace = 2.0
 crit = 0.1
 ability = SubResource("Resource_v0u3i")
 alt = SubResource("Resource_tdfem")

@@ -185,7 +185,7 @@ func bruiser_form() -> void:
 	if bruiser:
 		return
 	bruiser = true
-	dmg *= 3.5
+	dmg *= 2.0
 	rate /= 1.25
 	block = DB.rules.bruiser_block
 	max_hp = roundf(max_hp * 1.2)

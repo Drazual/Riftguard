@@ -372,9 +372,13 @@ func start_run(hero: String, towers: Array) -> void:
 	queue_tip("run")
 
 
-## A side panel listing what you picked in key order. Drag a row onto another to move it there;
-## `changed` gets the new order.
+## A side panel listing what you picked in key order. Press a row and drag it: it follows the pointer,
+## the other rows slide out of its way, and letting go drops it on that key. `changed` gets the new order.
 func key_order(title: String, items: Array, keys: Array, name_of: Callable, color_of: Callable, changed: Callable) -> Control:
+	const ROW_H := 36.0
+	const GAP := 6.0
+	const KEY_W := 30.0
+	var step := ROW_H + GAP
 	var c := Kit.card(10)
 	c.custom_minimum_size = Vector2(230, 0)
 	c.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
@@ -384,36 +388,102 @@ func key_order(title: String, items: Array, keys: Array, name_of: Callable, colo
 	v.add_child(Kit.muted("Drag a row to move it to another key.", 12))
 	if items.is_empty():
 		v.add_child(Kit.muted("Nothing picked yet.", 12))
-	var tag := title
+		return c
+	# rows sit in a plain Control so they can be placed (and slid around) by hand
+	var lane := Control.new()
+	lane.custom_minimum_size = Vector2(0, items.size() * step - GAP)
+	lane.mouse_filter = Control.MOUSE_FILTER_PASS
+	v.add_child(lane)
+	# the keys stay put; only the rows move between them
+	for i in items.size():
+		var key := Kit.label(keys[i], 16, Kit.GOLD, Kit.display_bold)
+		key.position = Vector2(0, i * step)
+		key.size = Vector2(KEY_W - 6, ROW_H)
+		key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lane.add_child(key)
+	var rows: Array[PanelContainer] = []
 	for i in items.size():
 		var it = items[i]
-		var col: Color = color_of.call(it)
 		var row := PanelContainer.new()
 		row.theme_type_variation = "Card"
 		row.mouse_default_cursor_shape = Control.CURSOR_DRAG
-		row.tooltip_text = ""
-		var h := Kit.hbox(10)
+		row.position = Vector2(KEY_W, i * step)
+		var h := Kit.hbox(8)
+		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		row.add_child(h)
-		var key := Kit.label(keys[i], 16, Kit.GOLD, Kit.display_bold)
-		key.custom_minimum_size = Vector2(22, 0)
-		h.add_child(key)
-		var nm := Kit.label(name_of.call(it), 15, col, Kit.display)
+		var nm := Kit.label(name_of.call(it), 15, color_of.call(it), Kit.display)
 		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		h.add_child(nm)
-		h.add_child(Kit.label("⠿", 16, Kit.MUTED))
-		row.set_drag_forwarding(func(_at):
-			var pv := Kit.label(name_of.call(it), 15, col, Kit.display_bold)
-			row.set_drag_preview(pv)
-			return { order = tag, i = i },
-		func(_at, d): return d is Dictionary and d.get("order") == tag,
-		func(_at, d):
-			if d.i == i:
+		var grip := Kit.label("⠿", 16, Kit.MUTED)
+		grip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(grip)
+		lane.add_child(row)
+		rows.append(row)
+	var fit := func():
+		for r in rows:
+			r.size = Vector2(maxf(0.0, lane.size.x - KEY_W), ROW_H)
+			r.pivot_offset = r.size / 2
+	lane.resized.connect(fit)
+	fit.call_deferred()
+	# drag state: which row, where it was grabbed, and the slot it would drop into
+	var st := { from = -1, to = -1, grab = 0.0, done = false }
+	var slide := func(r: Control, y: float):
+		var tw := r.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(r, "position:y", y, 0.14)
+	# where every other row sits while the dragged one hovers over slot `to`
+	var reflow := func():
+		for j in rows.size():
+			if j == st.from:
+				continue
+			var slot := j
+			if st.from < st.to and j > st.from and j <= st.to:
+				slot = j - 1
+			elif st.from > st.to and j >= st.to and j < st.from:
+				slot = j + 1
+			slide.call(rows[j], slot * step)
+	for i in rows.size():
+		var row := rows[i]
+		row.gui_input.connect(func(ev):
+			if st.done:
 				return
-			var l := items.duplicate()
-			var moved = l.pop_at(d.i)
-			l.insert(i, moved)
-			changed.call(l))
-		v.add_child(row)
+			if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+				if ev.pressed and st.from < 0:
+					st.from = i
+					st.to = i
+					st.grab = ev.position.y
+					row.z_index = 10
+					var tw := row.create_tween().set_parallel()
+					tw.tween_property(row, "scale", Vector2(1.04, 1.04), 0.1)
+					tw.tween_property(row, "modulate", Color(1.15, 1.15, 1.15, 0.95), 0.1)
+					row.accept_event()
+				elif not ev.pressed and st.from == i:
+					st.done = true
+					var to: int = st.to
+					var tw := row.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_parallel()
+					tw.tween_property(row, "position:y", to * step, 0.14)
+					tw.tween_property(row, "scale", Vector2.ONE, 0.14)
+					tw.tween_property(row, "modulate", Color.WHITE, 0.14)
+					tw.chain().tween_callback(func():
+						row.z_index = 0
+						if to == i:
+							st.from = -1
+							st.done = false
+							return
+						var l := items.duplicate()
+						l.insert(to, l.pop_at(i))
+						changed.call(l))
+					row.accept_event()
+			elif ev is InputEventMouseMotion and st.from == i:
+				# the pointer in the lane's space (the row moves under it, so go through its transform)
+				var at: Vector2 = row.get_transform() * ev.position
+				var y := clampf(at.y - row.scale.y * st.grab - (1.0 - row.scale.y) * row.pivot_offset.y, -GAP, (rows.size() - 1) * step + GAP)
+				row.position.y = y
+				var to := clampi(roundi(y / step), 0, rows.size() - 1)
+				if to != st.to:
+					st.to = to
+					reflow.call()
+				row.accept_event())
 	return c
 
 
