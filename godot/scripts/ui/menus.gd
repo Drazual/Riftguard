@@ -291,7 +291,16 @@ func _render_hs() -> void:
 				ui.toast("You can bring %d towers. Remove one first." % game.R.loadout_size)
 			_render_hs())
 		g.add_child(ch)
-	box.add_child(g)
+	var split := Kit.hbox(12)
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(g)
+	var keys := range(st.picks.size()).map(func(i): return str(i + 1))
+	split.add_child(key_order("Tower keys", st.picks, keys, func(k): return DB.towers[k].name, func(k): return DB.towers[k].color, func(l):
+		st.picks = l
+		Save.meta.loadout = { hero = st.hero, towers = l }
+		Save.save_meta()
+		_render_hs()))
+	box.add_child(split)
 	var row := Kit.hbox(10)
 	var go := Kit.go("START RUN", start)
 	go.disabled = st.picks.is_empty()
@@ -363,13 +372,58 @@ func start_run(hero: String, towers: Array) -> void:
 	queue_tip("run")
 
 
+## A side panel listing what you picked in key order. Drag a row onto another to move it there;
+## `changed` gets the new order.
+func key_order(title: String, items: Array, keys: Array, name_of: Callable, color_of: Callable, changed: Callable) -> Control:
+	var c := Kit.card(10)
+	c.custom_minimum_size = Vector2(230, 0)
+	c.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var v := Kit.vbox(6)
+	c.add_child(v)
+	v.add_child(Kit.h3(title))
+	v.add_child(Kit.muted("Drag a row to move it to another key.", 12))
+	if items.is_empty():
+		v.add_child(Kit.muted("Nothing picked yet.", 12))
+	var tag := title
+	for i in items.size():
+		var it = items[i]
+		var col: Color = color_of.call(it)
+		var row := PanelContainer.new()
+		row.theme_type_variation = "Card"
+		row.mouse_default_cursor_shape = Control.CURSOR_DRAG
+		row.tooltip_text = ""
+		var h := Kit.hbox(10)
+		row.add_child(h)
+		var key := Kit.label(keys[i], 16, Kit.GOLD, Kit.display_bold)
+		key.custom_minimum_size = Vector2(22, 0)
+		h.add_child(key)
+		var nm := Kit.label(name_of.call(it), 15, col, Kit.display)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(nm)
+		h.add_child(Kit.label("⠿", 16, Kit.MUTED))
+		row.set_drag_forwarding(func(_at):
+			var pv := Kit.label(name_of.call(it), 15, col, Kit.display_bold)
+			row.set_drag_preview(pv)
+			return { order = tag, i = i },
+		func(_at, d): return d is Dictionary and d.get("order") == tag,
+		func(_at, d):
+			if d.i == i:
+				return
+			var l := items.duplicate()
+			var moved = l.pop_at(d.i)
+			l.insert(i, moved)
+			changed.call(l))
+		v.add_child(row)
+	return c
+
+
 # ---------- the Wizard's elements and spellbook ----------
 func elements_ui(v: VBoxContainer, redraw: Callable) -> void:
 	var load := Progress.wiz_loadout()
 	var n := Progress.SLOT_KEYS.size()
 	var ta: int = game.R.triple_at
 	v.add_child(Kit.h3("Elements · taking %d of %d" % [load.size(), n]))
-	v.add_child(Kit.muted("Click an element to take it or leave it behind; taken elements are bound in order to %s. Each element gains mastery from the mana you spend on spells that use it. At mastery %d it can be readied three times for its ultimate, and it unlocks the element below it." % [" ".join(Progress.SLOT_KEYS).to_upper(), ta]))
+	v.add_child(Kit.muted("Click an element to take it or leave it behind; taken elements are bound in order to %s (drag them in the Element keys list to change that). Each element gains mastery from the mana you spend on spells that use it. At mastery %d it can be readied three times for its ultimate, and it unlocks the element below it." % [" ".join(Progress.SLOT_KEYS).to_upper(), ta]))
 	var g := _grid(4)
 	# the four starting elements on top, each with the element it unlocks right below it
 	var order: Array = Progress.BASE_ELS.duplicate()
@@ -420,7 +474,14 @@ func elements_ui(v: VBoxContainer, redraw: Callable) -> void:
 			ch.add(Kit.c("Locked: reach %s mastery %d (now %d)" % [DB.elements[par].name if par != "" else "?", need, pm.lvl], Kit.MUTED), 11)
 			ch.disabled = true
 		g.add_child(ch)
-	v.add_child(g)
+	var split := Kit.hbox(12)
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(g)
+	split.add_child(key_order("Element keys", load, Progress.SLOT_KEYS.slice(0, load.size()).map(func(k): return k.to_upper()), func(el): return DB.elements[el].name, func(el): return DB.elements[el].color, func(l):
+		Save.meta.wiz_load = l
+		Save.save_meta()
+		redraw.call()))
+	v.add_child(split)
 	v.add_child(lean(Progress.spells_for(load)))
 
 
