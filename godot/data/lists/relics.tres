@@ -28,6 +28,7 @@ name = "Rift Treasury"
 desc = "+25% gold from kills."
 effect = "run.mod_gold += 0.25"
 also_pools = PackedStringArray()
+gold = true
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_ska8n"]

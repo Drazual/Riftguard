@@ -80,8 +80,10 @@ mastery_effect = "t.frostfire += 0.5"
 script = ExtResource("2_110pk")
 id = "frost"
 name = "Frost Pylon"
+level_price = 0.85
 cost = 60
 dmg = 6.0
+range = 150.0
 rate = 0.9
 slow = 0.45
 level_bonus = "rate"

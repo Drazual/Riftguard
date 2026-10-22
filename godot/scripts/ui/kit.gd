@@ -17,7 +17,7 @@ const OK := Color("#5fe39a")
 const HEROIC := Color("#ffb35d")
 const PINK := Color("#ff6fd8")
 const RAR := { common = Color("#aab2d4"), uncommon = Color("#5fe39a"), rare = Color("#5fa8ff"), mythic = Color("#ff6fd8"), legendary = Color("#f2c14e"),
-	secret = Color("#b07cff"), heroic = Color("#ffb35d") }
+	secret = Color("#b07cff"), secret_mythic = Color("#ff9cf0"), secret_legendary = Color("#ffe08a"), developer = Color("#4dffd2"), heroic = Color("#ffb35d") }
 
 static var display: Font = preload("res://ui/display_font.tres")
 static var display_bold: Font = preload("res://ui/display_bold_font.tres")
@@ -219,6 +219,19 @@ class Meter extends Control:
 			fill = v
 			queue_redraw()
 	var back := PANEL2
+	## A see-through second bar drawn over the fill (the hero's shield), as a share of the full width.
+	var over := 0.0:
+		set(v):
+			over = v
+			queue_redraw()
+	var over_color := Color(0.37, 0.66, 1.0, 0.55)
+	## Text drawn in the middle of the bar (empty for none).
+	var text := "":
+		set(v):
+			if v != text:
+				text = v
+				queue_redraw()
+	var font_size := 11
 
 	func _draw() -> void:
 		var r := minf(3, size.y / 2)
@@ -226,3 +239,12 @@ class Meter extends Control:
 		var w := size.x * clampf(frac, 0, 1)
 		if w > 0.5:
 			draw_style_box(Kit.box_style(fill, fill, 0, int(r), 0), Rect2(0, 0, maxf(w, r * 2), size.y))
+		var ow := size.x * clampf(over, 0, 1)
+		if ow > 0.5:
+			draw_style_box(Kit.box_style(over_color, over_color, 0, int(r), 0), Rect2(0, 0, maxf(ow, r * 2), size.y))
+		if text != "":
+			var f := Kit.display_bold
+			var ts := f.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+			var pos := Vector2((size.x - ts.x) / 2, (size.y + font_size * 0.72) / 2)
+			draw_string_outline(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 3, Color(0, 0, 0, 0.8))
+			draw_string(f, pos, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, Color.WHITE)

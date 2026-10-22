@@ -47,7 +47,7 @@ func load_all() -> void:
 
 
 func _fill() -> void:
-	for k in ["specials", "heroes", "global", "best", "towers", "seen", "tower_global", "hero_stat", "played", "abilities", "forms", "tips", "el_stat", "wiz_els"]:
+	for k in ["specials", "heroes", "global", "best", "towers", "seen", "tower_global", "hero_stat", "played", "abilities", "forms", "tips", "el_stat", "wiz_els", "secret_heroes"]:
 		if not (meta.get(k) is Dictionary):
 			meta[k] = {}
 	for k in ["kills", "wins", "takedowns"]:
@@ -58,12 +58,26 @@ func _fill() -> void:
 				meta[k][sub] = {}
 	if not (meta.get("runs") is Array):
 		meta.runs = []
+	_carry_first_stage()
 	for id in DB.tower_order:
 		if not (meta.towers.get(id) is Dictionary):
 			meta.towers[id] = {}
 	for id in DB.hero_order:
 		if not (meta.heroes.get(id) is Dictionary):
 			meta.heroes[id] = {}
+
+
+## Canal Crossing became the first stage after Sunset Outpost. A save that already beat Sunset Outpost counts
+## Canal Crossing as beaten too, so no map or mastery level locks again.
+func _carry_first_stage() -> void:
+	if not map_won("verdant") or meta.best.has("canal"):
+		return
+	meta.best["canal"] = meta.best["verdant"].duplicate()
+	for kind in ["towers", "heroes"]:
+		for k in meta.wins[kind]:
+			var w = meta.wins[kind][k]
+			if w is Dictionary and w.get("verdant", false):
+				w["canal"] = true
 
 
 func _merge(into: Dictionary, from: Dictionary) -> void:
@@ -133,7 +147,8 @@ func map_won(id: String) -> bool:
 
 func map_unlocked(id: String) -> bool:
 	var i := DB.map_order.find(id)
-	return i <= 0 or map_won(DB.map_order[i - 1])
+	# a map you have already played stays open even if a new stage was added before it
+	return i <= 0 or map_won(DB.map_order[i - 1]) or meta.best.has(id)
 
 
 # ---------- the old desktop app's save ----------

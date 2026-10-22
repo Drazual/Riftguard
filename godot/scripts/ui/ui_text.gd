@@ -38,7 +38,8 @@ static func main_effect(k: String) -> String:
 # ---------- what a tower does ----------
 static func traits(g: Game, t: Tower) -> Array:
 	var S := g.S
-	var out := ["Shoots the enemy closest to your base" + (", plus %d more at once." % int(t.multi) if t.multi else ".")]
+	var who: String = { first = "closest to your base", last = "nearest the entrance", strong = "with the most HP", close = "nearest this tower" }.get(t.aim, "closest to your base")
+	var out := ["Shoots the enemy " + who + (", plus %d more at once." % int(t.multi) if t.multi else ".")]
 	if t.splash: out.append("Explodes on hit, damaging all enemies within %s." % f0(t.splash))
 	if t.slow: out.append("Slows enemies by %d%% for %ss." % [int(round(minf(0.85, t.slow + S.mod_slow) * 100)), f1(t.slow_dur if t.slow_dur else 1.6)])
 	if t.chain: out.append("Lightning jumps to %d more enemies at %s damage, less each jump." % [int(t.chain), pct(t.chain_mul if t.chain_mul else 0.7)])
@@ -261,6 +262,9 @@ static func tower_stats(g: Game, t: Tower) -> Array:
 		["Buff damage", t.b_dmg if t.support else 0.0, "p"], ["Buff fire rate", t.b_rate, "p"], ["Buff range", t.b_range, "p"], ["Armor ignored", t.b_sunder, "p"],
 		["Buff kill gold", t.b_gold, "p"], ["Pressure per second", t.press if t.type == "anvil" else 0.0, "p"], ["Pressure cap", t.press_cap if t.type == "anvil" else 0.0, "p"],
 		["Pin", t.pin, "s"], ["Hero damage taken", 1 - t.guard if t.type == "anvil" else 0.0, "p"], ["Crush below", t.crush_exec, "p"],
+		["Enemies per disc", t.disc_hits if t.type == "disc" and not t.disc_unbound else 0.0, "n"], ["Disc size", t.disc_r if t.type == "disc" else 0.0, "n"],
+		["Disc flight", t.disc_reach if t.type == "disc" and not t.disc_unbound else 0.0, "n"], ["Trail: damage taken", t.disc_trail, "p"],
+		["Discs per throw", 1 + t.disc_volley if t.disc_volley else 0.0, "n"],
 	]
 
 
@@ -311,15 +315,23 @@ static func ability_text(g: Game, h: Hero) -> String:
 				keys.append("%s (%s)" % [Progress.SLOT_KEYS[i].to_upper(), DB.elements[load[i]].name.to_lower()])
 		return ("Ready elements with %s, then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Three of an element mastered to level %d: its ultimate. "
 			+ "Elements you cast rest for %ss. Spells cost mana, which flows only during waves; clearing a wave refills 30%% of it.") % [", ".join(keys), DB.rules.triple_at, f1t(DB.rules.element_rest)]
-	return ab_text(h.ab)
+	var t := ab_text(h.ab)
+	if t != "" and h.data and h.data.category == "defensive":
+		t += " Its damage grows with your max HP (+%d now)." % int(round(h.max_hp * DB.rules.tank_ability_hp))
+	return t
 
 
 static func ab_text(a: Ability) -> String:
 	if a == null or a.id == "":
 		return ""
+	var t: String
 	if DB.is_simple() and DB.simple_texts.has("ability:" + a.id):
-		return DB.simple_texts["ability:" + a.id]
-	return Fx.text(a.desc, { a = a })
+		t = DB.simple_texts["ability:" + a.id]
+	else:
+		t = Fx.text(a.desc, { a = a })
+	if a.id == "strike":
+		t += " Press once to show where it lands, then click or press again to fire."
+	return t
 
 
 static func f1t(v: float) -> String:

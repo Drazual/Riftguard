@@ -7,6 +7,7 @@
 script = ExtResource("1_0cneb")
 id = "verdant"
 map_name = "Sunset Outpost"
+tier = "Level 3"
 desc = "The standard run. No modifiers."
 
 [node name="Ground" type="TileMapLayer" parent="." unique_id=1853442510]

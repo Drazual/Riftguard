@@ -7,9 +7,9 @@
 script = ExtResource("1_ttpmk")
 id = "blade"
 name = "Plasma Blade"
-desc = "+{pct(m)} hero damage."
-effect = "h.dmg *= 1 + m"
-m = 0.2
+desc = "+{pct(m)} of your starting hero damage."
+effect = "h.dmg += h.base_dmg * m"
+m = 0.16
 pool = "offensive"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -40,20 +40,6 @@ also_pools = PackedStringArray()
 kind = "heal"
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_6fy4u"]
-script = ExtResource("1_ttpmk")
-id = "reboot"
-name = "Quick Reboot"
-desc = "Respawn {pct(min(0.7, m))} faster and +{pct(m)} max HP."
-effect = "h.respawn = max(2, h.respawn * (1 - min(0.7, m)))
-h.max_hp = round(h.max_hp * (1 + m))
-h.hp = min(h.max_hp, h.hp + h.max_hp * m)"
-m = 0.15
-pool = "defensive"
-also_pools = PackedStringArray()
-kind = "hp"
-heroes = PackedStringArray()
-
 [sub_resource type="Resource" id="Resource_vxk2y"]
 script = ExtResource("1_ttpmk")
 id = "arch"
@@ -61,8 +47,8 @@ name = "Architect"
 desc = "New towers cost {pct(min(0.5, m))} less to build."
 effect = "h.cost_mul *= 1 - min(0.5, m)"
 m = 0.07
-pool = "support"
-also_pools = PackedStringArray()
+pool = "tower"
+also_pools = PackedStringArray("support")
 kind = "cost"
 heroes = PackedStringArray()
 
@@ -73,8 +59,8 @@ name = "Engineer"
 desc = "Tower upgrades (level-ups) cost {pct(min(0.5, m))} less."
 effect = "h.lvl_mul *= 1 - min(0.5, m)"
 m = 0.08
-pool = "support"
-also_pools = PackedStringArray()
+pool = "tower"
+also_pools = PackedStringArray("support")
 kind = "cost"
 heroes = PackedStringArray()
 
@@ -86,42 +72,16 @@ desc = "+{pct(m)} build range and all towers get +{pct(m / 4)} range."
 effect = "h.build_range *= 1 + m
 h.tower_range += m / 4"
 m = 0.2
-pool = "support"
-also_pools = PackedStringArray()
-kind = "range"
-heroes = PackedStringArray()
-
-[sub_resource type="Resource" id="Resource_c3egk"]
-script = ExtResource("1_ttpmk")
-id = "bounty"
-name = "Bounty Sigil"
-desc = "Enemies your hero kills drop +{max(1, round(m))} gold."
-effect = "h.bounty += max(1, round(m))"
-m = 0.8
-pool = "offensive"
-also_pools = PackedStringArray()
-gold = true
-kind = "gold"
-heroes = PackedStringArray()
-
-[sub_resource type="Resource" id="Resource_vlrt1"]
-script = ExtResource("1_ttpmk")
-id = "tithe"
-name = "War Tithe"
-desc = "Every enemy killed by your towers or your hero drops +{max(1, round(m))} gold."
-effect = "h.tithe += max(1, round(m))"
-m = 0.3
-pool = "defensive"
+pool = "tower"
 also_pools = PackedStringArray("support")
-gold = true
-kind = "gold"
+kind = "range"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_a5vhk"]
 script = ExtResource("1_ttpmk")
 id = "siphon"
 name = "Siphon"
-desc = "Heal {round(m)} HP for every kill."
+desc = "Heal {round(m)} HP for every enemy you help take down (one you hit or were holding)."
 effect = "h.siphon += round(m)"
 m = 3.0
 pool = "defensive"
@@ -133,9 +93,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "boots"
 name = "Rift Boots"
-desc = "+{pct(m)} move speed and +{pct(m / 2)} attack speed."
+desc = "+{pct(m)} move speed and +{pct(m / 2)} of your starting attack speed."
 effect = "h.speed *= 1 + m
-h.rate /= 1 + m / 2"
+h.rate = 1 / (1 / h.rate + m / 2 / h.base_rate)"
 m = 0.15
 also_pools = PackedStringArray()
 attack_speed = true
@@ -150,6 +110,7 @@ desc = "After Shield Slam, enemies within 120 stop and attack you for {f1(m)}s."
 effect = "h.taunt += m"
 m = 2.0
 pool = "vanguard"
+ability = "slam"
 also_pools = PackedStringArray()
 kind = "taunt"
 heroes = PackedStringArray()
@@ -183,7 +144,7 @@ script = ExtResource("1_ttpmk")
 id = "seismic"
 name = "Seismic Power"
 desc = "{h.ab.name} is +{pct(m)} stronger (damage{iff(h.ab.id == 'bulwark', ', shield size', '')})."
-effect = "h.ab.dmg *= 1 + m"
+effect = "h.ab.dmg += h.ab.base_dmg * m"
 m = 0.3
 pool = "vanguard"
 also_pools = PackedStringArray()
@@ -280,8 +241,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "clock"
 name = "Overclock"
-desc = "+{pct(m)} attack speed."
-effect = "h.rate /= 1 + m"
+desc = "+{pct(m)} of your starting attack speed."
+effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
 m = 0.15
 pool = "striker"
 also_pools = PackedStringArray()
@@ -293,7 +254,7 @@ script = ExtResource("1_ttpmk")
 id = "core"
 name = "Nova Core"
 desc = "Rift Nova deals +{pct(m)} damage."
-effect = "h.ab.dmg *= 1 + m"
+effect = "h.ab.dmg += h.ab.base_dmg * m"
 m = 0.3
 pool = "striker"
 also_pools = PackedStringArray()
@@ -330,7 +291,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "momentum"
 name = "Momentum"
-desc = "Each kill by your hero gives +{pct(m)} attack speed for 4s, stacking up to 10 times."
+desc = "Each kill by your hero gives +{pct(m)} of your starting attack speed for 4s, stacking up to 10 times."
 effect = "h.momentum += m"
 m = 0.03
 pool = "striker"
@@ -412,19 +373,6 @@ also_pools = PackedStringArray()
 kind = "chill"
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_1g5o8"]
-script = ExtResource("1_ttpmk")
-id = "interest"
-name = "Investments"
-desc = "Earn {pct(m)} interest on your gold after each wave."
-effect = "h.interest += m"
-m = 0.012
-pool = "oracle"
-also_pools = PackedStringArray()
-gold = true
-kind = "gold"
-heroes = PackedStringArray()
-
 [sub_resource type="Resource" id="Resource_6updh"]
 script = ExtResource("1_ttpmk")
 id = "brace"
@@ -441,9 +389,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "caliber"
 name = "Heavy Caliber"
-desc = "+{pct(m)} hero damage."
-effect = "h.dmg *= 1 + m"
-m = 0.25
+desc = "+{pct(m)} of your starting hero damage."
+effect = "h.dmg += h.base_dmg * m"
+m = 0.2
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "damage"
@@ -453,8 +401,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "chamber"
 name = "Fast Chamber"
-desc = "+{pct(m)} attack speed."
-effect = "h.rate /= 1 + m"
+desc = "+{pct(m)} of your starting attack speed."
+effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
 m = 0.12
 pool = "sniper"
 also_pools = PackedStringArray()
@@ -577,8 +525,8 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "arcpow"
 name = "Arcane Power"
-desc = "Spells deal +{pct(m)} damage."
-effect = "h.spell *= 1 + m"
+desc = "Spells deal +{pct(m)} of their starting damage."
+effect = "h.spell += h.base_spell * m"
 m = 0.15
 pool = "wizard"
 also_pools = PackedStringArray()
@@ -784,8 +732,8 @@ name = "Alchemist"
 desc = "Tower merges cost {pct(min(0.8, m))} less."
 effect = "h.merge_mul *= 1 - min(0.8, m)"
 m = 0.15
-pool = "support"
-also_pools = PackedStringArray()
+pool = "tower"
+also_pools = PackedStringArray("support")
 kind = "cost"
 heroes = PackedStringArray()
 
@@ -820,7 +768,7 @@ script = ExtResource("1_ttpmk")
 id = "jetstream"
 name = "Jet Stream"
 desc = "Air Stream deals +{pct(m)} damage and stuns {f1(m * 2)}s longer."
-effect = "h.ab.dmg *= 1 + m
+effect = "h.ab.dmg += h.ab.base_dmg * m
 h.ab.stun += m * 2"
 m = 0.12
 pool = "gale"
@@ -845,14 +793,44 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "knuckles"
 name = "Iron Knuckles"
-desc = "+{pct(m)} hero damage."
-effect = "h.dmg *= 1 + m"
-m = 0.1
+desc = "+{pct(m)} of your starting hero damage."
+effect = "h.dmg += h.base_dmg * m"
+m = 0.08
 pool = "gale"
+hero_damage = true
+also_pools = PackedStringArray()
+kind = "damage"
+heroes = PackedStringArray()
 also_pools = PackedStringArray()
 kind = "damage"
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="Resource_wallspk"]
+script = ExtResource("1_ttpmk")
+id = "jagged_stone"
+name = "Jagged Stone"
+desc = "Enemies held up by your walls take {f0(m)} damage per second (grows with spell damage). Stacks."
+effect = "h.wall_dmg += m"
+m = 15.0
+pool = "wizard"
+also_pools = PackedStringArray()
+needs = "wall"
+kind = "wall_dmg"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_wallcd"]
+script = ExtResource("1_ttpmk")
+id = "quarry"
+name = "Quarry"
+desc = "Wall charges recharge {pct(m)} faster (never below 8s each). Stacks."
+effect = "h.wall_cd_mul *= 1 - m"
+m = 0.15
+pool = "wizard"
+also_pools = PackedStringArray()
+needs = "wall"
+kind = "wall_cd"
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_ogedp")
-items = Array[ExtResource("1_ttpmk")]([SubResource("Resource_8qpy0"), SubResource("Resource_4u7rw"), SubResource("Resource_sls2k"), SubResource("Resource_6fy4u"), SubResource("Resource_vxk2y"), SubResource("Resource_lyb04"), SubResource("Resource_14vm4"), SubResource("Resource_c3egk"), SubResource("Resource_vlrt1"), SubResource("Resource_a5vhk"), SubResource("Resource_jql25"), SubResource("Resource_7ow2v"), SubResource("Resource_evm4r"), SubResource("Resource_m42uu"), SubResource("Resource_boi17"), SubResource("Resource_463pm"), SubResource("Resource_aff1t"), SubResource("Resource_1q21w"), SubResource("Resource_vcyug"), SubResource("Resource_nq8wt"), SubResource("Resource_1mp4t"), SubResource("Resource_660rp"), SubResource("Resource_egr0f"), SubResource("Resource_dufhs"), SubResource("Resource_kmkvr"), SubResource("Resource_n0p85"), SubResource("Resource_prtwt"), SubResource("Resource_ephru"), SubResource("Resource_fwnyi"), SubResource("Resource_5kjhc"), SubResource("Resource_28h3g"), SubResource("Resource_onjpc"), SubResource("Resource_5mddn"), SubResource("Resource_1g5o8"), SubResource("Resource_6updh"), SubResource("Resource_cfurh"), SubResource("Resource_2q40b"), SubResource("Resource_roejd"), SubResource("Resource_ohbmd"), SubResource("Resource_3ydcx"), SubResource("Resource_0ldq8"), SubResource("Resource_mwl36"), SubResource("Resource_45fu8"), SubResource("Resource_w42hl"), SubResource("Resource_b0e8l"), SubResource("Resource_nmip3"), SubResource("Resource_0o400"), SubResource("Resource_w03q5"), SubResource("Resource_bpxoq"), SubResource("Resource_qgpko"), SubResource("Resource_yi5an"), SubResource("Resource_vfveu"), SubResource("Resource_p6gy1"), SubResource("Resource_7pw1r"), SubResource("Resource_vhvbt"), SubResource("Resource_4qab1"), SubResource("Resource_4c3qk"), SubResource("Resource_ffcmc"), SubResource("Resource_yhdbq"), SubResource("Resource_0i8re"), SubResource("Resource_ne3im"), SubResource("Resource_vpjev"), SubResource("Resource_ax4tn"), SubResource("Resource_gale1"), SubResource("Resource_gale2"), SubResource("Resource_gale3"), SubResource("Resource_gale4"), SubResource("Resource_gale5")])
+items = Array[ExtResource("1_ttpmk")]([SubResource("Resource_8qpy0"), SubResource("Resource_4u7rw"), SubResource("Resource_sls2k"), SubResource("Resource_vxk2y"), SubResource("Resource_lyb04"), SubResource("Resource_14vm4"), SubResource("Resource_a5vhk"), SubResource("Resource_jql25"), SubResource("Resource_7ow2v"), SubResource("Resource_evm4r"), SubResource("Resource_m42uu"), SubResource("Resource_boi17"), SubResource("Resource_463pm"), SubResource("Resource_aff1t"), SubResource("Resource_1q21w"), SubResource("Resource_vcyug"), SubResource("Resource_nq8wt"), SubResource("Resource_1mp4t"), SubResource("Resource_660rp"), SubResource("Resource_egr0f"), SubResource("Resource_dufhs"), SubResource("Resource_kmkvr"), SubResource("Resource_n0p85"), SubResource("Resource_prtwt"), SubResource("Resource_ephru"), SubResource("Resource_fwnyi"), SubResource("Resource_5kjhc"), SubResource("Resource_28h3g"), SubResource("Resource_onjpc"), SubResource("Resource_5mddn"), SubResource("Resource_6updh"), SubResource("Resource_cfurh"), SubResource("Resource_2q40b"), SubResource("Resource_roejd"), SubResource("Resource_ohbmd"), SubResource("Resource_3ydcx"), SubResource("Resource_0ldq8"), SubResource("Resource_mwl36"), SubResource("Resource_45fu8"), SubResource("Resource_w42hl"), SubResource("Resource_b0e8l"), SubResource("Resource_nmip3"), SubResource("Resource_0o400"), SubResource("Resource_w03q5"), SubResource("Resource_bpxoq"), SubResource("Resource_qgpko"), SubResource("Resource_yi5an"), SubResource("Resource_vfveu"), SubResource("Resource_p6gy1"), SubResource("Resource_wallspk"), SubResource("Resource_wallcd"), SubResource("Resource_7pw1r"), SubResource("Resource_vhvbt"), SubResource("Resource_4qab1"), SubResource("Resource_4c3qk"), SubResource("Resource_ffcmc"), SubResource("Resource_yhdbq"), SubResource("Resource_0i8re"), SubResource("Resource_ne3im"), SubResource("Resource_vpjev"), SubResource("Resource_ax4tn"), SubResource("Resource_gale1"), SubResource("Resource_gale2"), SubResource("Resource_gale3"), SubResource("Resource_gale4"), SubResource("Resource_gale5")])

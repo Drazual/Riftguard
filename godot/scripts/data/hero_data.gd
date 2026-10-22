@@ -30,6 +30,8 @@ extends Resource
 @export var mana_regen := 0.0
 ## Casts spells instead of attacking (Wizard).
 @export var spells := false
+## A secret hero: shown as locked until its unlock is earned (Gale: push enemies back as the Wizard).
+@export var secret := false
 @export var ability: AbilityData
 @export var alt: AbilityData
 ## Permanent upgrades bought with Rift Shards on the Heroes page.

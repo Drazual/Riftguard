@@ -13,15 +13,17 @@ extends Resource
 @export_multiline var effect := ""
 ## Base strength (m before rarity).
 @export var m := 0.0
-## Who can be offered it: any, offensive, defensive, support, or a hero id.
+## Who can be offered it: any, offensive, defensive, support, tower (any hero, in the tower slot), or a hero id.
 @export var pool := "any"
 @export var also_pools: PackedStringArray = []
 ## Only for this ability (slam, nova, bulwark, ...). Empty = any.
 @export var ability := ""
-@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret") var rarity := "any"
-@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret") var min_rarity := "any"
-## Gold upgrades only appear at Legendary or rarer, and not every time (rules gold_perk_chance).
+@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_mythic", "secret_legendary", "developer") var rarity := "any"
+@export_enum("any", "common", "uncommon", "rare", "mythic", "legendary", "secret", "secret_mythic", "secret_legendary", "developer") var min_rarity := "any"
+## Gold upgrade (kept for the stats log; gold upgrades now live in the Legendary uniques).
 @export var gold := false
+## Raises the hero's own attack damage: tank heroes only get it once they hit hard (Gale in Bruiser Form).
+@export var hero_damage := false
 ## Attack speed upgrade (never offered to the Wizard).
 @export var attack_speed := false
 ## Wizard: only when the run's spells can freeze, wall or push.
@@ -48,6 +50,8 @@ extends Resource
 @export var offensive_only := false
 ## Heroic powers: which heroes get them.
 @export var heroes: PackedStringArray = []
-## Specials: Boss Core cost and the hero it belongs to.
+## Specials: Boss Core cost and the hero it belongs to (set `ability` too when it only works with one of the hero's abilities).
 @export var cores := 0
 @export var hero := ""
+## Specials: uniques the run starts with.
+@export var gives: PackedStringArray = []

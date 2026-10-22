@@ -6,6 +6,7 @@ var id := ""
 var name := ""
 var cd := 18.0
 var dmg := 0.0
+var base_dmg := 0.0 # damage at the start of the run: common to rare damage upgrades add a share of this
 var r := 0.0
 var stun := 0.0
 var dur := 0.0
@@ -40,6 +41,8 @@ var anchor := false
 var carpet := false
 var scorch := false
 var exec_r := false
+var follow_s := false
+var downdraft := false
 
 
 static func from_data(a: AbilityData) -> Ability:
@@ -48,6 +51,7 @@ static func from_data(a: AbilityData) -> Ability:
 		return b
 	for k in ["id", "name", "cd", "dmg", "r", "stun", "dur", "power", "mult", "w", "desc"]:
 		b.set(k, a.get(k))
+	b.base_dmg = b.dmg
 	return b
 
 

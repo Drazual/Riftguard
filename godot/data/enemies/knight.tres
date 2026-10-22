@@ -16,6 +16,7 @@ color = Color(1, 0.18039216, 0.3019608, 1)
 armor = 0.4
 info = "40% armor. Shield Bash: every 7s stuns the 2 nearest towers for 3s and cuts their damage by 30% for 6s. Stuns your hero for 1s if it is close."
 counter = "Spread your towers out and keep your hero at a distance between bashes."
+pushback_immune = true
 boss = true
 cores = 1
 power_name = "Shield Bash"

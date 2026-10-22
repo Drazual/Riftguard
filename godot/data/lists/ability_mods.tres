@@ -12,7 +12,7 @@ effect = "h.ab.rings = true"
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "slam"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -25,7 +25,7 @@ effect = "h.ab.magnet = true"
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "slam"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -38,7 +38,7 @@ effect = "h.ab.molten = true"
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "slam"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -51,7 +51,7 @@ effect = "h.ab.echo = true"
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "slam"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -64,7 +64,7 @@ effect = "h.ab.twin = true"
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "nova"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -77,7 +77,7 @@ effect = "h.ab.hole = true"
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "nova"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -90,7 +90,7 @@ effect = "h.ab.chain_n = true"
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "nova"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -103,7 +103,7 @@ effect = "h.ab.dash = true"
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "nova"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -116,7 +116,7 @@ effect = "h.ab.mobile = true"
 pool = "oracle"
 also_pools = PackedStringArray()
 ability = "overclock"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -129,7 +129,7 @@ effect = "h.ab.chrono = true"
 pool = "oracle"
 also_pools = PackedStringArray()
 ability = "overclock"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -142,7 +142,7 @@ effect = "h.ab.burst = true"
 pool = "oracle"
 also_pools = PackedStringArray()
 ability = "overclock"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -155,7 +155,7 @@ effect = "h.ab.prism_f = true"
 pool = "oracle"
 also_pools = PackedStringArray()
 ability = "overclock"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -168,7 +168,7 @@ effect = "h.ab.rail = true"
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "pierce"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -181,7 +181,7 @@ effect = "h.ab.bounce = true"
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "pierce"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -194,7 +194,7 @@ effect = "h.ab.cluster = true"
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "pierce"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -207,7 +207,7 @@ effect = "h.ab.spiked = true"
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "bulwark"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -220,7 +220,7 @@ effect = "h.ab.overflow = true"
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "bulwark"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -233,7 +233,7 @@ effect = "h.ab.bloodrush = true"
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "overdrive"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -246,7 +246,7 @@ effect = "h.ab.afterimg = true"
 pool = "striker"
 also_pools = PackedStringArray()
 ability = "overdrive"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -259,7 +259,7 @@ effect = "h.ab.shatter_s = true"
 pool = "oracle"
 also_pools = PackedStringArray()
 ability = "stasis"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -272,7 +272,7 @@ effect = "h.ab.anchor = true"
 pool = "oracle"
 also_pools = PackedStringArray()
 ability = "stasis"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -285,7 +285,7 @@ effect = "h.ab.carpet = true"
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "strike"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 
@@ -298,7 +298,7 @@ effect = "h.ab.scorch = true"
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "strike"
-min_rarity = "rare"
+min_rarity = "mythic"
 kind = "ability"
 heroes = PackedStringArray()
 

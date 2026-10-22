@@ -22,6 +22,7 @@ var top_lvl: Label
 var hp_meter: Kit.Meter
 var xp_meter: Kit.Meter
 var build_bar: HFlowContainer
+var corner_bar: HBoxContainer
 var hero_card: PanelContainer
 var inspector: PanelContainer
 var codex_box: VBoxContainer
@@ -51,6 +52,7 @@ var ability_fill: ColorRect
 var rune_btns := {}
 var rune_cast: RichTextLabel
 var mana_meter: Kit.Meter
+var wall_meter: Kit.Meter
 var mode_timer: Label
 
 var hud_t := 0.0
@@ -167,7 +169,8 @@ func _top_bar() -> Control:
 	var meters := Kit.vbox(3)
 	meters.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	meters.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hp_meter = Kit.meter(0, Kit.OK)
+	hp_meter = Kit.meter(0, Kit.OK, 15)
+	hp_meter.font_size = 11
 	xp_meter = Kit.meter(0, Kit.ARCANE)
 	meters.add_child(hp_meter)
 	meters.add_child(xp_meter)
@@ -206,7 +209,7 @@ func _board_frame() -> Control:
 	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pause_veil.add_child(pl)
-	var ps := Kit.label("Press P or Resume to continue. You can still look at towers.", 13, Kit.MUTED)
+	var ps := Kit.label("Press P or Resume to continue. You can still build, upgrade and sell towers.", 13, Kit.MUTED)
 	ps.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	pause_veil.add_child(ps)
 	area.add_child(pause_veil)
@@ -251,12 +254,23 @@ func _board_frame() -> Control:
 	toast_box.anchor_right = 1
 	toast_box.offset_left = -330
 	toast_box.offset_right = -10
-	toast_box.offset_top = 10
+	toast_box.offset_top = 58
 	toast_label = Kit.rich("", 13)
 	toast_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	toast_box.add_child(toast_label)
 	toast_box.visible = false
 	area.add_child(toast_box)
+	# pause, game speed and the wave button, in the top right corner of the map
+	var corner := PanelContainer.new()
+	corner.theme_type_variation = "Bar"
+	corner.anchor_left = 1
+	corner.anchor_right = 1
+	corner.offset_right = -10
+	corner.offset_top = 10
+	corner.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	corner_bar = Kit.hbox(6)
+	corner.add_child(corner_bar)
+	area.add_child(corner)
 	return frame
 
 
@@ -264,6 +278,8 @@ func _side() -> Control:
 	var sc := ScrollContainer.new()
 	sc.custom_minimum_size = Vector2(340, 0)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	# keep room for the scroll bar so the board doesn't shift when a tall inspector appears or goes
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE
 	var v := Kit.vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(v)
@@ -470,7 +486,7 @@ func update_hud() -> void:
 			boss = e
 	boss_bar.visible = boss != null
 	if boss:
-		boss_name.text = DB.enemies[boss.type].name + (" · if it reaches your base, the run is lost" if Game.BIG_BOSS.has(boss.type) else " · costs 5 base HP if it gets through")
+		boss_name.text = DB.enemies[boss.type].name + (" · if it reaches your base, the run is lost" if Game.BIG_BOSS.has(boss.type) else " · costs %d base HP if it gets through" % DB.enemies[boss.type].lives)
 		boss_fill.frac = maxf(0, boss.hp) / boss.max
 		var danger := Game.BIG_BOSS.has(boss.type) and boss.d / S.map.path_len >= 0.75
 		boss_warn.visible = danger
@@ -483,6 +499,8 @@ func update_hud() -> void:
 	top_gold.text = str(int(floor(S.gold)))
 	top_lvl.text = ("KO %ds" % ceili(h.ko)) if h.ko > 0 else "Lv %d" % h.lvl
 	hp_meter.frac = h.hp / h.max_hp
+	hp_meter.over = h.shield / h.max_hp if h.shield > 0 else 0.0
+	hp_meter.text = hp_text(h)
 	xp_meter.frac = h.xp / h.next
 	ability_meter()
 	if floori(S.gold) != floori(last_bar_gold):
@@ -493,6 +511,14 @@ func update_hud() -> void:
 	if hero_t <= 0:
 		hero_t = 3
 		render_hero()
+
+
+## "350/420" plus the shield when there is one: "350/420 + 90 shield".
+func hp_text(h: Hero) -> String:
+	var s := "%d/%d" % [ceili(maxf(0, h.hp)), roundi(h.max_hp)]
+	if h.shield > 0:
+		s += "  +%d shield" % ceili(h.shield)
+	return s
 
 
 func _veil(on: bool) -> void:
@@ -523,6 +549,7 @@ func render_build_bar() -> void:
 	ability_btn = null
 	rune_cast = null
 	mana_meter = null
+	wall_meter = null
 	var mode_tag: String = (" · " + S.mode.name) if S.mode.kind != "normal" else ""
 	for i in S.loadout.size():
 		var k: String = S.loadout[i]
@@ -557,7 +584,7 @@ func render_build_bar() -> void:
 	if S.hero.data.spells:
 		_rune_bar()
 	else:
-		ability_btn = Kit.button("%s  Q" % S.hero.ab.name, game.use_ability)
+		ability_btn = Kit.button(("Fire %s  Q" if S.strike_ready else "%s  Q") % S.hero.ab.name, func(): game.use_ability(), "OnButton" if S.strike_ready else "")
 		ability_fill = ColorRect.new()
 		ability_fill.color = Color(0.69, 0.49, 1, 0.45)
 		ability_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -570,7 +597,10 @@ func render_build_bar() -> void:
 		var hb := Kit.button(("Holding" if S.hero.hold else "Hold") + "  H", game.toggle_hold, "OnButton" if S.hero.hold else "")
 		Kit.tip_on(hb, func(): return Kit.b("Hold position") + "  " + Kit.c("H", Kit.GOLD) + "\n" + Kit.c("Locks your hero in place so right-clicks, movement keys and taps don’t move it. Press H again to move.", Kit.MUTED), "above")
 		build_bar.add_child(hb)
-	if S.hero.cls == "sniper":
+	if S.hero.cls == "sniper" and game.pierce_cursor():
+		var cb := Kit.button("Aim: cursor", func(): toast("Piercing Shot follows your cursor. Switch to aim points in Settings."))
+		build_bar.add_child(cb)
+	elif S.hero.cls == "sniper":
 		var ab := Kit.button(("Aim set" if S.aim != null else "Aim") + "  F", func():
 			if S.aim != null:
 				S.aim = null
@@ -580,15 +610,18 @@ func render_build_bar() -> void:
 				toast("Point at the board and press F to set an aim point."), "OnButton" if S.aim != null else "")
 		Kit.tip_on(ab, func(): return Kit.b("Aim point") + "  " + Kit.c("F", Kit.GOLD) + "\n" + Kit.c("Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.", Kit.MUTED), "above")
 		build_bar.add_child(ab)
-	build_bar.add_child(Kit.spacer())
-	build_bar.add_child(Kit.button(("Resume" if S.user_pause else "Pause") + "  P", game.toggle_pause, "OnButton" if S.user_pause else ""))
-	build_bar.add_child(Kit.button("%d×" % S.speed, func():
+	Kit.clear(corner_bar)
+	var wl := Kit.label("WAVE %d/%d%s" % [S.wave, game.max_wave, mode_tag.to_upper()], 13, Kit.TEXT, Kit.display)
+	wl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	corner_bar.add_child(wl)
+	corner_bar.add_child(Kit.button(("Resume" if S.user_pause else "Pause") + "  P", game.toggle_pause, "OnButton" if S.user_pause else ""))
+	corner_bar.add_child(Kit.button("%d×" % S.speed, func():
 		S.speed = 1 if S.speed == 3 else S.speed + 1
 		render_build_bar()))
-	var wave_txt: String = ("Wave %d%s" % [S.wave, mode_tag]) if S.wave_active else ("Start wave %d%s  Space" % [S.wave + 1, mode_tag])
+	var wave_txt: String = "Wave running" if S.wave_active else ("Start wave %d  Space" % (S.wave + 1))
 	var wb := Kit.go(wave_txt, game.start_wave)
 	wb.disabled = S.wave_active or S.over
-	build_bar.add_child(wb)
+	corner_bar.add_child(wb)
 	_veil(S.user_pause and not S.over)
 	ability_meter()
 	render_runes()
@@ -610,9 +643,12 @@ func _ignore_mouse(n: Node) -> void:
 func _rune_bar() -> void:
 	var S := game.S
 	var box := Kit.hbox(4)
+	# in the tree first, so the buttons pick up the FlatButton style from the UI theme
+	build_bar.add_child(box)
 	for k in S.rune_keys:
 		var el: ElementData = DB.elements[S.rune_keys[k]]
 		var bt := Kit.button("%s  %s" % [el.name, k.to_upper()], game.ready_rune.bind(k), "FlatButton")
+		box.add_child(bt)
 		var sb: StyleBoxFlat = bt.get_theme_stylebox("normal").duplicate()
 		sb.border_color = el.color
 		bt.add_theme_stylebox_override("normal", sb)
@@ -631,7 +667,6 @@ func _rune_bar() -> void:
 		bt.set_meta("cd", cd)
 		bt.set_meta("el", S.rune_keys[k])
 		rune_btns[k] = bt
-		box.add_child(bt)
 	var tip_fn := func() -> String:
 		var r = game.resolve_runes(S.runes)
 		var t := Kit.b("Runes") + "\n"
@@ -650,7 +685,13 @@ func _rune_bar() -> void:
 	mana_meter.custom_minimum_size = Vector2(70, 6)
 	mana_meter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.add_child(mana_meter)
-	build_bar.add_child(box)
+	if S.hero.can.get("wall", false):
+		# wall charges: "Walls 3/5", the bar fills as the next charge comes back
+		wall_meter = Kit.meter(0, Color("#c8a46a"))
+		wall_meter.custom_minimum_size = Vector2(84, 16)
+		wall_meter.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		Kit.tip_on(wall_meter, func(): return Kit.b("Wall charges") + "\n" + Kit.c("Each wall spell uses a charge (plus its mana). Up to %d; one comes back every %ss during a wave." % [DB.rules.wall_charges, UiText.f1(game.wall_recharge_time(S.hero))], Kit.MUTED), "above")
+		box.add_child(wall_meter)
 
 
 func render_runes() -> void:
@@ -675,6 +716,10 @@ func ability_meter() -> void:
 	var h := S.hero
 	if mana_meter and is_instance_valid(mana_meter) and h.max_mana:
 		mana_meter.frac = h.mana / h.max_mana
+	if wall_meter and is_instance_valid(wall_meter):
+		var full := h.wall_charges >= DB.rules.wall_charges
+		wall_meter.frac = 1.0 if full else h.wall_t / game.wall_recharge_time(h)
+		wall_meter.text = "Walls %d/%d" % [h.wall_charges, DB.rules.wall_charges]
 	for k in rune_btns:
 		var bt: Button = rune_btns[k]
 		if not is_instance_valid(bt):
@@ -736,6 +781,8 @@ func render_inspector() -> void:
 		rows.append(["Slams/s" if t.type == "anvil" else "Shots/s", UiText.f2(1 / (t.rate * S.mod_tower_rate))])
 	rows += ([] if t.hero_buff else [["Range", UiText.f0(game.t_range(t))]]) + [["Spent", str(t.spent)], ["Kills", str(t.kills)], ["Takedowns", str(t.takedowns)]]
 	v.add_child(Kit.stats(rows))
+	if not t.support and not t.hero_buff and t.type != "anvil":
+		v.add_child(_aim_row(t.aim, func(a: String): game.set_aim(t, a)))
 	if not DB.is_simple():
 		v.add_child(Kit.rich(UiText.bullets(UiText.tower_traits(game, t)), 13))
 	if S.merge_from == t:
@@ -782,9 +829,6 @@ func render_inspector() -> void:
 	var row := Kit.hbox(6)
 	if can_merge:
 		var mb := Kit.button("%s · %d" % ["Super merge" if t.hybrid else "Merge", game.merge_cost(t)], func():
-			if S.user_pause:
-				toast("Paused. Press P to resume.")
-				return
 			S.merge_from = t
 			render_inspector()
 			toast(("Pick another level %d hybrid." if t.hybrid else "Pick a level %d tower of another type.") % R.max_level))
@@ -840,7 +884,7 @@ func render_codex() -> void:
 			h.add_child(Kit.spacer())
 			h.add_child(Kit.label("Undiscovered", 13, Kit.MUTED))
 		codex_box.add_child(h)
-	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, Space start wave, Esc settings."))
+	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, T change the selected tower’s target, Space start wave, Esc settings."))
 
 
 func render_enemy_codex() -> void:
@@ -854,9 +898,24 @@ func render_enemy_codex() -> void:
 		return
 	for e: EnemyData in game.R.enemies:
 		if Save.meta.seen.get(e.id, false):
-			enemy_box.add_child(Kit.rich(Kit.b(Kit.c(e.name, e.color)) + "  " + Kit.c(DB.tx("enemy:" + e.id, e.info), Kit.MUTED) + "\n" + Kit.c("Counter: " + e.counter, Kit.GOLD), 13))
+			enemy_box.add_child(Kit.rich(Kit.b(Kit.c(e.name, e.color)) + "  " + Kit.c(DB.tx("enemy:" + e.id, e.info) + (" Can’t be pushed back." if e.pushback_immune or e.boss else ""), Kit.MUTED) + "\n" + Kit.c("Counter: " + e.counter, Kit.GOLD), 13))
 		else:
 			enemy_box.add_child(Kit.rich("???  " + Kit.c("Not met yet", Kit.MUTED), 13))
+
+
+## The targeting buttons (First, Last, Strongest, Closest) for a tower or the Sniper; `pick` gets the choice.
+func _aim_row(current: String, pick: Callable) -> Control:
+	var aims := Kit.flow(4)
+	aims.add_child(Kit.label("Target  T", 12, Kit.MUTED))
+	for a in Game.AIMS:
+		var ab := Kit.button(Game.AIM_NAMES[a], func(): pick.call(a), "OnButton" if current == a else "")
+		ab.add_theme_font_size_override("font_size", 12)
+		# the hero card and inspector rebuild often during a wave, so act on the press, not the release
+		ab.action_mode = BaseButton.ACTION_MODE_BUTTON_PRESS
+		Kit.tip_on(ab, func(): return { first = "The enemy farthest along the path.", last = "The enemy nearest the entrance.", strong = "The enemy with the most HP.",
+			close = "The nearest enemy." }[a])
+		aims.add_child(ab)
+	return aims
 
 
 func render_hero() -> void:
@@ -882,8 +941,10 @@ func render_hero() -> void:
 	var abl := Kit.muted(ab_line)
 	Kit.tip_on(abl, func(): return UiText.ability_tip(game, h))
 	v.add_child(abl)
+	if h.cls == "sniper":
+		v.add_child(_aim_row(h.target, game.set_hero_aim))
 	var f := func(x: float) -> String: return UiText.f0(x)
-	var rows := [["HP", "%s/%s" % [f.call(h.hp), f.call(h.max_hp)]], ["Damage", f.call(game.hero_dmg())], ["Kills", str(S.kills.hero)], ["Takedowns", str(S.takedowns.hero)]]
+	var rows := [["Damage", f.call(game.hero_dmg())], ["Kills", str(S.kills.hero)], ["Takedowns", str(S.takedowns.hero)]]
 	if d.category == "defensive":
 		rows.append(["Damage blocked", f.call(S.blocked)])
 	elif d.category == "support":
@@ -899,15 +960,26 @@ func render_hero() -> void:
 	rows += [["Armor", UiText.pct(h.armor)], ["Blocks", UiText.block_text(h.block)], ["Regen/s", UiText.f1(h.regen)], ["Respawn", UiText.f1(h.respawn) + "s"],
 		["Build range", f.call(h.build_range)], ["Move speed", f.call(h.speed)]]
 	if h.aura: rows.append(["Tower aura", "+" + UiText.pct(h.aura)])
-	if h.bounty: rows.append(["Hero kill gold", "+%sg" % f.call(h.bounty)])
-	if h.tithe: rows.append(["Kill gold (all)", "+%sg" % f.call(h.tithe)])
+	if h.bounty: rows.append(["Hero kill gold", "+" + UiText.pct(h.bounty)])
+	if h.tithe: rows.append(["Kill gold (all)", "+" + UiText.pct(h.tithe)])
 	if h.mom_stacks: rows.append(["Momentum", "%d×" % h.mom_stacks])
 	if h.interest: rows.append(["Interest", UiText.pct(h.interest)])
-	v.add_child(Kit.stats(rows))
+	# the full stat sheet folds away (remembered between runs)
+	var open := bool(Save.settings.get("hero_stats_open", true))
+	var fold := Kit.button(("▾ " if open else "▸ ") + "Hero stats", func():
+		Save.settings.hero_stats_open = not bool(Save.settings.get("hero_stats_open", true))
+		Save.save_settings()
+		render_hero(), "FlatButton")
+	fold.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	v.add_child(fold)
+	var sheet := Kit.vbox(6)
+	sheet.visible = open
+	v.add_child(sheet)
+	sheet.add_child(Kit.stats(rows))
 	var lv := "%s (%d level%s so far): %s" % [Kit.b(Kit.c("Level bonus", Kit.GOLD)), h.lvl - 1, "" if h.lvl == 2 else "s", DB.tx("role:" + d.category, UiText.ROLE_LEVEL.get(d.category, "none") + " per level.")]
 	if h.xp_gain:
 		lv += " XP gain +%s." % UiText.pct(h.xp_gain)
-	v.add_child(Kit.muted(lv))
+	sheet.add_child(Kit.muted(lv))
 	var tags := Kit.flow(4)
 	for x: UpgradeData in game.R.heroics.items:
 		var r: int = S.heroics.get(x.id, 0)
@@ -920,10 +992,26 @@ func render_hero() -> void:
 		var tg := Kit.tag(Kit.c("✦ " + rec.boon_name, Kit.HEROIC), Kit.HEROIC)
 		Kit.tip_on(tg, func(): return DB.tx("boon:" + k, rec.boon_desc))
 		tags.add_child(tg)
+	# the same upgrade picked again stacks into one tag (Fast Chambers ×6), coloured by its rarest copy
+	var stacks := {}
+	var order := []
 	for o in S.picks:
-		var col: Color = Kit.RAR.get(o.rarity.id, Kit.TEXT)
-		var tg := Kit.tag(Kit.c(("☠ " if o.demonic else "") + o.perk.name, Kit.TEXT if o.rarity.id == "common" else col), Kit.DANGER if o.demonic else (Kit.LINE if o.rarity.id == "common" else col), Color("#2a1220") if o.demonic else Kit.PANEL2)
-		Kit.tip_on(tg, func(): return game.perk_desc(o) + ((" Curse: " + game.curse_desc(o)) if o.demonic else ""))
+		var key: String = o.perk.id + ("!" if o.demonic else "")
+		if not stacks.has(key):
+			stacks[key] = []
+			order.append(key)
+		stacks[key].append(o)
+	var rank_of := func(o) -> int: return Kit.RAR.keys().find(o.rarity.id)
+	for key in order:
+		var list: Array = stacks[key]
+		var top: Dictionary = list[0]
+		for o in list:
+			if rank_of.call(o) > rank_of.call(top):
+				top = o
+		var col: Color = Kit.RAR.get(top.rarity.id, Kit.TEXT)
+		var label: String = ("☠ " if top.demonic else "") + top.perk.name + (" ×%d" % list.size() if list.size() > 1 else "")
+		var tg := Kit.tag(Kit.c(label, Kit.TEXT if top.rarity.id == "common" else col), Kit.DANGER if top.demonic else (Kit.LINE if top.rarity.id == "common" else col), Color("#2a1220") if top.demonic else Kit.PANEL2)
+		Kit.tip_on(tg, func(): return "\n".join(list.map(func(o): return (o.rarity.name + ": " if list.size() > 1 else "") + game.perk_desc(o) + ((" Curse: " + game.curse_desc(o)) if o.demonic else ""))))
 		tags.add_child(tg)
 	for r: UpgradeData in S.relics:
 		var tg := Kit.tag(Kit.c(r.name, Kit.GOLD), Kit.GOLD)
@@ -1034,7 +1122,7 @@ func _key(ev: InputEventKey) -> void:
 		if i < S.loadout.size():
 			game.select_build(S.loadout[i])
 	elif k == KEY_R:
-		if not S.paused and not S.over and not game.cancel_placing():
+		if (not S.paused or S.user_pause) and not S.over and not game.cancel_placing():
 			game.sell_selected()
 	elif k == KEY_Q:
 		game.use_ability()
@@ -1042,6 +1130,8 @@ func _key(ev: InputEventKey) -> void:
 		game.toggle_hold()
 	elif k == KEY_F:
 		game.toggle_aim()
+	elif k == KEY_T:
+		game.cycle_aim()
 	elif k == KEY_SPACE:
 		if not ev.echo:
 			game.start_wave()

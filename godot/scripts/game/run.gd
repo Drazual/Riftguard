@@ -17,6 +17,10 @@ var pending_boon := ""
 var ion_t := 6.0
 var shrine := {} # Hero Shrine buffs to the hero, summed (see Game.sb)
 var shrine_t := 4.0
+var strike_ready := false # Orbital Strike: readied, fires on the next press
+var wiz_pushes := 0 # enemies the Wizard pushed back this run (toward the secret unlock)
+var pending_secret := ""
+var boss_proof := false # Heart of the Rift: bosses can't stun or curse towers
 var wave := 0
 var wave_active := false
 var spawn_q: Array = []
@@ -26,6 +30,8 @@ var enemies: Array = [] # Enemy
 var towers: Array = [] # Tower
 var fx: Array = [] # Dictionary
 var sel = null # Tower
+## The hero is selected (clicked): shows its attack range.
+var hero_sel := false
 var build := ""
 var merge_from = null
 var pending_build = null # {c, r, type}
@@ -55,6 +61,8 @@ var runes: Array = []
 var rune_keys := {}
 var delayed: Array = []
 var shells: Array = []
+## Razor Disc projectiles in flight.
+var discs: Array = []
 var proj: Array = []
 var beams: Array = []
 var kills := { hero = 0, towers = {} }

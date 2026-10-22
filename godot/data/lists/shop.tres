@@ -36,17 +36,6 @@ also_pools = PackedStringArray()
 price = 220
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_vd23l"]
-script = ExtResource("1_ywjn6")
-id = "codex"
-name = "Mastery Codex"
-desc = "Every tower can use {f0(m)} more upgrade path{s(m)}."
-effect = "run.path_bonus += m"
-m = 1.0
-also_pools = PackedStringArray()
-price = 450
-heroes = PackedStringArray()
-
 [sub_resource type="Resource" id="Resource_phv06"]
 script = ExtResource("1_ywjn6")
 id = "primer"
@@ -113,6 +102,7 @@ desc = "Hero +{pct(m)} damage and +{pct(m / 4)} crit chance."
 effect = "h.dmg *= 1 + m
 h.crit = min(0.9, h.crit + m / 4)"
 m = 0.4
+hero_damage = true
 also_pools = PackedStringArray()
 price = 280
 shop_kind = "Hero"
@@ -168,4 +158,4 @@ heroes = PackedStringArray()
 
 [resource]
 script = ExtResource("2_ro1eb")
-items = Array[ExtResource("1_ywjn6")]([SubResource("Resource_xbvww"), SubResource("Resource_56o1x"), SubResource("Resource_63y5p"), SubResource("Resource_vd23l"), SubResource("Resource_phv06"), SubResource("Resource_vi1h7"), SubResource("Resource_3iq61"), SubResource("Resource_q0pm0"), SubResource("Resource_utrsk"), SubResource("Resource_nm16f"), SubResource("Resource_wmw23"), SubResource("Resource_eb6jy"), SubResource("Resource_2c483"), SubResource("Resource_cf73d")])
+items = Array[ExtResource("1_ywjn6")]([SubResource("Resource_xbvww"), SubResource("Resource_56o1x"), SubResource("Resource_63y5p"), SubResource("Resource_phv06"), SubResource("Resource_vi1h7"), SubResource("Resource_3iq61"), SubResource("Resource_q0pm0"), SubResource("Resource_utrsk"), SubResource("Resource_nm16f"), SubResource("Resource_wmw23"), SubResource("Resource_eb6jy"), SubResource("Resource_2c483"), SubResource("Resource_cf73d")])

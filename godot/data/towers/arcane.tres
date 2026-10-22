@@ -79,9 +79,10 @@ mastery_effect = "t.echo += 0.4"
 script = ExtResource("2_nvxlv")
 id = "arcane"
 name = "Arcane Bolt"
+level_price = 0.85
 dmg = 14.0
 rate = 0.5
-range = 120.0
+range = 180.0
 element_tag = "arcane"
 color = Color(1, 0.30980393, 0.7529412, 1)
 info = "Fires quick magic bolts at one enemy at a time. Steady, reliable damage that is good against anything."

@@ -56,6 +56,9 @@ var over: Node2D # upright overlay: bars, rings, cores
 var top: Node2D # shots, beams, bursts
 var spell_frames: SpriteFrames = preload("res://art/fx/spells.tres")
 var ground_for = null
+var ground_anim: Array[ImageTexture] = []
+var ground_anim_t := 0.0
+var ground_blend := ShaderMaterial.new()
 var frame_no := 0
 var tip_tower: Tower = null
 var shake_t := 0.0
@@ -84,6 +87,7 @@ func _ready() -> void:
 	ground = Sprite2D.new()
 	ground.centered = false
 	ground.scale = Vector2(1 / PX, 1 / PX)
+	ground_blend.shader = preload("res://scripts/board/ground_blend.gdshader")
 	world.add_child(ground)
 	flat = _layer("Flat", _draw_flat)
 	flat.position = Vector2(0, TOP)
@@ -190,6 +194,7 @@ func sync(dt: float) -> void:
 	var S := _S()
 	if S and S.map and ground_for != S.map:
 		bake_ground(S.map)
+	_animate_ground(dt)
 	if shake_t > 0:
 		shake_t -= dt
 		var a := shake_amt * ART_W * (shake_t / shake_dur if shake_dur > 0 else 0.0)
@@ -757,9 +762,14 @@ func _draw_flat() -> void:
 		_shadow(g, e.x, e.y + 4 / K, e.r * 2.2)
 	if h.tx != null and h.ko <= 0:
 		_ring(g, Vector2(h.tx, h.ty), 6, ca(hc, 0.5), 1)
-	# Orbital Strike lands on the cursor: show where while it's ready
-	if h.ab.id == "strike" and h.ko <= 0 and not (h.ab.t > 0) and S.pointer != null:
-		_ring(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.55), 1.5)
+	# Orbital Strike lands on the cursor: show where once it's readied
+	if S.strike_ready and h.ko <= 0 and S.pointer != null:
+		_ring(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.75), 2)
+		_circle(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.08))
+	# Piercing Shot in cursor mode: a faint line toward the cursor while it's charged
+	if h.ab.id == "pierce" and game.pierce_cursor() and h.ko <= 0 and not (h.ab.t > 0) and S.pointer != null:
+		var dv0: Vector2 = (S.pointer - h.pos()).normalized()
+		_line(g, h.pos(), h.pos() + dv0 * 1400, hx(0xffd36e, 0.3), 1)
 	if S.aim != null:
 		var a: Vector2 = S.aim
 		var ready := not (h.ab.t > 0)
@@ -776,8 +786,11 @@ func _draw_flat() -> void:
 		var HX := S.heroics
 		if HX.get("wither", 0):
 			_circle(g, h.pos(), 90 + 20 * HX.wither, hx(0x7a2e5a, 0.12))
-		if h.range < 9999:
-			_ring(g, h.pos(), h.range, ca(hc, 0.15), 1)
+		if h.range < 9999 and S.hero_sel:
+			# a tinted disc with a dark-backed bright edge, so the reach reads on busy, light maps
+			_circle(g, h.pos(), h.range, ca(hc, 0.16))
+			_ring(g, h.pos(), h.range, Color(0.06, 0.03, 0.12, 0.7), 8)
+			_ring(g, h.pos(), h.range, ca(hc.lightened(0.2), 1.0), 4)
 		if h.hold:
 			g.draw_rect(Rect2(h.x - 17, h.y - 17, 34, 34), hx(0xf2c14e, 0.9), false, 2)
 		_shadow(g, h.x, h.y, 30)
@@ -926,8 +939,14 @@ func _draw_over() -> void:
 			_ring(o, p, e.r + 2, ca(frost_col, 0.9), 2)
 		if e.burn_t > 0:
 			_circle(o, p - Vector2(0, e.r), 2.5, hx(0xff8a3d, 0.8))
+		if e.fire_t > 0:
+			# Fire spell burn: a flickering orange halo
+			_ring(o, p, e.r + 1, hx(0xff5d1f, 0.55 + 0.35 * sin(S.time * 18 + e.d)), 2)
 		if e.boss:
 			_ring(o, p, e.r + 4, hx(0xf2c14e), 2)
+		elif e.pushback_immune:
+			# anchored: a thick dark iron band says it can't be pushed back
+			_ring(o, p, e.r + 3, hx(0x3a4256, 0.95), 3)
 		if e.mark_t > 0 or e.spot_t > 0:
 			_ring(o, p, e.r + 7, hx(0xff2e4d, 0.9), 1.5)
 		var w := e.r * 2 + 4
@@ -957,6 +976,8 @@ func _draw_over() -> void:
 			_ring(o, hp, 21, hx(0xb07cff, 0.6 + 0.3 * sin(S.time * 6)), 1.5)
 		o.draw_rect(Rect2(hp.x - 16, htop, 32, 4), Color(0, 0, 0, 0.6))
 		o.draw_rect(Rect2(hp.x - 16, htop, 32 * h.hp / h.max_hp, 4), hx(0x5fe39a))
+		if h.shield > 0:
+			o.draw_rect(Rect2(hp.x - 16, htop, 32 * minf(1, h.shield / h.max_hp), 4), Color(0.37, 0.66, 1.0, 0.6))
 		if h.max_mana:
 			o.draw_rect(Rect2(hp.x - 16, htop + 5, 32, 3), Color(0, 0, 0, 0.6))
 			o.draw_rect(Rect2(hp.x - 16, htop + 5, 32 * h.mana / h.max_mana, 3), hx(0x5fa8ff))
@@ -973,6 +994,23 @@ func _draw_over() -> void:
 			var gp := Vector2(sh.x0 + (sh.x1 - sh.x0) * u, sh.y0 + (sh.y1 - sh.y0) * u)
 			var arc := minf(140, Vector2(sh.x1 - sh.x0, sh.y1 - sh.y0).length() * 0.4) * sin(PI * u)
 			_circle(o, Vector2(gp.x, SY(gp.y) - arc), 5 + 2 * sh.mult, sh.tw.color)
+	# Razor Discs spin flat at knee height, with a shadow on the ground under them
+	for dk: Dictionary in S.discs:
+		if dk.wait > 0:
+			continue
+		var r: float = dk.r
+		o.draw_set_transform(Vector2(dk.x, SY(dk.y)), 0, Vector2(1, 0.45))
+		o.draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.25))
+		o.draw_set_transform(Vector2(dk.x, SY(dk.y) - 10), 0, Vector2(1, 0.6))
+		for i in 8:
+			var a0: float = dk.spin + i * TAU / 8
+			o.draw_colored_polygon(PackedVector2Array([Vector2.from_angle(a0) * r * 0.9, Vector2.from_angle(a0) * (r + 5), Vector2.from_angle(a0 + 0.45) * r * 0.9]),
+				Color(0.95, 0.98, 1) if i % 2 else hx(0xffe28c))
+		o.draw_circle(Vector2.ZERO, r, hx(0xaacee2))
+		o.draw_arc(Vector2.ZERO, r, 0, TAU, 24, dk.tw.color, 2)
+		o.draw_arc(Vector2.ZERO, r * 0.6, dk.spin, dk.spin + PI * 0.8, 10, Color(1, 1, 1, 0.8), 2)
+		o.draw_circle(Vector2.ZERO, r * 0.22, hx(0xff6fd8))
+		o.draw_set_transform(Vector2.ZERO)
 	# wall HP shows above each wall
 	for w: Dictionary in S.walls:
 		var k := maxf(0, w.hp / w.max)
@@ -994,6 +1032,14 @@ func _draw_over() -> void:
 		elif f.k == "line":
 			var l1: float = f.l1 if f.get("l1") != null else 12.0
 			_line(o, Vector2(f.x1, SY(f.y1) - l1), Vector2(f.x2, SY(f.y2) - 12), ca(fc, a), f.w)
+		elif f.k == "num":
+			# a crit: the damage number pops up over the enemy and floats away
+			var q := 1 - a
+			var sz := int(24 + 12 * minf(1, q * 6) - 6 * q)
+			var p := Vector2(f.x - 60, SY(f.y) - f.r * 2 - 14 - 30 * q)
+			var col := ca(fc, minf(1, a * 3.5))
+			o.draw_string_outline(Kit.display_bold, p, f.text + "!", HORIZONTAL_ALIGNMENT_CENTER, 120, sz, 6, Color(0.08, 0.04, 0.1, col.a))
+			o.draw_string(Kit.display_bold, p, f.text + "!", HORIZONTAL_ALIGNMENT_CENTER, 120, sz, col)
 		elif f.k == "pillar":
 			# a beam straight down from the sky
 			var y := SY(f.y)
@@ -1029,12 +1075,42 @@ func _tile_image(tex: Texture2D) -> Image:
 func bake_ground(m: MapInfo) -> void:
 	ground_for = m
 	ground.texture = ImageTexture.create_from_image(make_ground(m))
+	ground_anim.clear()
+	if m.scene and m.scene.backdrop and m.scene.backdrop_frames.size() > 1:
+		for tex in m.scene.backdrop_frames:
+			var img := _tile_image(tex)
+			if img.get_size() != Vector2i(ART_W, ART_H):
+				img = img.duplicate()
+				img.resize(ART_W, ART_H, Image.INTERPOLATE_NEAREST)
+			ground_anim.append(ImageTexture.create_from_image(img))
+		ground.texture = ground_anim[0]
+	ground.material = ground_blend if ground_anim.size() > 1 else null
+
+
+## Animated backdrops run on real time, so the beach keeps moving while the game is paused. They ease from
+## the first frame to the last of the span and back, crossfading each neighbouring pair.
+func _animate_ground(dt: float) -> void:
+	if ground_anim.size() < 2:
+		return
+	ground_anim_t += dt
+	var sc: MapScene = ground_for.scene
+	var span := clampi(sc.backdrop_span, 2, ground_anim.size())
+	var p := (0.5 - 0.5 * cos(TAU * ground_anim_t / sc.backdrop_period)) * (span - 1)
+	var i := mini(int(p), span - 2)
+	ground.texture = ground_anim[i]
+	ground_blend.set_shader_parameter("next_frame", ground_anim[i + 1])
+	ground_blend.set_shader_parameter("blend", p - i)
 
 
 ## Draws the board into an image at art resolution: the back wall, the painted tiles, the road, props and
 ## the platform's front face.
 func make_ground(m: MapInfo) -> Image:
 	var top := int(TOP * PX)
+	if m.scene.backdrop:
+		var bd := _tile_image(m.scene.backdrop).duplicate()
+		if bd.get_size() != Vector2i(ART_W, ART_H):
+			bd.resize(ART_W, ART_H, Image.INTERPOLATE_NEAREST)
+		return bd
 	var img := Image.create(ART_W, ART_H, false, Image.FORMAT_RGBA8)
 	var px := func(x: int, y: int, w: int, h: int, col: Color) -> void:
 		img.fill_rect(Rect2i(x, y, w, h), col)

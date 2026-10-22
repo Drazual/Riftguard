@@ -17,17 +17,20 @@
 [ext_resource type="Resource" path="res://data/enemies/knight.tres" id="15_q7b7u"]
 [ext_resource type="Resource" path="res://data/enemies/warden.tres" id="16_kviac"]
 [ext_resource type="Resource" path="res://data/enemies/tyrant.tres" id="17_2q5pp"]
-[ext_resource type="Resource" uid="uid://baipvtj1kp0ug" path="res://data/fusions.tres" id="18_lf2v6"]
-[ext_resource type="Resource" uid="uid://dtf5x0ohotnx4" path="res://data/lists/global_meta.tres" id="19_yl4lr"]
-[ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="20_8v02n"]
-[ext_resource type="Resource" uid="uid://stbiuubd3c1m" path="res://data/heroes/gale.tres" id="21_gale"]
-[ext_resource type="Resource" uid="uid://bkdlwjboj4jn6" path="res://data/heroes/vanguard.tres" id="21_q4uiu"]
-[ext_resource type="Resource" uid="uid://bqxits25lqsme" path="res://data/heroes/striker.tres" id="22_ie4xd"]
-[ext_resource type="Resource" uid="uid://bnagvrjvo5oa1" path="res://data/heroes/oracle.tres" id="23_4544t"]
-[ext_resource type="Resource" uid="uid://3slmmd50tora" path="res://data/heroes/sniper.tres" id="24_7lomy"]
-[ext_resource type="Resource" uid="uid://by1fbuyar12sc" path="res://data/heroes/wizard.tres" id="25_4m1h7"]
-[ext_resource type="Resource" uid="uid://b34f18g5um7u" path="res://data/lists/heroics.tres" id="26_23vll"]
-[ext_resource type="Resource" uid="uid://c3v5udputabid" path="res://data/lists/legendary_relics.tres" id="27_wud1j"]
+[ext_resource type="Resource" path="res://data/enemies/anchor.tres" id="17_anchr"]
+[ext_resource type="Resource" path="res://data/fusions.tres" id="18_lf2v6"]
+[ext_resource type="Resource" path="res://data/lists/global_meta.tres" id="19_yl4lr"]
+[ext_resource type="Script" path="res://scripts/data/hero_data.gd" id="20_8v02n"]
+[ext_resource type="Resource" path="res://data/heroes/vanguard.tres" id="21_q4uiu"]
+[ext_resource type="Resource" path="res://data/heroes/gale.tres" id="21_gale"]
+[ext_resource type="Resource" path="res://data/heroes/striker.tres" id="22_ie4xd"]
+[ext_resource type="Resource" path="res://data/heroes/oracle.tres" id="23_4544t"]
+[ext_resource type="Resource" path="res://data/heroes/sniper.tres" id="24_7lomy"]
+[ext_resource type="Resource" path="res://data/heroes/wizard.tres" id="25_4m1h7"]
+[ext_resource type="Resource" path="res://data/lists/heroics.tres" id="26_23vll"]
+[ext_resource type="Resource" path="res://data/lists/legendary_relics.tres" id="27_wud1j"]
+[ext_resource type="PackedScene" path="res://maps/canal_crossing.tscn" id="27_canal"]
+[ext_resource type="PackedScene" path="res://maps/coral_spiral.tscn" id="27_coral"]
 [ext_resource type="PackedScene" path="res://maps/sunset_outpost.tscn" id="28_uun50"]
 [ext_resource type="PackedScene" path="res://maps/neon_boardwalk.tscn" id="29_4oven"]
 [ext_resource type="PackedScene" uid="uid://d10lb8v34555i" path="res://maps/chroma_reactor.tscn" id="30_8apho"]
@@ -40,28 +43,29 @@
 [ext_resource type="Resource" uid="uid://4b08mrhisboe" path="res://data/lists/secret_relics.tres" id="37_lsrb8"]
 [ext_resource type="Resource" uid="uid://7clnq3gndj1b" path="res://data/lists/shop.tres" id="38_bkv25"]
 [ext_resource type="Resource" path="res://data/simple_texts.tres" id="39_urqb4"]
-[ext_resource type="Resource" uid="uid://k2hdtppkequd" path="res://data/lists/specials.tres" id="40_ktw5r"]
-[ext_resource type="Resource" uid="uid://cv6icsu0k4h1n" path="res://data/spells.tres" id="41_r3umf"]
-[ext_resource type="Resource" uid="uid://c2xiig4n3fp1y" path="res://data/lists/tough.tres" id="42_5vtup"]
-[ext_resource type="Resource" uid="uid://j5d77p3u43ay" path="res://data/lists/tower_global.tres" id="43_vbnph"]
-[ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="44_wis7q"]
-[ext_resource type="Resource" uid="uid://gq44pnbbh3ya" path="res://data/towers/arcane.tres" id="45_q6xdd"]
-[ext_resource type="Resource" uid="uid://crxqhyqh3vkfc" path="res://data/towers/plasma.tres" id="46_cp3rw"]
-[ext_resource type="Resource" uid="uid://bdb5sl8qdfssa" path="res://data/towers/frost.tres" id="47_j25d5"]
-[ext_resource type="Resource" uid="uid://gl6cv5xkm45x" path="res://data/towers/tesla.tres" id="48_cut3q"]
-[ext_resource type="Resource" uid="uid://o06f723qwcr2" path="res://data/towers/beacon.tres" id="49_i6c5q"]
-[ext_resource type="Resource" uid="uid://deqbmbxbpxmig" path="res://data/towers/anvil.tres" id="50_ytjuc"]
-[ext_resource type="Resource" uid="uid://cnptwa836j7yw" path="res://data/towers/laser.tres" id="51_e1yeg"]
-[ext_resource type="Resource" uid="uid://dk7tsesx0504j" path="res://data/towers/mortar.tres" id="52_lmywk"]
-[ext_resource type="Resource" uid="uid://2qtvljwo0edw" path="res://data/towers/shrine.tres" id="52_shrine"]
-[ext_resource type="Resource" uid="uid://cuc3s4mske6p4" path="res://data/lists/uniques.tres" id="53_3y6qg"]
+[ext_resource type="Resource" path="res://data/lists/specials.tres" id="40_ktw5r"]
+[ext_resource type="Resource" path="res://data/spells.tres" id="41_r3umf"]
+[ext_resource type="Resource" path="res://data/lists/tough.tres" id="42_5vtup"]
+[ext_resource type="Resource" path="res://data/lists/tower_global.tres" id="43_vbnph"]
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="44_wis7q"]
+[ext_resource type="Resource" path="res://data/towers/arcane.tres" id="45_q6xdd"]
+[ext_resource type="Resource" path="res://data/towers/plasma.tres" id="46_cp3rw"]
+[ext_resource type="Resource" path="res://data/towers/frost.tres" id="47_j25d5"]
+[ext_resource type="Resource" path="res://data/towers/tesla.tres" id="48_cut3q"]
+[ext_resource type="Resource" path="res://data/towers/beacon.tres" id="49_i6c5q"]
+[ext_resource type="Resource" path="res://data/towers/anvil.tres" id="50_ytjuc"]
+[ext_resource type="Resource" path="res://data/towers/laser.tres" id="51_e1yeg"]
+[ext_resource type="Resource" path="res://data/towers/mortar.tres" id="52_lmywk"]
+[ext_resource type="Resource" path="res://data/towers/disc.tres" id="52_disc"]
+[ext_resource type="Resource" path="res://data/towers/shrine.tres" id="52_shrine"]
+[ext_resource type="Resource" path="res://data/lists/uniques.tres" id="53_3y6qg"]
 
 [resource]
 script = ExtResource("36_dyxie")
-maps = Array[PackedScene]([ExtResource("28_uun50"), ExtResource("29_4oven"), ExtResource("30_8apho"), ExtResource("31_5ena3")])
-towers = Array[ExtResource("44_wis7q")]([ExtResource("45_q6xdd"), ExtResource("46_cp3rw"), ExtResource("47_j25d5"), ExtResource("48_cut3q"), ExtResource("49_i6c5q"), ExtResource("50_ytjuc"), ExtResource("51_e1yeg"), ExtResource("52_lmywk"), ExtResource("52_shrine")])
+maps = Array[PackedScene]([ExtResource("27_canal"), ExtResource("27_coral"), ExtResource("28_uun50"), ExtResource("29_4oven"), ExtResource("30_8apho"), ExtResource("31_5ena3")])
+towers = Array[ExtResource("44_wis7q")]([ExtResource("45_q6xdd"), ExtResource("46_cp3rw"), ExtResource("47_j25d5"), ExtResource("48_cut3q"), ExtResource("49_i6c5q"), ExtResource("50_ytjuc"), ExtResource("51_e1yeg"), ExtResource("52_lmywk"), ExtResource("52_disc"), ExtResource("52_shrine")])
 heroes = Array[ExtResource("20_8v02n")]([ExtResource("21_q4uiu"), ExtResource("21_gale"), ExtResource("22_ie4xd"), ExtResource("23_4544t"), ExtResource("24_7lomy"), ExtResource("25_4m1h7")])
-enemies = Array[ExtResource("5_jubtq")]([ExtResource("6_ck0sn"), ExtResource("7_43m5s"), ExtResource("8_kraj1"), ExtResource("9_y4dam"), ExtResource("10_6su6i"), ExtResource("11_crh1k"), ExtResource("12_hx3fw"), ExtResource("13_28wb3"), ExtResource("14_crwaq"), ExtResource("15_q7b7u"), ExtResource("16_kviac"), ExtResource("17_2q5pp")])
+enemies = Array[ExtResource("5_jubtq")]([ExtResource("6_ck0sn"), ExtResource("7_43m5s"), ExtResource("8_kraj1"), ExtResource("9_y4dam"), ExtResource("10_6su6i"), ExtResource("11_crh1k"), ExtResource("12_hx3fw"), ExtResource("13_28wb3"), ExtResource("17_anchr"), ExtResource("14_crwaq"), ExtResource("15_q7b7u"), ExtResource("16_kviac"), ExtResource("17_2q5pp")])
 spells = ExtResource("41_r3umf")
 elements = ExtResource("4_0y5sd")
 fusions = ExtResource("18_lf2v6")
@@ -82,8 +86,9 @@ global_meta = ExtResource("19_yl4lr")
 tower_global = ExtResource("43_vbnph")
 specials = ExtResource("40_ktw5r")
 simple_texts = ExtResource("39_urqb4")
-rarity_names = PackedStringArray("Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret")
-rarity_mults = PackedFloat32Array(1, 1.4, 1.9, 2.6, 3.5, 4.5)
-rarity_weights = PackedFloat32Array(50, 25, 15, 6.5, 3, 0.5)
+tank_attack_hp = 0.04
+rarity_names = PackedStringArray("Common", "Uncommon", "Rare", "Mythic", "Legendary", "Secret", "Secret Mythic", "Secret Legendary", "Developer")
+rarity_mults = PackedFloat32Array(1, 1.4, 1.9, 2.6, 3.5, 4.5, 6, 8, 12)
+rarity_weights = PackedFloat32Array(53.4, 26.7, 15.9625, 2, 1, 0.5, 0.25, 0.125, 0.0625)
 triple_at = 15
 mastery_max = 100

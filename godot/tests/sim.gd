@@ -26,7 +26,7 @@ func _ready() -> void:
 func _run(hero: String, map_id: String, max_waves: int) -> void:
 	result = {}
 	game.new_run(map_id)
-	var towers := Array(DB.tower_order).slice(0, 5)
+	var towers := Array(OS.get_environment("TOWERS").split(",")) if OS.get_environment("TOWERS") != "" else Array(DB.tower_order).slice(0, 5)
 	game.start_run(hero, towers)
 	var S := game.S
 	# stand near the middle of the path so the towers cover most of it
@@ -34,11 +34,18 @@ func _run(hero: String, map_id: String, max_waves: int) -> void:
 	S.hero.x = mid.x
 	S.hero.y = mid.y
 	var steps := 0
+	var wave_steps := 0
 	while not S.over and steps < 400000 and S.wave <= max_waves:
 		steps += 1
+		wave_steps += 1
+		# a wave the bot can stall forever (say, pushing everything back to the entrance) ends the run
+		if wave_steps > 30 * 600:
+			print("STALL: wave %d still running after 600s with %d enemies" % [S.wave, S.enemies.size()])
+			break
 		if not S.wave_active and not S.paused:
 			_spend()
 			game.start_wave()
+			wave_steps = 0
 		if S.wave_active and steps % 20 == 0:
 			_spend()
 		if S.hero.data.spells and steps % 15 == 0:
@@ -53,6 +60,11 @@ func _run(hero: String, map_id: String, max_waves: int) -> void:
 				var e: Enemy = S.enemies[0]
 				print("  last: %s d %.0f/%.0f x %.0f y %.0f hp %.0f stun %.1f slow %.2f push %.1f blocked %s dead %s speed %.0f" % [e.type, e.d, S.map.path_len, e.x, e.y, e.hp, e.stun_t, e.slow, e.push_t, e.blocked, e.dead, e.speed])
 	var tw := S.towers.map(func(t): return game.tower_name(t) + " L" + str(t.lvl))
+	if OS.get_environment("DMG") != "":
+		var by := {}
+		for t in S.towers:
+			by[t.type] = by.get(t.type, 0.0) + t.dmg_total
+		print("damage by tower ", by)
 	print("kills hero %d towers %s leaks? log %s" % [S.kills.hero, str(S.kills.towers), str(S.log.map(func(w): return w.lives_lost))])
 	print("%s on %s: wave %d %s lives %d gold %d lvl %d towers %d steps %d | %s" % [hero, map_id, S.wave, "WON" if result.get("won", false) else "lost", S.lives,
 		S.gold, S.hero.lvl, S.towers.size(), steps, ", ".join(tw.slice(0, 6))])

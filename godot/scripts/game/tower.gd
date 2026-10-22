@@ -29,6 +29,8 @@ var parents: PackedStringArray = []
 var tags: PackedStringArray = []
 var fusions: Array = [] # FusionData
 var up_start := 0
+## Which enemy in range it shoots: "first" (farthest along the path), "strong" (most HP), "close" (nearest the tower) or "last" (nearest the entrance).
+var aim := "first"
 
 # Beacon buffs this tower gives (and Rift Beacon path bonuses).
 var b_dmg := 0.0
@@ -100,6 +102,17 @@ var lob := false
 var firestorm := false
 var salvo := 0.0
 var quake_stun := false
+# Razor Disc: how many enemies a disc cuts through (bosses count as 3), its size, speed and flight
+var disc_hits := 6.0
+var disc_r := 15.0
+var disc_speed := 300.0
+var disc_reach := 440.0
+var disc_trail := 0.0
+var disc_volley := 0.0
+var disc_heavy := false
+var disc_unbound := false
+var disc_scorch := false
+var disc_return := false
 
 # state
 var stun_t := 0.0

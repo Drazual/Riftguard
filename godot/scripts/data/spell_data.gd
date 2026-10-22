@@ -26,6 +26,8 @@ extends Resource
 @export var root := 0.0
 @export var push := 0.0
 @export var push_speed := 90.0
+## Push back only this many enemies, nearest the cast point first (0 = every enemy hit).
+@export var push_max := 0
 @export var poison_dps := 0.0
 @export var poison_time := 0.0
 ## Takes more damage from everything.

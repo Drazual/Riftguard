@@ -7,7 +7,7 @@
 script = ExtResource("1_c10de")
 id = "ironhold"
 map_name = "Neon Boardwalk"
-tier = "Level 2"
+tier = "Level 4"
 theme = "boardwalk"
 waves = 25
 shard_mult = 1.5

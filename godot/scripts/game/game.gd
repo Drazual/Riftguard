@@ -20,10 +20,12 @@ const SHOT_SPEED := 800.0
 const ATK_FPS := 24.0
 const ORACLE_RANKS := [0, 2, 3, 4]
 const BOSS_CORES := { knight = 1, warden = 2, tyrant = 5 }
-const BIG_BOSS := { warden = true, tyrant = true }
+const BIG_BOSS := { tyrant = true }
 const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", "knock", "crit", "boss", "aura", "spell", "mana", "shield", "bruiser"]
 
 var S: Run = null
+var _spilling := false
+var _fire_ctx := false # true while Fire-element spell damage is landing, so it sets enemies alight
 var R: GameRules
 var max_wave := 20
 var rng := RandomNumberGenerator.new()
@@ -97,7 +99,25 @@ func fx_add(f: Dictionary) -> void:
 
 
 func later(secs: float, fn: Callable) -> void:
+	if _fire_ctx:
+		var g := fn
+		fn = func(): _as_fire(g)
 	S.delayed.append({ at = S.time + secs, fn = fn })
+
+
+## Runs fn with Fire spell damage switched on (it sets enemies burning).
+func _as_fire(fn: Callable):
+	var was := _fire_ctx
+	_fire_ctx = true
+	var out = fn.call()
+	_fire_ctx = was
+	return out
+
+
+## Fire spells burn: a share of max HP per second for a few seconds. A new hit refreshes it, it never stacks.
+func fire_burn(e: Enemy) -> void:
+	e.fire_t = R.fire_burn_time
+	e.fire_pct = R.fire_burn_pct * (R.fire_burn_boss if e.boss else 1.0)
 
 
 func zone(z: Dictionary) -> Dictionary:
@@ -105,7 +125,9 @@ func zone(z: Dictionary) -> Dictionary:
 		z.color = _c(z.color)
 	if not z.has("T"):
 		z.T = z.t
-	for k in ["dps", "slow", "brk", "end_freeze"]:
+	if _fire_ctx:
+		z.fire = true
+	for k in ["dps", "slow", "brk", "end_freeze", "vuln"]:
 		if not z.has(k):
 			z[k] = 0.0
 	S.zones.append(z)
@@ -154,6 +176,52 @@ func by_d_desc(a, b) -> bool:
 	return a.d > b.d
 
 
+const AIMS := ["first", "last", "strong", "close"]
+const AIM_NAMES := { first = "First", last = "Last", strong = "Strongest", close = "Closest" }
+
+
+## Orders the enemies in a tower's range by its targeting choice, best target first.
+func sort_targets(t: Tower, list: Array) -> void:
+	sort_by_aim(t.aim, t.x, t.y, list)
+
+
+## Orders enemies for a targeting choice (first, last, strong, close) seen from x, y.
+func sort_by_aim(aim: String, x: float, y: float, list: Array) -> void:
+	match aim:
+		"strong":
+			list.sort_custom(func(a, b): return a.hp > b.hp or (a.hp == b.hp and a.d > b.d))
+		"close":
+			list.sort_custom(func(a, b): return hyp(a.x - x, a.y - y) < hyp(b.x - x, b.y - y))
+		"last":
+			list.sort_custom(func(a, b): return a.d < b.d)
+		_:
+			list.sort_custom(by_d_desc)
+
+
+func set_aim(t: Tower, aim: String) -> void:
+	t.aim = aim
+	refresh("inspector")
+
+
+## The Sniper picks its target the same way towers do.
+func set_hero_aim(aim: String) -> void:
+	S.hero.target = aim
+	refresh("hero")
+
+
+## T: the selected tower (or, with none selected, the Sniper) moves to its next targeting choice.
+func cycle_aim() -> void:
+	var t: Tower = S.sel if S else null
+	if (t == null or not S.towers.has(t)) and S and S.hero and S.hero.cls == "sniper":
+		set_hero_aim(AIMS[(AIMS.find(S.hero.target) + 1) % AIMS.size()])
+		say("Sniper targets: %s" % AIM_NAMES[S.hero.target])
+		return
+	if t == null or not S.towers.has(t) or t.support or t.hero_buff:
+		return
+	set_aim(t, AIMS[(AIMS.find(t.aim) + 1) % AIMS.size()])
+	say("%s targets: %s" % [tower_name(t), AIM_NAMES[t.aim]])
+
+
 func live_enemies() -> Array:
 	return S.enemies.filter(func(e): return not e.dead)
 
@@ -187,6 +255,10 @@ func start_run(hero_id: String, towers: Array) -> void:
 	S.hero = Hero.make(hero_id, S.map.base)
 	apply_hero_meta(S.hero)
 	apply_specials(S.hero)
+	S.hero.base_dmg = S.hero.dmg
+	S.hero.base_spell = S.hero.spell
+	S.hero.base_rate = S.hero.rate
+	S.hero.ab.base_dmg = S.hero.ab.dmg
 	S.paused = false
 	if S.hero.data.spells:
 		var load := wiz_loadout()
@@ -213,6 +285,7 @@ func apply_hero_meta(h: Hero) -> void:
 		if r:
 			Fx.run(def.effect, { h = h, run = S, r = r })
 	h.hp = h.max_hp
+	h.respawn *= 1 - 0.05 * rank(Save.meta.global, "recovery")
 	var vet := rank(Save.meta.global, "vet")
 	S.pending_levels += int(floor((vet + 2) / 3.0))
 	h.xp_gain += 0.04 * vet
@@ -226,15 +299,24 @@ func give_unique(id: String) -> void:
 	S.picks.append({ perk = u, list = "unique", rarity = DB.rar.legendary, demonic = false, m = u.m })
 
 
+## Owned, and for this run's hero and ability.
+func special_on(id: String) -> bool:
+	var x: UpgradeData = R.specials.find(id)
+	return x != null and S.specials.get(id, false) and (x.hero == "" or x.hero == S.hero.cls) and (x.ability == "" or x.ability == S.hero.ab.id)
+
+
 func apply_specials(h: Hero) -> void:
 	var sp := S.specials
-	if sp.get("bulwarkS", false) and h.cls == "vanguard":
-		give_unique("aegis")
-		give_unique("unbreak")
+	# A hero's specials work only for that hero, and an ability's only when that ability is the one picked.
+	for x: UpgradeData in R.specials.items:
+		if x.hero == "" or not special_on(x.id):
+			continue
+		for id in x.gives:
+			give_unique(id)
+		Fx.run(x.effect, { h = h, run = S, m = x.m })
+	if special_on("bulwarkS"):
 		h.unbreak_max = 2
 		h.unbreak_left = 2
-	if sp.get("galeS", false) and h.cls == "gale":
-		give_unique("bruiser")
 	if sp.get("sovereign", false):
 		var pool := R.uniques.items.filter(func(x): return x.rarity == "legendary" and x.pool == h.cls and (x.ability == "" or x.ability == h.ab.id) and not owns(x.id))
 		var u = pick(pool)
@@ -274,9 +356,9 @@ func level_cost(t: Tower, opt) -> int:
 	var n := t.ups_of(opt.id) if opt else 0
 	var base: float
 	if t.hybrid:
-		base = t.up_start * (1 + 0.3 * n)
+		base = t.up_start * (1 + 0.3 * n) * R.hybrid_level_price
 	else:
-		base = t.base_cost * (R.oracle_level_cost_mult if path_max() == 3 else R.level_cost_mult) * (n + 1)
+		base = t.base_cost * (R.oracle_level_cost_mult if path_max() == 3 else R.level_cost_mult) * (n + 1) * DB.towers[t.type].level_price
 	return int(round(base * R.level_cost_extra * S.hero.lvl_mul * (1 - 0.025 * rank(Save.meta.tower_global, "cost")) * map_price()))
 
 
@@ -391,12 +473,18 @@ func tower_mode_mul() -> float:
 
 func hero_dmg() -> float:
 	var h := S.hero
-	return h.dmg * (R.lone_hero if S.mode.get("challenge", "") == "lone" else 1.0) * (1 + sb("dmg")) * (1 - h.weak if h.weak_t > 0 else 1.0)
+	var base := h.dmg + (h.max_hp * R.tank_attack_hp if h.data.category == "defensive" else 0.0)
+	return base * (R.lone_hero if S.mode.get("challenge", "") == "lone" else 1.0) * (1 + sb("dmg")) * (1 - h.weak if h.weak_t > 0 else 1.0)
 
 
 ## A Hero Shrine buff to the hero (dmg, rate, armor, regen, cdr, range, block, knock, crit, boss, aura, spell, mana, shield).
 func sb(k: String) -> float:
 	return S.shrine.get(k, 0.0) if S else 0.0
+
+
+## A tank's ability damage: the ability's own number plus a small share of the hero's max HP.
+func ab_dmg(h: Hero, a: Ability) -> float:
+	return a.dmg + (h.max_hp * R.tank_ability_hp if h.data.category == "defensive" else 0.0)
 
 
 func hero_range(h: Hero) -> float:
@@ -467,7 +555,8 @@ func armor_of(e: Enemy, src) -> float:
 
 ## src: the Tower that dealt it, or null for the hero and spells.
 ## pierce: 0 normal, 1 ignores armor (burns, zones, executes), 2 = Hex Brand pulse (ignores armor and doesn't feed the brand).
-func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
+## crit: a critical hit, shown as a number popping up over the enemy.
+func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false) -> void:
 	if e.dead:
 		return
 	var tw: bool = src is Tower
@@ -477,6 +566,8 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
 	if not pierce:
 		amt *= 1 - armor_of(e, src)
 	var dealt := minf(amt, e.hp)
+	if crit:
+		fx_add({ k = "num", x = e.x + randf_range(-8, 8), y = e.y, text = UiText.f0(amt), color = 0xffd36e, t = 1.3, r = e.r })
 	if pierce != 2:
 		e.taken += dealt
 	if tw:
@@ -488,15 +579,33 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0) -> void:
 	if dealt > 0:
 		e.hit_by[src if tw else "hero"] = true
 	e.hp -= amt
+	if _fire_ctx and not tw and amt > 0 and e.hp > 0:
+		fire_burn(e)
+	var h := S.hero
+	if not tw and h.lifesteal and dealt > 0 and h.ko <= 0:
+		h.hp = minf(h.max_hp, h.hp + dealt * h.lifesteal)
 	if e.hp <= 0:
+		var spill := -e.hp
 		_kill(e, src)
+		# Overkill: what a hero hit had left over moves on to the nearest enemy
+		if not tw and h.overkill and spill > 1 and not _spilling:
+			var next: Enemy = null
+			for o in in_range(e.x, e.y, 120):
+				if not o.dead and (next == null or hyp(o.x - e.x, o.y - e.y) < hyp(next.x - e.x, next.y - e.y)):
+					next = o
+			if next:
+				_spilling = true
+				line(e.x, e.y, next.x, next.y, 0xff8a3d, 0.15, 2)
+				damage(next, spill, null, 1)
+				_spilling = false
 
 
 func _kill(e: Enemy, src) -> void:
 	e.dead = true
 	var h := S.hero
 	var by_hero: bool = not (src is Tower)
-	var g: float = e.gold * S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe
+	# Bounty Sigil and War Tithe add a share of the enemy's own gold, so they grow with the game instead of doubling it early.
+	var g: float = e.gold * (S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe)
 	if not by_hero and src.buff and src.buff.gold:
 		g *= 1 + src.buff.gold
 	if not by_hero and src.buff and src.buff.rush and randf() < 0.08:
@@ -539,7 +648,8 @@ func _kill(e: Enemy, src) -> void:
 		S.cores += cores_for(e.type)
 		ring(e.x, e.y, 80, 0xff6fd8, 0.9, true)
 		do_shake(0.012, 350)
-	if h.siphon and h.ko <= 0:
+	# tanks heal only from their own takedowns: enemies they hit or were holding when it died
+	if h.siphon and h.ko <= 0 and (hero_cat() != "defensive" or e.hit_by.has("hero") or e.blocked):
 		h.hp = minf(h.max_hp, h.hp + h.siphon)
 	if by_hero:
 		if h.momentum:
@@ -548,9 +658,9 @@ func _kill(e: Enemy, src) -> void:
 		if h.od_t > 0 and h.ab.bloodrush and h.od_bonus < 4:
 			h.od_t += 0.4
 			h.od_bonus += 0.4
-		if S.specials.get("oneshot", false) and h.brace:
+		if special_on("oneshot") and h.brace:
 			h.brace_t = maxf(h.brace_t, h.brace * 0.5)
-		if S.specials.get("dancer", false) and h.cls == "striker":
+		if special_on("dancer"):
 			h.dance_kills += 1
 			if h.dance_kills % 8 == 0:
 				later(0.05, func(): if S.hero.ko <= 0: cast_ability(true))
@@ -773,8 +883,8 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 			apply_hit(t, o, d * 0.6, false, aslow)
 	if t.gravity and t.shots % 5 == 0:
 		for e in in_range(target.x, target.y, 60):
-			if not e.boss:
-				e.d = maxf(0, e.d - t.gravity)
+			if not e.pushback_immune:
+				e.d = back_d(e, t.gravity)
 		ring(target.x, target.y, 60, 0x9a7cff, 0.3)
 	if t.echo and not fake:
 		S.echoes.append({ t = t, target = target, d = d * t.echo, at = S.time + 0.25, aslow = aslow })
@@ -863,6 +973,84 @@ func land_shell(sh: Dictionary) -> void:
 			e.stun_t = maxf(e.stun_t, 0.3 if e.boss else 0.8)
 		ring(spot.x, spot.y, r + 15, 0xfff0a0, 0.5)
 	do_shake(0.004, 110)
+
+
+## Razor Disc: throws a big spinning disc in a straight line at where the enemy will be. It cuts through every
+## enemy it touches until it has used its hits (a boss uses 3), then stops, or flies back with Boomerang.
+## Returns the direction thrown, so a volley can follow the same line.
+func throw_disc(t: Tower, e, mult := 1.0, dir = null, hits := -1) -> Vector2:
+	var sig: bool = S.sig.get("disc", false) and t.base_types().has("disc")
+	if dir == null:
+		var T: float = hyp(e.x - t.x, e.y - t.y) / t.disc_speed
+		var lead: float = 0.0 if e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * T
+		var aim: Vector2 = pos_at(minf(S.map.path_len, e.d + lead)) - t.pos()
+		dir = (aim if aim.length() > 1 else Vector2(e.x - t.x, e.y - t.y)).normalized()
+	var dmg := t.dmg * mult * S.mod_tower_dmg * tower_mode_mul()
+	if t.buff:
+		dmg *= 1 + t.buff.dmg
+	if S.hero.aura > 0 and near_aura(t):
+		dmg *= 1 + S.hero.aura * (1 + sb("aura"))
+	if t == S.drained:
+		dmg *= 0.5
+	var n := float(hits) if hits > 0 else t.disc_hits + (3 if sig else 0)
+	t.shots += 1
+	t.shot_at = S.time
+	t.fired_at = S.time
+	t.hit_at = null
+	sfx("shot")
+	S.discs.append({ tw = t, x = t.x, y = t.y, dir = dir, speed = t.disc_speed, r = t.disc_r * (1.25 if sig else 1.0), dmg = dmg,
+		hits = n, left = 1e9 if t.disc_unbound else n, hit = {}, flown = 0.0, reach = t.disc_reach, back = false, spin = randf() * TAU,
+		tx = t.x, ty = t.y, wait = fire_lead(t), done = false })
+	return dir
+
+
+func move_discs(dt: float) -> void:
+	for dk in S.discs:
+		var t: Tower = dk.tw
+		if not S.towers.has(t):
+			dk.done = true
+			continue
+		if dk.wait > 0:
+			dk.wait -= dt
+			continue
+		var step: float = dk.speed * dt
+		if dk.back:
+			var to := t.pos() - Vector2(dk.x, dk.y)
+			if to.length() <= step:
+				dk.done = true
+				continue
+			dk.dir = to.normalized()
+		dk.x += dk.dir.x * step
+		dk.y += dk.dir.y * step
+		dk.flown += step
+		dk.spin += dt * 20
+		if t.disc_trail and hyp(dk.x - dk.tx, dk.y - dk.ty) >= 30:
+			zone({ line = true, x1 = dk.tx, y1 = dk.ty, x2 = dk.x, y2 = dk.y, x = (dk.tx + dk.x) / 2, y = (dk.ty + dk.y) / 2, r = dk.r * 0.7,
+				t = 4.0 if t.disc_scorch else 2.0, dps = t.dmg * S.mod_tower_dmg * 0.35 if t.disc_scorch else 0.0, vuln = t.disc_trail,
+				color = col(0xff8a3d), src = t })
+			dk.tx = dk.x
+			dk.ty = dk.y
+		for e in S.enemies:
+			if dk.left <= 0:
+				break
+			if e.dead or dk.hit.has(e) or hyp(e.x - dk.x, e.y - dk.y) > dk.r + e.r:
+				continue
+			dk.hit[e] = true
+			dk.left -= 3 if e.boss and not t.disc_heavy else 1
+			if t.disc_trail:
+				e.brittle = maxf(e.brittle, t.disc_trail)
+				e.brittle_t = maxf(e.brittle_t, 2.0)
+			apply_hit(t, e, dk.dmg * (1.5 if e.boss and t.disc_heavy else 1.0))
+			ring(e.x, e.y, e.r + 6, t.color, 0.15)
+		var off: bool = dk.x < -30 or dk.x > W + 30 or dk.y < -30 or dk.y > H + 30
+		if dk.left <= 0 or off or (not dk.back and not t.disc_unbound and dk.flown >= dk.reach):
+			if t.disc_return and not dk.back:
+				dk.back = true
+				dk.left = 1e9 if t.disc_unbound else dk.hits
+				dk.hit = {}
+			elif not dk.back or dk.left <= 0:
+				dk.done = true
+	S.discs = S.discs.filter(func(dk): return not dk.done)
 
 
 ## Effects that trigger once per shot rather than per target.
@@ -991,10 +1179,11 @@ func super_power(t: Tower) -> bool:
 	match k:
 		"arcane":
 			hit.call(area, 6.0, func(e):
-				if not (e.push_t > 0):
-					e.push_spd = 0
-				e.push_t = maxf(e.push_t, 0.5 if e.boss else 1.5)
-				e.push_spd = maxf(e.push_spd, 120)
+				if not e.pushback_immune:
+					if not (e.push_t > 0):
+						e.push_spd = 0
+					e.push_t = maxf(e.push_t, 1.5)
+					e.push_spd = maxf(e.push_spd, 120)
 				e.brittle = maxf(e.brittle, 0.3)
 				e.brittle_t = maxf(e.brittle_t, 5))
 			for i in 3:
@@ -1052,6 +1241,11 @@ func super_power(t: Tower) -> bool:
 			fx_add({ k = "pillar", x = top.x, y = top.y, w = 16.0, color = col(0xff6fa0), t = 0.9 })
 			ring(top.x, top.y, 70, 0xff6fa0, 0.7, true)
 			do_shake(0.02, 300)
+		"disc":
+			for i in 8:
+				throw_disc(t, null, 3.0, Vector2.from_angle(i * TAU / 8 + randf() * 0.3), 10)
+			ring(t.x, t.y, 60, 0x8cf0ff, 0.6, true)
+			do_shake(0.012, 300)
 		"mortar":
 			for i in 10:
 				later(0.3 + i * 0.12, func():
@@ -1076,7 +1270,8 @@ func super_power(t: Tower) -> bool:
 
 
 # ---------- the hero's ability ----------
-func use_ability() -> void:
+## auto: cast by Sunforge, which skips Orbital Strike's ready-then-fire step.
+func use_ability(auto := false) -> void:
 	var h := S.hero if S else null
 	if h == null or h.ko > 0 or h.ab.t > 0 or S.over or S.paused or h.data.spells or h.stun_t > 0:
 		return
@@ -1084,13 +1279,23 @@ func use_ability() -> void:
 	if a.id == "stream" and live_enemies().is_empty():
 		say("No target for " + a.name + ".")
 		return
-	if (a.id == "pierce" or (a.id == "strike" and S.pointer == null)) and S.aim == null and live_enemies().is_empty():
+	if a.id == "pierce" and pierce_goal() == null:
 		say("No target for " + a.name + ". Press F to set an aim point.")
 		return
+	if a.id == "strike" and S.pointer == null and S.aim == null and live_enemies().is_empty():
+		say("No target for " + a.name + ".")
+		return
 	# with an aim point set, Piercing Shot holds fire (and keeps its charge) until an enemy is on its line
-	if a.id == "pierce" and S.aim != null and pierce_line(h, a, S.aim).is_empty():
+	if a.id == "pierce" and not pierce_cursor() and S.aim != null and pierce_line(h, a, S.aim).is_empty():
 		say("No enemy on the aim line yet. Piercing Shot holds its fire.")
 		return
+	# Orbital Strike: the first press readies it and shows the blast, the second fires at the cursor
+	if a.id == "strike" and not auto and not S.strike_ready:
+		S.strike_ready = true
+		say("Orbital Strike ready: press Q again or click to fire at the cursor. Esc cancels.")
+		refresh("build_bar")
+		return
+	S.strike_ready = false
 	a.t = a.cd
 	cast_ability(false)
 
@@ -1158,11 +1363,13 @@ func whirlwind(h: Hero, a: Ability) -> void:
 	var x := h.x
 	var y := h.y
 	for e in in_range(x, y, a.r):
-		damage(e, a.dmg)
+		damage(e, ab_dmg(h, a))
 		if e.dead:
 			continue
 		push_back(e, 0.6, a.power * (1 + sb("knock")), h)
 		e.stun_t = maxf(e.stun_t, a.stun * (0.5 if e.boss else 1.0))
+		if h.knock_slow:
+			slow_enemy(e, h.knock_slow, 2.0)
 	give_shield(h, h.max_hp * a.mult, a.dur)
 	for i in 3:
 		later(0.08 * i, func(): ring(x, y, a.r * (0.5 + 0.25 * i), 0xd8f6ff, 0.3))
@@ -1195,6 +1402,8 @@ func air_stream(h: Hero, a: Ability) -> void:
 	var y2 := h.y + uy * a.r
 	line(x1, y1, x2, y2, 0xd8f6ff, a.dur, a.w * 2)
 	line(x1, y1, x2, y2, 0x9af0ff, a.dur, a.w * 0.7)
+	if a.downdraft:
+		zone({ line = true, x = x1, y = y1, x1 = x1, y1 = y1, x2 = x2, y2 = y2, r = a.w, t = 3.0, slow = 0.5, color = 0xd8f6ff })
 	for e in hits:
 		push_back(e, 0.25, 140 * (1 + sb("knock")), h)
 		ring(e.x, e.y, e.r + 6, 0xd8f6ff, a.dur)
@@ -1204,7 +1413,7 @@ func air_stream(h: Hero, a: Ability) -> void:
 			if e.dead:
 				continue
 			var before: float = e.hp
-			damage(e, a.dmg)
+			damage(e, ab_dmg(h, a))
 			dealt += before - maxf(0.0, e.hp)
 			if not e.dead:
 				e.stun_t = maxf(e.stun_t, a.stun * (0.5 if e.boss else 1.0))
@@ -1222,7 +1431,7 @@ func end_shield(h: Hero) -> void:
 		h.shield_t = 0
 		h.soaked = 0
 		return
-	var dmg := a.dmg + h.soaked * 0.6
+	var dmg := ab_dmg(h, a) + h.soaked * 0.6
 	for e in in_range(h.x, h.y, a.r):
 		damage(e, dmg)
 	if a.overflow and h.shield > 0:
@@ -1244,6 +1453,13 @@ func hurt_hero(h: Hero, loss: float) -> void:
 		loss -= soak
 		if h.shield <= 0:
 			end_shield(h)
+	if h.mana_shield and h.mana > 0 and loss > 0:
+		var soak2 := minf(h.mana * 2, loss)
+		h.mana -= soak2 / 2
+		loss -= soak2
+	if h.aegis and loss > 0:
+		h.debt += loss # paid off over 4 seconds in update()
+		loss = 0
 	h.hp -= loss
 	if S.heroics.get("retribution", 0):
 		h.ret_store += loss
@@ -1275,7 +1491,8 @@ func orbital_strike(h: Hero, a: Ability) -> void:
 	ring(at.x, at.y, a.r, 0xff5d6c, 0.8)
 	var boom := func(x: float, y: float, r: float, mult: float):
 		for e in in_range(x, y, r):
-			damage(e, hero_dmg() * a.mult * mult * (1 + h.headhunter if e.boss else 1.0))
+			var cm := ab_crit_mul(h)
+			damage(e, hero_dmg() * a.mult * mult * (1 + h.headhunter if e.boss else 1.0) * cm, null, 0, cm > 1)
 		line(x, 0, x, y, 0xffffff, 0.25, 10 * mult)
 		ring(x, y, r, 0xffd36e, 0.5, true)
 		if a.scorch:
@@ -1296,11 +1513,11 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 	var y := h.y
 	var r := a.r * (1.5 if a.magnet else 1.0)
 	for e in in_range(x, y, r):
-		damage(e, a.dmg * mult)
+		damage(e, ab_dmg(h, a) * mult)
 		e.stun_t = maxf(e.stun_t, a.stun * mult)
 		if a.magnet:
-			if not e.boss:
-				e.d = maxf(0, e.d - 50)
+			if not e.pushback_immune:
+				e.d = back_d(e, 50)
 			line(e.x, e.y, x, y, 0x9af0ff, 0.35, 2)
 	if h.taunt:
 		for e in in_range(x, y, maxf(120, r)):
@@ -1314,9 +1531,9 @@ func slam(h: Hero, a: Ability, mult: float) -> void:
 			later(0.18 * (i + 1), func():
 				var rr := r * (1.3 + 0.3 * i)
 				for e in in_range(x, y, rr):
-					damage(e, a.dmg * 0.4)
-					if not e.boss:
-						e.d = maxf(0, e.d - 20)
+					damage(e, ab_dmg(h, a) * 0.4)
+					if not e.pushback_immune:
+						e.d = back_d(e, 20)
 				ring(x, y, rr, 0x9af0ff, 0.35))
 	if a.molten:
 		zone({ x = x, y = y, r = r * 0.8, t = 4.0, dps = a.dmg * 0.6, slow = 0.35, color = 0xff8a3d })
@@ -1393,6 +1610,27 @@ func pierce_line(h: Hero, a: Ability, goal) -> Array:
 		return along > 0 and off <= w + e.r)
 
 
+## Critical Payload: ability hits roll for a crit like normal attacks.
+func ab_crit_mul(h: Hero) -> float:
+	if h.ab_crit and randf() < h.crit + sb("crit"):
+		return h.crit_dmg
+	return 1.0
+
+
+## Piercing Shot can follow the cursor instead of the aim point (a setting).
+func pierce_cursor() -> bool:
+	return bool(Save.settings.get("pierce_cursor", false))
+
+
+## Where Piercing Shot fires: the cursor (in cursor mode), else the aim point, else the lead enemy.
+func pierce_goal():
+	if pierce_cursor() and S.pointer != null:
+		return S.pointer
+	if S.aim != null:
+		return S.aim
+	return lead_enemy()
+
+
 func lead_enemy() -> Enemy:
 	var best: Enemy = null
 	for e in S.enemies:
@@ -1405,7 +1643,7 @@ func lead_enemy() -> Enemy:
 
 func piercing_shot(h: Hero, a: Ability) -> void:
 	var lead := lead_enemy()
-	var goal = S.aim if S.aim != null else lead
+	var goal = pierce_goal()
 	if goal == null:
 		return
 	var dx: float = goal.x - h.x
@@ -1420,11 +1658,12 @@ func piercing_shot(h: Hero, a: Ability) -> void:
 	var hit := pierce_line(h, a, goal)
 	var kills := 0
 	for e in hit:
-		var d := base * (1 + h.headhunter if e.boss else 1.0)
+		var cm := ab_crit_mul(h)
+		var d := base * (1 + h.headhunter if e.boss else 1.0) * cm
 		var ex: bool = a.exec_r and not e.boss and (e.hp - d) / e.max <= 0.3
 		if ex:
 			d = e.hp + 1
-		damage(e, d, null, 1 if ex else 0)
+		damage(e, d, null, 1 if ex else 0, cm > 1 and not ex)
 		if e.dead:
 			kills += 1
 		if a.cluster:
@@ -1445,7 +1684,7 @@ func piercing_shot(h: Hero, a: Ability) -> void:
 				if e.d > from.d:
 					from = e
 		if from == null:
-			from = S.aim
+			from = goal
 		var done := {}
 		for e in hit:
 			done[e] = true
@@ -1499,10 +1738,33 @@ func freeze_enemy(e: Enemy, s: float, h: Hero) -> void:
 
 
 func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
+	if e.pushback_immune:
+		return
+	if h.cls == "wizard" and not e.dead:
+		_wizard_push()
 	if not (e.push_t > 0):
 		e.push_spd = 0
 	e.push_t = maxf(e.push_t, (0.35 if e.boss else 1.0) * dur * h.push_bonus)
 	e.push_spd = maxf(e.push_spd, spd)
+	# Tailwind: enemies Gale knocks back take more damage from towers for a moment
+	if h.cls == "gale":
+		e.spot = maxf(e.spot if e.spot_t > 0 else 0.0, R.tailwind)
+		e.spot_t = maxf(e.spot_t, R.tailwind_time)
+
+
+## A spell's push-back wears off: each push on the same enemy within R.push_wear_time seconds is R.push_wear as long.
+func spell_push(e: Enemy, dur: float, spd: float, h: Hero) -> void:
+	if S.time - e.push_at > R.push_wear_time:
+		e.push_n = 0
+	push_back(e, dur * pow(R.push_wear, e.push_n), spd, h)
+	e.push_n += 1
+	e.push_at = S.time
+
+
+## Moves an enemy back along the path, but never off the map: it stops on the first road tile
+## (one still walking in from off the map isn't moved).
+func back_d(e: Enemy, amt: float) -> float:
+	return maxf(minf(e.d, MapInfo.C), e.d - amt)
 
 
 func hit_area(x: float, y: float, r: float, dmg: float, each = null) -> void:
@@ -1623,10 +1885,18 @@ func wall_spot(x: float, y: float):
 	return { d = d, x = best.x, y = best.y, across = absf(b.x - a.x) > absf(b.y - a.y) }
 
 
+## Seconds for one wall charge to come back.
+func wall_recharge_time(h: Hero) -> float:
+	return maxf(R.wall_recharge_min, R.wall_recharge * h.wall_cd_mul)
+
+
 func raise_wall(h: Hero, x: float, y: float, hp: float, dur: float, pow: float, slam_dmg: float, more := {}) -> bool:
+	if h.wall_charges < 1:
+		return false
 	var p = wall_spot(x, y)
 	if p == null:
 		return false
+	h.wall_charges -= 1
 	var w := { d = p.d, x = p.x, y = p.y, across = p.across, hp = hp * h.wall_bonus, max = hp * h.wall_bonus, t = dur, T = dur,
 		art = "greatwall" if slam_dmg else "stonewall", born = S.time, thorns = 0.0, color = null }
 	w.merge(more, true)
@@ -1649,7 +1919,7 @@ func launch(h: Hero, x: float, y: float, color, size: float, land: Callable) -> 
 
 
 ## What one enemy hit by a spell gets: freezes, stuns, roots, push-back, poison, exposure, armor break.
-func _spell_each(sp: SpellData, h: Hero, p: float):
+func _spell_each(sp: SpellData, h: Hero, p: float, push_only := []):
 	var any := sp.freeze or sp.stun or sp.root or sp.push or sp.poison_dps or sp.expose or sp.armor_break
 	if not any:
 		return null
@@ -1660,8 +1930,8 @@ func _spell_each(sp: SpellData, h: Hero, p: float):
 			e.stun_t = maxf(e.stun_t, sp.stun_boss if e.boss else sp.stun)
 		if sp.root:
 			root_enemy(e, sp.root)
-		if sp.push:
-			push_back(e, sp.push, sp.push_speed, h)
+		if sp.push and (push_only.is_empty() or push_only.has(e)):
+			spell_push(e, sp.push, sp.push_speed, h)
 		if sp.poison_dps:
 			e.burn_t = maxf(e.burn_t, sp.poison_time)
 			e.burn_dps = maxf(e.burn_dps, sp.poison_dps * p)
@@ -1676,7 +1946,12 @@ func _spell_each(sp: SpellData, h: Hero, p: float):
 ## The blast of an area spell at (x, y): damage, effects, burning ground, the ring and the shake.
 func _spell_burst(sp: SpellData, h: Hero, x: float, y: float, p: float) -> void:
 	var r := sp.r * h.spell_r
-	var each = _spell_each(sp, h, p)
+	var push_only := []
+	if sp.push and sp.push_max > 0:
+		push_only = in_range(x, y, r)
+		push_only.sort_custom(func(a, b): return hyp(a.x - x, a.y - y) < hyp(b.x - x, b.y - y))
+		push_only = push_only.slice(0, sp.push_max)
+	var each = _spell_each(sp, h, p, push_only)
 	if sp.dmg or each:
 		hit_area(x, y, r, sp.dmg * p, each)
 	if sp.burn_time:
@@ -1691,6 +1966,8 @@ func _spell_burst(sp: SpellData, h: Hero, x: float, y: float, p: float) -> void:
 
 ## Casts a spell at (x, y) with power p. Returns false when it can't be cast there (walls off the path).
 func cast_spell(key: String, h: Hero, x: float, y: float, p: float) -> bool:
+	if not _fire_ctx and Array(key.split("+")).has("fire"):
+		return _as_fire(func(): return cast_spell(key, h, x, y, p))
 	var sp: SpellData = DB.spells[key]
 	var r := sp.r * h.spell_r
 	var each = _spell_each(sp, h, p)
@@ -1865,11 +2142,14 @@ func cast_runes(x: float, y: float) -> void:
 	if r == null or h.ko > 0 or S.over or S.paused:
 		return
 	if S.mode.get("challenge", "") == "benched":
-		say("Benched: your hero can’t attack this wave.")
+		say("Benched: your hero can’t attack or cast spells this wave.")
 		return
 	if S.time < h.cast_t:
 		return
 	var mana: float = r.mana * h.spell_cost
+	if r.spell.delivery == "wall" and h.wall_charges < 1:
+		say("No wall charges left: next one in %ds." % ceili(wall_recharge_time(h) - h.wall_t))
+		return
 	if h.mana < mana:
 		say("Not enough mana for %s (%d needed)." % [r.spell.name, ceili(mana)])
 		return
@@ -1888,7 +2168,11 @@ func cast_runes(x: float, y: float) -> void:
 	# spells without painted art always mark where they landed, even when they found nothing to hit
 	if not painted and S.fx.size() == f0 and S.zones.size() == z0 and S.walls.size() == w0:
 		ring(x, y, 40 * h.spell_r, DB.elements[S.runes[0]].color, 0.45, true)
-	h.mana -= mana
+	if h.free_cast and randf() < h.free_cast:
+		ring(h.x, h.y, 26, 0x5fa8ff, 0.4, true)
+		say("Archmage: that spell was free!")
+	else:
+		h.mana -= mana
 	var seen := {}
 	for el in S.runes:
 		if seen.has(el):
@@ -1987,8 +2271,8 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	return q
 
 
-## Hard: modest gold per toughness rule. Challenge: gold per point of difficulty, a hero upgrade from 4 points and a relic
-## from 5. Legendary and Secret waves keep their relic, but it is only paid if the requirement is met.
+## Hard: modest gold per toughness rule. Challenge: gold per point of difficulty, a free hero upgrade, and a relic
+## from 5 points. Legendary and Secret waves pay a relic and a free hero upgrade, only if the requirement is met.
 func wave_reward(n: int, kind: String, pts := 0):
 	if kind == "normal":
 		return null
@@ -2000,13 +2284,14 @@ func wave_reward(n: int, kind: String, pts := 0):
 		var pool := src.items.filter(func(r): return r.repeat or not owned.has(r.id))
 		var relic: UpgradeData = pick(pool) if pool.size() else R.relics.find("repair")
 		var g := (120 if kind == "secret" else 80) + 8 * n
-		return { gold = g, relic = relic, perk = false, label = "%s relic: %s (%s) and +%d gold" % [DB.rar[kind].name, relic.name, relic_desc(relic).trim_suffix("."), g] }
+		return { gold = g, relic = relic, perk = true, label = "%s relic: %s (%s), +%d gold and a free hero upgrade" % [DB.rar[kind].name, relic.name, relic_desc(relic).trim_suffix("."), g] }
 	var gold := int(round((15 + 3 * n if kind == "hard" else 12 + 3 * n) * pts))
 	if kind == "hard":
 		return { gold = gold, perk = false, relic = null, label = "+%d gold" % gold }
-	var out := { gold = gold, perk = pts >= 4, relic = null }
+	# every challenge wave you clear gives a free hero upgrade
+	var out := { gold = gold, perk = true, relic = null }
 	if pts >= 5:
-		out.relic = pick(R.relics.items.filter(func(x): return (x.repeat or not owned.has(x.id)) and (not x.offensive_only or hero_cat() == "offensive")))
+		out.relic = pick(R.relics.items.filter(func(x): return gold_ok(x) and (x.repeat or not owned.has(x.id)) and (not x.offensive_only or hero_cat() == "offensive")))
 	out.label = "+%d gold" % gold + (", a free hero upgrade" if out.perk else "") + (" and the %s relic (%s)" % [out.relic.name, relic_desc(out.relic).trim_suffix(".")] if out.relic else "")
 	return out
 
@@ -2070,7 +2355,8 @@ func choose_mode(i: int) -> void:
 
 
 func start_wave() -> void:
-	if S.wave_active or S.over or S.paused:
+	# a reward or choice still waiting to open (a hero upgrade, the wave choice, the shop) comes first
+	if S.wave_active or S.over or S.paused or S.pending_levels > 0 or S.need_choice or S.need_shop or S.pending_heroic > 0 or S.pending_boon != "":
 		return
 	S.wave += 1
 	S.spawn_q = make_wave(S.wave, S.mode)
@@ -2079,7 +2365,7 @@ func start_wave() -> void:
 	S.wave_active = true
 	S.hero.unbreak_left = S.hero.unbreak_max
 	S.boss_warned = false
-	S.one_shot_ready = bool(S.specials.get("oneshot", false)) and S.hero.cls == "sniper"
+	S.one_shot_ready = special_on("oneshot")
 	S.ws = { wave = S.wave, mode = S.mode.name, lives_lost = 0, kills = 0, gold = 0.0, hero_dmg = 0.0, hero_kos = 0, start = S.time, enemies = S.spawn_q.size() }
 	# Against the Clock: time to spawn everything, plus 20s (plus 50s with a boss).
 	S.req_failed = false
@@ -2097,7 +2383,10 @@ func close_wave_log(cleared: bool) -> void:
 		return
 	var towers := S.towers.map(func(t): return { name = tower_name(t) + " L" + str(t.lvl), dmg = int(round(t.dmg_wave)) })
 	towers.sort_custom(func(a, b): return a.dmg > b.dmg)
-	S.ws.merge({ cleared = cleared, seconds = int(round(S.time - S.ws.start)), hero_dmg = int(round(S.ws.hero_dmg)), gold = int(round(S.ws.gold)),
+	var tower_dmg := 0.0
+	for t in S.towers:
+		tower_dmg += t.dmg_wave
+	S.ws.merge({ cleared = cleared, seconds = int(round(S.time - S.ws.start)), tower_dmg = int(round(tower_dmg)), hero_dmg = int(round(S.ws.hero_dmg)), gold = int(round(S.ws.gold)),
 		gold_bank = int(floor(S.gold)), hero_lvl = S.hero.lvl, tower_count = S.towers.size(), towers = towers }, true)
 	S.log.append(S.ws)
 	S.ws = null
@@ -2112,6 +2401,7 @@ func apply_relic(r: UpgradeData) -> void:
 func end_wave() -> void:
 	S.wave_active = false
 	var hh := S.hero
+	hh.debt = 0.0 # Aegis Core: pending damage is forgiven
 	if hh.max_mana:
 		hh.mana = minf(hh.max_mana, hh.mana + hh.max_mana * R.wave_mana_refill)
 	if S.map.scene.drain and S.towers.size():
@@ -2131,7 +2421,7 @@ func end_wave() -> void:
 		msgs.append("+%d from coins" % (25 * S.coins.size()))
 		S.coins = []
 	if S.hero.interest:
-		var i := int(round(S.gold * minf(0.3, S.hero.interest)))
+		var i := int(round(S.gold * minf(R.interest_cap, S.hero.interest)))
 		S.gold += i
 		msgs.append("+%d interest" % i)
 	var r = S.mode.get("reward")
@@ -2159,6 +2449,9 @@ func end_wave() -> void:
 		S.need_choice = true
 	if S.wave % R.shop_every == 0:
 		S.need_shop = true
+	# a free hero upgrade from the wave reward opens its pick right away
+	if S.pending_levels > 0 and not S.user_pause:
+		show_level_up()
 
 
 func fail_req(why: String) -> void:
@@ -2205,6 +2498,7 @@ func spawn(type: String, at_d := -1.0) -> void:
 	e.regen = R.tough_regen if has_tough("regen") else 0.0
 	e.steady = has_tough("steady")
 	e.unslow = d.unslow
+	e.pushback_immune = d.pushback_immune or d.boss
 	e.phase = d.phase
 	e.split = d.split
 	e.heal = d.heal
@@ -2250,7 +2544,7 @@ func boss_act(e: Enemy, dt: float) -> void:
 
 
 func boss_power(e: Enemy, p: EnemyData) -> void:
-	var live := S.towers.filter(func(t): return not (t.stun_t > 0) and not (t.warn_t > 0))
+	var live := [] if S.boss_proof else S.towers.filter(func(t): return not (t.stun_t > 0) and not (t.warn_t > 0))
 	var targets: Array
 	if p.power_nearest:
 		targets = live.filter(func(t): return hyp(t.x - e.x, t.y - e.y) <= 260)
@@ -2319,6 +2613,19 @@ func curse_hero(h: Hero, p: EnemyData) -> void:
 	h.set(k + "_t", maxf(h.get(k + "_t"), p.power_curse_dur))
 
 
+## The secret unlock: Gale opens once the Wizard has pushed enough enemies back, counting every run.
+func _wizard_push() -> void:
+	S.wiz_pushes += 1
+	if Progress.hero_open("gale"):
+		return
+	if int(Save.meta.get("wiz_pushes", 0)) + S.wiz_pushes >= R.gale_unlock_pushes:
+		Save.meta.wiz_pushes = int(Save.meta.get("wiz_pushes", 0)) + S.wiz_pushes
+		S.wiz_pushes = 0
+		Save.meta.secret_heroes["gale"] = true
+		Save.save_meta()
+		S.pending_secret = "gale"
+
+
 ## Hero Shrine extras: a shield every 12s of a wave, and Gale's Bruiser Form once the Bruiser path is maxed.
 func _shrine_step(h: Hero, dt: float) -> void:
 	if sb("bruiser") > 0 and h.cls == "gale" and not h.bruiser:
@@ -2343,6 +2650,7 @@ func restart_wave(reason: String) -> void:
 	S.delayed = []
 	S.echoes = []
 	S.shells = []
+	S.discs = []
 	S.proj = []
 	S.spawn_q = make_wave(S.wave, S.mode)
 	S.spawn_t = 1.5
@@ -2377,6 +2685,8 @@ func knock_out(h: Hero) -> void:
 	h.shield_t = 0
 	h.od_t = 0
 	h.stun_t = 0
+	h.debt = 0.0
+	S.strike_ready = false
 	# Respawning at the base with Hold on would pin the hero there, so Hold always turns off.
 	if h.hold:
 		h.hold = false
@@ -2395,6 +2705,11 @@ func update(dt: float) -> void:
 	if S == null or S.paused or S.over or S.hero == null:
 		return
 	sync_aura(S.hero)
+	if S.pending_secret != "":
+		S.paused = true
+		modal.emit("secret", { hero = S.pending_secret })
+		S.pending_secret = ""
+		return
 	if S.pending_boon != "":
 		show_boon()
 		return
@@ -2442,6 +2757,12 @@ func update(dt: float) -> void:
 			end_shield(h)
 	if h.od_t > 0:
 		h.od_t -= dt
+	if h.debt > 0 and h.ko <= 0:
+		var pay := minf(h.debt, maxf(h.debt / 4.0, 5.0) * dt)
+		h.debt -= pay
+		h.hp -= pay
+	if S.stasis_t > 0 and h.ab.follow_s and h.ko <= 0:
+		S.stasis_at = h.pos()
 	for k in ["weak_t", "shred_t", "drag_t"]:
 		if h.get(k) > 0:
 			h.set(k, h.get(k) - dt)
@@ -2473,13 +2794,13 @@ func update(dt: float) -> void:
 		var go := true
 		if h.ab.id in ["slam", "nova", "stasis", "whirl"]:
 			go = in_range(h.x, h.y, h.ab.r).size() > 0
-		elif h.ab.id == "pierce" and S.aim != null:
-			go = pierce_line(h, h.ab, S.aim).size() > 0
+		elif h.ab.id == "pierce" and pierce_goal() != null:
+			go = pierce_line(h, h.ab, pierce_goal()).size() > 0
 		elif h.ab.id == "stream":
 			var lead := lead_enemy()
 			go = lead != null and hyp(lead.x - h.x, lead.y - h.y) <= h.ab.r
 		if go:
-			use_ability()
+			use_ability(true)
 	if _enemies_step(h, dt):
 		return
 	if h.ko <= 0 and h.hp <= 0:
@@ -2493,7 +2814,7 @@ func update(dt: float) -> void:
 				break
 	for z in S.zones:
 		z.t -= dt
-		if z.dps or z.slow:
+		if z.dps or z.slow or z.vuln:
 			for e in S.enemies:
 				if e.dead:
 					continue
@@ -2503,12 +2824,18 @@ func update(dt: float) -> void:
 				elif hyp(e.x - z.x, e.y - z.y) > z.r:
 					continue
 				if z.dps:
-					damage(e, z.dps * dt, z.get("src"), 1)
+					if z.get("fire", false):
+						_as_fire(func(): damage(e, z.dps * dt, z.get("src"), 1))
+					else:
+						damage(e, z.dps * dt, z.get("src"), 1)
 				if z.slow:
 					slow_enemy(e, z.slow, 0.3)
 				if z.brk and not e.dead:
 					e.brk = maxf(e.brk, z.brk)
 					e.brk_t = maxf(e.brk_t, 0.3)
+				if z.vuln and not e.dead:
+					e.brittle = maxf(e.brittle, z.vuln)
+					e.brittle_t = maxf(e.brittle_t, 2.0)
 		if z.end_freeze and z.t <= 0:
 			for e in in_range(z.x, z.y, z.r):
 				freeze_enemy(e, z.end_freeze, h)
@@ -2531,6 +2858,7 @@ func update(dt: float) -> void:
 			land_shell(sh)
 	move_shots(dt)
 	S.shells = S.shells.filter(func(sh): return not sh.done)
+	move_discs(dt)
 	_towers_step(h, dt)
 	if h.ko <= 0:
 		for c in S.coins:
@@ -2596,6 +2924,15 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 		h.hp = minf(h.max_hp, h.hp + (h.regen + h.max_hp * sb("regen")) * dt)
 	if h.max_mana and S.wave_active:
 		h.mana = minf(h.max_mana, h.mana + h.mana_regen * (1 + sb("mana")) * dt)
+	# Wall charges come back one at a time while below the cap (like mana, only during a wave).
+	if h.data.spells and S.wave_active and h.wall_charges < R.wall_charges:
+		h.wall_t += dt
+		if h.wall_t >= wall_recharge_time(h):
+			h.wall_t = 0.0
+			h.wall_charges += 1
+			refresh("runes")
+	elif h.wall_charges >= R.wall_charges:
+		h.wall_t = 0.0
 	h.cd -= dt
 	# Sniper: has to stand still for h.brace seconds before it can shoot.
 	if h.brace:
@@ -2604,8 +2941,8 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 	h.py = h.y
 	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0:
 		var inr := in_range(h.x, h.y, hero_range(h))
-		if h.brace:
-			inr.sort_custom(func(a, b): return (a.boss and not b.boss) or (a.boss == b.boss and a.d > b.d))
+		if h.cls == "sniper":
+			sort_by_aim(h.target, h.x, h.y, inr)
 		else:
 			inr.sort_custom(by_d_desc)
 		if inr.size():
@@ -2677,7 +3014,7 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 
 
 func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
-	h.cd = h.rate / (1 + h.momentum * h.mom_stacks) / (1 + h.ab.power if h.od_t > 0 else 1.0) / (1 + sb("rate")) / (1 - h.drag if h.drag_t > 0 else 1.0)
+	h.cd = 1 / (1 / h.rate + h.momentum * h.mom_stacks / h.base_rate) / (1 + h.ab.power if h.od_t > 0 else 1.0) / (1 + sb("rate")) / (1 - h.drag if h.drag_t > 0 else 1.0)
 	h.attacks += 1
 	sfx("snipe" if h.brace else "shot")
 	var ts := inr if h.bullet_storm and h.attacks % int(h.bullet_storm) == 0 else inr.slice(0, 1 + int(h.multi) + (2 if h.od_t > 0 and h.ab.afterimg else 0))
@@ -2701,10 +3038,12 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 		var ex: bool = h.execute and not t.boss and (t.hp - dmg) / t.max <= h.execute
 		if ex:
 			dmg = t.hp + 1
-		damage(t, dmg, null, 1 if ex else 0)
+		damage(t, dmg, null, 1 if ex else 0, crit and not ex)
 		if h.knock and not t.dead:
 			# Gale: every hit shoves the enemy back a little (bosses barely move)
 			push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)
+			if h.knock_slow:
+				slow_enemy(t, h.knock_slow, 2.0)
 		if h.shot_stun:
 			t.stun_t = maxf(t.stun_t, 0.2 if t.boss else h.shot_stun)
 		if h.spotter:
@@ -2841,13 +3180,18 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			damage(e, e.burn_dps * dt, e.burn_src, 1)
 			if e.dead:
 				continue
+		if e.fire_t > 0:
+			e.fire_t -= dt
+			damage(e, e.max * e.fire_pct * dt, null, 1)
+			if e.dead:
+				continue
 		if S.overclock_t > 0 and h.time_warp and e.pos().distance_to(S.overclock_at) <= h.ab.r:
 			slow_enemy(e, h.time_warp, 0.3)
-		if e.push_t > 0:
+		if e.push_t > 0 and not e.pushback_immune:
 			e.push_t -= dt
 			if e.stun_t > 0:
 				e.stun_t -= dt
-			e.d = maxf(0, e.d - e.push_spd * dt)
+			e.d = back_d(e, e.push_spd * dt)
 		elif e.stun_t > 0:
 			e.stun_t -= dt
 		elif e.taunt_t > 0 and h.ko <= 0:
@@ -2872,6 +3216,8 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			if wall:
 				e.d = maxf(e.d, wall.d - e.r)
 				wall.hp -= e.atk * dt
+				if h.wall_dmg:
+					damage(e, h.wall_dmg * spell_pow(h) * dt)
 				e.still_t += dt
 			else:
 				e.d += step
@@ -2893,7 +3239,7 @@ func _leak(e: Enemy) -> bool:
 	var big := BIG_BOSS.has(e.type)
 	ring(S.map.base.x, S.map.base.y, 120 if big else 30, 0xff5d6c, 0.6, e.boss)
 	do_shake(0.02 if e.boss else 0.004, 450 if e.boss else 120)
-	# Big bosses end the run if they get through; mini bosses cost 5 base HP.
+	# The Tyrant ends the run if it gets through; other bosses cost their lives in base HP.
 	if big:
 		if S.mod_phoenix:
 			S.mod_phoenix = false
@@ -2932,7 +3278,7 @@ func _leak(e: Enemy) -> bool:
 
 
 func _towers_step(h: Hero, dt: float) -> void:
-	var conductor: bool = S.specials.get("conductor", false) and h.cls == "oracle"
+	var conductor: bool = special_on("conductor")
 	compute_buffs()
 	for t in S.towers:
 		if t.curse_t > 0:
@@ -2977,8 +3323,16 @@ func _towers_step(h: Hero, dt: float) -> void:
 						anvil_slam(t, a, 1.0))
 			continue
 		var targets := in_range(t.x, t.y, t_range(t))
-		targets.sort_custom(by_d_desc)
+		sort_targets(t, targets)
 		targets = targets.slice(0, 1 + int(t.multi))
+		if t.type == "disc":
+			if targets.size():
+				t.cd = t.rate * S.mod_tower_rate
+				for e in targets:
+					var dir := throw_disc(t, e)
+					for i in int(t.disc_volley):
+						later(0.18 * (i + 1), func(): if S.towers.has(t): throw_disc(t, null, 1.0, dir))
+			continue
 		if t.lob:
 			if targets.size():
 				t.cd = t.rate * S.mod_tower_rate
@@ -3015,6 +3369,25 @@ func roll_rarity() -> Dictionary:
 	return DB.rarities[0]
 
 
+## The rarities past Legendary, rarest first: each offers its own game-changers, falling back to the next tier down.
+const SECRET_TIERS := ["developer", "secret_legendary", "secret_mythic", "secret"]
+
+
+## Developer upgrades need the run's hero at max mastery.
+func dev_ok() -> bool:
+	return Progress.mastery_of("heroes", S.hero.cls).lvl >= R.mastery_max
+
+
+## Gold upgrades only show up from R.gold_from_wave on, so an early one can't snowball the whole run.
+## Tank heroes don't get hero damage upgrades, except Gale once it is in Bruiser Form.
+func dmg_ok(p: UpgradeData) -> bool:
+	return not p.hero_damage or S.hero.data.category != "defensive" or S.hero.bruiser
+
+
+func gold_ok(p: UpgradeData) -> bool:
+	return not p.gold or S.wave >= R.gold_from_wave
+
+
 func _min_ok(p: UpgradeData, rarity: Dictionary) -> bool:
 	return p.min_rarity == "any" or p.min_rarity == "" or rarity.mult >= DB.rar[p.min_rarity].mult
 
@@ -3032,7 +3405,9 @@ func make_offer(perk: UpgradeData, list: String, rarity: Dictionary, demonic: bo
 
 
 ## Two slots from your hero's own pool, one shared slot (upgrades for every hero, or for heroes of your category).
-## Upgrades you already own show up more often. Rare or better hero slots can roll an ability upgrade.
+## Common to Rare slots offer stat upgrades, stronger at higher rarity. Mythic and Legendary slots never do: they offer
+## upgrades that change how you play (ability upgrades and game-changers), and Secret slots the secret ones.
+## Upgrades you already own show up more often.
 func roll_perks() -> Array:
 	var h := S.hero
 	var cat := hero_cat()
@@ -3046,17 +3421,25 @@ func roll_perks() -> Array:
 				bag.append(p)
 		return bag
 	var shared := func(p: UpgradeData) -> bool: return p.pool == "any" or p.pool == cat or p.also_pools.has(cat)
-	# Gold upgrades are Legendary or rarer, and even then only show up now and then.
-	var gold_ok := randf() < R.gold_perk_chance
+	var mine := func(p: UpgradeData) -> bool: return p.pool == h.cls or p.also_pools.has(h.cls) or shared.call(p)
 	# Wizard upgrades only come for what this run's elements can do; the Wizard never sees attack speed.
-	var allowed := func(p: UpgradeData, rarity: Dictionary) -> bool:
-		return _min_ok(p, rarity) and not (p.attack_speed and h.data.spells) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false)) \
-			and (not p.gold or (rarity.mult >= DB.rar.legendary.mult and gold_ok))
-	var fits := func(p: UpgradeData, rarity: Dictionary) -> bool:
-		return allowed.call(p, rarity) and (p.id != "critdmg" or h.crit > 0)
+	var allowed := func(p: UpgradeData) -> bool:
+		return not (p.attack_speed and h.data.spells) and dmg_ok(p) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false))
+	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
-	var slots := ["hero", "hero", "hero" if randf() < 0.3 else "shared"]
+	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
+	# of them you already took, so a run leans toward the hero or the towers depending on what it gets.
+	var towers_taken := S.picks.filter(func(x): return x.perk.pool == "tower").size()
+	var tower_chance := minf(R.tower_slot_max, R.tower_slot_base + R.tower_slot_lean * towers_taken)
+	var slots := ["hero", "hero", "tower" if randf() < tower_chance else ("hero" if randf() < 0.3 else "shared")]
+	if towers_taken >= 3 and randf() < R.tower_slot_lean * 2:
+		slots[0] = "tower"
 	slots.shuffle()
+	var slot_ok := func(p: UpgradeData, slot: String) -> bool:
+		match slot:
+			"hero": return p.pool == h.cls
+			"tower": return p.pool == "tower"
+		return shared.call(p)
 	for slot in slots:
 		var rarity := roll_rarity()
 		var demonic := randf() < R.demonic_chance
@@ -3069,30 +3452,52 @@ func roll_perks() -> Array:
 		var perk: UpgradeData = null
 		var list := "perk"
 		var rar := rarity
-		if rarity.id == "secret":
-			perk = pick(R.uniques.items.filter(func(u): return u.rarity == "secret" and not owns(u.id) and fresh.call(u)))
-		if perk == null and (rarity.id == "legendary" or rarity.id == "secret") and randf() < 0.5:
-			perk = pick(R.uniques.items.filter(func(u): return u.rarity == "legendary" and u.pool == h.cls and ab_ok.call(u) and not owns(u.id) and fresh.call(u)))
-			if perk:
+		if SECRET_TIERS.has(rarity.id):
+			# Developer upgrades are only for a hero at max mastery; anyone else gets a Secret Legendary roll instead.
+			var tier: String = rarity.id if rarity.id != "developer" or dev_ok() else "secret_legendary"
+			for t in SECRET_TIERS.slice(SECRET_TIERS.find(tier)):
+				perk = pick(R.uniques.items.filter(func(u): return u.rarity == t and ab_ok.call(u) and dmg_ok(u) and not owns(u.id) and fresh.call(u) and gold_ok(u)))
+				if perk:
+					list = "unique"
+					rar = DB.rar[t]
+					break
+			if perk == null:
+				list = "perk"
 				rar = DB.rar.legendary
-		if perk:
-			list = "unique"
-		if perk == null and slot == "hero" and rarity.mult >= DB.rar.rare.mult and randf() < 0.35:
-			perk = pick(R.ability_mods.items.filter(func(m): return m.pool == h.cls and m.ability == h.ab.id and _min_ok(m, rarity) and not h.ab.has_mod(m.id) and fresh.call(m)))
-			if perk:
-				list = "mod"
-				if perk.min_rarity == "legendary":
-					rar = DB.rar.legendary
+		if perk == null and rar.mult >= DB.rar.mythic.mult:
+			# game-changers: this tier first, then the other one, then a Rare stat upgrade
+			var tiers := ["legendary", "mythic"] if rar.id == "legendary" else ["mythic", "legendary"]
+			for tier in tiers:
+				var uniq := R.uniques.items.filter(func(u): return u.rarity == tier and mine.call(u) and ab_ok.call(u) and allowed.call(u) and not owns(u.id) and fresh.call(u) and gold_ok(u))
+				var mods := R.ability_mods.items.filter(func(m): return m.pool == h.cls and m.ability == h.ab.id and (m.min_rarity == "legendary") == (tier == "legendary") \
+					and not h.ab.has_mod(m.id) and fresh.call(m))
+				var both := uniq + mods
+				if both.size():
+					perk = pick(both)
+					list = "mod" if mods.has(perk) else "unique"
+					rar = DB.rar[tier]
+					break
+			if perk == null:
+				rar = DB.rar.rare
 		if perk == null:
-			var pool := func(p: UpgradeData) -> bool: return (p.pool == h.cls if slot == "hero" else shared.call(p)) and ab_ok.call(p) and fits.call(p, rarity)
+			var pool := func(p: UpgradeData) -> bool: return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) and _min_ok(p, rar)
 			# If every kind in this pool is already on offer, fall back to anything not already shown.
 			perk = pick(weighted.call(R.perks.items.filter(func(p): return pool.call(p) and fresh.call(p))))
 			if perk == null:
-				perk = pick(weighted.call(R.perks.items.filter(func(p): return (shared.call(p) if slot == "hero" else p.pool == h.cls) and ab_ok.call(p) and allowed.call(p, rarity) and fresh.call(p))))
+				perk = pick(weighted.call(R.perks.items.filter(func(p): return (shared.call(p) if slot == "hero" else p.pool == h.cls) and ab_ok.call(p) and allowed.call(p) and fresh.call(p))))
 			if perk == null:
-				perk = pick(R.perks.items.filter(func(p): return (pool.call(p) or shared.call(p)) and allowed.call(p, rarity) and not taken.has(p.id)))
+				perk = pick(R.perks.items.filter(func(p): return (pool.call(p) or shared.call(p)) and allowed.call(p) and not taken.has(p.id)))
 		if perk:
-			out.append(make_offer(perk, list, rar, demonic and list == "perk"))
+			var o := make_offer(perk, list, rar, demonic and list == "perk")
+			# A game-changer takes the slot of a stat upgrade, so it also brings a Rare one and is never a step down.
+			if list != "perk":
+				var stat: UpgradeData = pick(R.perks.items.filter(func(p): return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) \
+					and _min_ok(p, DB.rar.rare) and not taken.has(p.id)))
+				if stat == null:
+					stat = pick(R.perks.items.filter(func(p): return (p.pool == h.cls or shared.call(p)) and ab_ok.call(p) and fits.call(p)))
+				if stat:
+					o["bonus"] = make_offer(stat, "perk", DB.rar.rare, false)
+			out.append(o)
 	return out
 
 
@@ -3125,6 +3530,8 @@ func owned_count(id: String) -> int:
 
 func apply_offer(o: Dictionary) -> void:
 	Fx.run(o.perk.effect, { h = S.hero, run = S, m = o.m })
+	if o.get("bonus"):
+		apply_offer(o.bonus)
 
 
 var offers: Array = []
@@ -3151,6 +3558,8 @@ func pick_offer(i: int) -> void:
 	if o.demonic:
 		Fx.run(o.curse.effect, { run = S, h = h, k = o.k })
 	S.picks.append(o)
+	if o.get("bonus"):
+		S.picks.append(o.bonus)
 	if o.list == "mod":
 		ring(h.x, h.y, 60, 0xff6fd8, 0.8, true)
 		say(h.ab.name + " upgraded: " + o.perk.name + "!")
@@ -3189,7 +3598,7 @@ func heroic_desc(x: UpgradeData, r: int) -> String:
 ## After a boss: 3 new heroic powers, plus options to rank up ones you own (up to rank 3).
 func show_heroic() -> void:
 	S.paused = true
-	var fresh := R.heroics.items.filter(func(x): return not S.heroics.get(x.id, 0) and (x.heroes.is_empty() or x.heroes.has(S.hero.cls)))
+	var fresh := R.heroics.items.filter(func(x): return gold_ok(x) and not S.heroics.get(x.id, 0) and (x.heroes.is_empty() or x.heroes.has(S.hero.cls)))
 	fresh.shuffle()
 	heroic_fresh = fresh.slice(0, 3)
 	var owned := R.heroics.items.filter(func(x): return S.heroics.get(x.id, 0) and S.heroics[x.id] < 3)
@@ -3225,7 +3634,7 @@ func show_shop() -> void:
 	shop_demonic = randf() < (0.1 if S.specials.get("pact", false) else 0.01)
 	var scale := 1 + S.wave / 20.0
 	shop_free = bool(S.specials.get("bazaar", false))
-	var list := R.shop.items.duplicate()
+	var list := R.shop.items.filter(dmg_ok)
 	list.shuffle()
 	shop_items = []
 	var i := 0
@@ -3337,6 +3746,7 @@ func new_tower(type: String, c: int, r: int) -> Tower:
 	t.beam = d.beam
 	t.ramp_max = 20.0 if d.beam else 5.0
 	t.lob = d.lob
+	t.disc_reach = d.range * 2.2
 	t.color = d.color
 	t.base_cost = d.cost
 	return t
@@ -3351,7 +3761,7 @@ func place_tower(c: int, r: int, type: String) -> void:
 	S.towers.append(t)
 	S.built[type] = true
 	S.bought[type] = S.bought.get(type, 0) + 1
-	t.free_ups = (2 if S.specials.get("foundry", false) else 0) + (int(h.rapid) if h.rapid and hyp(h.x - t.x, h.y - t.y) <= h.aura_range else 0)
+	t.free_ups = (2 if S.specials.get("foundry", false) else 0) + (int(h.rapid) if h.rapid and hyp(h.x - t.x, h.y - t.y) <= h.aura_range else 0) + h.free_build
 	if t.free_ups:
 		ring(t.x, t.y, 30, 0xb07cff, 0.5, true)
 	if S.build != "" and S.gold < tower_cost(S.build):
@@ -3502,9 +3912,6 @@ func discover_form(t: Tower) -> void:
 
 
 func level_tower(t: Tower, o: Dictionary) -> void:
-	if S.user_pause:
-		say("Paused: press Space or P to resume first.")
-		return
 	var lc := level_cost(t, o)
 	if S.gold < lc or t.lvl >= R.max_level or path_state(t, o) != "open":
 		return
@@ -3649,6 +4056,7 @@ func try_merge(a: Tower, b: Tower) -> void:
 	m.tags = PackedStringArray(tags)
 	m.ramp_max = maxf(10.0 if a.beam or b.beam else 5.0, maxf(a.ramp_max if not a.beam else 0.0, b.ramp_max if not b.beam else 0.0))
 	m.hybrid = true
+	m.aim = b.aim if b.aim != "first" else a.aim
 	m.dmg_total = a.dmg_total + b.dmg_total
 	m.kills = a.kills + b.kills
 	var key := ""
@@ -3708,6 +4116,9 @@ func try_merge(a: Tower, b: Tower) -> void:
 	m.hex_nova = maxf(a.hex_nova, b.hex_nova)
 	if m.parents.has("anvil"):
 		m.crush = maxf(m.crush, 0.5)
+	# a hybrid fires normal shots, so the Razor Disc's cutting lives on as pierce
+	if m.parents.has("disc"):
+		m.pierce = maxf(m.pierce, 3)
 	# Fast + heavy parents would otherwise get the big hit at the fast rate: keep damage per second within 2.6x
 	# the stronger parent's (6x for supers).
 	var dps_cap := (6.0 if m.is_super else 2.6) * maxf(a.dmg / a.rate, b.dmg / b.rate)
@@ -3767,6 +4178,8 @@ func end_run(won: bool, quit := false) -> void:
 	M.cores = int(M.get("cores", 0)) + S.cores
 	var cls := S.hero.cls
 	M.played[cls] = int(M.played.get(cls, 0)) + 1
+	M.wiz_pushes = int(M.get("wiz_pushes", 0)) + S.wiz_pushes
+	S.wiz_pushes = 0
 	# kills and wins feed mastery: report what moved
 	var el_was := []
 	for el in S.el_mana:
@@ -3820,10 +4233,20 @@ func end_run(won: bool, quit := false) -> void:
 	M.runs.append({ date = Time.get_datetime_string_from_system(true), map = S.map_id, hero = cls, wave = S.wave, won = won, shards = shards, cores = S.cores,
 		lives_lost = S.start_lives - S.lives, hero_lvl = S.hero.lvl, top = tower_name(top) + " L" + str(top.lvl) if top else "",
 		upgrades = S.picks.map(func(o): return ("Demonic " if o.demonic else "") + o.rarity.name + " " + o.perk.name), heroics = S.heroics.duplicate(),
-		relics = S.relics.map(func(r): return r.name), boons = S.boons.keys().map(func(k): return DB.recipes[k].boon_name), waves = S.log })
+		relics = S.relics.map(func(r): return r.name), boons = S.boons.keys().map(func(k): return DB.recipes[k].boon_name), waves = S.log,
+		ability = "Spellcraft" if S.hero.data.spells else S.hero.ab.name, kills_hero = S.kills.hero, kills_towers = _sum(S.kills.towers.values()),
+		takedowns = S.takedowns.hero, blocked = int(round(S.blocked)), run_seconds = int(round(S.time)),
+		towers = S.towers.map(func(t): return { name = tower_name(t) + " L" + str(t.lvl), dmg = int(round(t.dmg_total)), kills = t.kills }) })
 	M.runs = M.runs.slice(-25)
 	Save.save_meta()
 	modal.emit("end", { won = won, quit = quit, shards = shards, cores = S.cores, mastery = mastery, new_songs = new_songs, cleared = cleared })
+
+
+func _sum(xs: Array) -> float:
+	var n := 0.0
+	for x in xs:
+		n += float(x)
+	return n
 
 
 # ---------- player actions (mouse and keys) ----------
@@ -3832,6 +4255,11 @@ func cell_at(x: float, y: float) -> Vector2i:
 
 
 func cancel_placing() -> bool:
+	if S.strike_ready:
+		S.strike_ready = false
+		say("Orbital Strike put away.")
+		refresh("build_bar")
+		return true
 	if S.build == "" and S.merge_from == null and S.pending_build == null:
 		return false
 	S.build = ""
@@ -3886,6 +4314,9 @@ func toggle_aim() -> void:
 	var h := S.hero
 	if S.over or h.cls != "sniper":
 		return
+	if pierce_cursor():
+		say("Piercing Shot follows your cursor. Switch to aim points in Settings.")
+		return
 	var p = S.pointer
 	if S.aim != null and (p == null or (p as Vector2).distance_to(S.aim) < 30):
 		S.aim = null
@@ -3920,11 +4351,7 @@ func handle_right(x: float, y: float) -> void:
 
 func handle_click(x: float, y: float, touch := false) -> void:
 	var cell := cell_at(x, y)
-	if S.user_pause and not S.over:
-		S.sel = pick_tower(cell.x, cell.y)
-		refresh("inspector")
-		return
-	if S.paused or S.over:
+	if S.over or (S.paused and not S.user_pause):
 		return
 	var t: Tower = tower_at(cell.x, cell.y) if S.build != "" else pick_tower(cell.x, cell.y)
 	if S.merge_from != null:
@@ -3935,16 +4362,29 @@ func handle_click(x: float, y: float, touch := false) -> void:
 			say("Merge cancelled.")
 			refresh("inspector")
 		return
+	if S.strike_ready and S.build == "" and not S.user_pause:
+		S.pointer = Vector2(x, y)
+		use_ability()
+		return
 	# the Wizard casts its readied runes at the cursor
-	if S.hero.cls == "wizard" and S.runes.size() and S.build == "":
+	if S.hero.cls == "wizard" and S.runes.size() and S.build == "" and not S.user_pause:
 		cast_runes(x, y)
 		return
 	if t:
 		S.sel = t
+		S.hero_sel = false
 		S.build = ""
 		S.pending_build = null
 		refresh("build_bar")
 		refresh("inspector")
+		return
+	# clicking the hero selects it, which shows its attack range; clicking anywhere else lets go
+	var on_hero := S.build == "" and hero_hit(x, y)
+	S.hero_sel = on_hero and not S.hero_sel
+	if on_hero:
+		if S.sel != null:
+			S.sel = null
+			refresh("inspector")
 		return
 	if S.build != "":
 		var why := build_problem(cell.x, cell.y, S.build)
@@ -3953,6 +4393,9 @@ func handle_click(x: float, y: float, touch := false) -> void:
 			return
 		if in_build_range(cell.x, cell.y):
 			place_tower(cell.x, cell.y, S.build)
+			return
+		if S.user_pause:
+			say("Out of build range, and your hero can't walk there while paused.")
 			return
 		var h := S.hero
 		var cx := cell.x * C + C / 2
@@ -3969,18 +4412,25 @@ func handle_click(x: float, y: float, touch := false) -> void:
 	if S.sel != null:
 		S.sel = null
 		refresh("inspector")
-	if touch or S.hero.cls == "wizard":
+	if (touch or S.hero.cls == "wizard") and not S.user_pause:
 		move_hero(x, y)
 
 
+## The hero stands upright, so its body reaches up the screen from the spot it stands on.
+func hero_hit(x: float, y: float) -> bool:
+	var h := S.hero
+	return h.ko <= 0 and absf(x - h.x) <= 20 and h.y - y >= -14 and h.y - y <= 55
+
+
 func select_build(k: String) -> void:
-	if S.over or S.paused:
+	if S.over or (S.paused and not S.user_pause):
 		return
 	if S.build == k:
 		S.build = ""
 	elif S.gold >= tower_cost(k):
 		S.build = k
 		S.sel = null
+		S.hero_sel = false
 		S.merge_from = null
 	refresh("build_bar")
 	refresh("inspector")
@@ -3991,19 +4441,13 @@ func toggle_pause() -> void:
 		return
 	S.user_pause = not S.user_pause
 	S.paused = S.user_pause
-	if S.user_pause:
-		S.build = ""
-		S.pending_build = null
-		S.merge_from = null
-		refresh("inspector")
+	# towers can still be built, levelled, merged and sold while paused; the hero just can't walk off to build
+	S.pending_build = null
 	refresh("build_bar")
 
 
 func sell_selected() -> void:
 	if S.sel == null:
-		return
-	if S.user_pause:
-		say("Paused. Press P to resume.")
 		return
 	sell(S.sel)
 
@@ -4015,7 +4459,8 @@ func esc_step() -> bool:
 	elif S.runes.size():
 		S.runes = []
 		refresh("runes")
-	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null:
+	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null or S.hero_sel:
+		S.hero_sel = false
 		S.build = ""
 		S.merge_from = null
 		S.sel = null

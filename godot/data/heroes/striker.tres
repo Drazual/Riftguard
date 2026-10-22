@@ -10,26 +10,26 @@
 script = ExtResource("1_8aiy5")
 id = "nova"
 name = "Rift Nova"
-cd = 20.0
-dmg = 40.0
-r = 110.0
+cd = 10.0
+dmg = 160.0
+r = 120.0
 desc = "Deals {f0(a.dmg)} damage to every enemy within {f0(a.r)}."
 
 [sub_resource type="Resource" id="Resource_bymy4"]
 script = ExtResource("1_8aiy5")
 id = "overdrive"
 name = "Overdrive"
-cd = 20.0
-dur = 5.0
-power = 1.0
+cd = 16.0
+dur = 6.0
+power = 0.6
 desc = "For {f1(a.dur)}s you attack {pct(a.power)} faster."
 
 [sub_resource type="Resource" id="Resource_ubv40"]
 script = ExtResource("2_ygewa")
 id = "honed"
 name = "Honed Edge"
-desc = "+{5 * r}% damage"
-effect = "h.dmg *= 1 + 0.05 * r"
+desc = "+{8 * r}% damage"
+effect = "h.dmg *= 1 + 0.08 * r"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 
@@ -70,12 +70,15 @@ script = ExtResource("3_jcdkq")
 id = "striker"
 name = "Striker"
 color = Color(1, 0.5411765, 0.47843137, 1)
-desc = "Fast and deadly but fragile. Shreds enemies and blasts groups with Rift Nova."
-hp = 180.0
-dmg = 12.0
+desc = "A quick all-rounder. Shreds single enemies, blasts groups with Rift Nova, and can take a few hits."
+hp = 240.0
+dmg = 40.0
 rate = 0.5
-range = 115.0
+range = 140.0
+armor = 0.05
+regen = 3.0
 speed = 165.0
+crit = 0.05
 ability = SubResource("Resource_uk0wj")
 alt = SubResource("Resource_bymy4")
 meta = Array[ExtResource("2_ygewa")]([SubResource("Resource_ubv40"), SubResource("Resource_glpnq"), SubResource("Resource_7s1xb"), SubResource("Resource_m0nvr")])

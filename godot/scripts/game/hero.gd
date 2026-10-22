@@ -14,7 +14,16 @@ var base_hp := 200.0
 var hp := 200.0
 var max_hp := 200.0
 var dmg := 10.0
+## Damage and spell power at the start of the run (after shard upgrades). Common, uncommon and rare damage
+## upgrades add a share of these; mythic and higher ones multiply the damage as it is now.
+var base_dmg := 10.0
+var base_spell := 1.0
+## The Sniper's targeting choice, like a tower's: first, last, strong (most HP, so bosses first) or close.
+var target := "strong"
 var rate := 0.6
+## Seconds between attacks at the start of the run. Common to legendary attack speed upgrades add a share
+## of this speed; mythic and higher ones multiply the speed as it is now.
+var base_rate := 0.6
 var cd := 0.0
 var range := 100.0
 var block := 1
@@ -90,6 +99,11 @@ var spell_cost := 1.0
 var freeze_bonus := 0.0
 var push_bonus := 1.0
 var wall_bonus := 1.0
+# Wizard wall charges: how many are ready, seconds banked toward the next, and the recharge-time multiplier
+var wall_charges := 0
+var wall_t := 0.0
+var wall_cd_mul := 1.0
+var wall_dmg := 0.0 # damage per second (x spell power) to enemies held up by a wall
 var echo := 0.0
 var el_pow := {}
 var els: PackedStringArray = []
@@ -98,6 +112,16 @@ var hold := false
 # Gale: how far each normal hit pushes enemies back, and the Bruiser Form switch
 var knock := 0.0
 var bruiser := false
+var knock_slow := 0.0
+# Mythic and Legendary upgrades
+var free_cast := 0.0
+var mana_shield := false
+var aegis := false
+var debt := 0.0
+var free_build := 0
+var ab_crit := false
+var lifesteal := 0.0
+var overkill := false
 # boss debuffs on the hero
 var stun_t := 0.0
 var weak := 0.0
@@ -125,6 +149,7 @@ static func make(id: String, base: Vector2) -> Hero:
 	h.max_hp = d.hp
 	h.dmg = d.dmg
 	h.rate = d.rate
+	h.base_rate = d.rate
 	h.range = d.range
 	h.block = d.block
 	h.regen = d.regen
@@ -137,6 +162,7 @@ static func make(id: String, base: Vector2) -> Hero:
 	h.max_mana = d.mana
 	h.mana_regen = d.mana_regen
 	h.knock = d.knock
+	h.wall_charges = DB.rules.wall_charges
 	h.build_range = DB.rules.build_range
 	h.aura_range = DB.rules.aura_range
 	h.respawn = DB.rules.respawn
@@ -159,7 +185,7 @@ func bruiser_form() -> void:
 	if bruiser:
 		return
 	bruiser = true
-	dmg *= 3.5
+	dmg *= 2.0
 	rate /= 1.25
 	block = DB.rules.bruiser_block
 	max_hp = roundf(max_hp * 1.2)

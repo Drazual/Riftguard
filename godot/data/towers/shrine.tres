@@ -87,13 +87,14 @@ paths = Array[ExtResource("1_tp")]([SubResource("Path_ironwill"), SubResource("P
 script = ExtResource("1_tp")
 id = "bruiser"
 name = "Bruiser Training"
+tag = "power"
 adjective = "Brutal"
 noun = "Ring"
 title = "Brawling"
 desc = "Gale deals +8% damage per point."
 effect = "t.hb_dmg += 0.08"
 mastery_name = "Bruiser Form"
-mastery_desc = "Gale becomes a Bruiser for the rest of the run: 3.5x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
+mastery_desc = "Gale becomes a Bruiser for the rest of the run: 2x damage, 25% faster attacks, +20% max HP and harder knockback, but holds 6 enemies at once instead of every one."
 mastery_effect = "t.hb_bruiser = 1"
 
 [sub_resource type="Resource" id="Path_galeforce"]
@@ -114,6 +115,7 @@ mastery_effect = "t.hb_knock += 0.4"
 script = ExtResource("1_tp")
 id = "wall"
 name = "Shield Wall"
+tag = "power"
 adjective = "Walled"
 noun = "Keep"
 title = "Walls"
@@ -225,7 +227,7 @@ id = "shrine"
 name = "Hero Shrine"
 cost = 120
 dmg = 0.0
-range = 60.0
+range = 90.0
 support = true
 level_bonus = "hero"
 element_tag = "arcane"

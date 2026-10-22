@@ -176,7 +176,7 @@ var _hs := {}
 
 func show_hero_select() -> void:
 	var last = Save.meta.get("loadout")
-	var hero: String = last.hero if last is Dictionary and DB.heroes.has(last.get("hero", "")) else "vanguard"
+	var hero: String = last.hero if last is Dictionary and DB.heroes.has(last.get("hero", "")) and Progress.hero_open(last.hero) else "vanguard"
 	var need := mini(game.R.loadout_size, DB.tower_order.size())
 	var picks := []
 	if last is Dictionary and last.get("towers") is Array:
@@ -215,6 +215,9 @@ func _render_hs() -> void:
 			var g := _grid(3)
 			for k in list:
 				var d: HeroData = DB.heroes[k]
+				if not Progress.hero_open(k):
+					g.add_child(_locked_hero_card())
+					continue
 				var ch := Choice.new(d.color)
 				ch.picked = st.hero == k
 				var top := Kit.hbox(10)
@@ -288,7 +291,16 @@ func _render_hs() -> void:
 				ui.toast("You can bring %d towers. Remove one first." % game.R.loadout_size)
 			_render_hs())
 		g.add_child(ch)
-	box.add_child(g)
+	var split := Kit.hbox(12)
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(g)
+	var keys := range(st.picks.size()).map(func(i): return str(i + 1))
+	split.add_child(key_order("Tower keys", st.picks, keys, func(k): return DB.towers[k].name, func(k): return DB.towers[k].color, func(l):
+		st.picks = l
+		Save.meta.loadout = { hero = st.hero, towers = l }
+		Save.save_meta()
+		_render_hs()))
+	box.add_child(split)
 	var row := Kit.hbox(10)
 	var go := Kit.go("START RUN", start)
 	go.disabled = st.picks.is_empty()
@@ -360,15 +372,144 @@ func start_run(hero: String, towers: Array) -> void:
 	queue_tip("run")
 
 
+## A side panel listing what you picked in key order. Press a row and drag it: it follows the pointer,
+## the other rows slide out of its way, and letting go drops it on that key. `changed` gets the new order.
+func key_order(title: String, items: Array, keys: Array, name_of: Callable, color_of: Callable, changed: Callable) -> Control:
+	const ROW_H := 36.0
+	const GAP := 6.0
+	const KEY_W := 30.0
+	var step := ROW_H + GAP
+	var c := Kit.card(10)
+	c.custom_minimum_size = Vector2(230, 0)
+	c.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	var v := Kit.vbox(6)
+	c.add_child(v)
+	v.add_child(Kit.h3(title))
+	v.add_child(Kit.muted("Drag a row to move it to another key.", 12))
+	if items.is_empty():
+		v.add_child(Kit.muted("Nothing picked yet.", 12))
+		return c
+	# rows sit in a plain Control so they can be placed (and slid around) by hand
+	var lane := Control.new()
+	lane.custom_minimum_size = Vector2(0, items.size() * step - GAP)
+	lane.mouse_filter = Control.MOUSE_FILTER_PASS
+	v.add_child(lane)
+	# the keys stay put; only the rows move between them
+	for i in items.size():
+		var key := Kit.label(keys[i], 16, Kit.GOLD, Kit.display_bold)
+		key.position = Vector2(0, i * step)
+		key.size = Vector2(KEY_W - 6, ROW_H)
+		key.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lane.add_child(key)
+	var rows: Array[PanelContainer] = []
+	for i in items.size():
+		var it = items[i]
+		var row := PanelContainer.new()
+		row.theme_type_variation = "Card"
+		row.mouse_default_cursor_shape = Control.CURSOR_DRAG
+		row.position = Vector2(KEY_W, i * step)
+		var h := Kit.hbox(8)
+		h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(h)
+		var nm := Kit.label(name_of.call(it), 15, color_of.call(it), Kit.display)
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(nm)
+		var grip := Kit.label("⠿", 16, Kit.MUTED)
+		grip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		h.add_child(grip)
+		lane.add_child(row)
+		rows.append(row)
+	var fit := func():
+		for r in rows:
+			r.size = Vector2(maxf(0.0, lane.size.x - KEY_W), ROW_H)
+			r.pivot_offset = r.size / 2
+	lane.resized.connect(fit)
+	fit.call_deferred()
+	# drag state: which row, where it was grabbed, and the slot it would drop into
+	var st := { from = -1, to = -1, grab = 0.0, done = false }
+	var slide := func(r: Control, y: float):
+		var tw := r.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tw.tween_property(r, "position:y", y, 0.14)
+	# where every other row sits while the dragged one hovers over slot `to`
+	var reflow := func():
+		for j in rows.size():
+			if j == st.from:
+				continue
+			var slot := j
+			if st.from < st.to and j > st.from and j <= st.to:
+				slot = j - 1
+			elif st.from > st.to and j >= st.to and j < st.from:
+				slot = j + 1
+			slide.call(rows[j], slot * step)
+	for i in rows.size():
+		var row := rows[i]
+		row.gui_input.connect(func(ev):
+			if st.done:
+				return
+			if ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT:
+				if ev.pressed and st.from < 0:
+					st.from = i
+					st.to = i
+					st.grab = ev.position.y
+					row.z_index = 10
+					var tw := row.create_tween().set_parallel()
+					tw.tween_property(row, "scale", Vector2(1.04, 1.04), 0.1)
+					tw.tween_property(row, "modulate", Color(1.15, 1.15, 1.15, 0.95), 0.1)
+					row.accept_event()
+				elif not ev.pressed and st.from == i:
+					st.done = true
+					var to: int = st.to
+					var tw := row.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT).set_parallel()
+					tw.tween_property(row, "position:y", to * step, 0.14)
+					tw.tween_property(row, "scale", Vector2.ONE, 0.14)
+					tw.tween_property(row, "modulate", Color.WHITE, 0.14)
+					tw.chain().tween_callback(func():
+						row.z_index = 0
+						if to == i:
+							st.from = -1
+							st.done = false
+							return
+						var l := items.duplicate()
+						l.insert(to, l.pop_at(i))
+						changed.call(l))
+					row.accept_event()
+			elif ev is InputEventMouseMotion and st.from == i:
+				# the pointer in the lane's space (the row moves under it, so go through its transform)
+				var at: Vector2 = row.get_transform() * ev.position
+				var y := clampf(at.y - row.scale.y * st.grab - (1.0 - row.scale.y) * row.pivot_offset.y, -GAP, (rows.size() - 1) * step + GAP)
+				row.position.y = y
+				var to := clampi(roundi(y / step), 0, rows.size() - 1)
+				if to != st.to:
+					st.to = to
+					reflow.call()
+				row.accept_event())
+	return c
+
+
 # ---------- the Wizard's elements and spellbook ----------
 func elements_ui(v: VBoxContainer, redraw: Callable) -> void:
 	var load := Progress.wiz_loadout()
 	var n := Progress.SLOT_KEYS.size()
 	var ta: int = game.R.triple_at
 	v.add_child(Kit.h3("Elements · taking %d of %d" % [load.size(), n]))
-	v.add_child(Kit.muted("Click an element to take it or leave it behind; taken elements are bound in order to %s. Each element gains mastery from the mana you spend on spells that use it. At mastery %d it can be readied three times for its ultimate." % [" ".join(Progress.SLOT_KEYS).to_upper(), ta]))
+	v.add_child(Kit.muted("Click an element to take it or leave it behind; taken elements are bound in order to %s (drag them in the Element keys list to change that). Each element gains mastery from the mana you spend on spells that use it. At mastery %d it can be readied three times for its ultimate, and it unlocks the element below it." % [" ".join(Progress.SLOT_KEYS).to_upper(), ta]))
 	var g := _grid(4)
+	# the four starting elements on top, each with the element it unlocks right below it
+	var order: Array = Progress.BASE_ELS.duplicate()
+	for base in Progress.BASE_ELS:
+		var kid := ""
+		for el in DB.el_order:
+			if DB.elements[el].parent == base:
+				kid = el
+		order.append(kid)
 	for el in DB.el_order:
+		if not order.has(el):
+			order.append(el)
+	for el in order:
+		if el == "":
+			g.add_child(Control.new())
+			continue
 		var E: ElementData = DB.elements[el]
 		var i := load.find(el)
 		var m := Progress.el_mastery(el)
@@ -394,24 +535,23 @@ func elements_ui(v: VBoxContainer, redraw: Callable) -> void:
 				Save.save_meta()
 				redraw.call())
 		else:
+			var need: int = game.R.element_unlock_at
+			var par: String = E.parent
+			var pm := Progress.el_mastery(par) if par != "" else m
 			ch.modulate = Color(1, 1, 1, 0.8)
 			ch.add(E.blurb, 11)
-			ch.add(Kit.c("◆ %d" % E.cost, Kit.TECH), 13)
-			ch.disabled = Save.meta.shards < E.cost
-			ch.pressed.connect(func():
-				if Progress.el_open(el) or Save.meta.shards < E.cost:
-					return
-				Save.meta.shards -= E.cost
-				Save.meta.wiz_els[el] = true
-				var l := Progress.wiz_loadout()
-				if l.size() < n:
-					l.append(el)
-					Save.meta.wiz_load = l
-				Save.save_meta()
-				Sound.play("level")
-				redraw.call())
+			ch.add(Kit.meter(minf(1, float(pm.lvl) / need), DB.elements[par].color if par != "" else Kit.GOLD, 5))
+			ch.add(Kit.c("Locked: reach %s mastery %d (now %d)" % [DB.elements[par].name if par != "" else "?", need, pm.lvl], Kit.MUTED), 11)
+			ch.disabled = true
 		g.add_child(ch)
-	v.add_child(g)
+	var split := Kit.hbox(12)
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	split.add_child(g)
+	split.add_child(key_order("Element keys", load, Progress.SLOT_KEYS.slice(0, load.size()).map(func(k): return k.to_upper()), func(el): return DB.elements[el].name, func(el): return DB.elements[el].color, func(l):
+		Save.meta.wiz_load = l
+		Save.save_meta()
+		redraw.call()))
+	v.add_child(split)
 	v.add_child(lean(Progress.spells_for(load)))
 
 
@@ -564,7 +704,8 @@ func meta_row(def: UpgradeData, obj: Dictionary, key: String, id: String, redraw
 	if DB.is_simple() and DB.simple_texts.has(easy_key):
 		v.add_child(Kit.muted(DB.simple_texts[easy_key]))
 	else:
-		v.add_child(Kit.muted(Fx.text(def.desc, { r = r }) if r else "Not bought"))
+		# an upgrade not bought yet says what one rank gives
+		v.add_child(Kit.muted(Fx.text(def.desc, { r = r }) if r else "Not bought. Each rank: %s." % Fx.text(def.desc, { r = 1 }).trim_suffix(".")))
 		if not maxed:
 			v.add_child(Kit.rich(UiText.meta_delta(def, key, id, r), 12, Kit.OK))
 	h.add_child(v)
@@ -600,6 +741,8 @@ func special_row(x: UpgradeData, redraw: Callable) -> Control:
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	v.add_child(Kit.rich(Kit.b(Kit.c(x.name, col)) + "  " + Kit.c(DB.rar[x.rarity].name.to_upper() if DB.rar.has(x.rarity) else "", col), 15))
 	v.add_child(Kit.muted(DB.tx("special:" + x.id, x.desc)))
+	if x.ability != "" and DB.hero_ability(x.hero).id != x.ability:
+		v.add_child(Kit.label("Does nothing until you pick this ability.", 12, Kit.PINK))
 	h.add_child(v)
 	var b := Kit.button("Owned" if own else "⬢ %d" % x.cores, func():
 		if Save.meta.specials.get(x.id, false) or Save.meta.cores < x.cores:
@@ -620,13 +763,30 @@ func special_row(x: UpgradeData, redraw: Callable) -> Control:
 func _all_hero_paths(d: TowerData) -> Array:
 	var out := []
 	for ps in d.hero_paths:
+		if DB.heroes.has(ps.hero) and not Progress.hero_open(ps.hero):
+			continue
 		for p in ps.paths:
 			if not out.has(p):
 				out.append(p)
 	return out
 
 
+## A secret hero that hasn't been unlocked: a dark, unnamed card.
+func _locked_hero_card() -> Control:
+	var ch := Choice.new(Kit.LINE)
+	ch.add(Kit.label("SECRET HERO", 11, Kit.MUTED, Kit.display))
+	var lt := Kit.head("I got pushback about this hero being locked", 20, Kit.MUTED)
+	lt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ch.add(lt)
+	ch.add("Someone is waiting to be found. Keep playing and you might unlock them.", 13)
+	ch.disabled = true
+	ch.modulate = Color(1, 1, 1, 0.7)
+	return ch
+
+
 func show_heroes(sel := "vanguard") -> void:
+	if not Progress.hero_open(sel):
+		sel = "vanguard"
 	queue_tip("heroes")
 	var redraw := func(): show_heroes(sel)
 	var y := ui.screen_scroll.scroll_vertical if ui.screen.visible else 0
@@ -642,6 +802,10 @@ func show_heroes(sel := "vanguard") -> void:
 		if list.is_empty():
 			roster.add_child(Kit.muted("More heroes coming."))
 		for k in list:
+			if not Progress.hero_open(k):
+				var lk := _roster_btn("I got pushback about this hero being locked", "Secret hero · locked", Kit.MUTED, false, func(): ui.toast("A secret hero. Keep playing to find out how to unlock it."))
+				roster.add_child(lk)
+				continue
 			roster.add_child(_roster_btn(DB.heroes[k].name, "%s · %s" % [DB.hero_ability(k).name if not DB.heroes[k].spells else "Spellcraft", UiText.hero_mastery_text(k)], DB.heroes[k].color, k == sel, func(): show_heroes(k)))
 	cols.add_child(roster)
 	var c := Kit.card()
@@ -714,7 +878,9 @@ func _roster_btn(name: String, sub: String, col: Color, on: bool, cb: Callable) 
 	var ch := Choice.new(col if on else Kit.LINE, Kit.PANEL2 if on else Kit.PANEL)
 	ch.pad = 10
 	ch.add(Kit.c(sub.to_upper(), Kit.MUTED), 10)
-	ch.add(Kit.label(name, 16, col, Kit.display_bold))
+	var nl := Kit.label(name, 16, col, Kit.display_bold)
+	nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ch.add(nl)
 	ch.pressed.connect(cb)
 	return ch
 
@@ -760,6 +926,8 @@ func show_towers(sel := "arcane") -> void:
 	v.add_child(UiText.mastery_box("towers", sel))
 	section(v, "Paths")
 	for ps: TowerPathSet in d.hero_paths:
+		if DB.heroes.has(ps.hero) and not Progress.hero_open(ps.hero):
+			continue
 		var who: String = DB.heroes[ps.hero].name if DB.heroes.has(ps.hero) else "Other heroes"
 		v.add_child(Kit.rich(Kit.b(who) + "  " + Kit.c(", ".join(ps.paths.map(func(p): return p.name)), Kit.MUTED), 14))
 	for p: TowerPath in (_all_hero_paths(d) if d.hero_paths.size() else d.paths):
@@ -990,12 +1158,19 @@ func _slider(name: String, v: float, cb: Callable, on_release := Callable()) -> 
 	s.max_value = 1
 	s.step = 0.05
 	s.value = v
-	s.custom_minimum_size = Vector2(220, 16)
+	s.custom_minimum_size = Vector2(200, 16)
 	s.focus_mode = Control.FOCUS_NONE
 	s.value_changed.connect(cb)
 	if on_release.is_valid():
 		s.drag_ended.connect(func(_c): on_release.call())
-	return _setting_row(name, s)
+	var h := Kit.hbox(10)
+	h.add_child(s)
+	var pct := Kit.label("%d%%" % roundi(v * 100), 13, Kit.MUTED)
+	pct.custom_minimum_size = Vector2(40, 0)
+	pct.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	h.add_child(pct)
+	s.value_changed.connect(func(x): pct.text = "%d%%" % roundi(x * 100))
+	return _setting_row(name, h)
 
 
 func _select(name: String, items: Array, at: int, cb: Callable) -> Control:
@@ -1017,27 +1192,129 @@ func show_log() -> void:
 	head(box, "Stats log", show_menu, [Kit.button("COPY FULL LOG", func():
 		DisplayServer.clipboard_set(JSON.stringify(Save.meta.runs, " "))
 		ui.toast("Log copied."))], false)
-	lead(box, "Your last %d runs, newest first. Copy the full log to share it for balancing." % runs.size())
-	var c := Kit.card()
-	var g := GridContainer.new()
-	g.columns = 7
-	g.add_theme_constant_override("h_separation", 18)
-	g.add_theme_constant_override("v_separation", 6)
-	for h in ["Map", "Hero", "Wave", "Result", "Lives lost", "Top damage", "Shards"]:
-		g.add_child(Kit.label(h.to_upper(), 11, Kit.MUTED, Kit.display))
-	for r in runs:
-		var mp = DB.maps.get(r.get("map", ""))
-		g.add_child(Kit.label(mp.scene.map_name if mp else str(r.get("map", "")), 14))
-		g.add_child(Kit.label(DB.heroes[r.hero].name if DB.heroes.has(r.get("hero", "")) else str(r.get("hero", "")), 14))
-		g.add_child(Kit.label(str(int(r.get("wave", 0))), 14))
-		g.add_child(Kit.label("Won" if r.get("won", false) else "Lost", 14, Kit.OK if r.get("won", false) else Kit.TEXT))
-		g.add_child(Kit.label(str(int(r.get("lives_lost", r.get("livesLost", 0)))), 14))
-		g.add_child(Kit.label(str(r.get("top", "")) if str(r.get("top", "")) != "" else "-", 14))
-		g.add_child(Kit.label("◆ %d" % int(r.get("shards", 0)), 14, Kit.TECH))
+	lead(box, "Your last %d runs, newest first. Click a run for the details. Copy the full log to share it for balancing." % runs.size())
 	if runs.is_empty():
-		g.add_child(Kit.label("No runs yet.", 14, Kit.MUTED))
-	c.add_child(g)
-	box.add_child(c)
+		box.add_child(Kit.muted("No runs yet."))
+	var widths := [150, 110, 60, 70, 80, 220, 80]
+	var head_row := Kit.hbox(12)
+	for i in 7:
+		var l := Kit.label(["Map", "Hero", "Wave", "Result", "Lives lost", "Top damage", "Shards"][i].to_upper(), 11, Kit.MUTED, Kit.display)
+		l.custom_minimum_size = Vector2(widths[i], 0)
+		head_row.add_child(l)
+	if runs.size():
+		var hp := MarginContainer.new()
+		hp.add_theme_constant_override("margin_left", 32)
+		hp.add_child(head_row)
+		box.add_child(hp)
+	for r in runs:
+		var c := Kit.card(8)
+		var v := Kit.vbox(6)
+		c.add_child(v)
+		var mp = DB.maps.get(r.get("map", ""))
+		var cells := [mp.scene.map_name if mp else str(r.get("map", "")), DB.heroes[r.hero].name if DB.heroes.has(r.get("hero", "")) else str(r.get("hero", "")),
+			str(int(r.get("wave", 0))), "Won" if r.get("won", false) else "Lost", str(int(r.get("lives_lost", r.get("livesLost", 0)))),
+			str(r.get("top", "")) if str(r.get("top", "")) != "" else "-", "◆ %d" % int(r.get("shards", 0))]
+		var row := Kit.hbox(12)
+		var arrow := Kit.label("▸", 14, Kit.MUTED)
+		arrow.custom_minimum_size = Vector2(20, 0)
+		row.add_child(arrow)
+		for i in 7:
+			var col: Color = Kit.OK if (i == 3 and r.get("won", false)) else (Kit.TECH if i == 6 else Kit.TEXT)
+			var l := Kit.label(cells[i], 14, col)
+			l.custom_minimum_size = Vector2(widths[i], 0)
+			l.clip_text = true
+			row.add_child(l)
+		var bt := Button.new()
+		bt.flat = true
+		bt.focus_mode = Control.FOCUS_NONE
+		bt.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		bt.custom_minimum_size = Vector2(0, 26)
+		row.set_anchors_preset(Control.PRESET_FULL_RECT)
+		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for ch in row.get_children():
+			ch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bt.add_child(row)
+		v.add_child(bt)
+		var more := Kit.vbox(8)
+		more.visible = false
+		v.add_child(more)
+		bt.pressed.connect(func():
+			if more.get_child_count() == 0:
+				_run_details(more, r)
+			more.visible = not more.visible
+			arrow.text = "▾" if more.visible else "▸")
+		box.add_child(c)
+
+
+## The drop-down of one logged run. Older runs logged fewer numbers, so missing ones are worked out from the waves or skipped.
+func _run_details(v: VBoxContainer, r: Dictionary) -> void:
+	var waves: Array = r.get("waves", [])
+	var hero_dmg := 0.0
+	var tower_dmg := 0.0
+	var gold := 0.0
+	var kos := 0
+	var kills := 0
+	var times := []
+	for w in waves:
+		hero_dmg += float(w.get("hero_dmg", 0))
+		tower_dmg += float(w.get("tower_dmg", 0))
+		gold += float(w.get("gold", 0))
+		kos += int(w.get("hero_kos", 0))
+		kills += int(w.get("kills", 0))
+		if w.get("cleared", false):
+			times.append(float(w.get("seconds", 0)))
+	if tower_dmg == 0 and r.get("towers") is Array:
+		for t in r.towers:
+			tower_dmg += float(t.get("dmg", 0))
+	var f0 := func(x: float) -> String: return UiText.f0(x)
+	var clock := func(sec: float) -> String: return "%d:%02d" % [int(sec) / 60, int(sec) % 60]
+	var rows := [["Total damage", f0.call(hero_dmg + tower_dmg)], ["Hero damage", f0.call(hero_dmg)], ["Tower damage", f0.call(tower_dmg)]]
+	if r.has("kills_hero"):
+		rows += [["Hero kills", str(int(r.kills_hero))], ["Tower kills", str(int(r.get("kills_towers", 0)))], ["Hero takedowns", str(int(r.get("takedowns", 0)))]]
+	else:
+		rows.append(["Kills", str(kills)])
+	rows += [["Total kills", str(int(r.get("kills_hero", 0)) + int(r.get("kills_towers", 0)) if r.has("kills_hero") else kills)], ["Gold earned", f0.call(gold)], ["Hero knockouts", str(kos)]]
+	if int(r.get("blocked", 0)):
+		rows.append(["Damage blocked", str(int(r.blocked))])
+	if times.size():
+		var total := 0.0
+		for t in times:
+			total += t
+		rows += [["Avg wave clear", clock.call(total / times.size())], ["Fastest wave", clock.call(times.min())], ["Slowest wave", clock.call(times.max())]]
+	if r.has("run_seconds"):
+		rows.append(["Run length", clock.call(float(r.run_seconds))])
+	if waves.size():
+		rows.append(["Damage per wave", f0.call((hero_dmg + tower_dmg) / waves.size())])
+	rows += [["Hero level", str(int(r.get("hero_lvl", 1)))], ["Ability", str(r.get("ability", "-"))], ["Boss Cores", str(int(r.get("cores", 0)))]]
+	v.add_child(Kit.stats(rows, 3))
+	v.add_child(Kit.muted("Wave times are game time, so fast-forward doesn’t change them.", 12))
+	var lists := [["Upgrades", r.get("upgrades", [])], ["Relics", r.get("relics", [])], ["Boons", r.get("boons", [])]]
+	var hx = r.get("heroics", {})
+	if hx is Dictionary and hx.size():
+		lists.append(["Heroic powers", hx.keys().map(func(k): return "%s %s" % [k, "I".repeat(int(hx[k]))])])
+	for pair in lists:
+		if (pair[1] as Array).size():
+			v.add_child(Kit.rich(Kit.b(pair[0] + ": ") + Kit.c(", ".join(pair[1]), Kit.MUTED), 13))
+	if r.get("towers") is Array and r.towers.size():
+		var ts: Array = r.towers.duplicate()
+		ts.sort_custom(func(a, b): return a.dmg > b.dmg)
+		v.add_child(Kit.rich(Kit.b("Towers by damage: ") + Kit.c(", ".join(ts.slice(0, 8).map(func(t): return "%s (%s dmg, %d kills)" % [t.name, UiText.f0(t.dmg), int(t.get("kills", 0))])), Kit.MUTED), 13))
+	if waves.size():
+		var g := GridContainer.new()
+		g.columns = 7
+		g.add_theme_constant_override("h_separation", 16)
+		g.add_theme_constant_override("v_separation", 2)
+		for h in ["Wave", "Mode", "Time", "Kills", "Lives lost", "Hero dmg", "Tower dmg"]:
+			g.add_child(Kit.label(h.to_upper(), 10, Kit.MUTED, Kit.display))
+		for w in waves:
+			g.add_child(Kit.label(str(int(w.get("wave", 0))), 12))
+			g.add_child(Kit.label(str(w.get("mode", "")), 12, Kit.MUTED))
+			g.add_child(Kit.label(clock.call(float(w.get("seconds", 0))), 12))
+			g.add_child(Kit.label(str(int(w.get("kills", 0))), 12))
+			g.add_child(Kit.label(str(int(w.get("lives_lost", 0))), 12, Kit.DANGER if int(w.get("lives_lost", 0)) else Kit.TEXT))
+			g.add_child(Kit.label(UiText.f0(float(w.get("hero_dmg", 0))), 12))
+			g.add_child(Kit.label(UiText.f0(float(w.get("tower_dmg", 0))) if w.has("tower_dmg") else "-", 12))
+		v.add_child(g)
 
 
 # ---------- settings ----------
@@ -1087,6 +1364,11 @@ func show_settings() -> void:
 		if ui.in_run():
 			ui.render_build_bar()
 		ui.toast("WASD / arrow movement " + ("on." if on else "off."))))
+	box.add_child(_select("Sniper’s Piercing Shot aims at", ["The aim point (F), or the lead enemy", "Wherever your cursor is"], 1 if st.get("pierce_cursor", false) else 0, func(i):
+		st.pierce_cursor = i == 1
+		Save.save_settings()
+		if ui.in_run():
+			ui.render_build_bar()))
 	box.add_child(_select("Explanations", ["Detailed: exact numbers", "Simple: just the idea"], 1 if DB.is_simple() else 0, func(i):
 		st.simple = i == 1
 		Save.save_settings()
@@ -1094,7 +1376,7 @@ func show_settings() -> void:
 			ui.render_inspector()
 			ui.render_hero()
 			ui.render_enemy_codex()))
-	var row := Kit.hbox()
+	var row := Kit.flow(8)
 	row.add_child(Kit.go("RESUME" if in_run else "DONE", close_settings))
 	if in_run:
 		row.add_child(Kit.button("RESTART RUN", func():
