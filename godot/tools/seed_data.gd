@@ -352,7 +352,7 @@ func perks() -> Array:
 	var ability := ["seismic", "after", "daze", "core", "nfocus", "wide", "surge", "extend", "apround", "steady", "barrier", "adren", "redline", "payload"]
 	var kinds := { "blade": "damage", "caliber": "damage", "headhunter": "damage", "crit": "crit", "critdmg": "crit", "clock": "speed", "chamber": "speed", "boots": "speed", "momentum": "speed",
 		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "arch": "cost", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "scope": "range",
-		"arcpow": "damage", "manapool": "mana", "manaflow": "mana", "thrift": "mana", "reachsp": "range", "rime": "control", "zephyr": "control", "masonry": "wall" }
+		"arcpow": "damage", "manapool": "mana", "manaflow": "mana", "thrift": "mana", "reachsp": "range", "rime": "control", "zephyr": "control", "masonry": "wall", "bounces": "bounce" }
 	var list := [
 		{ id = "blade", pool = "offensive", name = "Plasma Blade", m = 0.2, desc = "+{pct(m)} hero damage.", effect = "h.dmg *= 1 + m" },
 		{ id = "plate", pool = "defensive", name = "Rune Plating", m = 50.0, desc = "+{round(m)} max HP and a full heal.", effect = "h.max_hp += round(m)\nh.hp = h.max_hp" },
@@ -374,7 +374,8 @@ func perks() -> Array:
 		{ id = "fort", pool = "defensive", name = "Fortify", m = 0.15, desc = "+{pct(m)} max HP.", effect = "h.max_hp = round(h.max_hp * (1 + m))\nh.hp = h.max_hp" },
 		{ id = "crit", pool = "offensive", name = "Weak Point", m = 0.08, desc = "+{pct(m)} crit chance.", effect = "h.crit = min(0.75, h.crit + m)" },
 		{ id = "critdmg", pool = "offensive", name = "Lethal Edge", m = 0.25, desc = "+{pct(m)} crit damage.", effect = "h.crit_dmg += m" },
-		{ id = "split", pool = "striker", name = "Split Shot", m = 1.0, desc = "Attacks hit {max(1, round(m))} more enemy.", effect = "h.multi = min(6, h.multi + max(1, round(m)))" },
+		{ id = "bounce", pool = "striker", name = "Ricochet", m = 0.1, desc = "{iff(h.bounce, 'Ricochets', 'Shots ricochet to 1 more enemy and')} keep {pct(iff(h.bounce_keep, min(0.85, h.bounce_keep + m), 0.4 + m))} of their damage each bounce.", effect = "h.bounce = max(1, h.bounce)\nh.bounce_keep = iff(h.bounce_keep, min(0.85, h.bounce_keep + m), 0.4 + m)" },
+		{ id = "bounces", pool = "striker", name = "Extra Bounce", m = 1.0, after = "bounce", desc = "Ricochets bounce {max(1, round(m))} more time{iff(round(m) > 1, 's', '')}.", effect = "h.bounce = min(5, h.bounce + max(1, round(m)))" },
 		{ id = "scope", pool = "striker", name = "Long Barrel", m = 0.12, desc = "+{pct(m)} attack range.", effect = "h.range *= 1 + m" },
 		{ id = "clock", pool = "striker", name = "Overclock", m = 0.15, desc = "+{pct(m)} attack speed.", effect = "h.rate /= 1 + m" },
 		{ id = "core", pool = "striker", ability = "nova", name = "Nova Core", m = 0.3, desc = "Rift Nova deals +{pct(m)} damage.", effect = "h.ab.dmg *= 1 + m" },

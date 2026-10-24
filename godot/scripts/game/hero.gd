@@ -47,6 +47,9 @@ var merge_mul := 1.0
 var crit := 0.0
 var crit_dmg := 1.5
 var multi := 0.0
+# Ricochet: how many times each shot bounces, and the share of damage it keeps per bounce
+var bounce := 0.0
+var bounce_keep := 0.0
 var bounty := 0.0
 var tower_range := 0.0
 var interest := 0.0

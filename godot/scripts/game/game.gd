@@ -3068,6 +3068,22 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 				line(from.x, from.y, n.x, n.y, 0xffd36e, 0.15, 2)
 				done[n] = true
 				from = n
+		if h.bounce:
+			var from: Enemy = t
+			var done := { t: true }
+			var bd := dmg
+			for i in int(h.bounce):
+				var n: Enemy = null
+				for e in in_range(from.x, from.y, 160):
+					if not done.has(e) and (n == null or hyp(e.x - from.x, e.y - from.y) < hyp(n.x - from.x, n.y - from.y)):
+						n = e
+				if n == null:
+					break
+				bd *= h.bounce_keep
+				damage(n, bd)
+				line(from.x, from.y, n.x, n.y, 0xf2c14e, 0.12, 1.5)
+				done[n] = true
+				from = n
 		if h.pierce:
 			for o in in_range(t.x, t.y, 60).filter(func(e): return e != t).slice(0, int(h.pierce)):
 				damage(o, dmg * 0.5)
@@ -3424,7 +3440,7 @@ func roll_perks() -> Array:
 	var mine := func(p: UpgradeData) -> bool: return p.pool == h.cls or p.also_pools.has(h.cls) or shared.call(p)
 	# Wizard upgrades only come for what this run's elements can do; the Wizard never sees attack speed.
 	var allowed := func(p: UpgradeData) -> bool:
-		return not (p.attack_speed and h.data.spells) and dmg_ok(p) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false))
+		return not (p.attack_speed and h.data.spells) and dmg_ok(p) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false)) and (p.after == "" or owns(p.after))
 	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
 	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
