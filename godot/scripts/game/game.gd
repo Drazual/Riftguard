@@ -284,6 +284,9 @@ func apply_hero_meta(h: Hero) -> void:
 		var r := rank(M, def.id)
 		if r:
 			Fx.run(def.effect, { h = h, run = S, r = r })
+	for p in Progress.hero_perks(h.cls):
+		if p.open:
+			Fx.run(p.perk.effect, { h = h, run = S })
 	h.hp = h.max_hp
 	h.respawn *= 1 - 0.05 * rank(Save.meta.global, "recovery")
 	var vet := rank(Save.meta.global, "vet")
@@ -4211,7 +4214,8 @@ func end_run(won: bool, quit := false) -> void:
 	for w in was:
 		var now: int = Progress.mastery_of(w[0], w[1]).lvl
 		if now > w[2]:
-			mastery.append({ name = DB.heroes[w[1]].name if w[0] == "heroes" else DB.towers[w[1]].name, a = w[2], b = now, color = null })
+			var opened: Array = Progress.hero_perks(w[1], now).filter(func(p): return p.at > w[2] and p.open).map(func(p): return p.perk.name) if w[0] == "heroes" else []
+			mastery.append({ name = DB.heroes[w[1]].name if w[0] == "heroes" else DB.towers[w[1]].name, a = w[2], b = now, color = null, perks = ", ".join(opened) })
 	for w in el_was:
 		var now: int = Progress.el_mastery(w[0]).lvl
 		if now > w[1]:

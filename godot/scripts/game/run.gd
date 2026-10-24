@@ -114,6 +114,11 @@ func crown() -> void:
 		t.dmg *= 1.6
 
 
+## Hero mastery unlocks: start the run owning a heroic power at rank 1 (or keep the rank already owned).
+func grant_heroic(id: String) -> void:
+	heroics[id] = maxi(1, int(heroics.get(id, 0)))
+
+
 ## A copy for "current -> new" previews of upgrades.
 func copy_mods() -> Dictionary:
 	var out := {}

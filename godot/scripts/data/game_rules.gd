@@ -189,3 +189,7 @@ extends Resource
 @export var fire_burn_boss := 0.25
 @export_group("Mastery")
 @export var mastery_max := 50
+## Hero mastery unlocks: each hero's entries (matched by `hero`) open in list order, one every `mastery_perk_every` levels.
+## They are on at the start of every run with that hero. The Wizard has element mastery instead.
+@export var mastery_perks: UpgradeList
+@export var mastery_perk_every := 5
