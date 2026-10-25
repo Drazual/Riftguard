@@ -40,6 +40,7 @@ var user_pause := false
 var over := false
 var speed := 1
 var pending_levels := 0
+var reward_picks := 0 # how many of pending_levels are free picks from a Challenge, Legendary or Secret wave reward
 var pending_heroic := 0
 var hover = null # Vector2i
 var rerolls := 2
