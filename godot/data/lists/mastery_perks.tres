@@ -512,6 +512,516 @@ also_pools = PackedStringArray()
 heroes = PackedStringArray()
 hero = "gale"
 
+[sub_resource type="Resource" id="Resource_striker_100"]
+script = ExtResource("1_s5vre")
+id = "m_mod2"
+name = "Black Hole / Afterimage"
+desc = "With Rift Nova: it first holds enemies in a vortex for 1.5s, then explodes for 150% damage. With Overdrive: your attacks during it hit 2 more enemies."
+effect = "h.ab.hole = h.ab.id == 'nova'
+h.ab.afterimg = h.ab.id == 'overdrive'"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_101"]
+script = ExtResource("1_s5vre")
+id = "m_power"
+name = "Rift Power"
+desc = "+15% damage."
+effect = "h.dmg *= 1.15"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_102"]
+script = ExtResource("1_s5vre")
+id = "m_drone2"
+name = "Turret Drone rank 2"
+desc = "Start every run with Turret Drone at rank 2: 2 drones fly beside you and shoot the nearest enemies for 26 damage."
+effect = "run.grant_heroic('drone', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_103"]
+script = ExtResource("1_s5vre")
+id = "m_lifesteal2"
+name = "Bloodthirst"
+desc = "Heal another 3% of the damage you deal (6% in all)."
+effect = "h.lifesteal += 0.03"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_104"]
+script = ExtResource("1_s5vre")
+id = "m_mod3"
+name = "Chain Nova / Long Overdrive"
+desc = "With Rift Nova: every enemy it kills sets off a smaller nova of its own. With Overdrive: it lasts 50% longer."
+effect = "h.ab.chain_n = h.ab.id == 'nova'
+h.ab.dur *= iff(h.ab.id == 'overdrive', 1.5, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_105"]
+script = ExtResource("1_s5vre")
+id = "m_barrage2"
+name = "Rift Barrage rank 2"
+desc = "Start every run with Rift Barrage at rank 2: every 5s you fire 6 homing rift missiles at enemies near you."
+effect = "run.grant_heroic('barrage', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_106"]
+script = ExtResource("1_s5vre")
+id = "m_crit"
+name = "Killer Instinct"
+desc = "+10% crit chance and +25% crit damage."
+effect = "h.crit += 0.1
+h.crit_dmg += 0.25"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_107"]
+script = ExtResource("1_s5vre")
+id = "m_exec2"
+name = "Reaper"
+desc = "Your hits instantly finish non-boss enemies below 15% HP."
+effect = "h.execute = max(h.execute, 0.15)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_108"]
+script = ExtResource("1_s5vre")
+id = "m_blades1"
+name = "Orbiting Blades rank 1"
+desc = "Start every run with Orbiting Blades at rank 1: 2 blades circle you, each dealing 20 damage per second to enemies they touch."
+effect = "run.grant_heroic('blades', 1)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_striker_109"]
+script = ExtResource("1_s5vre")
+id = "m_barrage3"
+name = "Rift Barrage rank 3"
+desc = "Start every run with Rift Barrage at rank 3: every 5s you fire 8 homing rift missiles at enemies near you."
+effect = "run.grant_heroic('barrage', 3)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "striker"
+
+[sub_resource type="Resource" id="Resource_vanguard_110"]
+script = ExtResource("1_s5vre")
+id = "m_mod3"
+name = "Magnetic Slam / Long Bulwark"
+desc = "With Shield Slam: it reaches 50% farther and drags every enemy it hits back along the path. With Bulwark Shield: it lasts 50% longer."
+effect = "h.ab.magnet = h.ab.id == 'slam'
+h.ab.dur *= iff(h.ab.id == 'bulwark', 1.5, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_111"]
+script = ExtResource("1_s5vre")
+id = "m_hp"
+name = "Titan's Frame"
+desc = "+20% max HP."
+effect = "h.max_hp = round(h.max_hp * 1.2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_112"]
+script = ExtResource("1_s5vre")
+id = "m_wither2"
+name = "Withering Aura rank 2"
+desc = "Start every run with Withering Aura at rank 2: enemies within 130 of you take 20 damage per second and are slowed 20%."
+effect = "run.grant_heroic('wither', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_113"]
+script = ExtResource("1_s5vre")
+id = "m_thorns2"
+name = "Razor Thorns"
+desc = "Enemies you block take another 16 damage per second (24 in all)."
+effect = "h.thorns += 16"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_114"]
+script = ExtResource("1_s5vre")
+id = "m_mod4"
+name = "Molten Crater / Quick Bulwark"
+desc = "With Shield Slam: it leaves a glowing crater for 4s that burns and slows enemies inside. With Bulwark Shield: it recharges 20% faster."
+effect = "h.ab.molten = h.ab.id == 'slam'
+h.ab.cd *= iff(h.ab.id == 'bulwark', 0.8, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_115"]
+script = ExtResource("1_s5vre")
+id = "m_retribution2"
+name = "Retribution rank 2"
+desc = "Start every run with Retribution at rank 2: every 4s a shockwave hits enemies within 110 of you for 40 damage plus 60% of the damage you took since the last one."
+effect = "run.grant_heroic('retribution', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_116"]
+script = ExtResource("1_s5vre")
+id = "m_regen"
+name = "Iron Blood"
+desc = "Regenerate an extra 1% of your max HP per second."
+effect = "h.regen += h.max_hp * 0.01"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_117"]
+script = ExtResource("1_s5vre")
+id = "m_phoenix2"
+name = "Phoenix Rebirth rank 2"
+desc = "Start every run with Phoenix Rebirth at rank 2: when knocked out you explode for 300 damage and respawn in 2s."
+effect = "run.grant_heroic('phoenix', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_118"]
+script = ExtResource("1_s5vre")
+id = "m_armor"
+name = "Adamant Plating"
+desc = "Take 10% less damage."
+effect = "h.armor = min(0.75, h.armor + 0.1)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_vanguard_119"]
+script = ExtResource("1_s5vre")
+id = "m_retribution3"
+name = "Retribution rank 3"
+desc = "Start every run with Retribution at rank 3: every 4s a shockwave hits enemies within 110 of you for 60 damage plus 90% of the damage you took since the last one."
+effect = "run.grant_heroic('retribution', 3)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "vanguard"
+
+[sub_resource type="Resource" id="Resource_sniper_120"]
+script = ExtResource("1_s5vre")
+id = "m_mod3"
+name = "Railgun / Wide Strike"
+desc = "With Piercing Shot: it is 3× wider and leaves a burning line for 3s. With Orbital Strike: its blast is 30% wider."
+effect = "h.ab.rail = h.ab.id == 'pierce'
+h.ab.r *= iff(h.ab.id == 'strike', 1.3, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_121"]
+script = ExtResource("1_s5vre")
+id = "m_power"
+name = "High Caliber"
+desc = "+15% damage."
+effect = "h.dmg *= 1.15"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_122"]
+script = ExtResource("1_s5vre")
+id = "m_marked2"
+name = "Marked for Death rank 2"
+desc = "Start every run with Marked for Death at rank 2: every 5th shot marks its target for 4s, and marked enemies take +40% damage from everything."
+effect = "run.grant_heroic('marked', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_123"]
+script = ExtResource("1_s5vre")
+id = "m_critdmg"
+name = "Vital Shot"
+desc = "+50% crit damage."
+effect = "h.crit_dmg += 0.5"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_124"]
+script = ExtResource("1_s5vre")
+id = "m_mod4"
+name = "Ricochet Round / Quick Strike"
+desc = "With Piercing Shot: it bounces through 5 more enemies after its line. With Orbital Strike: it recharges 20% faster."
+effect = "h.ab.bounce = h.ab.id == 'pierce'
+h.ab.cd *= iff(h.ab.id == 'strike', 0.8, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_125"]
+script = ExtResource("1_s5vre")
+id = "m_timestop2"
+name = "Time Stop rank 2"
+desc = "Start every run with Time Stop at rank 2: every 25s every enemy on the map freezes for 3s."
+effect = "run.grant_heroic('timestop', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_126"]
+script = ExtResource("1_s5vre")
+id = "m_brace"
+name = "Quick Draw"
+desc = "Brace 30% faster."
+effect = "h.brace *= 0.7"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_127"]
+script = ExtResource("1_s5vre")
+id = "m_spotter2"
+name = "Laser Sight"
+desc = "Your target takes another +15% damage from towers for 3s (25% in all)."
+effect = "h.spotter += 0.15"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_128"]
+script = ExtResource("1_s5vre")
+id = "m_headhunter2"
+name = "Big Game Hunter"
+desc = "Another +30% hero damage to bosses (50% in all)."
+effect = "h.headhunter += 0.3"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_sniper_129"]
+script = ExtResource("1_s5vre")
+id = "m_timestop3"
+name = "Time Stop rank 3"
+desc = "Start every run with Time Stop at rank 3: every 25s every enemy on the map freezes for 4s."
+effect = "run.grant_heroic('timestop', 3)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "sniper"
+
+[sub_resource type="Resource" id="Resource_oracle_130"]
+script = ExtResource("1_s5vre")
+id = "m_mod3"
+name = "Prism Field / Long Stasis"
+desc = "With Overclock Field: towers inside it fire a bonus beam at a second enemy. With Stasis Field: it lasts 30% longer."
+effect = "h.ab.prism_f = h.ab.id == 'overclock'
+h.ab.dur *= iff(h.ab.id == 'stasis', 1.3, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_131"]
+script = ExtResource("1_s5vre")
+id = "m_aura"
+name = "Deep Resonance"
+desc = "Your tower aura gives another +10% damage."
+effect = "h.aura += 0.1"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_132"]
+script = ExtResource("1_s5vre")
+id = "m_drone2"
+name = "Turret Drone rank 2"
+desc = "Start every run with Turret Drone at rank 2: 2 drones fly beside you and shoot the nearest enemies for 26 damage."
+effect = "run.grant_heroic('drone', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_133"]
+script = ExtResource("1_s5vre")
+id = "m_tithe2"
+name = "Rift Tax"
+desc = "Every enemy killed by anything drops another 5% more gold (10% in all)."
+effect = "h.tithe += 0.05"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_134"]
+script = ExtResource("1_s5vre")
+id = "m_mod4"
+name = "Mobile Field / Wide Stasis"
+desc = "With Overclock Field: it follows you around. With Stasis Field: it is 25% wider."
+effect = "h.ab.mobile = h.ab.id == 'overclock'
+h.ab.r *= iff(h.ab.id == 'stasis', 1.25, 1.0)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_135"]
+script = ExtResource("1_s5vre")
+id = "m_goldrush2"
+name = "Gold Rush rank 2"
+desc = "Start every run with Gold Rush at rank 2: kills have a 16% chance to drop 15 bonus gold."
+effect = "run.grant_heroic('goldrush', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_136"]
+script = ExtResource("1_s5vre")
+id = "m_rapid2"
+name = "Master Builder"
+desc = "Towers you build within your aura get their first 2 level-ups free."
+effect = "h.rapid += 1"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_137"]
+script = ExtResource("1_s5vre")
+id = "m_timestop2"
+name = "Time Stop rank 2"
+desc = "Start every run with Time Stop at rank 2: every 25s every enemy on the map freezes for 3s."
+effect = "run.grant_heroic('timestop', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_138"]
+script = ExtResource("1_s5vre")
+id = "m_interest2"
+name = "Compound Interest"
+desc = "Earn another 2% interest on your gold after each wave."
+effect = "h.interest += 0.02"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_oracle_139"]
+script = ExtResource("1_s5vre")
+id = "m_signal"
+name = "Rift Beacon"
+desc = "Your tower aura gives another +15% damage, and all towers get +15% range."
+effect = "h.aura += 0.15
+h.tower_range += 0.15"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "oracle"
+
+[sub_resource type="Resource" id="Resource_gale_140"]
+script = ExtResource("1_s5vre")
+id = "m_abdmg"
+name = "Howling Winds"
+desc = "Abilities deal +30% damage."
+effect = "h.ab.dmg *= 1.3"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_141"]
+script = ExtResource("1_s5vre")
+id = "m_hp"
+name = "Stormhide"
+desc = "+20% max HP."
+effect = "h.max_hp = round(h.max_hp * 1.2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_142"]
+script = ExtResource("1_s5vre")
+id = "m_wither2"
+name = "Withering Aura rank 2"
+desc = "Start every run with Withering Aura at rank 2: enemies within 130 of you take 20 damage per second and are slowed 20%."
+effect = "run.grant_heroic('wither', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_143"]
+script = ExtResource("1_s5vre")
+id = "m_force2"
+name = "Hurricane Force"
+desc = "Your hits knock enemies back another 25% farther."
+effect = "h.knock *= 1.25"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_144"]
+script = ExtResource("1_s5vre")
+id = "m_abcd"
+name = "Tailwind"
+desc = "Abilities recharge 20% faster."
+effect = "h.ab.cd *= 0.8"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_145"]
+script = ExtResource("1_s5vre")
+id = "m_retribution2"
+name = "Retribution rank 2"
+desc = "Start every run with Retribution at rank 2: every 4s a shockwave hits enemies within 110 of you for 40 damage plus 60% of the damage you took since the last one."
+effect = "run.grant_heroic('retribution', 2)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_146"]
+script = ExtResource("1_s5vre")
+id = "m_siphon2"
+name = "Breath of Life"
+desc = "Heal another 6 HP for every enemy you help take down (10 in all)."
+effect = "h.siphon += 6"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_147"]
+script = ExtResource("1_s5vre")
+id = "m_phoenix1"
+name = "Phoenix Rebirth rank 1"
+desc = "Start every run with Phoenix Rebirth at rank 1: when knocked out you explode for 150 damage and respawn in 2s."
+effect = "run.grant_heroic('phoenix', 1)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_148"]
+script = ExtResource("1_s5vre")
+id = "m_stun"
+name = "Eye of the Hurricane"
+desc = "Abilities stun 0.5s longer."
+effect = "h.ab.stun += 0.5"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
+[sub_resource type="Resource" id="Resource_gale_149"]
+script = ExtResource("1_s5vre")
+id = "m_retribution3"
+name = "Retribution rank 3"
+desc = "Start every run with Retribution at rank 3: every 4s a shockwave hits enemies within 110 of you for 60 damage plus 90% of the damage you took since the last one."
+effect = "run.grant_heroic('retribution', 3)"
+also_pools = PackedStringArray()
+heroes = PackedStringArray()
+hero = "gale"
+
 [resource]
 script = ExtResource("2_wgf6e")
-items = Array[ExtResource("1_s5vre")]([SubResource("Resource_striker_0"), SubResource("Resource_striker_1"), SubResource("Resource_striker_2"), SubResource("Resource_striker_3"), SubResource("Resource_striker_4"), SubResource("Resource_striker_5"), SubResource("Resource_striker_6"), SubResource("Resource_striker_7"), SubResource("Resource_striker_8"), SubResource("Resource_striker_9"), SubResource("Resource_vanguard_10"), SubResource("Resource_vanguard_11"), SubResource("Resource_vanguard_12"), SubResource("Resource_vanguard_13"), SubResource("Resource_vanguard_14"), SubResource("Resource_vanguard_15"), SubResource("Resource_vanguard_16"), SubResource("Resource_vanguard_17"), SubResource("Resource_vanguard_18"), SubResource("Resource_vanguard_19"), SubResource("Resource_sniper_20"), SubResource("Resource_sniper_21"), SubResource("Resource_sniper_22"), SubResource("Resource_sniper_23"), SubResource("Resource_sniper_24"), SubResource("Resource_sniper_25"), SubResource("Resource_sniper_26"), SubResource("Resource_sniper_27"), SubResource("Resource_sniper_28"), SubResource("Resource_sniper_29"), SubResource("Resource_oracle_30"), SubResource("Resource_oracle_31"), SubResource("Resource_oracle_32"), SubResource("Resource_oracle_33"), SubResource("Resource_oracle_34"), SubResource("Resource_oracle_35"), SubResource("Resource_oracle_36"), SubResource("Resource_oracle_37"), SubResource("Resource_oracle_38"), SubResource("Resource_oracle_39"), SubResource("Resource_gale_40"), SubResource("Resource_gale_41"), SubResource("Resource_gale_42"), SubResource("Resource_gale_43"), SubResource("Resource_gale_44"), SubResource("Resource_gale_45"), SubResource("Resource_gale_46"), SubResource("Resource_gale_47"), SubResource("Resource_gale_48"), SubResource("Resource_gale_49")])
+items = Array[ExtResource("1_s5vre")]([SubResource("Resource_striker_0"), SubResource("Resource_striker_1"), SubResource("Resource_striker_2"), SubResource("Resource_striker_3"), SubResource("Resource_striker_4"), SubResource("Resource_striker_5"), SubResource("Resource_striker_6"), SubResource("Resource_striker_7"), SubResource("Resource_striker_8"), SubResource("Resource_striker_9"), SubResource("Resource_vanguard_10"), SubResource("Resource_vanguard_11"), SubResource("Resource_vanguard_12"), SubResource("Resource_vanguard_13"), SubResource("Resource_vanguard_14"), SubResource("Resource_vanguard_15"), SubResource("Resource_vanguard_16"), SubResource("Resource_vanguard_17"), SubResource("Resource_vanguard_18"), SubResource("Resource_vanguard_19"), SubResource("Resource_sniper_20"), SubResource("Resource_sniper_21"), SubResource("Resource_sniper_22"), SubResource("Resource_sniper_23"), SubResource("Resource_sniper_24"), SubResource("Resource_sniper_25"), SubResource("Resource_sniper_26"), SubResource("Resource_sniper_27"), SubResource("Resource_sniper_28"), SubResource("Resource_sniper_29"), SubResource("Resource_oracle_30"), SubResource("Resource_oracle_31"), SubResource("Resource_oracle_32"), SubResource("Resource_oracle_33"), SubResource("Resource_oracle_34"), SubResource("Resource_oracle_35"), SubResource("Resource_oracle_36"), SubResource("Resource_oracle_37"), SubResource("Resource_oracle_38"), SubResource("Resource_oracle_39"), SubResource("Resource_gale_40"), SubResource("Resource_gale_41"), SubResource("Resource_gale_42"), SubResource("Resource_gale_43"), SubResource("Resource_gale_44"), SubResource("Resource_gale_45"), SubResource("Resource_gale_46"), SubResource("Resource_gale_47"), SubResource("Resource_gale_48"), SubResource("Resource_gale_49"), SubResource("Resource_striker_100"), SubResource("Resource_striker_101"), SubResource("Resource_striker_102"), SubResource("Resource_striker_103"), SubResource("Resource_striker_104"), SubResource("Resource_striker_105"), SubResource("Resource_striker_106"), SubResource("Resource_striker_107"), SubResource("Resource_striker_108"), SubResource("Resource_striker_109"), SubResource("Resource_vanguard_110"), SubResource("Resource_vanguard_111"), SubResource("Resource_vanguard_112"), SubResource("Resource_vanguard_113"), SubResource("Resource_vanguard_114"), SubResource("Resource_vanguard_115"), SubResource("Resource_vanguard_116"), SubResource("Resource_vanguard_117"), SubResource("Resource_vanguard_118"), SubResource("Resource_vanguard_119"), SubResource("Resource_sniper_120"), SubResource("Resource_sniper_121"), SubResource("Resource_sniper_122"), SubResource("Resource_sniper_123"), SubResource("Resource_sniper_124"), SubResource("Resource_sniper_125"), SubResource("Resource_sniper_126"), SubResource("Resource_sniper_127"), SubResource("Resource_sniper_128"), SubResource("Resource_sniper_129"), SubResource("Resource_oracle_130"), SubResource("Resource_oracle_131"), SubResource("Resource_oracle_132"), SubResource("Resource_oracle_133"), SubResource("Resource_oracle_134"), SubResource("Resource_oracle_135"), SubResource("Resource_oracle_136"), SubResource("Resource_oracle_137"), SubResource("Resource_oracle_138"), SubResource("Resource_oracle_139"), SubResource("Resource_gale_140"), SubResource("Resource_gale_141"), SubResource("Resource_gale_142"), SubResource("Resource_gale_143"), SubResource("Resource_gale_144"), SubResource("Resource_gale_145"), SubResource("Resource_gale_146"), SubResource("Resource_gale_147"), SubResource("Resource_gale_148"), SubResource("Resource_gale_149")])

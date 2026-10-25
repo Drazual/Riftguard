@@ -850,8 +850,15 @@ func show_heroes(sel := "vanguard") -> void:
 		v.add_child(UiText.mastery_box("heroes", sel))
 		var perks := Progress.hero_perks(sel)
 		if perks.size():
-			section(v, "Mastery unlocks · on every run", null, Kit.GOLD)
-			for p in perks:
+			# the list folds away (remembered); closed by default since it is long
+			var open := bool(Save.settings.get("mastery_perks_open", false))
+			var fold := Kit.button("%s Mastery unlocks · %d/%d unlocked, on every run" % ["▾" if open else "▸", perks.filter(func(p): return p.open).size(), perks.size()], func():
+				Save.settings.mastery_perks_open = not open
+				Save.save_settings()
+				redraw.call(), "FlatButton")
+			fold.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			v.add_child(fold)
+			for p in perks if open else []:
 				var col := Kit.TEXT if p.open else Kit.MUTED
 				v.add_child(Kit.rich(Kit.c(("★ " if p.open else "") + "Mastery %d · " % p.at, Kit.GOLD if p.open else Kit.MUTED) + Kit.b(Kit.c(p.perk.name, col)) + "  " + Kit.c(p.perk.desc, Kit.MUTED), 13))
 		section(v, "Ability · pick one")
