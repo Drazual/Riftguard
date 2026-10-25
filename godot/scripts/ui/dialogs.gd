@@ -63,8 +63,12 @@ func _path(text: String, col := Kit.MUTED) -> String:
 # ---------- hero upgrades ----------
 func level_up(data: Dictionary) -> void:
 	var box := ui.open_modal(720)
-	_title(box, "Hero upgrade")
-	_lead(box, "Level %d. Choose one. Rarer upgrades are stronger. Demonic ones are twice as strong but carry a curse." % data.lvl)
+	if data.get("reward", false):
+		_title(box, "Wave reward: free hero upgrade", Kit.GOLD)
+		_lead(box, "You met the wave's goal, so pick a free upgrade. Rarer upgrades are stronger. Demonic ones are twice as strong but carry a curse.")
+	else:
+		_title(box, "Hero upgrade")
+		_lead(box, "Level %d. Choose one. Rarer upgrades are stronger. Demonic ones are twice as strong but carry a curse." % data.lvl)
 	var g := _choices(box)
 	var offers: Array = data.offers
 	for i in offers.size():

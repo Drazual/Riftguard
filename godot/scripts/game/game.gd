@@ -2435,6 +2435,7 @@ func end_wave() -> void:
 		msgs.append("+%d reward gold" % r.gold)
 		if r.perk:
 			S.pending_levels += 1
+			S.reward_picks += 1
 			msgs.append("a free hero upgrade")
 		if r.relic:
 			apply_relic(r.relic)
@@ -3568,7 +3569,7 @@ func show_level_up(reroll := false) -> void:
 	if not reroll:
 		sfx("level")
 	offers = roll_perks()
-	modal.emit("level_up", { offers = offers, lvl = S.hero.lvl, rerolls = S.rerolls })
+	modal.emit("level_up", { offers = offers, lvl = S.hero.lvl, rerolls = S.rerolls, reward = S.reward_picks > 0 })
 
 
 func reroll_offers() -> void:
@@ -3592,6 +3593,7 @@ func pick_offer(i: int) -> void:
 	elif o.rarity.id != "common" or o.demonic:
 		say(("Demonic " if o.demonic else "") + o.rarity.name + " upgrade: " + o.perk.name + "!")
 	S.pending_levels -= 1
+	S.reward_picks = maxi(0, S.reward_picks - 1)
 	S.paused = false
 	refresh("build_bar")
 	refresh("hero")
