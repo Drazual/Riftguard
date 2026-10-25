@@ -3423,6 +3423,8 @@ func make_offer(perk: UpgradeData, list: String, rarity: Dictionary, demonic: bo
 	return o
 
 
+const BOUNCE_MAX := 8
+
 ## Two slots from your hero's own pool, one shared slot (upgrades for every hero, or for heroes of your category).
 ## Common to Rare slots offer stat upgrades, stronger at higher rarity. Mythic and Legendary slots never do: they offer
 ## upgrades that change how you play (ability upgrades and game-changers), and Secret slots the secret ones.
@@ -3441,9 +3443,12 @@ func roll_perks() -> Array:
 		return bag
 	var shared := func(p: UpgradeData) -> bool: return p.pool == "any" or p.pool == cat or p.also_pools.has(cat)
 	var mine := func(p: UpgradeData) -> bool: return p.pool == h.cls or p.also_pools.has(h.cls) or shared.call(p)
+	# Once Ricochet keeps 100% damage, Extra Bounce only comes in Mythic and higher slots (below), and neither shows at the bounce cap.
+	var maxed: bool = h.bounce_keep >= 0.999
 	# Wizard upgrades only come for what this run's elements can do; the Wizard never sees attack speed.
 	var allowed := func(p: UpgradeData) -> bool:
-		return not (p.attack_speed and h.data.spells) and dmg_ok(p) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false)) and (p.after == "" or owns(p.after))
+		return not (p.attack_speed and h.data.spells) and dmg_ok(p) and (p.element == "" or h.els.has(p.element)) and (p.needs == "" or h.can.get(p.needs, false)) and (p.after == "" or owns(p.after)) \
+			and (p.kind != "bounce" or not maxed or (p.id != "bounces" and h.bounce < BOUNCE_MAX))
 	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
 	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
@@ -3491,9 +3496,11 @@ func roll_perks() -> Array:
 				var mods := R.ability_mods.items.filter(func(m): return m.pool == h.cls and m.ability == h.ab.id and (m.min_rarity == "legendary") == (tier == "legendary") \
 					and not h.ab.has_mod(m.id) and fresh.call(m))
 				var both := uniq + mods
+				if maxed and h.bounce < BOUNCE_MAX:
+					both += R.perks.items.filter(func(p): return p.id == "bounces" and mine.call(p) and owns(p.after) and fresh.call(p))
 				if both.size():
 					perk = pick(both)
-					list = "mod" if mods.has(perk) else "unique"
+					list = "mod" if mods.has(perk) else ("unique" if uniq.has(perk) else "perk")
 					rar = DB.rar[tier]
 					break
 			if perk == null:
