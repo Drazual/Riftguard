@@ -31,6 +31,8 @@ var toast_box: PanelContainer
 var toast_label: RichTextLabel
 var toast_t := 0.0
 var mode_banner: PanelContainer
+var top_mid: VBoxContainer
+var wave_lbl: Label
 var boss_bar: VBoxContainer
 var boss_name: Label
 var boss_fill: Kit.Meter
@@ -237,15 +239,24 @@ func _board_frame() -> Control:
 	boss_bar.add_child(boss_warn)
 	boss_bar.visible = false
 	area.add_child(boss_bar)
-	# mode banner
+	# mode banner, with the wave number under it, at the top middle of the map
+	top_mid = Kit.vbox(6)
+	top_mid.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_mid.anchor_left = 0.5
+	top_mid.anchor_right = 0.5
+	top_mid.offset_left = -260
+	top_mid.offset_right = 260
+	top_mid.offset_top = 8
 	mode_banner = PanelContainer.new()
-	mode_banner.anchor_left = 0.5
-	mode_banner.anchor_right = 0.5
-	mode_banner.offset_left = -300
-	mode_banner.offset_right = 300
-	mode_banner.offset_top = 8
 	mode_banner.visible = false
-	area.add_child(mode_banner)
+	top_mid.add_child(mode_banner)
+	var wave_chip := PanelContainer.new()
+	wave_chip.theme_type_variation = "Bar"
+	wave_chip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	wave_lbl = Kit.label("", 13, Kit.TEXT, Kit.display)
+	wave_chip.add_child(wave_lbl)
+	top_mid.add_child(wave_chip)
+	area.add_child(top_mid)
 	# toast
 	toast_box = PanelContainer.new()
 	toast_box.theme_type_variation = "Toast"
@@ -475,6 +486,7 @@ func update_hud() -> void:
 	if h == null:
 		boss_bar.visible = false
 		mode_banner.visible = false
+		wave_lbl.get_parent().visible = false
 		_veil(false)
 		return
 	if S.over:
@@ -492,7 +504,7 @@ func update_hud() -> void:
 		boss_warn.visible = danger
 		if danger:
 			boss_warn.modulate.a = 0.6 + 0.4 * sin(S.time * 12)
-		boss_bar.offset_top = 110 if mode_banner.visible else 48
+		boss_bar.offset_top = top_mid.get_rect().end.y + 6
 	top_map.text = S.map.scene.map_name
 	top_wave.text = "%d/%d" % [S.wave, game.max_wave]
 	top_lives.text = str(S.lives)
@@ -550,7 +562,6 @@ func render_build_bar() -> void:
 	rune_cast = null
 	mana_meter = null
 	wall_meter = null
-	var mode_tag: String = (" · " + S.mode.name) if S.mode.kind != "normal" else ""
 	for i in S.loadout.size():
 		var k: String = S.loadout[i]
 		var d: TowerData = DB.towers[k]
@@ -611,9 +622,8 @@ func render_build_bar() -> void:
 		Kit.tip_on(ab, func(): return Kit.b("Aim point") + "  " + Kit.c("F", Kit.GOLD) + "\n" + Kit.c("Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.", Kit.MUTED), "above")
 		build_bar.add_child(ab)
 	Kit.clear(corner_bar)
-	var wl := Kit.label("WAVE %d/%d%s" % [S.wave, game.max_wave, mode_tag.to_upper()], 13, Kit.TEXT, Kit.display)
-	wl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	corner_bar.add_child(wl)
+	wave_lbl.text = "WAVE %d/%d" % [S.wave, game.max_wave]
+	wave_lbl.get_parent().visible = true
 	corner_bar.add_child(Kit.button(("Resume" if S.user_pause else "Pause") + "  P", game.toggle_pause, "OnButton" if S.user_pause else ""))
 	corner_bar.add_child(Kit.button("%d×" % S.speed, func():
 		S.speed = 1 if S.speed == 3 else S.speed + 1
