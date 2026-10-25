@@ -28,6 +28,7 @@
 [ext_resource type="Resource" path="res://data/heroes/sniper.tres" id="24_7lomy"]
 [ext_resource type="Resource" path="res://data/heroes/wizard.tres" id="25_4m1h7"]
 [ext_resource type="Resource" path="res://data/lists/heroics.tres" id="26_23vll"]
+[ext_resource type="Resource" path="res://data/lists/mastery_perks.tres" id="26_mperk"]
 [ext_resource type="Resource" path="res://data/lists/legendary_relics.tres" id="27_wud1j"]
 [ext_resource type="PackedScene" path="res://maps/canal_crossing.tscn" id="27_canal"]
 [ext_resource type="PackedScene" path="res://maps/coral_spiral.tscn" id="27_coral"]
@@ -75,6 +76,7 @@ ability_mods = ExtResource("1_7wtcu")
 uniques = ExtResource("53_3y6qg")
 curses = ExtResource("3_bh8go")
 heroics = ExtResource("26_23vll")
+mastery_perks = ExtResource("26_mperk")
 relics = ExtResource("34_jrapq")
 legendary_relics = ExtResource("27_wud1j")
 secret_relics = ExtResource("37_lsrb8")

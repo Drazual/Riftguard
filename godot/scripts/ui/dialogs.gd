@@ -265,7 +265,8 @@ func end(data: Dictionary) -> void:
 		var tags := Kit.flow(6)
 		for m in data.mastery:
 			var col: Color = m.color if m.color != null else Kit.TEXT
-			tags.add_child(Kit.tag(Kit.c("%s: mastery %d → %d%s" % [m.name, m.a, m.b, " · triple rune open" if m.get("triple", false) else ""], col)))
+			var extra: String = " · triple rune open" if m.get("triple", false) else (" · unlocked " + m.perks if m.get("perks", "") != "" else "")
+			tags.add_child(Kit.tag(Kit.c("%s: mastery %d → %d%s" % [m.name, m.a, m.b, extra], col)))
 		box.add_child(tags)
 	for s in data.new_songs:
 		var c := Kit.card(10)

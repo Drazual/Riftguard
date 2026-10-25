@@ -50,6 +50,20 @@ static func mastery_of(kind: String, k: String) -> Dictionary:
 		next_map = DB.map_order[beaten] if beaten < DB.map_order.size() else "" }
 
 
+## A hero's mastery unlocks, in order: { perk, at (mastery level), open }.
+static func hero_perks(k: String, lvl := -1) -> Array:
+	if lvl < 0:
+		lvl = mastery_of("heroes", k).lvl
+	var out := []
+	if DB.rules.mastery_perks == null:
+		return out
+	for u in DB.rules.mastery_perks.items:
+		if u.hero == k:
+			var at: int = DB.rules.mastery_perk_every * (out.size() + 1)
+			out.append({ perk = u, at = at, open = lvl >= at })
+	return out
+
+
 ## Element mastery: 1 point for every 10 mana spent on spells that use the element.
 static func el_mastery(el: String, extra := 0.0) -> Dictionary:
 	var pts := int(floor(float(Save.meta.el_stat.get(el, 0)) + extra))
