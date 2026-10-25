@@ -28,6 +28,8 @@ extends Resource
 @export var attack_speed := false
 ## Wizard: only when the run's spells can freeze, wall or push.
 @export var needs := ""
+## Only once this upgrade (by id) has been picked.
+@export var after := ""
 ## Wizard: only when this element is taken.
 @export var element := ""
 ## Upgrade "kind" so one roll never offers two of the same kind.

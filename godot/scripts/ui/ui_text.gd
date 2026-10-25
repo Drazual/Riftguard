@@ -224,7 +224,7 @@ static func hero_stats(g: Game, h: Hero) -> Array:
 	var an := a.name if a else ""
 	return [
 		["Damage", h.dmg, "n"], ["Attacks", 1 / h.rate, "r"], ["Max HP", h.max_hp, "n"], ["Armor", h.armor, "p"], ["Regen/s", h.regen, "n"],
-		["Crit chance", h.crit, "p"], ["Crit damage", h.crit_dmg, "p"], ["Targets", 1 + h.multi, "n"], ["Range", minf(9999, h.range), "n"],
+		["Crit chance", h.crit, "p"], ["Crit damage", h.crit_dmg, "p"], ["Bounces", h.bounce, "n"], ["Bounce damage kept", h.bounce_keep, "p"], ["Range", minf(9999, h.range), "n"],
 		["Move speed", h.speed, "n"], ["Blocks", mini(h.block, Game.ALL_BLOCK - 1), "n"], ["Respawn", h.respawn, "s"], ["Build range", h.build_range, "n"],
 		["Tower aura", h.aura, "p"], ["Aura reach", h.aura_range, "n"], ["Aura slow", h.aura_slow, "p"], ["Heal per kill", h.siphon, "n"],
 		["Hero kill gold", h.bounty, "n"], ["Kill gold (all)", h.tithe, "n"], ["Thorns/s", h.thorns, "n"], ["Taunt", h.taunt, "s"],
