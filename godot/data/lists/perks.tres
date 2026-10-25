@@ -217,9 +217,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "bounce"
 name = "Ricochet"
-desc = "{iff(h.bounce, 'Ricochets', 'Shots ricochet to 1 more enemy and')} keep {pct(iff(h.bounce_keep, min(0.85, h.bounce_keep + m), 0.4 + m))} of their damage each bounce."
-effect = "h.bounce = max(1, h.bounce)
-h.bounce_keep = iff(h.bounce_keep, min(0.85, h.bounce_keep + m), 0.4 + m)"
+desc = "{iff(h.bounce_keep >= 0.999, 'Ricochets bounce 1 more time, still at full damage.', iff(h.bounce, 'Ricochets', 'Shots ricochet to 1 more enemy and') + ' keep ' + pct(iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)) + ' of their damage each bounce.')}"
+effect = "h.bounce = iff(h.bounce_keep >= 0.999, min(8, h.bounce + 1), max(1, h.bounce))
+h.bounce_keep = iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)"
 m = 0.1
 pool = "striker"
 also_pools = PackedStringArray()
@@ -231,7 +231,7 @@ script = ExtResource("1_ttpmk")
 id = "bounces"
 name = "Extra Bounce"
 desc = "Ricochets bounce {max(1, round(m))} more time{iff(round(m) > 1, 's', '')}."
-effect = "h.bounce = min(5, h.bounce + max(1, round(m)))"
+effect = "h.bounce = min(8, h.bounce + max(1, round(m)))"
 m = 1.0
 pool = "striker"
 also_pools = PackedStringArray()
