@@ -59,6 +59,8 @@ var mode_timer: Label
 
 var hud_t := 0.0
 var hero_t := 0
+var hero_tags: Control # the upgrade tags, kept across hero card redraws while they're unchanged
+var hero_tags_key := ""
 var last_bar_gold := -1.0
 var last_insp_gold := -1.0
 var held_keys := {}
@@ -934,9 +936,20 @@ func render_hero() -> void:
 		return
 	var h := S.hero
 	var d := h.data
-	Kit.clear(hero_card)
-	var v := Kit.vbox(6)
-	hero_card.add_child(v)
+	# The card redraws every few frames; rebuilding the tags each time would drop the hovered tag's tooltip.
+	var tags_key := str([S.get_instance_id(), S.heroics, S.boons.keys(), S.picks.map(func(o): return [o.perk.id, o.rarity.id, o.demonic]), S.relics.map(func(r): return r.id)])
+	var keep := tags_key == hero_tags_key and is_instance_valid(hero_tags)
+	var v: VBoxContainer
+	if keep: # clear around the tags: taking a hovered control out of the tree counts as the mouse leaving it
+		v = hero_tags.get_parent()
+		for ch in v.get_children():
+			if ch != hero_tags:
+				v.remove_child(ch)
+				ch.queue_free()
+	else:
+		Kit.clear(hero_card)
+		v = Kit.vbox(6)
+		hero_card.add_child(v)
 	v.add_child(Kit.h3("%s · %s · Lv %d%s" % [d.name, d.role, h.lvl, " · Knocked out" if h.ko > 0 else ""], d.color))
 	var ab_line := ""
 	if d.spells:
@@ -990,6 +1003,9 @@ func render_hero() -> void:
 	if h.xp_gain:
 		lv += " XP gain +%s." % UiText.pct(h.xp_gain)
 	sheet.add_child(Kit.muted(lv))
+	if keep:
+		v.move_child(hero_tags, -1)
+		return
 	var tags := Kit.flow(4)
 	for x: UpgradeData in game.R.heroics.items:
 		var r: int = S.heroics.get(x.id, 0)
@@ -1020,17 +1036,20 @@ func render_hero() -> void:
 				top = o
 		var col: Color = Kit.RAR.get(top.rarity.id, Kit.TEXT)
 		var label: String = ("☠ " if top.demonic else "") + top.perk.name + (" ×%d" % list.size() if list.size() > 1 else "")
-		var tg := Kit.tag(Kit.c(label, Kit.TEXT if top.rarity.id == "common" else col), Kit.DANGER if top.demonic else (Kit.LINE if top.rarity.id == "common" else col), Color("#2a1220") if top.demonic else Kit.PANEL2)
+		var tg := Kit.tag(Kit.c(label, Kit.TEXT if top.rarity.id == "common" else col), Kit.DANGER if top.demonic else col, Color("#2a1220") if top.demonic else Kit.PANEL2)
 		Kit.tip_on(tg, func(): return "\n".join(list.map(func(o): return (o.rarity.name + ": " if list.size() > 1 else "") + game.perk_desc(o) + ((" Curse: " + game.curse_desc(o)) if o.demonic else ""))))
 		tags.add_child(tg)
 	for r: UpgradeData in S.relics:
 		var tg := Kit.tag(Kit.c(r.name, Kit.GOLD), Kit.GOLD)
 		Kit.tip_on(tg, func(): return game.relic_desc(r))
 		tags.add_child(tg)
+	hero_tags_key = tags_key
 	if tags.get_child_count() == 0:
-		v.add_child(Kit.muted("No upgrades yet. Kill enemies to level up."))
+		hero_tags = Kit.muted("No upgrades yet. Kill enemies to level up.")
+		tags.free()
 	else:
-		v.add_child(tags)
+		hero_tags = tags
+	v.add_child(hero_tags)
 
 
 ## Top-middle reminder of the chosen Hard or Challenge wave: its goal and every buff or handicap.
