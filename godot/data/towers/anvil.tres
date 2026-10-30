@@ -9,12 +9,12 @@
 [sub_resource type="Resource" id="Resource_40c7c"]
 script = ExtResource("1_hs41w")
 id = "crush"
-name = "Crush"
+name = "Armor Crusher"
 adjective = "Crushing"
 noun = "Anvil"
 title = "Ruin"
-desc = "+15% damage per point."
-effect = "t.dmg *= 1.15"
+desc = "Slams ignore 10% armor per point."
+effect = "t.sunder += 0.1"
 mastery_name = "Executioner’s Weight"
 mastery_desc = "Stopped enemies below 15% HP are crushed instantly (not bosses)."
 mastery_effect = "t.crush_exec = 0.15"

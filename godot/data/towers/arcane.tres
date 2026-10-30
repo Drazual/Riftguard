@@ -9,14 +9,14 @@
 [sub_resource type="Resource" id="Resource_q2rm3"]
 script = ExtResource("1_lvjcc")
 id = "runes"
-name = "Sharpened Runes"
+name = "Weakening Runes"
 adjective = "Runic"
 noun = "Glyph"
 title = "Runes"
-desc = "+20% damage per point."
-effect = "t.dmg *= 1.2"
+desc = "Hits mark enemies to take +4% damage from every source per point for 2s."
+effect = "t.mark += 0.04"
 mastery_name = "Arcane Mark"
-mastery_desc = "Hits mark enemies to take +20% damage from everything for 2s."
+mastery_desc = "Marks grow by another +20%, so marked enemies take +36% damage from everything."
 mastery_effect = "t.mark += 0.2"
 
 [sub_resource type="Resource" id="Resource_22xw4"]

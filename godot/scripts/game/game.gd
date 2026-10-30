@@ -408,7 +408,7 @@ func tower_kind(t: Tower) -> String:
 func level_key(t: Tower) -> String:
 	if not t.hybrid and DB.towers.has(t.type):
 		return DB.towers[t.type].level_bonus
-	return "dmg"
+	return "hybrid"
 
 
 func level_text(t: Tower) -> String:
@@ -551,8 +551,8 @@ func armor_of(e: Enemy, src) -> float:
 	if e.brittle_t > 0:
 		return 0.0
 	var a := e.armor + e.aura_armor - (e.brk if e.brk_t > 0 else 0.0)
-	if src is Tower and src.buff:
-		a -= src.buff.sunder
+	if src is Tower:
+		a -= src.sunder + (src.buff.sunder if src.buff else 0.0)
 	return clampf(a, 0, R.boss_armor_cap if e.boss else R.armor_cap)
 
 

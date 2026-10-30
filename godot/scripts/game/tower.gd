@@ -6,7 +6,7 @@ extends RefCounted
 ## Numbers merges keep the stronger value of (the original game's TRAITS list).
 const TRAITS := ["splash", "slow", "slow_dur", "chain", "chain_mul", "chain_reach", "multi", "ramp", "surge", "burn", "brittle", "mark", "cluster", "orbital",
 	"freeze", "zero", "stun", "prism", "execute", "nova", "echo", "death_blast", "gravity", "time_lock", "shatter", "frostfire", "storm", "chain_blast", "overload",
-	"pierce", "loot", "leech", "tempo", "hex", "hex_nova", "hypo", "cold_snap", "crush", "b_dmg", "b_rate", "b_range", "b_sunder", "b_gold", "b_overdrive", "b_tempo",
+	"pierce", "sunder", "loot", "leech", "tempo", "hex", "hex_nova", "hypo", "cold_snap", "crush", "b_dmg", "b_rate", "b_range", "b_sunder", "b_gold", "b_overdrive", "b_tempo",
 	"b_light", "b_break", "b_rush"]
 
 var type := ""
@@ -87,6 +87,8 @@ var storm := 0.0
 var chain_blast := 0.0
 var overload := 0.0
 var pierce := 0.0
+## Share of enemy armor this tower's hits ignore.
+var sunder := 0.0
 var loot := 0.0
 var leech := 0.0
 var tempo := 0.0
