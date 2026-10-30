@@ -34,6 +34,8 @@ extends Resource
 @export var element := ""
 ## Upgrade "kind" so one roll never offers two of the same kind.
 @export var kind := ""
+## How often it comes up in hero upgrade rolls next to the rest of its pool (1 = normal, 0.5 = half as often).
+@export var weight := 1.0
 @export_group("Menu upgrades")
 @export var max_rank := 10
 ## Cost of the next rank; r is the current rank.

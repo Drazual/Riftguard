@@ -376,7 +376,7 @@ func perks() -> Array:
 		{ id = "critdmg", pool = "offensive", name = "Lethal Edge", m = 0.25, desc = "+{pct(m)} crit damage.", effect = "h.crit_dmg += m" },
 		{ id = "bounce", pool = "striker", name = "Ricochet", m = 0.1, desc = "{iff(h.bounce_keep >= 0.999, 'Ricochets bounce 1 more time, still at full damage.', iff(h.bounce, 'Ricochets', 'Shots ricochet to 1 more enemy and') + ' keep ' + pct(iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)) + ' of their damage each bounce.')}", effect = "h.bounce = iff(h.bounce_keep >= 0.999, min(8, h.bounce + 1), max(1, h.bounce))\nh.bounce_keep = iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)" },
 		{ id = "bounces", pool = "striker", name = "Extra Bounce", m = 1.0, after = "bounce", desc = "Ricochets bounce {max(1, round(m))} more time{iff(round(m) > 1, 's', '')}.", effect = "h.bounce = min(8, h.bounce + max(1, round(m)))" },
-		{ id = "scope", pool = "striker", name = "Long Barrel", m = 0.12, desc = "+{pct(m)} attack range.", effect = "h.range *= 1 + m" },
+		{ id = "scope", pool = "striker", name = "Long Barrel", m = 0.12, weight = 0.35, desc = "+{pct(m)} attack range.", effect = "h.range *= 1 + m" },
 		{ id = "clock", pool = "striker", name = "Overclock", m = 0.15, desc = "+{pct(m)} attack speed.", effect = "h.rate /= 1 + m" },
 		{ id = "core", pool = "striker", ability = "nova", name = "Nova Core", m = 0.3, desc = "Rift Nova deals +{pct(m)} damage.", effect = "h.ab.dmg *= 1 + m" },
 		{ id = "nfocus", pool = "striker", name = "Rift Focus", m = 0.1, desc = "{h.ab.name} recharges {pct(min(0.5, m))} faster.", effect = "h.ab.cd = max(6, h.ab.cd * (1 - min(0.5, m)))" },

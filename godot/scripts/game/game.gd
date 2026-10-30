@@ -3434,14 +3434,17 @@ func roll_perks() -> Array:
 	var h := S.hero
 	var cat := hero_cat()
 	var out := []
-	var weighted := func(list: Array) -> Array:
-		var bag := []
+	# Each upgrade's own weight (some, like hero range, come up less often), tripled once you own it.
+	var weighted := func(list: Array) -> UpgradeData:
+		var total := 0.0
 		for p in list:
-			bag.append(p)
-			if owns(p.id):
-				bag.append(p)
-				bag.append(p)
-		return bag
+			total += p.weight * (3.0 if owns(p.id) else 1.0)
+		var roll := randf() * total
+		for p in list:
+			roll -= p.weight * (3.0 if owns(p.id) else 1.0)
+			if roll < 0:
+				return p
+		return list.back() if list.size() else null
 	var shared := func(p: UpgradeData) -> bool: return p.pool == "any" or p.pool == cat or p.also_pools.has(cat)
 	var mine := func(p: UpgradeData) -> bool: return p.pool == h.cls or p.also_pools.has(h.cls) or shared.call(p)
 	# Once Ricochet keeps 100% damage, Extra Bounce only comes in Mythic and higher slots (below), and neither shows at the bounce cap.
@@ -3509,9 +3512,9 @@ func roll_perks() -> Array:
 		if perk == null:
 			var pool := func(p: UpgradeData) -> bool: return slot_ok.call(p, slot) and ab_ok.call(p) and fits.call(p) and _min_ok(p, rar)
 			# If every kind in this pool is already on offer, fall back to anything not already shown.
-			perk = pick(weighted.call(R.perks.items.filter(func(p): return pool.call(p) and fresh.call(p))))
+			perk = weighted.call(R.perks.items.filter(func(p): return pool.call(p) and fresh.call(p)))
 			if perk == null:
-				perk = pick(weighted.call(R.perks.items.filter(func(p): return (shared.call(p) if slot == "hero" else p.pool == h.cls) and ab_ok.call(p) and allowed.call(p) and fresh.call(p))))
+				perk = weighted.call(R.perks.items.filter(func(p): return (shared.call(p) if slot == "hero" else p.pool == h.cls) and ab_ok.call(p) and allowed.call(p) and fresh.call(p)))
 			if perk == null:
 				perk = pick(R.perks.items.filter(func(p): return (pool.call(p) or shared.call(p)) and allowed.call(p) and not taken.has(p.id)))
 		if perk:
