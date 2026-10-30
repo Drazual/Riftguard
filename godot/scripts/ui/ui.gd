@@ -446,12 +446,17 @@ func toast(msg: String) -> void:
 
 func show_tip(bb: String, rect: Rect2, where := "below") -> void:
 	tip_label.text = bb
+	# Kept see-through until it's measured and placed, so it never flashes at its old spot or size.
+	tip.modulate.a = 0
 	tip.visible = true
 	tip.size = Vector2(300, 0)
 	tip.reset_size()
 	await get_tree().process_frame
-	if not tip.visible:
+	if not tip.visible or tip_label.text != bb:
 		return
+	# The label only wraps to its real width after its first layout. Before that it measures as one word
+	# per line, so the very first tip came out as a huge empty box. Shrink to fit now that it's wrapped.
+	tip.reset_size()
 	var ts := tip.size
 	var vs := get_viewport_rect().size
 	var x := rect.position.x + rect.size.x / 2 - ts.x / 2
@@ -459,6 +464,7 @@ func show_tip(bb: String, rect: Rect2, where := "below") -> void:
 	if y < 8:
 		y = rect.end.y + 12
 	tip.position = Vector2(clampf(x, 8, vs.x - ts.x - 8), clampf(y, 8, vs.y - ts.y - 8))
+	tip.modulate.a = 1
 
 
 func hide_tip() -> void:
