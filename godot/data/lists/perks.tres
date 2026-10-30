@@ -249,6 +249,7 @@ m = 0.12
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "range"
+weight = 0.35
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_egr0f"]
