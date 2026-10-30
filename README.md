@@ -10,10 +10,10 @@ Built with [Phaser 3](https://phaser.io) and [Vite](https://vitejs.dev).
 
 Go to [the latest release](https://github.com/Drazual/riftguard/releases/latest) and download:
 
-- **Riftguard-x.y.z-setup.exe** to install the game with a desktop shortcut. The installed game checks for updates every time you open it, installs any it finds, then starts.
-- **Riftguard-x.y.z-portable.exe** to play without installing. This one does not update itself.
+- **Riftguard-setup.exe** to install the game. It puts a Riftguard shortcut on your desktop and in the Start menu, needs no admin rights, and can be removed from Windows' installed apps list.
+- **Riftguard.exe** to play without installing. The first time it runs it adds the same desktop and Start menu shortcuts, pointing at wherever you saved it.
 
-Windows may show a "Windows protected your PC" warning because the app isn't code-signed yet. Click **More info**, then **Run anyway**. The game opens fullscreen. Press Esc (or the gear) for settings, and F11 to toggle fullscreen.
+Both update themselves every time you open them.
 
 **Sharing with testers:** send them the [latest release](https://github.com/Drazual/riftguard/releases/latest) link and have them install the setup file. Their copy updates itself just like yours. Progress is saved per computer.
 

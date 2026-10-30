@@ -27,6 +27,7 @@ func _ready() -> void:
 	_clean_old()
 	if OS.has_feature("windows") and OS.has_feature("template"):
 		_remove_electron_install()
+		_make_shortcuts()
 	if not enabled():
 		state = "off"
 		return
@@ -68,8 +69,28 @@ func _clean_old() -> void:
 		DirAccess.remove_absolute(old)
 
 
+## The first time the game runs, add a desktop and a Start menu shortcut to this exe, so a player who just
+## downloaded Riftguard.exe can find it again. Shortcuts that already exist (the installer makes them) are left alone,
+## and one the player deletes later isn't put back.
+func _make_shortcuts() -> void:
+	if Save.settings.get("shortcuts_made", false):
+		return
+	Save.settings.shortcuts_made = true
+	Save.save_settings()
+	var exe := exe_path().replace("/", "\\").replace("'", "''")
+	var ps := "$exe = '%s'; $sh = New-Object -ComObject WScript.Shell; " % exe \
+		+ "foreach ($dir in [Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('Programs')) { " \
+		+ "$lnk = Join-Path $dir 'Riftguard.lnk'; if ($dir -and -not (Test-Path $lnk)) { " \
+		+ "$s = $sh.CreateShortcut($lnk); $s.TargetPath = $exe; $s.WorkingDirectory = Split-Path $exe; $s.Save() } }"
+	var t := Thread.new()
+	t.start(func():
+		OS.execute("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps])
+		t.wait_to_finish.call_deferred())
+
+
 ## The old Electron version installed itself (Riftguard-x.y.z-setup.exe). The first time this version runs, find that
 ## install in the Windows uninstall list and run its uninstaller silently, so players only keep the new game.
+## The Godot installer's own entry (Inno Setup, key ending _is1) is skipped.
 ## The old version's progress is in its own folder, which the uninstaller leaves alone.
 func _remove_electron_install() -> void:
 	if Save.settings.get("electron_removed", false):
@@ -78,7 +99,7 @@ func _remove_electron_install() -> void:
 	t.start(func():
 		var ps := "$k = 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'; " \
 			+ "Get-ItemProperty ('HKCU:\\' + $k), ('HKLM:\\' + $k) -ErrorAction SilentlyContinue | " \
-			+ "Where-Object { $_.DisplayName -like 'Riftguard*' -and $_.QuietUninstallString } | " \
+			+ "Where-Object { $_.DisplayName -like 'Riftguard*' -and $_.QuietUninstallString -and $_.PSChildName -notlike '*_is1' } | " \
 			+ "ForEach-Object { $_.QuietUninstallString + '|' + $_.InstallLocation }"
 		var out := []
 		OS.execute("powershell", ["-NoProfile", "-NonInteractive", "-Command", ps], out)

@@ -1,12 +1,13 @@
 name: Godot build
 
 # Builds the Godot version of the game for Windows on every push to main that changes godot/,
-# and publishes it as a GitHub release tagged godot-v<version>. The game checks these releases
+# wraps it in an installer (installer/riftguard.iss) that adds desktop and Start menu shortcuts,
+# and publishes both as a GitHub release tagged godot-v<version>. The game checks these releases
 # on launch and updates itself (see godot/scripts/core/updater.gd).
 on:
   push:
     branches: [main]
-    paths: ['godot/**', '.github/workflows/godot.yml']
+    paths: ['godot/**', 'installer/**', '.github/workflows/godot.yml']
   workflow_dispatch:
 
 permissions:
@@ -18,6 +19,8 @@ env:
 jobs:
   windows:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Godot and the export templates
@@ -47,18 +50,45 @@ jobs:
           mkdir -p godot/build
           godot --headless --path godot --export-release "Windows" build/Riftguard.exe
           test -s godot/build/Riftguard.exe
-      - name: Write release notes
+      - uses: actions/upload-artifact@v4
+        with:
+          name: riftguard-exe
+          path: godot/build/Riftguard.exe
+
+  # Inno Setup only runs on Windows, so the installer is built in its own job from the exported exe.
+  installer:
+    needs: windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: riftguard-exe
+          path: godot/build
+      - name: Build the installer
+        shell: pwsh
         run: |
-          V="${{ steps.version.outputs.version }}"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; if ($LASTEXITCODE) { exit 1 } }
+          & $iscc "/DAppVersion=${{ needs.windows.outputs.version }}" installer\riftguard.iss
+          if ($LASTEXITCODE) { exit 1 }
+          if (-not (Test-Path godot\build\Riftguard-setup.exe)) { exit 1 }
+      - name: Write release notes
+        shell: bash
+        run: |
           {
-            echo "Download **Riftguard.exe** and run it. It plays without installing and updates itself when you open it."
+            echo "Download **Riftguard-setup.exe** and run it. It installs the game with a desktop and Start menu shortcut, no admin rights needed."
             echo
-            echo "This is the Godot version of the game. Built from ${{ github.sha }}."
+            echo "Or download **Riftguard.exe** to play without installing; it adds a desktop shortcut the first time it runs."
+            echo
+            echo "Either way the game updates itself when you open it. This is the Godot version of the game. Built from ${{ github.sha }}."
           } > release-notes.md
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: godot-v${{ steps.version.outputs.version }}
-          name: Riftguard ${{ steps.version.outputs.version }} (Godot)
+          tag_name: godot-v${{ needs.windows.outputs.version }}
+          name: Riftguard ${{ needs.windows.outputs.version }} (Godot)
           body_path: release-notes.md
           make_latest: true
-          files: godot/build/Riftguard.exe
+          files: |
+            godot/build/Riftguard-setup.exe
+            godot/build/Riftguard.exe
