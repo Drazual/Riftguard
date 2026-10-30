@@ -71,6 +71,7 @@ static func traits(g: Game, t: Tower) -> Array:
 	if t.chain_blast: out.append("Lightning jumps explode for %s damage." % pct(t.chain_blast))
 	if t.overload: out.append("Every 10th shot deals +%s damage and stuns." % pct(t.overload))
 	if t.pierce: out.append("Shots pierce %s enemies behind the target." % f0(t.pierce))
+	if t.sunder: out.append("Ignores %s armor." % pct(t.sunder))
 	if t.loot: out.append("Kills drop +%s gold." % f0(t.loot))
 	if t.leech: out.append("Kills heal your hero %s HP." % f0(t.leech))
 	if t.tempo: out.append("Each shot speeds up the next by %s (5 stacks)." % pct(t.tempo))
@@ -258,7 +259,7 @@ static func tower_stats(g: Game, t: Tower) -> Array:
 		["Freeze every", t.freeze, "n"], ["Chill stacks to freeze", t.hypo, "n"], ["Aura slow", t.zero, "p"], ["Stun chance", t.stun, "p"], ["Prism splits", t.prism, "n"], ["Execute below", t.execute, "p"],
 		["Nova", t.nova, "p"], ["Echo", t.echo, "p"], ["Death blast", t.death_blast, "p"], ["Drag back", t.gravity, "n"], ["Time lock", t.time_lock, "s"],
 		["Shatter", t.shatter, "p"], ["Frostfire", t.frostfire, "p"], ["Storm bolts", t.storm, "n"], ["Ion burst", t.chain_blast, "p"], ["Overload", t.overload, "p"],
-		["Pierce", t.pierce, "n"], ["Kill gold", t.loot, "n"], ["Kill heal", t.leech, "n"], ["Tempo", t.tempo, "p"], ["Hex pulse", t.hex, "p"], ["Hex Nova", t.hex_nova, "p"],
+		["Pierce", t.pierce, "n"], ["Armor pierce", t.sunder, "p"], ["Kill gold", t.loot, "n"], ["Kill heal", t.leech, "n"], ["Tempo", t.tempo, "p"], ["Hex pulse", t.hex, "p"], ["Hex Nova", t.hex_nova, "p"],
 		["Buff damage", t.b_dmg if t.support else 0.0, "p"], ["Buff fire rate", t.b_rate, "p"], ["Buff range", t.b_range, "p"], ["Armor ignored", t.b_sunder, "p"],
 		["Buff kill gold", t.b_gold, "p"], ["Pressure per second", t.press if t.type == "anvil" else 0.0, "p"], ["Pressure cap", t.press_cap if t.type == "anvil" else 0.0, "p"],
 		["Pin", t.pin, "s"], ["Hero damage taken", 1 - t.guard if t.type == "anvil" else 0.0, "p"], ["Crush below", t.crush_exec, "p"],

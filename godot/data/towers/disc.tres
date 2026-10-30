@@ -9,12 +9,12 @@
 [sub_resource type="Resource" id="Resource_dhone"]
 script = ExtResource("1_path")
 id = "honed"
-name = "Honed Edge"
-adjective = "Honed"
+name = "Reaper Edge"
+adjective = "Reaping"
 noun = "Cleaver"
 title = "Edges"
-desc = "+20% damage per point."
-effect = "t.dmg *= 1.2"
+desc = "Discs finish off non-boss enemies below 3% HP per point."
+effect = "t.execute += 0.03"
 mastery_name = "Heavy Disc"
 mastery_desc = "Bosses only count as 1 hit instead of 3, and take +50% damage from the disc."
 mastery_effect = "t.disc_heavy = true"

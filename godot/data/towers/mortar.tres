@@ -9,12 +9,12 @@
 [sub_resource type="Resource" id="Resource_gm4ry"]
 script = ExtResource("1_51p67")
 id = "payload"
-name = "Heavy Payload"
+name = "Salvage Shells"
 adjective = "Thundering"
 noun = "Mortar"
-title = "Ruin"
-desc = "+20% damage per point."
-effect = "t.dmg *= 1.2"
+title = "Spoils"
+desc = "Kills by the mortar drop +1 gold per point."
+effect = "t.loot += 1"
 mastery_name = "Bunker Buster"
 mastery_desc = "Every 3rd shell deals triple damage in a double-size blast."
 mastery_effect = "t.orbital = 3"

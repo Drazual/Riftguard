@@ -77,10 +77,17 @@ extends Resource
 @export var super_cooldown := 5.0
 ## Boss Cores for a tower's Signature.
 @export var signature_cores := 20
-@export_multiline var level_dmg := "t.dmg *= 1.05"
-@export var level_dmg_text := "+5% damage"
+## Damage towers have no damage path, so their levels carry the damage growth: each level adds 20% of the
+## level 1 damage (x1.2 at level 2, x1.8 at level 5, x3.4 at level 13).
+@export_multiline var level_dmg := "t.dmg *= (4.0 + t.lvl) / (3.0 + t.lvl)"
+@export var level_dmg_text := "+20% of its level 1 damage"
 @export_multiline var ascend_dmg := "t.dmg *= 1.3\nt.rate *= 0.87"
 @export var ascend_dmg_text := "+30% damage and fires 15% faster"
+## Hybrids and super towers.
+@export_multiline var level_hybrid := "t.dmg *= 1.05"
+@export var level_hybrid_text := "+5% damage"
+@export_multiline var ascend_hybrid := "t.dmg *= 1.3\nt.rate *= 0.87"
+@export var ascend_hybrid_text := "+30% damage and fires 15% faster"
 @export_multiline var level_rate := "t.rate *= 0.96"
 @export var level_rate_text := "+4% attack speed"
 @export_multiline var ascend_rate := "t.rate *= 0.8\nt.slow = min(0.85, t.slow + 0.1)"

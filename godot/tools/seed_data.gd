@@ -112,8 +112,8 @@ func towers() -> Array:
 	return [
 		T({ id = "arcane", name = "Arcane Bolt", cost = 50, dmg = 14.0, rate = 0.5, range = 120.0, color = col(0xff4fc0), element_tag = "arcane",
 			info = "Fires quick magic bolts at one enemy at a time. Steady, reliable damage that is good against anything." }, [
-			P("runes", "Sharpened Runes", "power", ["Runic", "Glyph", "Runes"], "+20% damage per point.", "t.dmg *= 1.2",
-				"Arcane Mark", "Hits mark enemies to take +20% damage from everything for 2s.", "t.mark += 0.2"),
+			P("runes", "Weakening Runes", "power", ["Runic", "Glyph", "Runes"], "Hits mark enemies to take +4% damage from every source per point for 2s.", "t.mark += 0.04",
+				"Arcane Mark", "Marks grow by another +20%, so marked enemies take +36% damage from everything.", "t.mark += 0.2"),
 			P("hex", "Hex Brand", "arcane", ["Hexed", "Brand", "Hexes"], "Hits brand enemies. Every second a branded enemy pulses 2% more per point of all the damage it has taken so far, to itself and enemies within 60. Ignores armor.", "t.hex += 0.02",
 				"Hex Nova", "Branded enemies explode when they die for 25% of all the damage they took, hitting enemies within 80.", "t.hex_nova = max(t.hex_nova, 0.25)"),
 			P("focus", "Arcane Focus", "precision", ["Focused", "Lens", "Focus"], "Each hit in a row on the same enemy deals +10% more damage per point (5 stacks).", "t.ramp += 0.1",
@@ -130,7 +130,7 @@ func towers() -> Array:
 			info = "Lobs slow plasma shells that explode on impact and hurt every enemy in the blast. Best against tight groups." }, [
 			P("shells", "Bigger Shells", "burst", ["Shrapnel", "Mortar", "Shrapnel"], "+20% blast radius per point.", "t.splash *= 1.2",
 				"Cluster Bomb", "Each shot also throws 2 bomblets at nearby enemies for 50% damage.", "t.cluster = 2"),
-			P("hot", "Hot Plasma", "power", ["Molten", "Cannon", "Fire"], "+20% damage per point.", "t.dmg *= 1.2",
+			P("hot", "Long Barrel", "power", ["Farshot", "Cannon", "Reach"], "+8% range per point.", "t.range *= 1.08",
 				"Orbital Strike", "Every 4th shot is a huge blast: double radius, triple damage.", "t.orbital = 4"),
 			P("burn", "Burning Ground", "burn", ["Blazing", "Pyre", "Embers"], "Hits burn for +30% of their damage over 2s per point.", "t.burn += 0.3",
 				"Chain Reaction", "Enemies this tower kills explode for 20% of their max HP.", "t.death_blast += 0.2"),
@@ -162,8 +162,8 @@ func towers() -> Array:
 			info = "Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies." }, [
 			P("arcs", "More Arcs", "chain", ["Forked", "Arc", "Storms"], "Lightning jumps to 1 more enemy per point.", "t.chain += 1",
 				"Storm Call", "Every 4th shot calls lightning down on 3 random enemies in range.", "t.storm += 3"),
-			P("volt", "High Voltage", "power", ["Charged", "Coil", "Voltage"], "+20% damage per point.", "t.dmg *= 1.2",
-				"Overload", "Lightning jumps have a 15% chance to stun for 0.6s.", "t.stun = max(t.stun, 0.15)"),
+			P("volt", "Static Shock", "power", ["Charged", "Coil", "Voltage"], "Lightning jumps get a 4% chance per point to stun for 0.6s.", "t.stun += 0.04",
+				"Overload", "Lightning jumps get another +15% stun chance (31% in all).", "t.stun += 0.15"),
 			P("conduct", "Conductive", "chain", ["Conductive", "Conduit", "Currents"], "Jumps lose 7% less damage per point.", "t.chain_mul = min(0.95, t.chain_mul + 0.07)",
 				"Ion Burst", "Every lightning jump explodes for 30% damage around it.", "t.chain_blast += 0.3"),
 			P("bank", "Capacitor Bank", "speed", ["Overclocked", "Dynamo", "Haste"], "Fires 14% faster per point.", "t.rate *= 0.86",
@@ -192,7 +192,7 @@ func towers() -> Array:
 		{ oy = 37, my = 22 }),
 		T({ id = "anvil", name = "Grave Anvil", cost = 90, dmg = 40.0, rate = 1.6, range = 70.0, color = col(0xf6a14a), element_tag = "burst",
 			info = "Slams the ground, crushing enemies that are not moving: blocked by your hero, stunned or frozen. The longer they stay still, the harder it hits. Moving enemies only take 30%." }, [
-			P("crush", "Crush", "power", ["Crushing", "Anvil", "Ruin"], "+15% damage per point.", "t.dmg *= 1.15",
+			P("crush", "Armor Crusher", "power", ["Crushing", "Anvil", "Ruin"], "Slams ignore 10% armor per point.", "t.sunder += 0.1",
 				"Executioner’s Weight", "Stopped enemies below 15% HP are crushed instantly (not bosses).", "t.crush_exec = 0.15"),
 			P("pin", "Pin", "slow", ["Pinning", "Spike", "Chains"], "Slams hold stopped enemies in place 0.3s longer per point (bosses half).", "t.pin += 0.3",
 				"Shackle", "Every 4th slam roots every enemy in the area for 1s, moving or not (bosses 0.5s).", "t.shackle = true"),
@@ -214,7 +214,7 @@ func towers() -> Array:
 				"Meltdown", "At full heat the beam deals double damage.", "t.melt = true"),
 			P("sink", "Heat Sink", "burn", ["Smoldering", "Core", "Embers"], "Holds 5 more heat stacks per point.", "t.ramp_max += 5",
 				"Residual Heat", "Switching targets only halves the heat instead of resetting it.", "t.retain = true"),
-			P("amp", "Amplifier", "power", ["Blazing", "Emitter", "Power"], "+20% damage per point.", "t.dmg *= 1.2",
+			P("amp", "Phase Beam", "power", ["Blazing", "Emitter", "Power"], "The beam ignores 10% armor per point.", "t.sunder += 0.1",
 				"Sear", "Hits burn for 40% of their damage over 2s.", "t.burn += 0.4"),
 			P("lensr", "Long Lens", "precision", ["Farseeing", "Beam", "Reach"], "+10% range per point.", "t.range *= 1.1",
 				"Piercing Beam", "The beam also burns through 3 enemies behind its target for 60% damage.", "t.pierce += 3"),
@@ -224,7 +224,7 @@ func towers() -> Array:
 		{ oy = 36, my = 14 }),
 		T({ id = "mortar", name = "Siege Mortar", cost = 130, dmg = 110.0, rate = 4.5, range = 320.0, splash = 60.0, lob = true, color = col(0xf9e6a2), element_tag = "burst",
 			info = "Very long range. Lobs a slow, heavy shell that lands a few moments later and wrecks everything in the blast. Fires rarely, so pair it with towers that cover the gaps." }, [
-			P("payload", "Heavy Payload", "power", ["Thundering", "Mortar", "Ruin"], "+20% damage per point.", "t.dmg *= 1.2",
+			P("payload", "Salvage Shells", "power", ["Thundering", "Mortar", "Spoils"], "Kills by the mortar drop +1 gold per point.", "t.loot += 1",
 				"Bunker Buster", "Every 3rd shell deals triple damage in a double-size blast.", "t.orbital = 3"),
 			P("blast", "Wide Blast", "burst", ["Sprawling", "Crater", "Craters"], "+15% blast radius per point.", "t.splash *= 1.15",
 				"Cluster Shells", "Each shell scatters 3 bomblets at nearby enemies for 50% damage.", "t.cluster = 3"),
