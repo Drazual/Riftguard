@@ -79,8 +79,8 @@ This runs a bot through 5 waves with every hero and prints how far each got. Any
 
 ## Releases and auto-update
 
-Every push to `main` that touches `godot/` runs `.github/workflows/godot.yml`. That workflow tests the game, exports `Riftguard.exe` and publishes a GitHub release tagged `godot-v<version>`. The version is `config/version` from `project.godot` (major.minor) plus the build number.
+Every push to `main` that touches `godot/` runs `.github/workflows/godot.yml`. That workflow tests the game, exports `Riftguard.exe`, wraps it in `Riftguard-setup.exe` with Inno Setup (`installer/riftguard.iss`, built on a Windows runner) and publishes both in a GitHub release tagged `godot-v<version>`. The installer installs for the current user into `%LOCALAPPDATA%\Programs\Riftguard` and always adds desktop and Start menu shortcuts. The version is `config/version` from `project.godot` (major.minor) plus the build number.
 
-When the game starts on Windows, it checks those releases. If there's a newer one, it downloads it, swaps the exe and restarts. Offline or failed checks just start the game. The first time it runs, it also silently uninstalls the old Electron version (found in the Windows list of installed programs), so players don't end up with both. To raise the major or minor version, change `config/version` in Project Settings → Application → Config.
+When the game starts on Windows, it checks those releases. If there's a newer one, it downloads it, swaps the exe and restarts. Offline or failed checks just start the game. The first time it runs, it also silently uninstalls the old Electron version (found in the Windows list of installed programs), so players don't end up with both. It also adds desktop and Start menu shortcuts to the exe the first time it runs, unless they already exist. To raise the major or minor version, change `config/version` in Project Settings → Application → Config.
 
 To export by hand, use Project → Export → Windows. The export templates come from Editor → Manage Export Templates.
