@@ -1,6 +1,8 @@
 ## Updates the Windows game from GitHub releases, like the Electron build did.
 ## On launch it looks for the newest release tagged godot-v<version> with a Riftguard.exe file. If that version
-## is newer than this one, it downloads it next to the running game, swaps the files and restarts.
+## is newer than this one, it asks the player whether to update now or keep playing this version. Updating downloads
+## it next to the running game, swaps the files and restarts. Skipping starts the game, and the main menu keeps an
+## "Update now" button for later.
 ## Offline, slow or failed checks just start the game. Only runs in an exported Windows build.
 extends Node
 
@@ -13,14 +15,17 @@ const STALL_TIMEOUT := 20.0
 
 signal finished(installing: bool)
 
-var state := "idle" # idle, checking, downloading, installing, current, failed, off
+var state := "idle" # idle, checking, asking, downloading, installing, current, skipped, failed, off
 var latest := ""
+var _url := ""
 var _http: HTTPRequest
 var _wait := 0.0
 var _last_bytes := 0
 var _overlay: CanvasLayer
 var _status: Label
 var _bar: ProgressBar
+var _choice: Control
+var _menu_line: Control
 
 
 func _ready() -> void:
@@ -185,13 +190,48 @@ func _on_releases(result: int, code: int, _headers: PackedStringArray, body: Pac
 	if best == "" or url == "" or not newer(best, version()):
 		_done(false, "current")
 		return
-	_download(url, best)
+	_url = url
+	_http.queue_free()
+	_http = null
+	_ask()
+
+
+## A newer version is out: let the player pick between updating now and playing this version.
+func _ask() -> void:
+	state = "asking"
+	_set_status("Version %s is available. You have %s." % [latest, version()], 0)
+	_bar.visible = false
+	var row := Kit.hbox(12)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(Kit.go("UPDATE NOW", update_now))
+	row.add_child(Kit.button("CONTINUE WITHOUT UPDATING", skip))
+	_status.get_parent().add_child(row)
+	_choice = row
+
+
+## Downloads and installs the version found by the check. Also used by the main menu's "Update now" button.
+func update_now() -> void:
+	if _url == "" or state == "downloading" or state == "installing":
+		return
+	if _overlay == null:
+		_show_overlay()
+	if _choice:
+		_choice.queue_free()
+		_choice = null
+	_bar.visible = true
+	_download(_url, latest)
+
+
+## Keeps playing this version. The main menu still offers the update.
+func skip() -> void:
+	_done(false, "skipped")
 
 
 func _download(url: String, v: String) -> void:
 	state = "downloading"
 	_set_status("Downloading update %s…" % v, 0)
-	_http.queue_free()
+	if _http:
+		_http.queue_free()
 	_http = HTTPRequest.new()
 	_http.timeout = 0 # large file: the stall watchdog below handles hangs
 	_http.download_file = exe_path() + ".new"
@@ -253,7 +293,11 @@ func _done(installing: bool, why: String) -> void:
 	if _overlay:
 		_overlay.queue_free()
 		_overlay = null
+		_choice = null
 	finished.emit(installing)
+	# the main menu was built under the splash: bring its update line up to date
+	if is_instance_valid(_menu_line):
+		_fill_menu_line(_menu_line)
 
 
 # ---------- the "checking for updates" splash over the menu ----------
@@ -294,19 +338,37 @@ func _set_status(text: String, pct: float) -> void:
 		_bar.value = pct
 
 
-## A line for the main menu saying whether this copy is up to date. Null when there is nothing to say.
+## A line for the main menu saying whether this copy is up to date, filled in again when the check finishes.
+## After the player skipped an update, it holds an "Update now" button instead.
 func status_control() -> Control:
+	_menu_line = Kit.vbox(4)
+	_menu_line.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_fill_menu_line(_menu_line)
+	return _menu_line
+
+
+func _fill_menu_line(box: Control) -> void:
+	for ch in box.get_children():
+		ch.queue_free()
 	var text := ""
+	var col := Kit.MUTED
 	match state:
 		"current":
 			text = "Up to date"
+		"skipped":
+			text = "Version %s is available" % latest
+			col = Kit.GOLD
 		"failed":
-			text = "Couldn’t check for updates"
+			text = "Update failed" if _url != "" else "Couldn’t check for updates"
 	if text == "":
-		return null
+		return
 	var l := Label.new()
 	l.text = text
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.add_theme_font_size_override("font_size", 12)
-	l.add_theme_color_override("font_color", Kit.MUTED)
-	return l
+	l.add_theme_color_override("font_color", col)
+	box.add_child(l)
+	if _url != "" and (state == "skipped" or state == "failed"):
+		var bt := Kit.button("UPDATE NOW" if state == "skipped" else "TRY AGAIN", update_now)
+		bt.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.add_child(bt)
