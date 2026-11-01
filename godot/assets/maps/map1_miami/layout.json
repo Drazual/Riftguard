@@ -1,0 +1,2745 @@
+{
+ "art_scale": 2,
+ "size": [
+  1536,
+  832
+ ],
+ "ground": "ground.png",
+ "glow": "glow.png",
+ "glints": "glints.png",
+ "path": [
+  [
+   -128.0,
+   22.0
+  ],
+  [
+   76.8,
+   179.87
+  ],
+  [
+   82.05,
+   183.73
+  ],
+  [
+   88.35,
+   186.4
+  ],
+  [
+   95.45,
+   187.47
+  ],
+  [
+   102.6,
+   186.67
+  ],
+  [
+   109.1,
+   184.2
+  ],
+  [
+   237.3,
+   85.73
+  ],
+  [
+   242.6,
+   81.93
+  ],
+  [
+   249.05,
+   79.4
+  ],
+  [
+   256.2,
+   78.53
+  ],
+  [
+   263.3,
+   79.47
+  ],
+  [
+   269.7,
+   82.13
+  ],
+  [
+   367.1,
+   157.0
+  ],
+  [
+   372.75,
+   160.47
+  ],
+  [
+   379.5,
+   162.4
+  ],
+  [
+   386.7,
+   162.67
+  ],
+  [
+   393.65,
+   161.13
+  ],
+  [
+   399.6,
+   157.93
+  ],
+  [
+   527.6,
+   59.27
+  ],
+  [
+   533.35,
+   55.93
+  ],
+  [
+   540.2,
+   54.13
+  ],
+  [
+   547.45,
+   54.07
+  ],
+  [
+   554.3,
+   55.8
+  ],
+  [
+   560.15,
+   59.07
+  ],
+  [
+   657.45,
+   134.07
+  ],
+  [
+   663.7,
+   136.87
+  ],
+  [
+   670.75,
+   138.07
+  ],
+  [
+   677.9,
+   137.53
+  ],
+  [
+   684.5,
+   135.2
+  ],
+  [
+   751.35,
+   84.13
+  ],
+  [
+   757.05,
+   80.73
+  ],
+  [
+   763.85,
+   78.87
+  ],
+  [
+   771.05,
+   78.73
+  ],
+  [
+   778.0,
+   80.33
+  ],
+  [
+   783.85,
+   83.6
+  ],
+  [
+   881.1,
+   158.6
+  ],
+  [
+   884.9,
+   163.33
+  ],
+  [
+   886.55,
+   168.73
+  ],
+  [
+   885.95,
+   174.27
+  ],
+  [
+   883.05,
+   179.4
+  ],
+  [
+   786.2,
+   254.67
+  ],
+  [
+   781.35,
+   258.8
+  ],
+  [
+   778.25,
+   263.87
+  ],
+  [
+   777.4,
+   269.33
+  ],
+  [
+   778.85,
+   274.8
+  ],
+  [
+   782.4,
+   279.67
+  ],
+  [
+   848.85,
+   331.07
+  ],
+  [
+   852.75,
+   335.73
+  ],
+  [
+   854.55,
+   341.13
+  ],
+  [
+   854.0,
+   346.67
+  ],
+  [
+   851.25,
+   351.8
+  ],
+  [
+   718.55,
+   454.73
+  ],
+  [
+   712.3,
+   457.53
+  ],
+  [
+   705.25,
+   458.73
+  ],
+  [
+   698.1,
+   458.2
+  ],
+  [
+   691.5,
+   455.87
+  ],
+  [
+   593.9,
+   381.13
+  ],
+  [
+   588.5,
+   377.47
+  ],
+  [
+   581.9,
+   375.13
+  ],
+  [
+   574.75,
+   374.6
+  ],
+  [
+   567.7,
+   375.8
+  ],
+  [
+   561.45,
+   378.6
+  ],
+  [
+   433.4,
+   477.27
+  ],
+  [
+   427.9,
+   480.87
+  ],
+  [
+   421.2,
+   483.0
+  ],
+  [
+   414.0,
+   483.4
+  ],
+  [
+   407.0,
+   482.0
+  ],
+  [
+   400.9,
+   479.0
+  ],
+  [
+   303.6,
+   404.07
+  ],
+  [
+   297.65,
+   400.87
+  ],
+  [
+   290.7,
+   399.33
+  ],
+  [
+   283.5,
+   399.6
+  ],
+  [
+   276.75,
+   401.53
+  ],
+  [
+   271.1,
+   405.0
+  ],
+  [
+   173.7,
+   479.87
+  ],
+  [
+   167.3,
+   482.53
+  ],
+  [
+   160.2,
+   483.47
+  ],
+  [
+   153.05,
+   482.6
+  ],
+  [
+   146.6,
+   480.07
+  ],
+  [
+   141.3,
+   476.27
+  ],
+  [
+   79.85,
+   428.93
+  ],
+  [
+   75.7,
+   424.33
+  ],
+  [
+   73.6,
+   419.07
+  ],
+  [
+   73.75,
+   413.47
+  ],
+  [
+   76.2,
+   408.2
+  ],
+  [
+   80.65,
+   403.87
+  ],
+  [
+   209.6,
+   304.4
+  ]
+ ],
+ "pads": [
+  {
+   "n": 1,
+   "centre": [
+    64.0,
+    116.67
+   ],
+   "tower": [
+    64.0,
+    104.67
+   ]
+  },
+  {
+   "n": 2,
+   "centre": [
+    224.0,
+    42.67
+   ],
+   "tower": [
+    224.0,
+    30.67
+   ]
+  },
+  {
+   "n": 3,
+   "centre": [
+    320.0,
+    67.33
+   ],
+   "tower": [
+    320.0,
+    55.33
+   ]
+  },
+  {
+   "n": 4,
+   "centre": [
+    288.0,
+    141.33
+   ],
+   "tower": [
+    288.0,
+    129.33
+   ]
+  },
+  {
+   "n": 5,
+   "centre": [
+    384.0,
+    116.67
+   ],
+   "tower": [
+    384.0,
+    104.67
+   ]
+  },
+  {
+   "n": 6,
+   "centre": [
+    448.0,
+    166.0
+   ],
+   "tower": [
+    448.0,
+    154.0
+   ]
+  },
+  {
+   "n": 7,
+   "centre": [
+    448.0,
+    67.33
+   ],
+   "tower": [
+    448.0,
+    55.33
+   ]
+  },
+  {
+   "n": 8,
+   "centre": [
+    512.0,
+    116.67
+   ],
+   "tower": [
+    512.0,
+    104.67
+   ]
+  },
+  {
+   "n": 9,
+   "centre": [
+    512.0,
+    18.0
+   ],
+   "tower": [
+    512.0,
+    6.0
+   ]
+  },
+  {
+   "n": 10,
+   "centre": [
+    608.0,
+    42.67
+   ],
+   "tower": [
+    608.0,
+    30.67
+   ]
+  },
+  {
+   "n": 11,
+   "centre": [
+    576.0,
+    116.67
+   ],
+   "tower": [
+    576.0,
+    104.67
+   ]
+  },
+  {
+   "n": 12,
+   "centre": [
+    672.0,
+    92.0
+   ],
+   "tower": [
+    672.0,
+    80.0
+   ]
+  },
+  {
+   "n": 13,
+   "centre": [
+    736.0,
+    141.33
+   ],
+   "tower": [
+    736.0,
+    129.33
+   ]
+  },
+  {
+   "n": 14,
+   "centre": [
+    832.0,
+    67.33
+   ],
+   "tower": [
+    832.0,
+    55.33
+   ]
+  },
+  {
+   "n": 15,
+   "centre": [
+    800.0,
+    141.33
+   ],
+   "tower": [
+    800.0,
+    129.33
+   ]
+  },
+  {
+   "n": 16,
+   "centre": [
+    896.0,
+    116.67
+   ],
+   "tower": [
+    896.0,
+    104.67
+   ]
+  },
+  {
+   "n": 17,
+   "centre": [
+    800.0,
+    190.67
+   ],
+   "tower": [
+    800.0,
+    178.67
+   ]
+  },
+  {
+   "n": 18,
+   "centre": [
+    864.0,
+    240.0
+   ],
+   "tower": [
+    864.0,
+    228.0
+   ]
+  },
+  {
+   "n": 19,
+   "centre": [
+    768.0,
+    314.0
+   ],
+   "tower": [
+    768.0,
+    302.0
+   ]
+  },
+  {
+   "n": 20,
+   "centre": [
+    864.0,
+    289.33
+   ],
+   "tower": [
+    864.0,
+    277.33
+   ]
+  },
+  {
+   "n": 21,
+   "centre": [
+    896.0,
+    363.33
+   ],
+   "tower": [
+    896.0,
+    351.33
+   ]
+  },
+  {
+   "n": 22,
+   "centre": [
+    768.0,
+    363.33
+   ],
+   "tower": [
+    768.0,
+    351.33
+   ]
+  },
+  {
+   "n": 23,
+   "centre": [
+    832.0,
+    412.67
+   ],
+   "tower": [
+    832.0,
+    400.67
+   ]
+  },
+  {
+   "n": 24,
+   "centre": [
+    704.0,
+    412.67
+   ],
+   "tower": [
+    704.0,
+    400.67
+   ]
+  },
+  {
+   "n": 25,
+   "centre": [
+    768.0,
+    462.0
+   ],
+   "tower": [
+    768.0,
+    450.0
+   ]
+  },
+  {
+   "n": 26,
+   "centre": [
+    608.0,
+    437.33
+   ],
+   "tower": [
+    608.0,
+    425.33
+   ]
+  },
+  {
+   "n": 27,
+   "centre": [
+    640.0,
+    363.33
+   ],
+   "tower": [
+    640.0,
+    351.33
+   ]
+  },
+  {
+   "n": 28,
+   "centre": [
+    480.0,
+    388.0
+   ],
+   "tower": [
+    480.0,
+    376.0
+   ]
+  },
+  {
+   "n": 29,
+   "centre": [
+    544.0,
+    437.33
+   ],
+   "tower": [
+    544.0,
+    425.33
+   ]
+  },
+  {
+   "n": 30,
+   "centre": [
+    416.0,
+    437.33
+   ],
+   "tower": [
+    416.0,
+    425.33
+   ]
+  },
+  {
+   "n": 31,
+   "centre": [
+    480.0,
+    486.67
+   ],
+   "tower": [
+    480.0,
+    474.67
+   ]
+  },
+  {
+   "n": 32,
+   "centre": [
+    384.0,
+    511.33
+   ],
+   "tower": [
+    384.0,
+    499.33
+   ]
+  },
+  {
+   "n": 33,
+   "centre": [
+    320.0,
+    462.0
+   ],
+   "tower": [
+    320.0,
+    450.0
+   ]
+  },
+  {
+   "n": 34,
+   "centre": [
+    352.0,
+    388.0
+   ],
+   "tower": [
+    352.0,
+    376.0
+   ]
+  },
+  {
+   "n": 35,
+   "centre": [
+    192.0,
+    412.67
+   ],
+   "tower": [
+    192.0,
+    400.67
+   ]
+  },
+  {
+   "n": 36,
+   "centre": [
+    256.0,
+    462.0
+   ],
+   "tower": [
+    256.0,
+    450.0
+   ]
+  },
+  {
+   "n": 37,
+   "centre": [
+    96.0,
+    486.67
+   ],
+   "tower": [
+    96.0,
+    474.67
+   ]
+  },
+  {
+   "n": 38,
+   "centre": [
+    128.0,
+    412.67
+   ],
+   "tower": [
+    128.0,
+    400.67
+   ]
+  },
+  {
+   "n": 39,
+   "centre": [
+    64.0,
+    363.33
+   ],
+   "tower": [
+    64.0,
+    351.33
+   ]
+  },
+  {
+   "n": 40,
+   "centre": [
+    192.0,
+    363.33
+   ],
+   "tower": [
+    192.0,
+    351.33
+   ]
+  }
+ ],
+ "sprites": [
+  {
+   "tex": "bld_techshop_00.png",
+   "tl": [
+    252,
+    -160
+   ],
+   "key": 1.6,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "bld_cafe_01.png",
+   "tl": [
+    632,
+    -164
+   ],
+   "key": 1.6,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_cafe_02.png",
+   "tl": [
+    1028,
+    -164
+   ],
+   "key": 1.6,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_techshop_03.png",
+   "tl": [
+    48,
+    -160
+   ],
+   "key": 1.6,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "hedge_sidewalk_04.png",
+   "tl": [
+    356,
+    -68
+   ],
+   "key": 1.6,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "bld_theater_05.png",
+   "tl": [
+    764,
+    -160
+   ],
+   "key": 31.2,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "bld_theater_05.png",
+   "tl": [
+    1276,
+    -160
+   ],
+   "key": 31.2,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "bld_cafe_06.png",
+   "tl": [
+    -152,
+    -136
+   ],
+   "key": 31.2,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_theater_07.png",
+   "tl": [
+    456,
+    -160
+   ],
+   "key": 31.2,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "plaza_props_08.png",
+   "tl": [
+    -4,
+    -40
+   ],
+   "key": 31.2,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "parking_lot_09.png",
+   "tl": [
+    716,
+    -44
+   ],
+   "key": 31.2,
+   "kind": "prop",
+   "name": "parking_lot"
+  },
+  {
+   "tex": "flower_tile_10.png",
+   "tl": [
+    304,
+    -36
+   ],
+   "key": 31.2,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "car_pink_11.png",
+   "tl": [
+    744,
+    -40
+   ],
+   "key": 32.0,
+   "kind": "prop",
+   "name": "car_pink"
+  },
+  {
+   "tex": "bld_theater_12.png",
+   "tl": [
+    1160,
+    -128
+   ],
+   "key": 60.8,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "bld_cafe_13.png",
+   "tl": [
+    940,
+    -104
+   ],
+   "key": 60.8,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_hotel_14.png",
+   "tl": [
+    1444,
+    -148
+   ],
+   "key": 60.8,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "bld_techshop_15.png",
+   "tl": [
+    116,
+    -100
+   ],
+   "key": 60.8,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "palm_planter_plaza_16.png",
+   "tl": [
+    252,
+    -12
+   ],
+   "key": 60.8,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "tool_tile_17.png",
+   "tl": [
+    864,
+    -16
+   ],
+   "key": 60.8,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "tool_tile_18.png",
+   "tl": [
+    -56,
+    -16
+   ],
+   "key": 60.8,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "neon_fountain_tile_19.png",
+   "tl": [
+    1280,
+    -4
+   ],
+   "key": 60.8,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "traffic_light_20.png",
+   "tl": [
+    864,
+    32
+   ],
+   "key": 83.3,
+   "kind": "tlight",
+   "name": "traffic_light"
+  },
+  {
+   "tex": "lamp_21.png",
+   "tl": [
+    916,
+    28
+   ],
+   "key": 85.1,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "bld_techshop_22.png",
+   "tl": [
+    404,
+    -72
+   ],
+   "key": 90.4,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "bld_arcade_23.png",
+   "tl": [
+    576,
+    -72
+   ],
+   "key": 90.4,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "flower_plaza_24.png",
+   "tl": [
+    508,
+    16
+   ],
+   "key": 90.4,
+   "kind": "prop",
+   "name": "flower_plaza"
+  },
+  {
+   "tex": "hedge_sidewalk_25.png",
+   "tl": [
+    1228,
+    20
+   ],
+   "key": 90.4,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "traffic_light_26.png",
+   "tl": [
+    400,
+    60
+   ],
+   "key": 112.9,
+   "kind": "tlight",
+   "name": "traffic_light"
+  },
+  {
+   "tex": "traffic_light_27.png",
+   "tl": [
+    1220,
+    60
+   ],
+   "key": 112.9,
+   "kind": "tlight",
+   "name": "traffic_light"
+  },
+  {
+   "tex": "palm_planter_a_28.png",
+   "tl": [
+    452,
+    48
+   ],
+   "key": 114.7,
+   "kind": "palm",
+   "name": "palm_planter_a",
+   "foot": 114.7
+  },
+  {
+   "tex": "neon_sign_a_29.png",
+   "tl": [
+    740,
+    64
+   ],
+   "key": 114.7,
+   "kind": "neon",
+   "name": "neon_sign_a"
+  },
+  {
+   "tex": "phone_booth_30.png",
+   "tl": [
+    1156,
+    68
+   ],
+   "key": 114.7,
+   "kind": "prop",
+   "name": "phone_booth"
+  },
+  {
+   "tex": "lamp_31.png",
+   "tl": [
+    1276,
+    60
+   ],
+   "key": 114.7,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "pad_teal_32.png",
+   "tl": [
+    772,
+    48
+   ],
+   "key": 115.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 8
+  },
+  {
+   "tex": "bld_techshop_33.png",
+   "tl": [
+    1036,
+    -40
+   ],
+   "key": 120.0,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "bld_arcade_34.png",
+   "tl": [
+    12,
+    -44
+   ],
+   "key": 120.0,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bld_techshop_35.png",
+   "tl": [
+    1376,
+    -40
+   ],
+   "key": 120.0,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "palm_planter_a_36.png",
+   "tl": [
+    1012,
+    76
+   ],
+   "key": 144.3,
+   "kind": "palm",
+   "name": "palm_planter_a",
+   "foot": 144.3
+  },
+  {
+   "tex": "neon_sign_b_37.png",
+   "tl": [
+    1100,
+    92
+   ],
+   "key": 144.3,
+   "kind": "neon",
+   "name": "neon_sign_b"
+  },
+  {
+   "tex": "pad_teal_38.png",
+   "tl": [
+    312,
+    80
+   ],
+   "key": 145.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 1
+  },
+  {
+   "tex": "pad_teal_39.png",
+   "tl": [
+    928,
+    80
+   ],
+   "key": 145.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 9
+  },
+  {
+   "tex": "lamp_40.png",
+   "tl": [
+    48,
+    116
+   ],
+   "key": 173.9,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "lamp_40.png",
+   "tl": [
+    560,
+    116
+   ],
+   "key": 173.9,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "palm_planter_b_41.png",
+   "tl": [
+    640,
+    116
+   ],
+   "key": 173.9,
+   "kind": "palm",
+   "name": "palm_planter_b",
+   "foot": 173.9
+  },
+  {
+   "tex": "palm_planter_a_42.png",
+   "tl": [
+    1372,
+    108
+   ],
+   "key": 173.9,
+   "kind": "palm",
+   "name": "palm_planter_a",
+   "foot": 173.9
+  },
+  {
+   "tex": "pad_teal_43.png",
+   "tl": [
+    468,
+    108
+   ],
+   "key": 175.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 2
+  },
+  {
+   "tex": "pad_teal_44.png",
+   "tl": [
+    672,
+    108
+   ],
+   "key": 175.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 6
+  },
+  {
+   "tex": "pad_teal_45.png",
+   "tl": [
+    1284,
+    108
+   ],
+   "key": 175.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 13
+  },
+  {
+   "tex": "bld_hotel_46.png",
+   "tl": [
+    1448,
+    -28
+   ],
+   "key": 179.2,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "trash_47.png",
+   "tl": [
+    852,
+    152
+   ],
+   "key": 184.5,
+   "kind": "prop",
+   "name": "trash"
+  },
+  {
+   "tex": "pad_teal_48.png",
+   "tl": [
+    1028,
+    136
+   ],
+   "key": 204.7,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 11
+  },
+  {
+   "tex": "arch_iso_a.png",
+   "tl": [
+    192,
+    68
+   ],
+   "key": 231.9,
+   "kind": "arch",
+   "name": "arch_iso_a"
+  },
+  {
+   "tex": "arch_iso_b.png",
+   "tl": [
+    338,
+    68
+   ],
+   "key": 253,
+   "kind": "arch",
+   "name": "arch_iso_b"
+  },
+  {
+   "tex": "bench_49.png",
+   "tl": [
+    1484,
+    200
+   ],
+   "key": 233.1,
+   "kind": "prop",
+   "name": "bench"
+  },
+  {
+   "tex": "pad_teal_50.png",
+   "tl": [
+    56,
+    168
+   ],
+   "key": 234.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 0
+  },
+  {
+   "tex": "pad_teal_50.png",
+   "tl": [
+    568,
+    168
+   ],
+   "key": 234.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 4
+  },
+  {
+   "tex": "pad_teal_51.png",
+   "tl": [
+    772,
+    168
+   ],
+   "key": 234.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 7
+  },
+  {
+   "tex": "pad_teal_52.png",
+   "tl": [
+    876,
+    168
+   ],
+   "key": 234.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 10
+  },
+  {
+   "tex": "pad_teal_52.png",
+   "tl": [
+    1388,
+    168
+   ],
+   "key": 234.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 15
+  },
+  {
+   "tex": "pad_teal_53.png",
+   "tl": [
+    416,
+    196
+   ],
+   "key": 263.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 3
+  },
+  {
+   "tex": "pad_teal_54.png",
+   "tl": [
+    1132,
+    196
+   ],
+   "key": 263.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 12
+  },
+  {
+   "tex": "pad_teal_55.png",
+   "tl": [
+    1236,
+    196
+   ],
+   "key": 263.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 14
+  },
+  {
+   "tex": "bld_arcade_56.png",
+   "tl": [
+    1484,
+    104
+   ],
+   "key": 268.0,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bench_57.png",
+   "tl": [
+    492,
+    240
+   ],
+   "key": 273.3,
+   "kind": "prop",
+   "name": "bench"
+  },
+  {
+   "tex": "vending_58.png",
+   "tl": [
+    1000,
+    228
+   ],
+   "key": 273.3,
+   "kind": "prop",
+   "name": "vending"
+  },
+  {
+   "tex": "pad_teal_39.png",
+   "tl": [
+    672,
+    228
+   ],
+   "key": 293.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 5
+  },
+  {
+   "tex": "lamp_59.png",
+   "tl": [
+    1476,
+    248
+   ],
+   "key": 302.9,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "palm_planter_b_60.png",
+   "tl": [
+    1204,
+    264
+   ],
+   "key": 321.9,
+   "kind": "palm",
+   "name": "palm_planter_b",
+   "foot": 321.9
+  },
+  {
+   "tex": "pad_teal_43.png",
+   "tl": [
+    1236,
+    256
+   ],
+   "key": 323.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 16
+  },
+  {
+   "tex": "palms_hedge_61.png",
+   "tl": [
+    724,
+    264
+   ],
+   "key": 327.2,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "neon_fountain_tile_62.png",
+   "tl": [
+    408,
+    264
+   ],
+   "key": 327.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "flower_plaza_63.png",
+   "tl": [
+    916,
+    252
+   ],
+   "key": 327.2,
+   "kind": "prop",
+   "name": "flower_plaza"
+  },
+  {
+   "tex": "neon_fountain_tile_64.png",
+   "tl": [
+    972,
+    292
+   ],
+   "key": 356.8,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "flower_tile_65.png",
+   "tl": [
+    868,
+    288
+   ],
+   "key": 356.8,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "fountain_plaza_66.png",
+   "tl": [
+    1072,
+    284
+   ],
+   "key": 356.8,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "pad_teal_50.png",
+   "tl": [
+    1336,
+    316
+   ],
+   "key": 382.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 17
+  },
+  {
+   "tex": "bld_techshop_22.png",
+   "tl": [
+    -108,
+    224
+   ],
+   "key": 386.4,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "traffic_light_67.png",
+   "tl": [
+    1156,
+    336
+   ],
+   "key": 386.4,
+   "kind": "tlight",
+   "name": "traffic_light"
+  },
+  {
+   "tex": "hedge_sidewalk_68.png",
+   "tl": [
+    612,
+    316
+   ],
+   "key": 386.4,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "bld_techshop_69.png",
+   "tl": [
+    728,
+    256
+   ],
+   "key": 416.0,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "bld_cafe_70.png",
+   "tl": [
+    412,
+    252
+   ],
+   "key": 416.0,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "flower_tile_71.png",
+   "tl": [
+    664,
+    348
+   ],
+   "key": 416.0,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "palm_planter_plaza_72.png",
+   "tl": [
+    560,
+    344
+   ],
+   "key": 416.0,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "neon_sign_a_73.png",
+   "tl": [
+    1424,
+    388
+   ],
+   "key": 440.3,
+   "kind": "neon",
+   "name": "neon_sign_a"
+  },
+  {
+   "tex": "trash_74.png",
+   "tl": [
+    184,
+    408
+   ],
+   "key": 440.3,
+   "kind": "prop",
+   "name": "trash"
+  },
+  {
+   "tex": "pad_teal_38.png",
+   "tl": [
+    1336,
+    376
+   ],
+   "key": 441.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 19
+  },
+  {
+   "tex": "bld_station_75.png",
+   "tl": [
+    -44,
+    316
+   ],
+   "key": 445.6,
+   "kind": "bld",
+   "name": "bld_station"
+  },
+  {
+   "tex": "bld_hotel_76.png",
+   "tl": [
+    1496,
+    236
+   ],
+   "key": 445.6,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "bld_hotel_77.png",
+   "tl": [
+    880,
+    236
+   ],
+   "key": 445.6,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "flower_tile_78.png",
+   "tl": [
+    512,
+    376
+   ],
+   "key": 445.6,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "hedge_sidewalk_79.png",
+   "tl": [
+    716,
+    376
+   ],
+   "key": 445.6,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "palm_planter_plaza_80.png",
+   "tl": [
+    1436,
+    376
+   ],
+   "key": 445.6,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "fountain_plaza_81.png",
+   "tl": [
+    1024,
+    372
+   ],
+   "key": 445.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "portal_82.png",
+   "tl": [
+    200,
+    300
+   ],
+   "key": 460.5,
+   "kind": "portal",
+   "name": "portal",
+   "ring": [
+    348.8,
+    374.4
+   ]
+  },
+  {
+   "tex": "traffic_light_83.png",
+   "tl": [
+    912,
+    416
+   ],
+   "key": 468.1,
+   "kind": "tlight",
+   "name": "traffic_light"
+  },
+  {
+   "tex": "vending_84.png",
+   "tl": [
+    848,
+    424
+   ],
+   "key": 469.9,
+   "kind": "prop",
+   "name": "vending"
+  },
+  {
+   "tex": "neon_sign_b_85.png",
+   "tl": [
+    968,
+    416
+   ],
+   "key": 469.9,
+   "kind": "neon",
+   "name": "neon_sign_b"
+  },
+  {
+   "tex": "lamp_86.png",
+   "tl": [
+    124,
+    412
+   ],
+   "key": 469.9,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "pad_teal_44.png",
+   "tl": [
+    1184,
+    404
+   ],
+   "key": 471.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 18
+  },
+  {
+   "tex": "palms_hedge_87.png",
+   "tl": [
+    1064,
+    412
+   ],
+   "key": 475.2,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "fountain_plaza_88.png",
+   "tl": [
+    460,
+    404
+   ],
+   "key": 475.2,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "traffic_light_89.png",
+   "tl": [
+    452,
+    444
+   ],
+   "key": 497.7,
+   "kind": "tlight",
+   "name": "traffic_light"
+  },
+  {
+   "tex": "phone_booth_90.png",
+   "tl": [
+    796,
+    452
+   ],
+   "key": 499.5,
+   "kind": "prop",
+   "name": "phone_booth"
+  },
+  {
+   "tex": "lamp_91.png",
+   "tl": [
+    508,
+    444
+   ],
+   "key": 499.5,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "bld_arcade_92.png",
+   "tl": [
+    564,
+    344
+   ],
+   "key": 504.8,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bld_arcade_93.png",
+   "tl": [
+    -140,
+    344
+   ],
+   "key": 504.8,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "lamp_94.png",
+   "tl": [
+    1148,
+    472
+   ],
+   "key": 529.1,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "palm_planter_a_95.png",
+   "tl": [
+    1064,
+    464
+   ],
+   "key": 529.1,
+   "kind": "palm",
+   "name": "palm_planter_a",
+   "foot": 529.1
+  },
+  {
+   "tex": "palm_planter_b_96.png",
+   "tl": [
+    24,
+    472
+   ],
+   "key": 529.1,
+   "kind": "palm",
+   "name": "palm_planter_b",
+   "foot": 529.1
+  },
+  {
+   "tex": "pad_teal_52.png",
+   "tl": [
+    1388,
+    464
+   ],
+   "key": 530.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 20
+  },
+  {
+   "tex": "pad_teal_97.png",
+   "tl": [
+    1184,
+    464
+   ],
+   "key": 530.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 21
+  },
+  {
+   "tex": "pad_teal_98.png",
+   "tl": [
+    980,
+    464
+   ],
+   "key": 530.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 26
+  },
+  {
+   "tex": "pad_teal_50.png",
+   "tl": [
+    56,
+    464
+   ],
+   "key": 530.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 38
+  },
+  {
+   "tex": "pad_teal_51.png",
+   "tl": [
+    260,
+    464
+   ],
+   "key": 530.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 39
+  },
+  {
+   "tex": "lamp_99.png",
+   "tl": [
+    688,
+    504
+   ],
+   "key": 558.7,
+   "kind": "neon",
+   "name": "lamp"
+  },
+  {
+   "tex": "palm_planter_a_100.png",
+   "tl": [
+    604,
+    492
+   ],
+   "key": 558.7,
+   "kind": "palm",
+   "name": "palm_planter_a",
+   "foot": 558.7
+  },
+  {
+   "tex": "pad_teal_55.png",
+   "tl": [
+    724,
+    492
+   ],
+   "key": 559.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 27
+  },
+  {
+   "tex": "pad_teal_32.png",
+   "tl": [
+    516,
+    492
+   ],
+   "key": 559.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 33
+  },
+  {
+   "tex": "bld_hotel_101.png",
+   "tl": [
+    1496,
+    356
+   ],
+   "key": 564.0,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "pad_teal_102.png",
+   "tl": [
+    1284,
+    524
+   ],
+   "key": 589.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 22
+  },
+  {
+   "tex": "pad_teal_38.png",
+   "tl": [
+    1080,
+    524
+   ],
+   "key": 589.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 23
+  },
+  {
+   "tex": "pad_teal_102.png",
+   "tl": [
+    260,
+    524
+   ],
+   "key": 589.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 34
+  },
+  {
+   "tex": "pad_teal_39.png",
+   "tl": [
+    160,
+    524
+   ],
+   "key": 589.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 37
+  },
+  {
+   "tex": "fountain_plaza_103.png",
+   "tl": [
+    1484,
+    520
+   ],
+   "key": 593.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "palms_hedge_104.png",
+   "tl": [
+    1388,
+    532
+   ],
+   "key": 593.6,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "bench_105.png",
+   "tl": [
+    444,
+    564
+   ],
+   "key": 598.9,
+   "kind": "prop",
+   "name": "bench"
+  },
+  {
+   "tex": "neon_sign_a_106.png",
+   "tl": [
+    24,
+    548
+   ],
+   "key": 598.9,
+   "kind": "neon",
+   "name": "neon_sign_a"
+  },
+  {
+   "tex": "pad_teal_44.png",
+   "tl": [
+    928,
+    552
+   ],
+   "key": 619.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 25
+  },
+  {
+   "tex": "pad_teal_107.png",
+   "tl": [
+    824,
+    552
+   ],
+   "key": 619.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 28
+  },
+  {
+   "tex": "pad_teal_108.png",
+   "tl": [
+    620,
+    552
+   ],
+   "key": 619.1,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 29
+  },
+  {
+   "tex": "bld_hotel_109.png",
+   "tl": [
+    -144,
+    416
+   ],
+   "key": 623.2,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "pad_teal_110.png",
+   "tl": [
+    1184,
+    580
+   ],
+   "key": 648.7,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 24
+  },
+  {
+   "tex": "pad_teal_111.png",
+   "tl": [
+    468,
+    580
+   ],
+   "key": 648.7,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 32
+  },
+  {
+   "tex": "pad_teal_112.png",
+   "tl": [
+    364,
+    580
+   ],
+   "key": 648.7,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 35
+  },
+  {
+   "tex": "plaza_props_113.png",
+   "tl": [
+    -52,
+    580
+   ],
+   "key": 652.8,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "neon_fountain_tile_114.png",
+   "tl": [
+    1276,
+    588
+   ],
+   "key": 652.8,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "trash_115.png",
+   "tl": [
+    1176,
+    624
+   ],
+   "key": 658.1,
+   "kind": "prop",
+   "name": "trash"
+  },
+  {
+   "tex": "pad_teal_98.png",
+   "tl": [
+    724,
+    612
+   ],
+   "key": 678.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 30
+  },
+  {
+   "tex": "pad_teal_52.png",
+   "tl": [
+    108,
+    612
+   ],
+   "key": 678.3,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 36
+  },
+  {
+   "tex": "bld_cafe_116.png",
+   "tl": [
+    1400,
+    516
+   ],
+   "key": 682.4,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "palms_hedge_117.png",
+   "tl": [
+    928,
+    620
+   ],
+   "key": 682.4,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "fountain_plaza_118.png",
+   "tl": [
+    -4,
+    612
+   ],
+   "key": 682.4,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "neon_fountain_tile_119.png",
+   "tl": [
+    816,
+    620
+   ],
+   "key": 682.4,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "pad_teal_120.png",
+   "tl": [
+    568,
+    640
+   ],
+   "key": 707.9,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 31
+  },
+  {
+   "tex": "palm_planter_plaza_121.png",
+   "tl": [
+    1484,
+    640
+   ],
+   "key": 712.0,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "flower_tile_71.png",
+   "tl": [
+    1176,
+    644
+   ],
+   "key": 712.0,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "bld_cafe_122.png",
+   "tl": [
+    -152,
+    576
+   ],
+   "key": 741.6,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_theater_123.png",
+   "tl": [
+    1316,
+    552
+   ],
+   "key": 741.6,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "plaza_props_124.png",
+   "tl": [
+    0,
+    672
+   ],
+   "key": 741.6,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "fountain_plaza_125.png",
+   "tl": [
+    1124,
+    668
+   ],
+   "key": 741.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "tool_tile_126.png",
+   "tl": [
+    308,
+    664
+   ],
+   "key": 741.6,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "bld_techshop_127.png",
+   "tl": [
+    936,
+    608
+   ],
+   "key": 771.2,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "fountain_plaza_128.png",
+   "tl": [
+    356,
+    700
+   ],
+   "key": 771.2,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "fountain_plaza_88.png",
+   "tl": [
+    -52,
+    700
+   ],
+   "key": 771.2,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "flower_tile_129.png",
+   "tl": [
+    256,
+    704
+   ],
+   "key": 771.2,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "neon_fountain_tile_130.png",
+   "tl": [
+    1380,
+    708
+   ],
+   "key": 771.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "bld_theater_131.png",
+   "tl": [
+    804,
+    612
+   ],
+   "key": 800.8,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "bld_arcade_132.png",
+   "tl": [
+    1192,
+    640
+   ],
+   "key": 800.8,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bld_theater_133.png",
+   "tl": [
+    1520,
+    612
+   ],
+   "key": 800.8,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "hedge_sidewalk_134.png",
+   "tl": [
+    1124,
+    728
+   ],
+   "key": 800.8,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "palms_hedge_135.png",
+   "tl": [
+    1320,
+    740
+   ],
+   "key": 800.8,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "bld_cafe_136.png",
+   "tl": [
+    412,
+    664
+   ],
+   "key": 830.4,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_techshop_137.png",
+   "tl": [
+    48,
+    668
+   ],
+   "key": 830.4,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "hedge_sidewalk_68.png",
+   "tl": [
+    868,
+    760
+   ],
+   "key": 830.4,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "bld_hotel_138.png",
+   "tl": [
+    984,
+    652
+   ],
+   "key": 860.0,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "bld_arcade_34.png",
+   "tl": [
+    268,
+    696
+   ],
+   "key": 860.0,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bld_cafe_139.png",
+   "tl": [
+    580,
+    696
+   ],
+   "key": 860.0,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_hotel_140.png",
+   "tl": [
+    1396,
+    652
+   ],
+   "key": 860.0,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "bld_theater_141.png",
+   "tl": [
+    -120,
+    672
+   ],
+   "key": 860.0,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "plaza_props_142.png",
+   "tl": [
+    408,
+    788
+   ],
+   "key": 860.0,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "parking_lot_143.png",
+   "tl": [
+    0,
+    784
+   ],
+   "key": 860.0,
+   "kind": "prop",
+   "name": "parking_lot"
+  },
+  {
+   "tex": "tool_tile_144.png",
+   "tl": [
+    920,
+    784
+   ],
+   "key": 860.0,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "neon_fountain_tile_145.png",
+   "tl": [
+    508,
+    796
+   ],
+   "key": 860.0,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "taxi_146.png",
+   "tl": [
+    28,
+    788
+   ],
+   "key": 860.8,
+   "kind": "prop",
+   "name": "taxi"
+  },
+  {
+   "tex": "bld_arcade_147.png",
+   "tl": [
+    116,
+    728
+   ],
+   "key": 889.6,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bld_arcade_148.png",
+   "tl": [
+    728,
+    728
+   ],
+   "key": 889.6,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "bld_hotel_77.png",
+   "tl": [
+    1136,
+    680
+   ],
+   "key": 889.6,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "fountain_plaza_149.png",
+   "tl": [
+    560,
+    816
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "tool_tile_150.png",
+   "tl": [
+    1376,
+    812
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "tool_tile_151.png",
+   "tl": [
+    972,
+    812
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "plaza_props_124.png",
+   "tl": [
+    1280,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "fountain_plaza_152.png",
+   "tl": [
+    52,
+    816
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "palms_hedge_153.png",
+   "tl": [
+    468,
+    828
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "fountain_plaza_154.png",
+   "tl": [
+    -52,
+    816
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "hedge_sidewalk_155.png",
+   "tl": [
+    256,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "flower_plaza_156.png",
+   "tl": [
+    1068,
+    816
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "flower_plaza"
+  },
+  {
+   "tex": "palm_planter_plaza_157.png",
+   "tl": [
+    872,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "plaza_props_158.png",
+   "tl": [
+    356,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "plaza_props"
+  }
+ ],
+ "period": 4.0,
+ "hero": [
+  284.6,
+  171.07
+ ]
+}

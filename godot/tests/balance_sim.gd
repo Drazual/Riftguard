@@ -149,7 +149,11 @@ func _spend() -> void:
 		var type: String = S.loadout[randi() % S.loadout.size()]
 		if S.gold >= game.tower_cost(type):
 			var cells := []
-			for cell in S.map.path_cells:
+			if game.has_pads(): # a hand-painted map: its build pads
+				for c in game.build_cells():
+					if game.build_problem(c.x, c.y, type) == "":
+						cells.append(c)
+			for cell in ({} if game.has_pads() else S.map.path_cells):
 				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1)]:
 					var c: Vector2i = cell + d
 					if game.build_problem(c.x, c.y, type) == "":
@@ -162,7 +166,13 @@ func _spend() -> void:
 				var rng: float = DB.towers[type].range
 				for c in near:
 					var cnt := 0
-					var cp := Vector2(c.x * 40.0 + 20, c.y * 40.0 + 20)
+					var cp := game.cell_pos(c.x, c.y)
+					if S.map.free_path: # count road samples every 20 units
+						var d := 0.0
+						while d < S.map.path_len:
+							if cp.distance_to(game.pos_at(d)) <= rng:
+								cnt += 1
+							d += 20.0
 					for pc in S.map.path_cells:
 						if cp.distance_to(Vector2(pc.x * 40.0 + 20, pc.y * 40.0 + 20)) <= rng:
 							cnt += 1

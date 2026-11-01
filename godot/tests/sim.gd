@@ -108,7 +108,11 @@ func _spend() -> void:
 		var type: String = S.loadout[randi() % S.loadout.size()]
 		if S.gold >= game.tower_cost(type):
 			var cells := []
-			for cell in S.map.path_cells:
+			if game.has_pads(): # a hand-painted map: its build pads
+				for c in game.build_cells():
+					if game.build_problem(c.x, c.y, type) == "":
+						cells.append(c)
+			for cell in ({} if game.has_pads() else S.map.path_cells):
 				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1)]:
 					var c: Vector2i = cell + d
 					if game.build_problem(c.x, c.y, type) == "":

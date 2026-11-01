@@ -21,6 +21,10 @@ extends Node2D
 @export var backdrop_frames: Array[Texture2D] = []
 @export var backdrop_span := 2
 @export var backdrop_period := 7.0
+## Optional: a hand-painted map (a layout JSON made by the art export). It gives the board a hi-res ground,
+## y-sorted building and prop sprites, the enemy path as a line of field points and the build pads, so the
+## Ground and Props layers aren't used. See assets/maps/map1_miami/README.md.
+@export_file("*.json") var art_layout := ""
 @export var waves := 20
 @export var shard_mult := 1.0
 @export var enemy_hp := 1.0

@@ -768,10 +768,10 @@ func render_inspector() -> void:
 		if S.build != "":
 			v.add_child(Kit.h3("Placing"))
 			v.add_child(Kit.rich(UiText.build_tip(game, S.build), 13))
-			v.add_child(Kit.muted("Left-click a tile to build. Right-click or press R to cancel."))
+			v.add_child(Kit.muted("Left-click a %s to build. Right-click or press R to cancel." % ("glowing pad" if game.has_pads() else "tile")))
 			return
 		v.add_child(Kit.h3("Tower"))
-		v.add_child(Kit.muted("Hover a tower to see what it does. Pick one, then left-click a free tile. If it's out of reach, your hero walks over and builds it.", 14))
+		v.add_child(Kit.muted("Hover a tower to see what it does. Pick one, then left-click a free %s. If it's out of reach, your hero walks over and builds it." % ("pad" if game.has_pads() else "tile"), 14))
 		v.add_child(Kit.muted(("Towers level up to %d. Each level adds a point to one of 5 paths. A tower uses 3 paths of 4 points (with the Oracle, 4 paths of 3 bigger points). A path's last point unlocks its mastery, and at level %d the tower ascends into a form named after its paths. "
 			+ "Two different level %d towers merge into a hybrid (merging costs %d gold), and two level %d hybrids merge into a super tower (%s gold) with signature powers.") % [DB.rules.max_level, DB.rules.max_level, DB.rules.max_level,
 			DB.rules.merge_cost, DB.rules.max_level, _thousands(DB.rules.super_cost)], 14))

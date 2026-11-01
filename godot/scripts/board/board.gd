@@ -68,6 +68,17 @@ var hero_spr: AnimatedSprite2D = null
 var hero_state := {}
 var bursts := 0
 var _tex_cache := {}
+## Hand-painted maps (MapScene.art_layout) draw at a higher resolution: F art pixels per base art pixel.
+var F := 1
+var bg: ColorRect
+var art_flat: Node2D # the map's road glints and build pads, on the ground under everything
+var art_glow: Sprite2D # the map's neon glow, added over the standing sprites
+var art_sprites: Array[Node] = [] # the map's buildings and props, sorted with the units
+const NEON_SHADER := preload("res://scripts/board/map_neon.gdshader")
+const GLOW_SHADER := preload("res://scripts/board/map_glow.gdshader")
+const GLINT_SHADER := preload("res://scripts/board/map_glints.gdshader")
+const PAD_HW := 27.5 # half a build pad's width on the field
+const PAD_HH := 21.2 # half its depth
 
 
 func _ready() -> void:
@@ -77,7 +88,7 @@ func _ready() -> void:
 	viewport.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(viewport)
-	var bg := ColorRect.new()
+	bg = ColorRect.new()
 	bg.color = PAL.ink
 	bg.size = Vector2(ART_W, ART_H)
 	viewport.add_child(bg)
@@ -89,6 +100,8 @@ func _ready() -> void:
 	ground.scale = Vector2(1 / PX, 1 / PX)
 	ground_blend.shader = preload("res://scripts/board/ground_blend.gdshader")
 	world.add_child(ground)
+	art_flat = Node2D.new()
+	world.add_child(art_flat)
 	flat = _layer("Flat", _draw_flat)
 	flat.position = Vector2(0, TOP)
 	flat.scale = Vector2(1, K)
@@ -97,6 +110,14 @@ func _ready() -> void:
 	units = Node2D.new()
 	units.y_sort_enabled = true
 	world.add_child(units)
+	art_glow = Sprite2D.new()
+	art_glow.centered = false
+	art_glow.visible = false
+	art_glow.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	var gm := ShaderMaterial.new()
+	gm.shader = GLOW_SHADER
+	art_glow.material = gm
+	world.add_child(art_glow)
 	over = _layer("Overlay", _draw_over)
 	top = Node2D.new()
 	world.add_child(top)
@@ -135,11 +156,12 @@ func _S() -> Run:
 # ---------- input ----------
 ## A point on the board control -> a point on the flat field.
 func to_field(p: Vector2) -> Vector2:
-	var s := minf(size.x / ART_W, size.y / ART_H)
-	var off := (size - Vector2(ART_W, ART_H) * s) / 2
+	var vs := Vector2(ART_W * F, ART_H * F)
+	var s := minf(size.x / vs.x, size.y / vs.y)
+	var off := (size - vs * s) / 2
 	var art := (p - off) / s
-	var sx := art.x / PX
-	var sy := art.y / PX
+	var sx := art.x / (PX * F)
+	var sy := art.y / (PX * F)
 	return Vector2(sx, (sy - TOP) / K)
 
 
@@ -197,7 +219,7 @@ func sync(dt: float) -> void:
 	_animate_ground(dt)
 	if shake_t > 0:
 		shake_t -= dt
-		var a := shake_amt * ART_W * (shake_t / shake_dur if shake_dur > 0 else 0.0)
+		var a := shake_amt * ART_W * F * (shake_t / shake_dur if shake_dur > 0 else 0.0)
 		viewport.canvas_transform = Transform2D(0, Vector2(randf_range(-a, a), randf_range(-a, a)))
 	elif viewport.canvas_transform.origin != Vector2.ZERO:
 		viewport.canvas_transform = Transform2D.IDENTITY
@@ -206,6 +228,7 @@ func sync(dt: float) -> void:
 		speed = S.speed
 	_sync_towers(S, speed)
 	_sync_hero(S, dt, speed)
+	_sync_enemies(S)
 	_sync_shots(S, dt, speed)
 	_sync_art(S)
 	_reap(units)
@@ -701,8 +724,10 @@ func _draw_flat() -> void:
 	if S == null or S.map == null:
 		return
 	var base := S.map.base
-	_circle(g, base, 26, hx(0x4fd8e8, 0.15))
-	_ring(g, base, 18, hx(0x4fd8e8), 2)
+	var pads := game.has_pads()
+	if not pads: # a hand-painted map draws its own base (the portal)
+		_circle(g, base, 26, hx(0x4fd8e8, 0.15))
+		_ring(g, base, 18, hx(0x4fd8e8), 2)
 	var h := S.hero
 	if h == null:
 		return
@@ -718,17 +743,28 @@ func _draw_flat() -> void:
 	if S.build != "" and h.ko <= 0:
 		_circle(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.05))
 		_ring(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.35), 1)
-		if S.hover != null:
+		if pads: # outline the free pads: green within reach, gold beyond it
+			for i in S.map.pad_centres.size():
+				if game.tower_at(i, MapInfo.SPOT_ROW) == null:
+					_pad_mark(g, i, hx(0x5fe39a if game.in_build_range(i, MapInfo.SPOT_ROW) else 0xf2c14e, 0.8), false, 1.5)
+		if S.hover != null and (not pads or S.hover.x >= 0):
 			var hv: Vector2i = S.hover
 			var ok := game.build_problem(hv.x, hv.y, S.build) == ""
 			var near := ok and game.in_build_range(hv.x, hv.y)
-			g.draw_rect(Rect2(hv.x * C, hv.y * C, C, C), hx(0xff5d6c if not ok else (0x5fe39a if near else 0xf2c14e), 0.25))
+			var hc2 := hx(0xff5d6c if not ok else (0x5fe39a if near else 0xf2c14e), 0.4)
+			if pads:
+				_pad_mark(g, hv.x, hc2, true)
+			else:
+				g.draw_rect(Rect2(hv.x * C, hv.y * C, C, C), hc2)
 			if ok:
 				var td: TowerData = DB.towers[S.build]
-				_ring(g, Vector2(hv.x * C + C / 2, hv.y * C + C / 2), td.range * (1 + h.tower_range), ca(td.color, 0.4), 1)
+				_ring(g, game.cell_pos(hv.x, hv.y), td.range * (1 + h.tower_range), ca(td.color, 0.4), 1)
 	if S.pending_build != null:
 		var pb: Dictionary = S.pending_build
-		g.draw_rect(Rect2(pb.c * C + 4, pb.r * C + 4, C - 8, C - 8), ca(DB.towers[pb.type].color, 0.8), false, 2)
+		if pads:
+			_pad_mark(g, pb.c, ca(DB.towers[pb.type].color, 0.8), false, 2)
+		else:
+			g.draw_rect(Rect2(pb.c * C + 4, pb.r * C + 4, C - 8, C - 8), ca(DB.towers[pb.type].color, 0.8), false, 2)
 	var show_r: Tower = S.sel if S.sel != null else tip_tower
 	if show_r and S.towers.has(show_r):
 		_ring(g, show_r.pos(), game.t_range(show_r), ca(show_r.color, 0.5), 1)
@@ -861,12 +897,13 @@ func _draw_over() -> void:
 	var S := _S()
 	if S == null or S.map == null:
 		return
-	# the base: a crystal standing on its pad
+	# the base: a crystal standing on its pad (a hand-painted map has its own)
 	var bp := P(S.map.base.x, S.map.base.y)
-	o.draw_rect(Rect2(bp.x - 5, bp.y - 22, 10, 22), hx(0x101223))
-	o.draw_colored_polygon(PackedVector2Array([bp + Vector2(0, -30), bp + Vector2(-6, -14), bp + Vector2(6, -14)]), hx(0x4fd8e8))
-	o.draw_colored_polygon(PackedVector2Array([bp + Vector2(-6, -14), bp + Vector2(6, -14), bp + Vector2(0, -4)]), hx(0x4fd8e8))
-	o.draw_colored_polygon(PackedVector2Array([bp + Vector2(-1, -27), bp + Vector2(-4, -15), bp + Vector2(0, -15)]), Color(1, 1, 1, 0.6))
+	if S.map.art.is_empty():
+		o.draw_rect(Rect2(bp.x - 5, bp.y - 22, 10, 22), hx(0x101223))
+		o.draw_colored_polygon(PackedVector2Array([bp + Vector2(0, -30), bp + Vector2(-6, -14), bp + Vector2(6, -14)]), hx(0x4fd8e8))
+		o.draw_colored_polygon(PackedVector2Array([bp + Vector2(-6, -14), bp + Vector2(6, -14), bp + Vector2(0, -4)]), hx(0x4fd8e8))
+		o.draw_colored_polygon(PackedVector2Array([bp + Vector2(-1, -27), bp + Vector2(-4, -15), bp + Vector2(0, -15)]), Color(1, 1, 1, 0.6))
 	var h := S.hero
 	if h == null:
 		return
@@ -919,41 +956,9 @@ func _draw_over() -> void:
 	var anvil_col: Color = DB.towers.anvil.color if DB.towers.has("anvil") else Color.WHITE
 	var frost_col: Color = DB.towers.frost.color if DB.towers.has("frost") else Color.WHITE
 	for e: Enemy in S.enemies:
-		var p := P(e.x, e.y, body_lift(e))
-		if e.still_t > 0.5 and has_anvil:
-			var n := mini(6, 2 + int(e.still_t))
-			for i in n:
-				var a := i * 2.4
-				_line(o, p, p + Vector2(cos(a), sin(a)) * (e.r + 4 + e.still_t * 3), ca(anvil_col, 0.7), 1.5)
-		var al := 0.45 if e.phase else 1.0
-		_circle(o, p, e.r + 1.25, hx(0x101223, al))
-		_circle(o, p, e.r, ca(e.color, al))
-		_circle(o, p - Vector2(e.r, e.r) * 0.35, e.r * 0.35, Color(1, 1, 1, 0.15 if e.phase else 0.35))
-		var arm := game.armor_of(e, null)
-		if arm > 0:
-			_ring(o, p, e.r, hx(0xb8c0d8, 0.85), 1 + arm * 8)
-		if e.hex_t > 0:
-			var a0 := S.time * 4
-			_arc(o, p, e.r + 5, a0, a0 + 4, hx(0xb07cff, 0.9), 2)
-		if e.stun_t > 0:
-			_ring(o, p, e.r + 2, Color(1, 1, 1, 0.9), 2)
-		elif e.slow:
-			_ring(o, p, e.r + 2, ca(frost_col, 0.9), 2)
-		if e.burn_t > 0:
-			_circle(o, p - Vector2(0, e.r), 2.5, hx(0xff8a3d, 0.8))
-		if e.fire_t > 0:
-			# Fire spell burn: a flickering orange halo
-			_ring(o, p, e.r + 1, hx(0xff5d1f, 0.55 + 0.35 * sin(S.time * 18 + e.d)), 2)
-		if e.boss:
-			_ring(o, p, e.r + 4, hx(0xf2c14e), 2)
-		elif e.pushback_immune:
-			# anchored: a thick dark iron band says it can't be pushed back
-			_ring(o, p, e.r + 3, hx(0x3a4256, 0.95), 3)
-		if e.mark_t > 0 or e.spot_t > 0:
-			_ring(o, p, e.r + 7, hx(0xff2e4d, 0.9), 1.5)
-		var w := e.r * 2 + 4
-		o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w, 3), Color(0, 0, 0, 0.6))
-		o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w * maxf(0, e.hp / e.max), 3), hx(0x5fe39a))
+		if not S.map.art.is_empty():
+			continue # a hand-painted map draws each enemy in the depth-sorted layer (_sync_enemies)
+		_draw_enemy(o, e, P(e.x, e.y, body_lift(e)), has_anvil, anvil_col, frost_col)
 	var hp := P(h.x, h.y, 20)
 	var htop := SY(h.y) - 47 # just above the head
 	if h.ko > 0:
@@ -1076,6 +1081,11 @@ func _tile_image(tex: Texture2D) -> Image:
 
 func bake_ground(m: MapInfo) -> void:
 	ground_for = m
+	_clear_art()
+	if not m.art.is_empty():
+		_build_art(m)
+		return
+	_set_res(1)
 	ground.texture = ImageTexture.create_from_image(make_ground(m))
 	ground_anim.clear()
 	if m.scene and m.scene.backdrop and m.scene.backdrop_frames.size() > 1:
@@ -1311,3 +1321,164 @@ func _draw_path(img: Image, top: int, st: Dictionary, links: Dictionary) -> void
 				if col.has("stud") and k == "curb" and along != null and fposmod(along, 16.0) < 2:
 					k = "stud"
 				img.set_pixel(u + c * TILE, v + r * TH + top, col[k])
+
+
+# ---------- hand-painted maps (MapScene.art_layout) ----------
+## Draws the board at F times the base art resolution.
+func _set_res(f: int) -> void:
+	if F == f and viewport.size == Vector2i(ART_W * f, ART_H * f):
+		return
+	F = f
+	viewport.size = Vector2i(ART_W * F, ART_H * F)
+	bg.size = Vector2(ART_W * F, ART_H * F)
+	world.scale = Vector2(PX * F, PX * F)
+	ground.scale = Vector2(1 / PX, 1 / PX)
+	# the hi-res board is scaled to the screen smoothly; the pixel-art boards stay crisp
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if F > 1 else CanvasItem.TEXTURE_FILTER_NEAREST
+
+
+func _clear_art() -> void:
+	for n in art_sprites:
+		if is_instance_valid(n):
+			n.queue_free()
+	art_sprites.clear()
+	for n in art_flat.get_children():
+		n.queue_free()
+	art_glow.visible = false
+
+
+func _art_material(params: Dictionary) -> ShaderMaterial:
+	var m := ShaderMaterial.new()
+	m.shader = NEON_SHADER
+	for k in params:
+		m.set_shader_parameter(k, params[k])
+	return m
+
+
+## The painted ground, the road glints, the pads, then every building and prop as its own sprite in the
+## depth-sorted layer, so towers, enemies and the hero pass behind and in front of them correctly.
+## Layout positions are in art pixels at the map's art_scale; the world is that divided by PX * F.
+func _build_art(m: MapInfo) -> void:
+	var L := m.art
+	_set_res(int(L.get("art_scale", 2)))
+	var u := 1.0 / (PX * F) # world units per art pixel
+	var period: float = L.get("period", 4.0)
+	ground_anim.clear()
+	ground.material = null
+	ground.texture = load(m.art_dir + L.ground)
+	ground.scale = Vector2(u, u) * (float(ART_W * F) / ground.texture.get_width())
+	var gl := Sprite2D.new()
+	gl.centered = false
+	gl.texture = load(m.art_dir + L.glints)
+	gl.scale = Vector2(u, u) * (float(ART_W * F) / gl.texture.get_width())
+	var glm := ShaderMaterial.new()
+	glm.shader = GLINT_SHADER
+	glm.set_shader_parameter("period", period)
+	gl.material = glm
+	art_flat.add_child(gl)
+	art_glow.texture = load(m.art_dir + L.glow)
+	art_glow.scale = Vector2(u, u) * (float(ART_W * F) / art_glow.texture.get_width())
+	(art_glow.material as ShaderMaterial).set_shader_parameter("period", period)
+	art_glow.visible = true
+	var shared := _art_material({ period = period })
+	var i := 0
+	for it: Dictionary in L.sprites:
+		i += 1
+		var sp := Sprite2D.new()
+		sp.texture = load(m.art_dir + "spr/" + it.tex)
+		sp.centered = false
+		sp.scale = Vector2(u, u)
+		var tl := Vector2(it.tl[0], it.tl[1])
+		match it.kind:
+			"pad":
+				sp.position = tl * u
+				sp.material = _art_material({ period = period, pad_phase = fmod(float(it.pad) / 8.0, 1.0) })
+				art_flat.add_child(sp)
+				continue
+			"palm":
+				sp.material = _art_material({ period = period, sway = 0.022, sway_phase = fmod(i * 0.37, 1.0) })
+			"portal":
+				sp.material = _art_material({ period = period, ring = Vector2(it.ring[0], it.ring[1]) - tl })
+			_:
+				sp.material = shared
+		var key: float = it.key
+		sp.position = Vector2(tl.x, key) * u
+		sp.offset = Vector2(0, tl.y - key)
+		units.add_child(sp)
+		art_sprites.append(sp)
+
+
+## A build pad's diamond on the ground (field coordinates, drawn on the flat layer).
+func _pad_mark(g: CanvasItem, i: int, col: Color, fill: bool, w := 1.0) -> void:
+	var S := _S()
+	if i < 0 or i >= S.map.pad_centres.size():
+		return
+	var c: Vector2 = S.map.pad_centres[i]
+	var pts := PackedVector2Array([c + Vector2(0, -PAD_HH), c + Vector2(PAD_HW, 0), c + Vector2(0, PAD_HH), c + Vector2(-PAD_HW, 0)])
+	if fill:
+		g.draw_colored_polygon(pts, col)
+	else:
+		pts.append(pts[0])
+		g.draw_polyline(pts, col, w)
+
+## An enemy's body, its status rings and health bar, around p (the middle of the body).
+func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col: Color, frost_col: Color) -> void:
+	var S := _S()
+	if e.still_t > 0.5 and has_anvil:
+		var n := mini(6, 2 + int(e.still_t))
+		for i in n:
+			var a := i * 2.4
+			_line(o, p, p + Vector2(cos(a), sin(a)) * (e.r + 4 + e.still_t * 3), ca(anvil_col, 0.7), 1.5)
+	var al := 0.45 if e.phase else 1.0
+	_circle(o, p, e.r + 1.25, hx(0x101223, al))
+	_circle(o, p, e.r, ca(e.color, al))
+	_circle(o, p - Vector2(e.r, e.r) * 0.35, e.r * 0.35, Color(1, 1, 1, 0.15 if e.phase else 0.35))
+	var arm := game.armor_of(e, null)
+	if arm > 0:
+		_ring(o, p, e.r, hx(0xb8c0d8, 0.85), 1 + arm * 8)
+	if e.hex_t > 0:
+		var a0 := S.time * 4
+		_arc(o, p, e.r + 5, a0, a0 + 4, hx(0xb07cff, 0.9), 2)
+	if e.stun_t > 0:
+		_ring(o, p, e.r + 2, Color(1, 1, 1, 0.9), 2)
+	elif e.slow:
+		_ring(o, p, e.r + 2, ca(frost_col, 0.9), 2)
+	if e.burn_t > 0:
+		_circle(o, p - Vector2(0, e.r), 2.5, hx(0xff8a3d, 0.8))
+	if e.fire_t > 0:
+		# Fire spell burn: a flickering orange halo
+		_ring(o, p, e.r + 1, hx(0xff5d1f, 0.55 + 0.35 * sin(S.time * 18 + e.d)), 2)
+	if e.boss:
+		_ring(o, p, e.r + 4, hx(0xf2c14e), 2)
+	elif e.pushback_immune:
+		# anchored: a thick dark iron band says it can't be pushed back
+		_ring(o, p, e.r + 3, hx(0x3a4256, 0.95), 3)
+	if e.mark_t > 0 or e.spot_t > 0:
+		_ring(o, p, e.r + 7, hx(0xff2e4d, 0.9), 1.5)
+	var w := e.r * 2 + 4
+	o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w, 3), Color(0, 0, 0, 0.6))
+	o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w * maxf(0, e.hp / e.max), 3), hx(0x5fe39a))
+
+
+## On a hand-painted map each enemy is its own node in the depth-sorted layer, at its feet, so buildings
+## and props in front of the road hide it.
+func _sync_enemies(S: Run) -> void:
+	if S == null or S.map == null or S.map.art.is_empty():
+		return
+	for e: Enemy in S.enemies:
+		var n: Node2D = e.get_meta("view") if e.has_meta("view") else null
+		if n == null or not is_instance_valid(n):
+			n = Node2D.new()
+			n.draw.connect(func():
+				var R := _S()
+				if R == null:
+					return
+				var has_anvil := R.towers.any(func(t): return t.type == "anvil")
+				var anvil_col: Color = DB.towers.anvil.color if DB.towers.has("anvil") else Color.WHITE
+				var frost_col: Color = DB.towers.frost.color if DB.towers.has("frost") else Color.WHITE
+				_draw_enemy(n, e, Vector2(0, -body_lift(e)), has_anvil, anvil_col, frost_col))
+			units.add_child(n)
+			e.set_meta("view", n)
+		_seen(n)
+		n.position = P(e.x, e.y)
+		n.queue_redraw()

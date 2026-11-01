@@ -20,6 +20,15 @@ var prop_cells := {} # Vector2i -> atlas coords
 var blocked := {}
 var base := Vector2.ZERO
 var problem := "" # why the map can't be played, if its path is broken
+## A hand-painted map (MapScene.art_layout): the layout data, the path as free points instead of tiles, and
+## build pads instead of the build grid. A pad is the cell (index, SPOT_ROW), so towers still key on a cell.
+const SPOT_ROW := -1000
+var art := {}
+var art_dir := ""
+var free_path := false
+var spots: Array[Vector2] = [] # where a tower on each pad stands (field units)
+var pad_centres: Array[Vector2] = [] # the middle of each pad on the ground
+var hero_at = null
 
 
 static func load_scene(ps: PackedScene) -> MapInfo:
@@ -28,8 +37,33 @@ static func load_scene(ps: PackedScene) -> MapInfo:
 	m.id = m.scene.id
 	m.ground = m.scene.get_node_or_null("Ground")
 	m.props_layer = m.scene.get_node_or_null("Props")
-	m._read()
+	if m.scene.art_layout != "":
+		m._read_art(m.scene.art_layout)
+	else:
+		m._read()
 	return m
+
+
+func _read_art(path: String) -> void:
+	var j = load(path)
+	if not (j is JSON) or not (j.data is Dictionary):
+		problem = "Can't read the map layout " + path
+		return
+	art = j.data
+	art_dir = path.get_base_dir() + "/"
+	free_path = true
+	wp.clear()
+	for p in art.path:
+		wp.append(Vector2(p[0], p[1]))
+	for pad in art.pads:
+		spots.append(Vector2(pad.tower[0], pad.tower[1]))
+		pad_centres.append(Vector2(pad.centre[0], pad.centre[1]))
+	if art.has("hero"):
+		hero_at = Vector2(art.hero[0], art.hero[1])
+	if wp.size() < 2:
+		problem = "The path needs at least 2 points."
+		return
+	_segments()
 
 
 func kind_at(cell: Vector2i) -> String:
@@ -118,6 +152,10 @@ func _trace() -> void:
 	wp.clear()
 	for cl in cells:
 		wp.append(Vector2(cl.x * C + C / 2, cl.y * C + C / 2))
+	_segments()
+
+
+func _segments() -> void:
 	seg.clear()
 	path_len = 0.0
 	for i in wp.size() - 1:
@@ -128,12 +166,22 @@ func _trace() -> void:
 
 
 func pos_at(d: float) -> Vector2:
-	for s in seg:
-		if d <= s.start + s.len:
-			var t: float = (d - s.start) / s.len
-			return s.a.lerp(s.b, t)
-	return base
+	if seg.is_empty() or d > path_len:
+		return base
+	# binary search: hand-painted paths have many short segments
+	var lo := 0
+	var hi := seg.size() - 1
+	while lo < hi:
+		var mid := (lo + hi) >> 1
+		if d <= seg[mid].start + seg[mid].len:
+			hi = mid
+		else:
+			lo = mid + 1
+	var s: Dictionary = seg[lo]
+	return s.a.lerp(s.b, (d - s.start) / s.len) if s.len > 0 else s.b
 
 
 func hero_start() -> Vector2:
+	if hero_at != null:
+		return hero_at
 	return Vector2(base.x - 80, base.y - 60 if base.y > 120 else base.y + 60)
