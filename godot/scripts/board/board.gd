@@ -61,6 +61,7 @@ var ground_anim_t := 0.0
 var ground_blend := ShaderMaterial.new()
 var frame_no := 0
 var tip_tower: Tower = null
+var ghost: AnimatedSprite2D = null # the tower being placed, on a free-build map
 var shake_t := 0.0
 var shake_amt := 0.0
 var shake_dur := 0.0
@@ -230,6 +231,7 @@ func sync(dt: float) -> void:
 	if S and not S.paused and not S.over:
 		speed = S.speed
 	_sync_towers(S, speed)
+	_sync_ghost(S)
 	_sync_hero(S, dt, speed)
 	_sync_hero_shots(S, dt, speed)
 	_sync_enemies(S)
@@ -319,6 +321,47 @@ func _sync_towers(S: Run, speed: float) -> void:
 				_burst(t.type, Vector2(t.x, SY(t.y) + FOOT - 4), "fx")
 		if t.beam:
 			_laser_beam(S, t, d)
+
+
+## On a free-build map, the tower being placed follows the pointer as a ghost: green where it can go (gold if the
+## hero has to walk there first), red where it can't.
+func _sync_ghost(S: Run) -> void:
+	var show := false
+	if S != null and S.hero != null and S.map != null and game.free_build() and S.build != "" and S.hover != null and S.hero.ko <= 0:
+		var hv: Vector2i = S.hover
+		var fr := _frames_of(S.build)
+		if fr != null and game.tower_at(hv.x, hv.y) == null:
+			if ghost == null:
+				ghost = AnimatedSprite2D.new()
+				ghost.centered = false
+				ghost.scale = Vector2(1 / PX, 1 / PX)
+				units.add_child(ghost)
+			if ghost.sprite_frames != fr:
+				ghost.sprite_frames = fr
+				ghost.play("idle")
+			var d: TowerData = DB.towers[S.build]
+			var p := game.cell_pos(hv.x, hv.y)
+			var ok := game.build_problem(hv.x, hv.y, S.build) == ""
+			ghost.position = Vector2(p.x, SY(p.y))
+			ghost.offset = Vector2(-24, -d.foot_y + FOOT * PX)
+			ghost.modulate = Color(1, 0.35, 0.4, 0.6) if not ok else (Color(0.55, 1, 0.65, 0.75) if game.in_build_range(hv.x, hv.y) else Color(1, 0.85, 0.45, 0.7))
+			show = true
+	if ghost != null:
+		ghost.visible = show
+
+
+## The build mask as a faint green wash over the ground where towers can go (made once per map).
+func _build_wash(m: MapInfo) -> ImageTexture:
+	if m.has_meta("wash"):
+		return m.get_meta("wash")
+	var img := Image.create(m.build_w, m.build_h, false, Image.FORMAT_RGBA8)
+	for j in m.build_h:
+		for i in m.build_w:
+			if m.build_mask[j * m.build_w + i] == 0:
+				img.set_pixel(i, j, Color(0.37, 0.89, 0.6, 0.22))
+	var tex := ImageTexture.create_from_image(img)
+	m.set_meta("wash", tex)
+	return tex
 
 
 func _beam_sprite(frames: SpriteFrames) -> AnimatedSprite2D:
@@ -902,7 +945,8 @@ func _draw_flat() -> void:
 		return
 	var base := S.map.base
 	var pads := game.has_pads()
-	if not pads: # a hand-painted map draws its own base (the portal)
+	var free := game.free_build()
+	if not S.map.free_path: # a hand-painted map draws its own base (the portal)
 		_circle(g, base, 26, hx(0x4fd8e8, 0.15))
 		_ring(g, base, 18, hx(0x4fd8e8), 2)
 	var h := S.hero
@@ -920,6 +964,8 @@ func _draw_flat() -> void:
 	if S.build != "" and h.ko <= 0:
 		_circle(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.05))
 		_ring(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.35), 1)
+		if free: # a faint wash over the ground towers can go on
+			g.draw_texture_rect(_build_wash(S.map), Rect2(0, Game.FOOT_DY, S.map.build_w * S.map.build_step, S.map.build_h * S.map.build_step), false)
 		if pads: # outline the free pads: green within reach, gold beyond it
 			for i in S.map.pad_centres.size():
 				if game.tower_at(i, MapInfo.SPOT_ROW) == null:
@@ -931,15 +977,22 @@ func _draw_flat() -> void:
 			var hc2 := hx(0xff5d6c if not ok else (0x5fe39a if near else 0xf2c14e), 0.4)
 			if pads:
 				_pad_mark(g, hv.x, hc2, true)
+			elif free: # the new tower's footprint; the tower itself shows as a tinted ghost (_sync_ghost)
+				if game.tower_at(hv.x, hv.y) == null:
+					var foot := game.cell_pos(hv.x, hv.y) + Vector2(0, Game.FOOT_DY)
+					_circle(g, foot, 17, ca(hc2, 0.3))
+					_ring(g, foot, 17, ca(hc2, 0.9), 1.5)
 			else:
 				g.draw_rect(Rect2(hv.x * C, hv.y * C, C, C), hc2)
-			if ok:
+			if ok and not (free and game.tower_at(hv.x, hv.y) != null):
 				var td: TowerData = DB.towers[S.build]
 				_ring(g, game.cell_pos(hv.x, hv.y), td.range * (1 + h.tower_range), ca(td.color, 0.4), 1)
 	if S.pending_build != null:
 		var pb: Dictionary = S.pending_build
 		if pads:
 			_pad_mark(g, pb.c, ca(DB.towers[pb.type].color, 0.8), false, 2)
+		elif free:
+			_ring(g, game.cell_pos(pb.c, pb.r) + Vector2(0, Game.FOOT_DY), 17, ca(DB.towers[pb.type].color, 0.8), 2)
 		else:
 			g.draw_rect(Rect2(pb.c * C + 4, pb.r * C + 4, C - 8, C - 8), ca(DB.towers[pb.type].color, 0.8), false, 2)
 	var show_r: Tower = S.sel if S.sel != null else tip_tower

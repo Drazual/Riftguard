@@ -3728,7 +3728,7 @@ func tower_at(c: int, r: int) -> Tower:
 ## Towers stand up out of their tile, so pointing at the top of one (the tile above it) picks it too.
 func pick_tower(c: int, r: int) -> Tower:
 	var t := tower_at(c, r)
-	if t or has_pads():
+	if t or has_pads() or free_build():
 		return t
 	if not S.map.path_cells.has(Vector2i(c, r)):
 		return tower_at(c, r + 1)
@@ -3745,16 +3745,39 @@ func has_pads() -> bool:
 	return S != null and S.map != null and not S.map.spots.is_empty()
 
 
+## A map with a build mask: towers go anywhere it allows, not on pads or grid tiles.
+func free_build() -> bool:
+	return S != null and S.map != null and S.map.free_build
+
+
+const TOWER_GAP := 36.0 # on a free-build map, the closest two towers can stand (field units)
+const FOOT_DY := 12.0 # a tower's foot on the ground sits this far below where it stands (Board.FOOT / Board.K)
+
+
 ## Where a tower on this cell (or pad) stands.
 func cell_pos(c: int, r: int) -> Vector2:
 	if r == MapInfo.SPOT_ROW and c >= 0 and c < S.map.spots.size():
 		return S.map.spots[c]
+	if free_build():
+		var st: float = S.map.build_step
+		return Vector2((c + 0.5) * st, (r + 0.5) * st)
 	return Vector2(c * C + C / 2, r * C + C / 2)
 
 
 ## Every place a tower could go on this map (the pads, or the grid cells next to the path), for bots and tests.
 func build_cells() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
+	if free_build(): # a sample of the open ground, every 20 units
+		var st: float = S.map.build_step
+		var y := 10.0
+		while y < S.map.build_h * st:
+			var x := 10.0
+			while x < S.map.build_w * st:
+				if S.map.build_code(Vector2(x, y)) == 0:
+					out.append(Vector2i(floori(x / st), floori(y / st)))
+				x += 20.0
+			y += 20.0
+		return out
 	if has_pads():
 		for i in S.map.spots.size():
 			out.append(Vector2i(i, MapInfo.SPOT_ROW))
@@ -3785,9 +3808,36 @@ func pad_at(x: float, y: float) -> Vector2i:
 	return Vector2i(best, MapInfo.SPOT_ROW)
 
 
+## The tower whose body is at (x, y) on a free-build map (towers stand up the screen from their foot).
+func tower_body_at(x: float, y: float) -> Tower:
+	var best: Tower = null
+	var bd := INF
+	for t: Tower in S.towers:
+		var dx := absf(x - t.x)
+		var dy := y - t.y
+		if dx <= 22 and dy <= 14 and dy >= -80:
+			var dd := dx + absf(dy - 4) * 0.5
+			if dd < bd:
+				bd = dd
+				best = t
+	return best
+
+
 func build_problem(c: int, r: int, type: String) -> String:
 	var k := Vector2i(c, r)
-	if has_pads():
+	if free_build():
+		var p := cell_pos(c, r)
+		match S.map.build_code(p):
+			1:
+				return "Too close to the road."
+			2:
+				return "Something is in the way."
+			3:
+				return "That's the edge of the city. Build inside it."
+		for t: Tower in S.towers:
+			if Vector2(t.x, t.y).distance_to(p) < TOWER_GAP:
+				return "Too close to another tower."
+	elif has_pads():
 		if r != MapInfo.SPOT_ROW or c < 0 or c >= S.map.spots.size():
 			return "Build towers on the glowing pads."
 	elif c < 0 or r < 0 or c >= COLS or r >= ROWS:
@@ -4341,6 +4391,12 @@ func _sum(xs: Array) -> float:
 
 # ---------- player actions (mouse and keys) ----------
 func cell_at(x: float, y: float) -> Vector2i:
+	if free_build(): # the tower under the pointer, else the spot a new tower would stand on
+		var t := tower_body_at(x, y)
+		if t:
+			return Vector2i(t.c, t.r)
+		var st: float = S.map.build_step
+		return Vector2i(floori(x / st), floori((y - FOOT_DY) / st)) # the pointer marks the new tower's foot
 	if has_pads():
 		return pad_at(x, y)
 	return Vector2i(floori(x / C), floori(y / C))
