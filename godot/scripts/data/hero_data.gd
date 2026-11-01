@@ -57,3 +57,6 @@ extends Resource
 @export var gun_tip := Vector2(22, 3.5)
 ## Where the gun's pivot sits on the body in each facing (0 = north, clockwise), in pixels of a `body_frames` frame.
 @export var shoulder := PackedVector2Array()
+## Optional effects for the gun layer, drawn pointing right and turned to match: "flash" (the muzzle flash, its
+## centre on the gun tip) and "bullet". Without it the 8-direction bullets and flashes of `shot_fx` are used.
+@export var gun_fx: SpriteFrames
