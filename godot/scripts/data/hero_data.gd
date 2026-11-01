@@ -41,3 +41,8 @@ extends Resource
 ## 10 rows (idle 1-2, walk 1-4, fire 1-4) by 8 facings of 48px frames (the source of the animations above).
 ## The Striker's sheet is 64px frames instead: rows 0-7 idle, 8-15 walk, 16-21 fire, one column per facing.
 @export var sheet: Texture2D
+## Optional bullet sprites for the hero's normal shot (bullet_N per facing, hit, crit, flash_a/flash_b/flash_o).
+## Without it the shot is drawn as a tracer line.
+@export var shot_fx: SpriteFrames
+## Where the gun tip is in each facing (0 = north, clockwise), in pixels of a `frames` frame. Shots start here.
+@export var muzzle := PackedVector2Array()
