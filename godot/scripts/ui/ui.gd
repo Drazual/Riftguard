@@ -36,7 +36,7 @@ var enemy_box: VBoxContainer
 var enemy_card: PanelContainer
 var codex_card: PanelContainer
 var enemy_codex_card: PanelContainer
-var side_clip: Control # the side panel's column; it stays put so the board never moves
+var side_clip: Control # the side panel's frame over the right edge of the map; it stays put so the board never moves
 var side_slide: ScrollContainer # what slides in and out of that column
 var panel_mode := "" # what the side panel shows: "", "hero", "tower", "build" or "enemy"
 var panel_key := ""
@@ -140,7 +140,6 @@ func _build() -> void:
 	build_bar = Kit.flow(6)
 	bar.add_child(build_bar)
 	left.add_child(bar)
-	mid.add_child(_side())
 	# overlays
 	screen = _screen_layer()
 	add_child(screen)
@@ -273,6 +272,8 @@ func _board_frame() -> Control:
 	wave_chip.add_child(wave_lbl)
 	top_mid.add_child(wave_chip)
 	area.add_child(top_mid)
+	# the side panel floats over the right edge of the map, under the corner buttons, so the map can use the full width
+	area.add_child(_side())
 	# toast
 	toast_box = PanelContainer.new()
 	toast_box.theme_type_variation = "Toast"
@@ -302,10 +303,16 @@ func _board_frame() -> Control:
 
 
 ## The side panel is empty until you click something. Clicking a tower, the hero or an enemy (or picking a
-## tower to build) slides its details in from the right; letting go slides them back out.
+## tower to build) slides its details in from the right, over the edge of the map; letting go slides them back out.
 func _side() -> Control:
 	side_clip = Control.new()
-	side_clip.custom_minimum_size = Vector2(PANEL_W, 0)
+	side_clip.anchor_left = 1
+	side_clip.anchor_right = 1
+	side_clip.anchor_bottom = 1
+	side_clip.offset_left = -PANEL_W - 10
+	side_clip.offset_right = -10
+	side_clip.offset_top = 58
+	side_clip.offset_bottom = -10
 	side_clip.clip_contents = true
 	side_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sc := ScrollContainer.new()
