@@ -11,6 +11,7 @@ extends SceneTree
 ##           { "scene": "rifle.tscn", "grip": right hand bone, "support": left hand bone }. The weapon scene has
 ##           its grip at the origin, the barrel along -Z and a "Muzzle" node at the tip; every frame it is put in
 ##           the grip hand and pointed at the support hand, so it follows the animation's hands exactly.
+##           "turn": 180 for a weapon modelled with its barrel along +Z.
 ##   lock_root optional: the root bone (e.g. "mixamorig_Hips"); its sideways drift is removed so walks stay in place
 ##   weapon  optional: the node of the weapon mesh; its front end is the muzzle if there's no "Muzzle" node
 ##   hide    optional: nodes to hide (spare weapons and props)
@@ -144,7 +145,8 @@ func _hold(held: Node3D, skel: Skeleton3D, cfg: Dictionary) -> void:
 	var support := skel.global_transform * skel.get_bone_global_pose(skel.find_bone(cfg.support)).origin
 	var dir := (support - grip).normalized()
 	var up := Vector3.UP if absf(dir.y) < 0.95 else Vector3.BACK
-	held.global_transform = Transform3D(Basis.looking_at(dir, up), grip)
+	var b := Basis.looking_at(dir, up) * Basis(Vector3.UP, deg_to_rad(cfg.get("turn", 0.0)))
+	held.global_transform = Transform3D(b, grip)
 
 
 ## The camera never moves: orthographic, tilted so the ground squashes by K like the board, framing a hero
