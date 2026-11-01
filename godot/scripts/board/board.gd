@@ -483,13 +483,13 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	s.speed_scale = speed * m
 	s.position = Vector2(h.x, SY(h.y) + 0.0005)
 	st.face = face
-	_sync_hero_gun(S, h, s, firing, moving, dt, speed)
+	_sync_hero_gun(S, h, s, firing, dt, speed)
 
 
 ## Split-layer heroes: the body keeps its 8 facings while the gun and arms turn freely to the exact angle of the
-## target (along the walk, or the facing, when not shooting). The gun sits at the facing's shoulder point, kicks
+## target (along the body's facing when not shooting). The gun sits at the facing's shoulder point, kicks
 ## back on each shot, flips so it is never upside down, and goes behind the body when aiming up.
-func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, moving: bool, dt: float, speed: float) -> void:
+func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, dt: float, speed: float) -> void:
 	var d := h.data
 	var g := hero_gun
 	if d.gun == null or s.sprite_frames != d.body_frames:
@@ -510,7 +510,17 @@ func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, moving: 
 	var sh := Vector2(32, 39)
 	if face < d.shoulder.size():
 		sh = d.shoulder[face]
+	# ride the body's bob: the frame on screen, counted idle frames first, then walk frames
+	var sf := s.sprite_frames
+	var per := sf.get_frame_count("idle_%d" % face) + sf.get_frame_count("walk_%d" % face)
+	var row := s.frame
+	if String(s.animation).begins_with("walk"):
+		row += sf.get_frame_count("idle_%d" % face)
+	var bi := face * per + row
+	if bi < d.body_bob.size():
+		sh += d.body_bob[bi]
 	var base := s.offset + sh
+	# not shooting: carry the gun along the body's facing, so it only turns when the body does
 	var want: float = st.sector * PI / 4
 	var kick: float = st.get("kick", 0.0)
 	if kick >= 1.0:
@@ -530,8 +540,6 @@ func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, moving: 
 		var v := to - (s.position + base / PX)
 		if v.length() > 1:
 			want = v.angle()
-	elif moving:
-		want = st.mv.angle()
 	if kick >= 1.0 and firing:
 		st.gun_ang = want # the shot leaves along the gun, so snap onto the target as it fires
 	else:

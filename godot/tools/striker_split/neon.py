@@ -10,6 +10,8 @@ Writes, at the game's pixel scale:
 - assets/heroes/striker_gun.png: the gun, pointing right. Prints its pivot (back of the sleeve) and tip (end of the barrel).
 - assets/heroes/striker_gun_fx.png: 32px cells, frames 0-3 the muzzle flash (star centred in the cell), 4 the bullet.
 """
+import re
+
 import numpy as np
 from PIL import Image
 
@@ -161,8 +163,35 @@ def frames_tres(path, uid, tex, tex_uid, anims):
 		f.write("\n[resource]\nanimations = [%s]\n" % ", ".join(out))
 
 
+def bob():
+	"""How far the torso moves in each frame from the first idle frame of its facing (x: torso centre, y: top of the
+	head), so the gun can ride the walk. Written to HeroData.body_bob, facing-major, 12 frames per facing."""
+	a = np.array(Image.open("assets/heroes/striker_body.png"))[:, :, 3] > 0
+	out = []
+	for face in range(8):
+		ref = None
+		for r in range(12):
+			c = a[r * 64:(r + 1) * 64, face * 64:(face + 1) * 64]
+			ys, xs = np.nonzero(c)
+			t, b = ys.min(), ys.max()
+			band = c[t + (b - t) * 35 // 100:t + (b - t) * 65 // 100]
+			bx = np.nonzero(band.any(0))[0]
+			p = ((bx.min() + bx.max() + 1) / 2, t)
+			ref = ref or p
+			out.append((0, p[1] - ref[1]))  # sideways it only wobbles half a pixel: leave x
+	path = "data/heroes/striker.tres"
+	txt = open(path).read()
+	line = "body_bob = PackedVector2Array(%s)" % ", ".join("%g, %g" % v for v in out)
+	if "body_bob = " in txt:
+		txt = re.sub(r"body_bob = .*", line, txt)
+	else:
+		txt = txt.rstrip("\n") + "\n" + line + "\n"
+	open(path, "w").write(txt)
+
+
 body()
 gun()
+bob()
 anims = []
 for face in range(8):
 	anims.append(("idle_%d" % face, [(face * 64, r * 64, 64, 64) for r in range(4)], True, 5.0))
