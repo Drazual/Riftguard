@@ -139,7 +139,7 @@ func show_map_select() -> void:
 	queue_tip("maps")
 	var box := ui.show_screen(show_menu)
 	head(box, "Choose a map", show_menu)
-	lead(box, "Beat a map to unlock the next one. Harder maps have more waves and pay more Rift Shards.")
+	lead(box, "More maps are under construction. Harder maps will have more waves and pay more Rift Shards.")
 	var g := GridContainer.new()
 	g.columns = 2
 	g.add_theme_constant_override("h_separation", 12)
@@ -147,6 +147,7 @@ func show_map_select() -> void:
 	for i in DB.map_order.size():
 		var k: String = DB.map_order[i]
 		var m: MapScene = DB.maps[k].scene
+		var built := Save.map_built(k)
 		var open := Save.map_unlocked(k)
 		var best = Save.meta.best.get(k)
 		var ch := Choice.new()
@@ -154,11 +155,15 @@ func show_map_select() -> void:
 		ch.add(Kit.c("%s · %d WAVES · ×%s SHARDS" % [m.tier.to_upper(), m.waves, UiText.f1t(m.shard_mult)], Kit.MUTED), 11)
 		ch.add(Kit.head(m.map_name, 20, Kit.ARCANE))
 		ch.add(DB.tx("map:" + k, m.desc), 14)
-		if open:
+		if not built:
+			ch.add(Kit.b(Kit.c("UNDER CONSTRUCTION", Kit.GOLD)), 14)
+		elif open:
 			ch.add(Kit.c(("Best: wave %d%s" % [best.wave, " (beaten)" if best.won else ""]) if best is Dictionary else "Not played yet", Kit.GOLD), 13)
 		else:
 			ch.add(Kit.c("Locked: beat %s to unlock" % DB.maps[DB.map_order[i - 1]].scene.map_name, Kit.DANGER), 13)
 		ch.disabled = not open
+		if not built:
+			ch.modulate = Color(0.6, 0.6, 0.6, ch.modulate.a)
 		ch.pressed.connect(new_run.bind(k))
 		g.add_child(ch)
 	box.add_child(g)

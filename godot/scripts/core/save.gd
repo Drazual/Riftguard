@@ -145,7 +145,18 @@ func map_won(id: String) -> bool:
 	return b is Dictionary and bool(b.get("won", false))
 
 
+## Only this many maps (from the start of DB.map_order) are playable. The rest show as under construction.
+const OPEN_MAPS := 1
+
+
+func map_built(id: String) -> bool:
+	var i := DB.map_order.find(id)
+	return i >= 0 and i < OPEN_MAPS
+
+
 func map_unlocked(id: String) -> bool:
+	if not map_built(id):
+		return false
 	var i := DB.map_order.find(id)
 	# a map you have already played stays open even if a new stage was added before it
 	return i <= 0 or map_won(DB.map_order[i - 1]) or meta.best.has(id)
