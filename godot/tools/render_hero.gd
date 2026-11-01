@@ -4,7 +4,14 @@ extends SceneTree
 ##   xvfb-run godot --path godot --rendering-driver opengl3 -s res://tools/render_hero.gd -- <hero folder>
 ## <hero folder> is a folder in res://art_src/heroes/ holding the model and a hero.json:
 ##   model   the .glb (rigged, about 1.8 units tall, standing at the origin, facing +Z)
-##   anims   { "idle": clip, "walk": clip, "fire": clip } from the model's AnimationPlayer
+##   anims   { "idle": clip, "walk": clip, "fire": clip }: a clip in the model's AnimationPlayer, or a separate
+##           animation file on the same skeleton (e.g. "walk.fbx" downloaded from Mixamo "Without Skin")
+##   span    optional: { "idle": [from, to] } seconds of a clip to sample, for long clips
+##   held    optional: a weapon held in both hands, for models that come without one (e.g. from Mixamo):
+##           { "scene": "rifle.tscn", "grip": right hand bone, "support": left hand bone }. The weapon scene has
+##           its grip at the origin, the barrel along -Z and a "Muzzle" node at the tip; every frame it is put in
+##           the grip hand and pointed at the support hand, so it follows the animation's hands exactly.
+##   lock_root optional: the root bone (e.g. "mixamorig_Hips"); its sideways drift is removed so walks stay in place
 ##   weapon  optional: the node of the weapon mesh; its front end is the muzzle if there's no "Muzzle" node
 ##   hide    optional: nodes to hide (spare weapons and props)
 ##   out     the name of the files it writes
@@ -51,22 +58,43 @@ func _run() -> void:
 			h.visible = false
 	_toon(model)
 	var ap: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
-	var muzzle: Node3D = model.find_child("Muzzle", true, false)
-	var weapon: Node3D = model.find_child(cfg.get("weapon", ""), true, false) if cfg.has("weapon") else null
-	await _fit(model, ap, cfg.anims.idle, weapon)
+	var anims: Dictionary = cfg.anims.duplicate()
+	for anim in anims:
+		if String(anims[anim]).get_extension() in ["fbx", "glb", "gltf"]:
+			anims[anim] = _import_clip(ap, dir + anims[anim], anim)
+		if cfg.has("lock_root"):
+			_lock_root(ap.get_animation(anims[anim]), cfg.lock_root)
+	var skel: Skeleton3D = model.find_child("Skeleton3D", true, false)
+	var held: Node3D = null
+	if cfg.has("held"):
+		for b in [cfg.held.grip, cfg.held.support]:
+			if skel.find_bone(b) < 0:
+				push_error("render_hero: no bone %s in the model" % b)
+				quit(1)
+				return
+		held = (load(dir + cfg.held.scene) as PackedScene).instantiate()
+		vp.add_child(held)
+		_toon(held)
+	var muzzle: Node3D = (held if held else model).find_child("Muzzle", true, false)
+	var weapon: Node3D = held
+	if cfg.has("weapon"):
+		weapon = model.find_child(cfg.weapon, true, false)
+	await _fit(model, ap, anims.idle, weapon)
 	var sheet := Image.create(FRAME * 8, FRAME * 16, false, Image.FORMAT_RGBA8)
 	var tips := {}
 	for face in 8:
 		pivot.rotation.y = _yaw(face)
 		for anim in ROWS:
 			var r: Array = ROWS[anim]
-			var clip: String = cfg.anims[anim]
-			var length := ap.get_animation(clip).length
+			var clip: String = anims[anim]
+			var span: Array = cfg.get("span", {}).get(anim, [0.0, ap.get_animation(clip).length])
 			for f in r[1]:
 				ap.play(clip)
-				ap.seek(length * f / r[1], true)
+				ap.seek(span[0] + (span[1] - span[0]) * f / r[1], true)
 				ap.pause()
 				await process_frame
+				if held:
+					_hold(held, skel, cfg.held)
 				await process_frame
 				await RenderingServer.frame_post_draw
 				var img := _shrink(vp.get_texture().get_image())
@@ -85,6 +113,38 @@ func _run() -> void:
 		first.append_array(tips["%d_0" % face])
 	print("render_hero: wrote %s; HeroData.muzzle = PackedVector2Array(%s)" % [out, ", ".join(first.map(func(v): return str(v)))])
 	quit()
+
+
+## Adds the first clip of a separate animation file (same skeleton) to the model's player, as "ext/<name>".
+func _import_clip(ap: AnimationPlayer, path: String, name: String) -> String:
+	var src := (load(path) as PackedScene).instantiate()
+	var sp: AnimationPlayer = src.find_child("AnimationPlayer", true, false)
+	var a: Animation = sp.get_animation(sp.get_animation_list()[0]).duplicate()
+	src.free()
+	if not ap.has_animation_library("ext"):
+		ap.add_animation_library("ext", AnimationLibrary.new())
+	ap.get_animation_library("ext").add_animation(name, a)
+	return "ext/" + name
+
+
+## Pins the root bone's sideways position to where it starts, so the hero walks on the spot. Height is kept.
+func _lock_root(a: Animation, bone: String) -> void:
+	for t in a.get_track_count():
+		if a.track_get_type(t) != Animation.TYPE_POSITION_3D or not String(a.track_get_path(t)).ends_with(":" + bone):
+			continue
+		var p0: Vector3 = a.track_get_key_value(t, 0)
+		for k in a.track_get_key_count(t):
+			var p: Vector3 = a.track_get_key_value(t, k)
+			a.track_set_key_value(t, k, Vector3(p0.x, p.y, p0.z))
+
+
+## Puts the held weapon in the grip hand, its barrel pointing through the support hand.
+func _hold(held: Node3D, skel: Skeleton3D, cfg: Dictionary) -> void:
+	var grip := skel.global_transform * skel.get_bone_global_pose(skel.find_bone(cfg.grip)).origin
+	var support := skel.global_transform * skel.get_bone_global_pose(skel.find_bone(cfg.support)).origin
+	var dir := (support - grip).normalized()
+	var up := Vector3.UP if absf(dir.y) < 0.95 else Vector3.BACK
+	held.global_transform = Transform3D(Basis.looking_at(dir, up), grip)
 
 
 ## The camera never moves: orthographic, tilted so the ground squashes by K like the board, framing a hero
