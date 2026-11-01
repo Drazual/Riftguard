@@ -46,3 +46,14 @@ extends Resource
 @export var shot_fx: SpriteFrames
 ## Where the gun tip is in each facing (0 = north, clockwise), in pixels of a `frames` frame. Shots start here.
 @export var muzzle := PackedVector2Array()
+## Split-layer heroes (the Striker): on the board the body plays these animations instead of `frames`, and a
+## separate gun layer (`gun`) turns freely to the exact angle of the target. `frames` still shows in the menus.
+## The body only uses idle_N and walk_N, so the legs keep walking while it shoots.
+@export var body_frames: SpriteFrames
+## The gun and arms, drawn pointing right (east). Without it the hero is one sprite and `muzzle` is used.
+@export var gun: Texture2D
+## The pixel of `gun` it turns around (the shoulder end), and the pixel the bullets leave from (the tip).
+@export var gun_pivot := Vector2(1, 3.5)
+@export var gun_tip := Vector2(22, 3.5)
+## Where the gun's pivot sits on the body in each facing (0 = north, clockwise), in pixels of a `body_frames` frame.
+@export var shoulder := PackedVector2Array()

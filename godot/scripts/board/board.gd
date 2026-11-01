@@ -68,6 +68,7 @@ var hero_spr: AnimatedSprite2D = null
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
 var hero_flash: AnimatedSprite2D = null
+var hero_gun: Sprite2D = null # split-layer heroes: the gun and arms, a child of hero_spr that turns to the target
 var bursts := 0
 var _tex_cache := {}
 ## Hand-painted maps (MapScene.art_layout) draw at a higher resolution: F art pixels per base art pixel.
@@ -365,16 +366,19 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 				hero_spr.queue_free()
 				hero_spr = null
 		return
+	# split-layer heroes draw a gun-less body here and the gun as its own layer (see _sync_hero_gun)
+	var split: bool = h.data.gun != null and h.data.body_frames != null
+	var sf: SpriteFrames = h.data.body_frames if split else h.data.frames
 	var s := hero_spr
-	if s == null or not is_instance_valid(s) or s.sprite_frames != h.data.frames:
+	if s == null or not is_instance_valid(s) or s.sprite_frames != sf:
 		if s and is_instance_valid(s):
 			s.queue_free()
 		s = AnimatedSprite2D.new()
-		s.sprite_frames = h.data.frames
+		s.sprite_frames = sf
 		s.centered = false
 		s.scale = Vector2(1 / PX, 1 / PX)
 		# frames are 48px (feet on row 43) or bigger with the feet the same distance from the bottom edge
-		var fs := h.data.frames.get_frame_texture("idle_4", 0).get_size()
+		var fs := sf.get_frame_texture("idle_4", 0).get_size()
 		s.offset = Vector2(-fs.x / 2, -HERO_FEET - (fs.y - 48) + 3 * PX)
 		units.add_child(s)
 		hero_spr = s
@@ -411,7 +415,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	if h.atk_at != st.fired:
 		st.fired = h.atk_at
 		st.shot = true
-		if not moving:
+		st.kick = 1.0
+		if not moving and not split:
 			st.anim = "fire"
 			s.play("fire_%d" % face)
 	if moving and st.anim == "fire":
@@ -435,6 +440,65 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	s.speed_scale = speed * m
 	s.position = Vector2(h.x, SY(h.y) + 0.0005)
 	st.face = face
+	_sync_hero_gun(S, h, s, firing, moving, dt, speed)
+
+
+## Split-layer heroes: the body keeps its 8 facings while the gun and arms turn freely to the exact angle of the
+## target (along the walk, or the facing, when not shooting). The gun sits at the facing's shoulder point, kicks
+## back on each shot, flips so it is never upside down, and goes behind the body when aiming up.
+func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, moving: bool, dt: float, speed: float) -> void:
+	var d := h.data
+	var g := hero_gun
+	if d.gun == null or s.sprite_frames != d.body_frames:
+		if g and is_instance_valid(g):
+			g.queue_free()
+		hero_gun = null
+		return
+	var st := hero_state
+	if g == null or not is_instance_valid(g) or g.get_parent() != s:
+		g = Sprite2D.new()
+		g.texture = d.gun
+		g.centered = false
+		g.offset = -d.gun_pivot
+		s.add_child(g)
+		hero_gun = g
+		st.gun_ang = st.sector * PI / 4
+	var face: int = st.face
+	var sh := Vector2(32, 39)
+	if face < d.shoulder.size():
+		sh = d.shoulder[face]
+	var base := s.offset + sh
+	var want: float = st.sector * PI / 4
+	var kick: float = st.get("kick", 0.0)
+	if kick >= 1.0:
+		# a new shot: remember who it was at, so the gun can follow them until the next one
+		st.aim_e = null
+		var best := 30.0
+		for e: Enemy in S.enemies:
+			var dd := Vector2(e.x - h.aim_x, e.y - h.aim_y).length()
+			if dd < best:
+				best = dd
+				st.aim_e = e
+	if firing:
+		var to := Vector2(h.aim_x, SY(h.aim_y) - 12.0)
+		var e: Enemy = st.get("aim_e")
+		if e != null and is_instance_valid(e) and not e.dead and S.enemies.has(e):
+			to = Vector2(e.x, SY(e.y) - body_lift(e))
+		var v := to - (s.position + base / PX)
+		if v.length() > 1:
+			want = v.angle()
+	elif moving:
+		want = st.mv.angle()
+	if kick >= 1.0 and firing:
+		st.gun_ang = want # the shot leaves along the gun, so snap onto the target as it fires
+	else:
+		st.gun_ang = lerp_angle(st.gun_ang, want, 1 - exp(-20 * dt * speed))
+	var ang: float = st.gun_ang
+	g.rotation = ang
+	g.scale = Vector2(1, -1 if cos(ang) < -0.01 else 1)
+	g.position = base - Vector2.from_angle(ang) * 2.0 * kick
+	g.show_behind_parent = sin(ang) < -0.35
+	st.kick = maxf(0, kick - dt * speed / 0.09)
 
 
 const BULLET_SPEED := 750.0 # board units per second
@@ -444,6 +508,10 @@ const FLASH_ANIM := ["flash_o", "flash_a", "flash_o", "flash_b", "flash_o", "fla
 ## Where the hero's gun tip is on the board right now (its sprite must be placed this frame).
 func hero_muzzle(h: Hero) -> Vector2:
 	var s := hero_spr
+	var g := hero_gun
+	if g and is_instance_valid(g) and g.get_parent() == s:
+		var tip := (h.data.gun_tip - h.data.gun_pivot) * g.scale
+		return s.position + (g.position + tip.rotated(g.rotation)) / PX
 	var face: int = hero_state.get("face", 4)
 	var m := Vector2(32, 26)
 	if face < h.data.muzzle.size():
@@ -492,7 +560,8 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / BULLET_SPEED), crit = f.w >= 3 })
 	if hero_state.get("shot", false):
 		hero_state.shot = false
-		if shown and String(hero_spr.animation).begins_with("walk"):
+		var split := hero_gun != null and is_instance_valid(hero_gun)
+		if shown and (split or String(hero_spr.animation).begins_with("walk")):
 			if hero_flash == null or not is_instance_valid(hero_flash):
 				hero_flash = AnimatedSprite2D.new()
 				hero_flash.sprite_frames = fx
@@ -500,7 +569,7 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 				top.add_child(hero_flash)
 				hero_flash.animation_finished.connect(func(): hero_flash.visible = false)
 			hero_flash.visible = true
-			hero_flash.play(FLASH_ANIM[hero_state.face])
+			hero_flash.play("flash_o" if split else FLASH_ANIM[hero_state.face])
 	if hero_flash and is_instance_valid(hero_flash) and hero_flash.visible:
 		hero_flash.visible = shown
 		if shown:
