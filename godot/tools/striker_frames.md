@@ -38,22 +38,23 @@ N (31.7, 26.1), NE (42.5, 30.2), E (50.7, 41), SE (48.8, 43.6), S (31.9, 52.1), 
 NW (20.6, 30.3). Bullets leave from there and fly to the target's body at 750 units/s (see `Board._sync_hero_shots`).
 Shooting while moving keeps the walk cycle (backwards when backing away) and adds a muzzle flash.
 
-## Split layers (prototype)
+## Split layers
 
-On the board the Striker is two layers (see `Board._sync_hero_gun`):
+On the board the Striker is two layers (see `Board._sync_hero_gun`), using the Neon Striker art:
 
-- **Body** (`HeroData.body_frames` = `art/heroes/striker_body.tres`, sheet `assets/heroes/striker_body.png`): the same
-  sheet with the gun erased, same layout and timings. Only idle and walk play, in 8 facings, so the legs keep walking
-  while it shoots. The fire rows are unused on the board.
-- **Gun and arms** (`HeroData.gun` = `assets/heroes/striker_gun.png`): drawn pointing east. It turns around
-  `gun_pivot` to the exact angle of the target (or the walk direction when not shooting), sits on the body at
-  `HeroData.shoulder[facing]`, flips when aiming left, goes behind the body when aiming up, and kicks back 2px per shot.
-- **Bullets** leave from `gun_tip`, turned with the gun (`Board.hero_muzzle`). Every shot shows the round muzzle flash.
+- **Body** (`HeroData.body_frames` = `art/heroes/striker_body.tres`, sheet `assets/heroes/striker_body.png`): 64px
+  frames, one column per facing (N, NE, E, SE, S, SW, W, NW), rows 0-3 idle (5 fps) and 4-11 walk (12 fps). The west
+  side is the east side mirrored. Feet on row 59. Only idle and walk play, so the legs keep walking while it shoots.
+- **Gun and arms** (`HeroData.gun` = `assets/heroes/striker_gun.png`, 28x7): drawn pointing east. It turns around
+  `gun_pivot` (the back of the sleeve) to the exact angle of the target, or the walk direction when not shooting. It
+  sits on the body at `HeroData.shoulder[facing]`, flips when aiming left, goes behind the body when aiming up, looks
+  shorter when pointing up or down the screen, and kicks back 2px per shot.
+- **Effects** (`HeroData.gun_fx` = `art/heroes/striker_gun_fx.tres`, sheet `assets/heroes/striker_gun_fx.png`, 32px
+  cells): `flash` (frames 0-3) is centred on the gun tip and turned with the gun; `bullet` (frame 4) is turned to fly
+  at any angle. The hit and crit bursts still come from `shot_fx`.
 
-The menus still show the full `frames`. Both PNGs are placeholders made by `tools/striker_split/split.py`
-(the body by erasing gun-coloured pixels, the gun hand-pixelled). Final art needs, at the same 64px scale:
+The menus still show the old full `frames`.
 
-1. The body sheet without any gun, with arms posed to hold one (or arms left off for the gun layer to carry).
-2. One gun-and-arms sprite drawn pointing straight right, about 22-28px long, with its turning point at the shoulder.
-   Optionally a second one drawn from slightly above for aiming down/up, if the side view looks off there.
-3. The shoulder point for each facing and the pivot/tip pixels of the gun (set on `data/heroes/striker.tres`).
+All three sheets are built by `tools/striker_split/neon.py` from the source art in `tools/striker_split/src/`
+(`neon_body.png`: rows S, SE, E, NE, N by 12 frames; `neon_weapon.png`: the gun, then flash frames and the bullet).
+It prints the gun's pivot and tip, which go on `data/heroes/striker.tres`.

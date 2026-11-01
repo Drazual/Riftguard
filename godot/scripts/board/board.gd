@@ -495,7 +495,8 @@ func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, moving: 
 		st.gun_ang = lerp_angle(st.gun_ang, want, 1 - exp(-20 * dt * speed))
 	var ang: float = st.gun_ang
 	g.rotation = ang
-	g.scale = Vector2(1, -1 if cos(ang) < -0.01 else 1)
+	# pointing up or down the screen points into the board's tilt, so the gun looks shorter there
+	g.scale = Vector2(lerpf(1.0, K, sin(ang) * sin(ang)), -1 if cos(ang) < -0.01 else 1)
 	g.position = base - Vector2.from_angle(ang) * 2.0 * kick
 	g.show_behind_parent = sin(ang) < -0.35
 	st.kick = maxf(0, kick - dt * speed / 0.09)
@@ -552,28 +553,42 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		var v := b - a
 		var dir := posmod(int(round(v.angle() / (PI / 4))), 8)
 		var sp := AnimatedSprite2D.new()
-		sp.sprite_frames = fx
 		sp.scale = Vector2(1 / PX, 1 / PX)
 		sp.position = a
 		top.add_child(sp)
-		sp.play("bullet_%d" % FACE_COL[dir])
+		if h.data.gun_fx and h.data.gun_fx.has_animation("bullet"):
+			sp.sprite_frames = h.data.gun_fx # drawn pointing right: turn it to fly at any angle
+			sp.rotation = v.angle()
+			sp.play("bullet")
+		else:
+			sp.sprite_frames = fx
+			sp.play("bullet_%d" % FACE_COL[dir])
 		hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / BULLET_SPEED), crit = f.w >= 3 })
 	if hero_state.get("shot", false):
 		hero_state.shot = false
 		var split := hero_gun != null and is_instance_valid(hero_gun)
+		# split-layer heroes with their own flash turn it with the gun
+		var turn: bool = split and h.data.gun_fx != null and h.data.gun_fx.has_animation("flash")
+		var ff: SpriteFrames = h.data.gun_fx if turn else fx
 		if shown and (split or String(hero_spr.animation).begins_with("walk")):
-			if hero_flash == null or not is_instance_valid(hero_flash):
+			if hero_flash and is_instance_valid(hero_flash) and hero_flash.sprite_frames != ff:
+				hero_flash.queue_free()
+			if hero_flash == null or not is_instance_valid(hero_flash) or hero_flash.is_queued_for_deletion():
 				hero_flash = AnimatedSprite2D.new()
-				hero_flash.sprite_frames = fx
+				hero_flash.sprite_frames = ff
 				hero_flash.scale = Vector2(1 / PX, 1 / PX)
 				top.add_child(hero_flash)
-				hero_flash.animation_finished.connect(func(): hero_flash.visible = false)
+				var hf := hero_flash
+				hf.animation_finished.connect(func(): hf.visible = false)
 			hero_flash.visible = true
-			hero_flash.play("flash_o" if split else FLASH_ANIM[hero_state.face])
+			hero_flash.rotation = 0.0
+			hero_flash.play("flash" if turn else ("flash_o" if split else FLASH_ANIM[hero_state.face]))
 	if hero_flash and is_instance_valid(hero_flash) and hero_flash.visible:
 		hero_flash.visible = shown
 		if shown:
 			hero_flash.position = hero_muzzle(h)
+			if hero_flash.animation == &"flash" and hero_gun and is_instance_valid(hero_gun):
+				hero_flash.rotation = hero_gun.rotation
 		hero_flash.speed_scale = speed
 	for i in range(hero_bullets.size() - 1, -1, -1):
 		var b: Dictionary = hero_bullets[i]
