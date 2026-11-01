@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bnfwnmxor8r33" path="res://assets/heroes/striker.png" id="4_fek0u"]
 [ext_resource type="SpriteFrames" uid="uid://fc03ka8edcmpb" path="res://art/heroes/striker_fx.tres" id="5_shfx"]
 [ext_resource type="SpriteFrames" uid="uid://cs3bodyk4fr2m" path="res://art/heroes/striker_body.tres" id="6_body"]
-[ext_resource type="Texture2D" uid="uid://dyncl80pwk93b" path="res://assets/heroes/striker_gun.png" id="7_gun"]
+[ext_resource type="Texture2D" uid="uid://dyncl80pwla3b" path="res://assets/heroes/striker_gun.png" id="7_gun"]
 [ext_resource type="SpriteFrames" uid="uid://dgunfx7k2m4qa" path="res://art/heroes/striker_gun_fx.tres" id="8_gunfx"]
 
 [sub_resource type="Resource" id="Resource_uk0wj"]
@@ -94,6 +94,7 @@ body_frames = ExtResource("6_body")
 gun = ExtResource("7_gun")
 gun_pivot = Vector2(0.5, 4.9)
 gun_tip = Vector2(28, 2.4)
-shoulder = PackedVector2Array(35, 41, 35, 41, 30, 43, 31, 43, 33, 42, 33, 43, 34, 43, 29, 41)
+shoulder = PackedVector2Array(38, 38, 39, 38, 31, 39, 31, 39, 33, 38, 33, 39, 33, 39, 25, 38)
 gun_fx = ExtResource("8_gunfx")
 body_bob = PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, -2, 0, -2, 0, -1, 0, -1, 0, -2, 0, -2, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2, 0, -2, 0, -2, 0, -1, 0, -2, 0, -2, 0, -2, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+carry = PackedFloat32Array(-70, -40, 20, 40, 65, 140, 160, -140)
