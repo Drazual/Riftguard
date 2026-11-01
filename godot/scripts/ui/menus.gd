@@ -1435,20 +1435,24 @@ func confirm_quit() -> void:
 	box.add_child(row)
 
 
-## A hero's menu art: its south-facing idle frames, zoomed, bobbing between the two.
+## A hero's menu art: its south-facing idle loop, zoomed, cut to a 48px box around the feet.
 class Portrait extends TextureRect:
 	var frames: Array[AtlasTexture] = []
+	var step := 0.35
 	var t := 0.0
 	var i := 0
 
 	static func make(id: String, z: float) -> Portrait:
 		var p := Portrait.new()
-		var tex: Texture2D = DB.heroes[id].sheet
-		for row in [0, 1]:
+		var sf: SpriteFrames = DB.heroes[id].frames
+		for f in sf.get_frame_count("idle_4"):
+			var src := sf.get_frame_texture("idle_4", f) as AtlasTexture
+			var r := src.region
 			var a := AtlasTexture.new()
-			a.atlas = tex
-			a.region = Rect2(4 * 48, row * 48, 48, 48)
+			a.atlas = src.atlas
+			a.region = Rect2(r.position + Vector2((r.size.x - 48) / 2, r.size.y - 48), Vector2(48, 48))
 			p.frames.append(a)
+		p.step = 1.0 / maxf(1, sf.get_animation_speed("idle_4"))
 		p.texture = p.frames[0]
 		p.custom_minimum_size = Vector2(48, 48) * z
 		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -1459,9 +1463,9 @@ class Portrait extends TextureRect:
 
 	func _process(dt: float) -> void:
 		t += dt
-		if t >= 0.35:
+		if t >= step:
 			t = 0.0
-			i = 1 - i
+			i = (i + 1) % frames.size()
 			texture = frames[i]
 
 

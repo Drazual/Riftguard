@@ -345,7 +345,9 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		s.sprite_frames = h.data.frames
 		s.centered = false
 		s.scale = Vector2(1 / PX, 1 / PX)
-		s.offset = Vector2(-24, -HERO_FEET + 3 * PX)
+		# frames are 48px (feet on row 43) or bigger with the feet the same distance from the bottom edge
+		var fs := h.data.frames.get_frame_texture("idle_4", 0).get_size()
+		s.offset = Vector2(-fs.x / 2, -HERO_FEET - (fs.y - 48) + 3 * PX)
 		units.add_child(s)
 		hero_spr = s
 		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "" }
