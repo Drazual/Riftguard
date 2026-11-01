@@ -1506,7 +1506,8 @@ func _build_art(m: MapInfo) -> void:
 			"palm":
 				sp.material = _art_material({ period = period, sway = 0.022, sway_phase = fmod(i * 0.37, 1.0) })
 			"portal":
-				sp.material = _art_material({ period = period, ring = Vector2(it.ring[0], it.ring[1]) - tl })
+				var rr: Array = it.get("ring_r", [70.0, 66.67])
+				sp.material = _art_material({ period = period, ring = Vector2(it.ring[0], it.ring[1]) - tl, ring_r = Vector2(rr[0], rr[1]) })
 			_:
 				sp.material = shared
 		var key: float = it.key
