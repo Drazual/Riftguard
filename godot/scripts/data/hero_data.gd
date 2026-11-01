@@ -60,3 +60,6 @@ extends Resource
 ## Optional effects for the gun layer, drawn pointing right and turned to match: "flash" (the muzzle flash, its
 ## centre on the gun tip) and "bullet". Without it the 8-direction bullets and flashes of `shot_fx` are used.
 @export var gun_fx: SpriteFrames
+## How far the body's shoulders move in each frame (facing-major: the idle frames then the walk frames of facing 0,
+## then facing 1, ...), in pixels, so the gun rides the walk instead of floating. Empty = the gun stays put.
+@export var body_bob := PackedVector2Array()
