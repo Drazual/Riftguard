@@ -23,11 +23,20 @@ All `tl`/`key`/`ring` values are in art pixels (the 1536x832 image); field units
 | `path` | enemy path as field points, from off-screen to the portal (the base) |
 | `pads` | build pads: `centre` (the pad on the ground) and `tower` (where a tower stands), field units |
 | `hero` | hero start, field units |
-| `sprites` | `{tex, tl, key, kind, name}`: `tl` = top-left, `key` = the y the sprite sorts at (its ground line). `kind`: `pad` (drawn flat on the ground, pulses on its own beat, `pad` = index), `palm` (sways), `portal` (`ring` = swirl centre), `neon`, `tlight`, `arch`, `bld`, `prop` |
+| `sprites` | `{tex, tl, key, kind, name}`: `tl` = top-left, `key` = the y the sprite sorts at (its ground line). `kind`: `pad` (drawn flat on the ground, pulses on its own beat, `pad` = index), `palm` (sways), `portal` (`ring` = swirl centre, `ring_r` = the ring's half-width/half-height in mockup pixels, so the swirl follows the upright oval of a side-on portal), `neon`, `tlight`, `arch`, `bld`, `prop` |
 
 Buildings, props, towers, enemies and the hero all sit in the board's y-sorted `units` layer, so units walk
 behind and in front of the art correctly. The arch is cut in two (`arch_iso_a`/`_b`) so enemies pass
 behind its front pillar.
+
+## Layout rules
+- The portal faces the last road leg (down-left on screen): its stairs run along that leg and the road ends
+  on the bottom step's front edge.
+- Nothing tall stands inside the road loop: only low park and plaza tiles (flower beds, hedges, palm planters,
+  fountains), kept off the road edge and the pads.
+- Edge buildings mix 11 types (the 5 from the tile sheet plus motel, diner, record store, apartments,
+  nightclub and palm hotel). No type repeats within 4 cells, the neon trim is recoloured pink, teal, violet or
+  coral, and size and setback vary a little per lot.
 
 ## In game
 - A pad is the cell `(index, MapInfo.SPOT_ROW)`, so towers, merges and saves still key on a cell.
@@ -36,6 +45,7 @@ behind its front pillar.
 - The board renders this map at 2x (1536x832) and scales it to the screen smoothly; tile maps keep 768x416.
 
 ## Regenerating
-The art was composed from the iso tile sheet by the map mockup scripts (`compose11.py`) and exported with
-`export_godot.py <out dir>` (both kept outside the repo with the source sheets). Re-export, copy the output
+The art was composed from the iso tile sheet by the map mockup scripts (`compose12.py`, which builds on
+`compose11.py`; `cut12.py` keys the generated portal and building sprites) and exported with
+`export12.py <out dir>` (both kept outside the repo with the source sheets). Re-export, copy the output
 over this folder, and reopen the project so Godot re-imports it.

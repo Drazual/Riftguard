@@ -398,23 +398,23 @@
   {
    "n": 4,
    "centre": [
-    288.0,
-    141.33
-   ],
-   "tower": [
-    288.0,
-    129.33
-   ]
-  },
-  {
-   "n": 5,
-   "centre": [
     384.0,
     116.67
    ],
    "tower": [
     384.0,
     104.67
+   ]
+  },
+  {
+   "n": 5,
+   "centre": [
+    320.0,
+    166.0
+   ],
+   "tower": [
+    320.0,
+    154.0
    ]
   },
   {
@@ -805,187 +805,147 @@
  ],
  "sprites": [
   {
-   "tex": "bld_techshop_00.png",
+   "tex": "bld_arcade_00.png",
    "tl": [
-    252,
+    204,
     -160
    ],
-   "key": 1.6,
+   "key": -2.1,
    "kind": "bld",
-   "name": "bld_techshop"
+   "name": "bld_arcade"
   },
   {
-   "tex": "bld_cafe_01.png",
+   "tex": "bld_nightclub_01.png",
    "tl": [
-    632,
-    -164
+    4,
+    -184
    ],
-   "key": 1.6,
+   "key": -1.8,
+   "kind": "bld",
+   "name": "bld_nightclub"
+  },
+  {
+   "tex": "bld_palmhotel_02.png",
+   "tl": [
+    624,
+    -192
+   ],
+   "key": 0.2,
+   "kind": "bld",
+   "name": "bld_palmhotel"
+  },
+  {
+   "tex": "bld_cafe_03.png",
+   "tl": [
+    1036,
+    -172
+   ],
+   "key": 0.8,
    "kind": "bld",
    "name": "bld_cafe"
   },
   {
-   "tex": "bld_cafe_02.png",
-   "tl": [
-    1028,
-    -164
-   ],
-   "key": 1.6,
-   "kind": "bld",
-   "name": "bld_cafe"
-  },
-  {
-   "tex": "bld_techshop_03.png",
-   "tl": [
-    48,
-    -160
-   ],
-   "key": 1.6,
-   "kind": "bld",
-   "name": "bld_techshop"
-  },
-  {
-   "tex": "hedge_sidewalk_04.png",
+   "tex": "fountain_plaza_04.png",
    "tl": [
     356,
-    -68
+    -72
    ],
    "key": 1.6,
    "kind": "prop",
-   "name": "hedge_sidewalk"
+   "name": "fountain_plaza"
   },
   {
-   "tex": "bld_theater_05.png",
+   "tex": "bld_palmhotel_05.png",
    "tl": [
-    764,
-    -160
+    1284,
+    -164
    ],
-   "key": 31.2,
+   "key": 24.7,
    "kind": "bld",
-   "name": "bld_theater"
-  },
-  {
-   "tex": "bld_theater_05.png",
-   "tl": [
-    1276,
-    -160
-   ],
-   "key": 31.2,
-   "kind": "bld",
-   "name": "bld_theater"
+   "name": "bld_palmhotel"
   },
   {
    "tex": "bld_cafe_06.png",
    "tl": [
-    -152,
+    776,
     -136
    ],
-   "key": 31.2,
+   "key": 28.7,
    "kind": "bld",
    "name": "bld_cafe"
   },
   {
-   "tex": "bld_theater_07.png",
+   "tex": "bld_techshop_07.png",
    "tl": [
-    456,
-    -160
-   ],
-   "key": 31.2,
-   "kind": "bld",
-   "name": "bld_theater"
-  },
-  {
-   "tex": "plaza_props_08.png",
-   "tl": [
-    -4,
-    -40
-   ],
-   "key": 31.2,
-   "kind": "prop",
-   "name": "plaza_props"
-  },
-  {
-   "tex": "parking_lot_09.png",
-   "tl": [
-    716,
-    -44
-   ],
-   "key": 31.2,
-   "kind": "prop",
-   "name": "parking_lot"
-  },
-  {
-   "tex": "flower_tile_10.png",
-   "tl": [
-    304,
-    -36
-   ],
-   "key": 31.2,
-   "kind": "prop",
-   "name": "flower_tile"
-  },
-  {
-   "tex": "car_pink_11.png",
-   "tl": [
-    744,
-    -40
-   ],
-   "key": 32.0,
-   "kind": "prop",
-   "name": "car_pink"
-  },
-  {
-   "tex": "bld_theater_12.png",
-   "tl": [
-    1160,
+    -140,
     -128
    ],
-   "key": 60.8,
-   "kind": "bld",
-   "name": "bld_theater"
-  },
-  {
-   "tex": "bld_cafe_13.png",
-   "tl": [
-    940,
-    -104
-   ],
-   "key": 60.8,
-   "kind": "bld",
-   "name": "bld_cafe"
-  },
-  {
-   "tex": "bld_hotel_14.png",
-   "tl": [
-    1444,
-    -148
-   ],
-   "key": 60.8,
-   "kind": "bld",
-   "name": "bld_hotel"
-  },
-  {
-   "tex": "bld_techshop_15.png",
-   "tl": [
-    116,
-    -100
-   ],
-   "key": 60.8,
+   "key": 29.4,
    "kind": "bld",
    "name": "bld_techshop"
   },
   {
-   "tex": "palm_planter_plaza_16.png",
+   "tex": "neon_fountain_tile_08.png",
    "tl": [
-    252,
-    -12
+    716,
+    -32
    ],
-   "key": 60.8,
-   "kind": "prop",
-   "name": "palm_planter_plaza"
+   "key": 31.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
   },
   {
-   "tex": "tool_tile_17.png",
+   "tex": "tool_tile_09.png",
+   "tl": [
+    308,
+    -48
+   ],
+   "key": 31.2,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "bld_records_10.png",
+   "tl": [
+    468,
+    -136
+   ],
+   "key": 32.9,
+   "kind": "bld",
+   "name": "bld_records"
+  },
+  {
+   "tex": "bld_nightclub_11.png",
+   "tl": [
+    1120,
+    -124
+   ],
+   "key": 57.3,
+   "kind": "bld",
+   "name": "bld_nightclub"
+  },
+  {
+   "tex": "bld_apartments_12.png",
+   "tl": [
+    120,
+    -128
+   ],
+   "key": 58.0,
+   "kind": "bld",
+   "name": "bld_apartments"
+  },
+  {
+   "tex": "bld_apartments_13.png",
+   "tl": [
+    924,
+    -136
+   ],
+   "key": 60.5,
+   "kind": "bld",
+   "name": "bld_apartments"
+  },
+  {
+   "tex": "tool_tile_14.png",
    "tl": [
     864,
     -16
@@ -995,27 +955,67 @@
    "name": "tool_tile"
   },
   {
-   "tex": "tool_tile_18.png",
+   "tex": "plaza_props_15.png",
    "tl": [
-    -56,
-    -16
+    252,
+    -12
    ],
    "key": 60.8,
    "kind": "prop",
-   "name": "tool_tile"
+   "name": "plaza_props"
   },
   {
-   "tex": "neon_fountain_tile_19.png",
+   "tex": "parking_lot_16.png",
    "tl": [
     1280,
-    -4
+    -12
    ],
    "key": 60.8,
-   "kind": "neon",
-   "name": "neon_fountain_tile"
+   "kind": "prop",
+   "name": "parking_lot"
   },
   {
-   "tex": "traffic_light_20.png",
+   "tex": "parking_lot_17.png",
+   "tl": [
+    -52,
+    -12
+   ],
+   "key": 60.8,
+   "kind": "prop",
+   "name": "parking_lot"
+  },
+  {
+   "tex": "bld_theater_18.png",
+   "tl": [
+    1440,
+    -120
+   ],
+   "key": 61.2,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "car_pink_19.png",
+   "tl": [
+    1308,
+    -8
+   ],
+   "key": 61.6,
+   "kind": "prop",
+   "name": "car_pink"
+  },
+  {
+   "tex": "taxi_20.png",
+   "tl": [
+    -48,
+    -12
+   ],
+   "key": 61.6,
+   "kind": "prop",
+   "name": "taxi"
+  },
+  {
+   "tex": "traffic_light_21.png",
    "tl": [
     864,
     32
@@ -1025,7 +1025,7 @@
    "name": "traffic_light"
   },
   {
-   "tex": "lamp_21.png",
+   "tex": "lamp_22.png",
    "tl": [
     916,
     28
@@ -1035,27 +1035,27 @@
    "name": "lamp"
   },
   {
-   "tex": "bld_techshop_22.png",
+   "tex": "bld_hotel_23.png",
    "tl": [
-    404,
-    -72
+    368,
+    -112
    ],
-   "key": 90.4,
+   "key": 86.2,
    "kind": "bld",
-   "name": "bld_techshop"
+   "name": "bld_hotel"
   },
   {
-   "tex": "bld_arcade_23.png",
+   "tex": "bld_nightclub_24.png",
    "tl": [
-    576,
-    -72
+    584,
+    -92
    ],
-   "key": 90.4,
+   "key": 86.4,
    "kind": "bld",
-   "name": "bld_arcade"
+   "name": "bld_nightclub"
   },
   {
-   "tex": "flower_plaza_24.png",
+   "tex": "flower_plaza_25.png",
    "tl": [
     508,
     16
@@ -1065,17 +1065,17 @@
    "name": "flower_plaza"
   },
   {
-   "tex": "hedge_sidewalk_25.png",
+   "tex": "plaza_props_26.png",
    "tl": [
     1228,
     20
    ],
    "key": 90.4,
    "kind": "prop",
-   "name": "hedge_sidewalk"
+   "name": "plaza_props"
   },
   {
-   "tex": "traffic_light_26.png",
+   "tex": "traffic_light_27.png",
    "tl": [
     400,
     60
@@ -1085,7 +1085,7 @@
    "name": "traffic_light"
   },
   {
-   "tex": "traffic_light_27.png",
+   "tex": "traffic_light_28.png",
    "tl": [
     1220,
     60
@@ -1095,7 +1095,7 @@
    "name": "traffic_light"
   },
   {
-   "tex": "palm_planter_a_28.png",
+   "tex": "palm_planter_a_29.png",
    "tl": [
     452,
     48
@@ -1106,7 +1106,7 @@
    "foot": 114.7
   },
   {
-   "tex": "neon_sign_a_29.png",
+   "tex": "neon_sign_a_30.png",
    "tl": [
     740,
     64
@@ -1116,7 +1116,7 @@
    "name": "neon_sign_a"
   },
   {
-   "tex": "phone_booth_30.png",
+   "tex": "phone_booth_31.png",
    "tl": [
     1156,
     68
@@ -1126,7 +1126,7 @@
    "name": "phone_booth"
   },
   {
-   "tex": "lamp_31.png",
+   "tex": "lamp_32.png",
    "tl": [
     1276,
     60
@@ -1136,7 +1136,7 @@
    "name": "lamp"
   },
   {
-   "tex": "pad_teal_32.png",
+   "tex": "pad_teal_33.png",
    "tl": [
     772,
     48
@@ -1147,37 +1147,37 @@
    "pad": 8
   },
   {
-   "tex": "bld_techshop_33.png",
+   "tex": "bld_motel_34.png",
    "tl": [
-    1036,
-    -40
+    -4,
+    -52
    ],
-   "key": 120.0,
+   "key": 116.0,
    "kind": "bld",
-   "name": "bld_techshop"
+   "name": "bld_motel"
   },
   {
-   "tex": "bld_arcade_34.png",
+   "tex": "bld_records_35.png",
    "tl": [
-    12,
+    1032,
+    -40
+   ],
+   "key": 116.2,
+   "kind": "bld",
+   "name": "bld_records"
+  },
+  {
+   "tex": "bld_motel_36.png",
+   "tl": [
+    1328,
     -44
    ],
-   "key": 120.0,
+   "key": 118.6,
    "kind": "bld",
-   "name": "bld_arcade"
+   "name": "bld_motel"
   },
   {
-   "tex": "bld_techshop_35.png",
-   "tl": [
-    1376,
-    -40
-   ],
-   "key": 120.0,
-   "kind": "bld",
-   "name": "bld_techshop"
-  },
-  {
-   "tex": "palm_planter_a_36.png",
+   "tex": "palm_planter_a_37.png",
    "tl": [
     1012,
     76
@@ -1188,7 +1188,7 @@
    "foot": 144.3
   },
   {
-   "tex": "neon_sign_b_37.png",
+   "tex": "neon_sign_b_38.png",
    "tl": [
     1100,
     92
@@ -1198,7 +1198,7 @@
    "name": "neon_sign_b"
   },
   {
-   "tex": "pad_teal_38.png",
+   "tex": "pad_teal_39.png",
    "tl": [
     312,
     80
@@ -1209,7 +1209,7 @@
    "pad": 1
   },
   {
-   "tex": "pad_teal_39.png",
+   "tex": "pad_teal_40.png",
    "tl": [
     928,
     80
@@ -1220,7 +1220,17 @@
    "pad": 9
   },
   {
-   "tex": "lamp_40.png",
+   "tex": "plaza_props_41.png",
+   "tl": [
+    -4,
+    80
+   ],
+   "key": 149.6,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "lamp_42.png",
    "tl": [
     48,
     116
@@ -1230,7 +1240,7 @@
    "name": "lamp"
   },
   {
-   "tex": "lamp_40.png",
+   "tex": "lamp_42.png",
    "tl": [
     560,
     116
@@ -1240,7 +1250,7 @@
    "name": "lamp"
   },
   {
-   "tex": "palm_planter_b_41.png",
+   "tex": "palm_planter_b_43.png",
    "tl": [
     640,
     116
@@ -1251,7 +1261,7 @@
    "foot": 173.9
   },
   {
-   "tex": "palm_planter_a_42.png",
+   "tex": "palm_planter_a_44.png",
    "tl": [
     1372,
     108
@@ -1262,7 +1272,7 @@
    "foot": 173.9
   },
   {
-   "tex": "pad_teal_43.png",
+   "tex": "pad_teal_45.png",
    "tl": [
     468,
     108
@@ -1273,7 +1283,7 @@
    "pad": 2
   },
   {
-   "tex": "pad_teal_44.png",
+   "tex": "pad_teal_46.png",
    "tl": [
     672,
     108
@@ -1284,7 +1294,7 @@
    "pad": 6
   },
   {
-   "tex": "pad_teal_45.png",
+   "tex": "pad_teal_47.png",
    "tl": [
     1284,
     108
@@ -1295,17 +1305,17 @@
    "pad": 13
   },
   {
-   "tex": "bld_hotel_46.png",
+   "tex": "bld_nightclub_48.png",
    "tl": [
-    1448,
-    -28
+    1432,
+    -4
    ],
-   "key": 179.2,
+   "key": 176.8,
    "kind": "bld",
-   "name": "bld_hotel"
+   "name": "bld_nightclub"
   },
   {
-   "tex": "trash_47.png",
+   "tex": "trash_49.png",
    "tl": [
     852,
     152
@@ -1315,7 +1325,7 @@
    "name": "trash"
   },
   {
-   "tex": "pad_teal_48.png",
+   "tex": "pad_teal_50.png",
    "tl": [
     1028,
     136
@@ -1346,7 +1356,7 @@
    "name": "arch_iso_b"
   },
   {
-   "tex": "bench_49.png",
+   "tex": "bench_51.png",
    "tl": [
     1484,
     200
@@ -1356,7 +1366,7 @@
    "name": "bench"
   },
   {
-   "tex": "pad_teal_50.png",
+   "tex": "pad_teal_52.png",
    "tl": [
     56,
     168
@@ -1367,7 +1377,7 @@
    "pad": 0
   },
   {
-   "tex": "pad_teal_50.png",
+   "tex": "pad_teal_52.png",
    "tl": [
     568,
     168
@@ -1375,10 +1385,10 @@
    "key": 234.3,
    "kind": "pad",
    "name": "pad_teal",
-   "pad": 4
+   "pad": 3
   },
   {
-   "tex": "pad_teal_51.png",
+   "tex": "pad_teal_53.png",
    "tl": [
     772,
     168
@@ -1389,7 +1399,7 @@
    "pad": 7
   },
   {
-   "tex": "pad_teal_52.png",
+   "tex": "pad_teal_54.png",
    "tl": [
     876,
     168
@@ -1400,7 +1410,7 @@
    "pad": 10
   },
   {
-   "tex": "pad_teal_52.png",
+   "tex": "pad_teal_54.png",
    "tl": [
     1388,
     168
@@ -1411,18 +1421,7 @@
    "pad": 15
   },
   {
-   "tex": "pad_teal_53.png",
-   "tl": [
-    416,
-    196
-   ],
-   "key": 263.9,
-   "kind": "pad",
-   "name": "pad_teal",
-   "pad": 3
-  },
-  {
-   "tex": "pad_teal_54.png",
+   "tex": "pad_teal_55.png",
    "tl": [
     1132,
     196
@@ -1433,7 +1432,7 @@
    "pad": 12
   },
   {
-   "tex": "pad_teal_55.png",
+   "tex": "pad_teal_56.png",
    "tl": [
     1236,
     196
@@ -1444,24 +1443,14 @@
    "pad": 14
   },
   {
-   "tex": "bld_arcade_56.png",
+   "tex": "bld_palmhotel_57.png",
    "tl": [
-    1484,
-    104
+    1496,
+    80
    ],
-   "key": 268.0,
+   "key": 266.1,
    "kind": "bld",
-   "name": "bld_arcade"
-  },
-  {
-   "tex": "bench_57.png",
-   "tl": [
-    492,
-    240
-   ],
-   "key": 273.3,
-   "kind": "prop",
-   "name": "bench"
+   "name": "bld_palmhotel"
   },
   {
    "tex": "vending_58.png",
@@ -1474,7 +1463,18 @@
    "name": "vending"
   },
   {
-   "tex": "pad_teal_39.png",
+   "tex": "pad_teal_59.png",
+   "tl": [
+    468,
+    228
+   ],
+   "key": 293.5,
+   "kind": "pad",
+   "name": "pad_teal",
+   "pad": 4
+  },
+  {
+   "tex": "pad_teal_40.png",
    "tl": [
     672,
     228
@@ -1485,7 +1485,27 @@
    "pad": 5
   },
   {
-   "tex": "lamp_59.png",
+   "tex": "neon_fountain_tile_60.png",
+   "tl": [
+    764,
+    236
+   ],
+   "key": 297.6,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "bench_61.png",
+   "tl": [
+    652,
+    268
+   ],
+   "key": 302.9,
+   "kind": "prop",
+   "name": "bench"
+  },
+  {
+   "tex": "lamp_62.png",
    "tl": [
     1476,
     248
@@ -1495,7 +1515,7 @@
    "name": "lamp"
   },
   {
-   "tex": "palm_planter_b_60.png",
+   "tex": "palm_planter_b_63.png",
    "tl": [
     1204,
     264
@@ -1506,7 +1526,7 @@
    "foot": 321.9
   },
   {
-   "tex": "pad_teal_43.png",
+   "tex": "pad_teal_45.png",
    "tl": [
     1236,
     256
@@ -1517,9 +1537,9 @@
    "pad": 16
   },
   {
-   "tex": "palms_hedge_61.png",
+   "tex": "palms_hedge_64.png",
    "tl": [
-    724,
+    1116,
     264
    ],
    "key": 327.2,
@@ -1527,49 +1547,29 @@
    "name": "palms_hedge"
   },
   {
-   "tex": "neon_fountain_tile_62.png",
+   "tex": "fountain_plaza_65.png",
    "tl": [
-    408,
-    264
-   ],
-   "key": 327.2,
-   "kind": "neon",
-   "name": "neon_fountain_tile"
-  },
-  {
-   "tex": "flower_plaza_63.png",
-   "tl": [
-    916,
-    252
+    920,
+    256
    ],
    "key": 327.2,
    "kind": "prop",
-   "name": "flower_plaza"
+   "name": "fountain_plaza"
   },
   {
-   "tex": "neon_fountain_tile_64.png",
+   "tex": "palms_hedge_66.png",
    "tl": [
-    972,
-    292
+    980,
+    296
    ],
    "key": 356.8,
-   "kind": "neon",
-   "name": "neon_fountain_tile"
+   "kind": "prop",
+   "name": "palms_hedge"
   },
   {
-   "tex": "flower_tile_65.png",
+   "tex": "fountain_plaza_67.png",
    "tl": [
     868,
-    288
-   ],
-   "key": 356.8,
-   "kind": "prop",
-   "name": "flower_tile"
-  },
-  {
-   "tex": "fountain_plaza_66.png",
-   "tl": [
-    1072,
     284
    ],
    "key": 356.8,
@@ -1577,7 +1577,47 @@
    "name": "fountain_plaza"
   },
   {
-   "tex": "pad_teal_50.png",
+   "tex": "palms_hedge_68.png",
+   "tl": [
+    1084,
+    296
+   ],
+   "key": 356.8,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "neon_fountain_tile_69.png",
+   "tl": [
+    1484,
+    292
+   ],
+   "key": 356.8,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "flower_plaza_70.png",
+   "tl": [
+    764,
+    284
+   ],
+   "key": 356.8,
+   "kind": "prop",
+   "name": "flower_plaza"
+  },
+  {
+   "tex": "bld_cafe_71.png",
+   "tl": [
+    -132,
+    224
+   ],
+   "key": 381.9,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "pad_teal_52.png",
    "tl": [
     1336,
     316
@@ -1588,17 +1628,7 @@
    "pad": 17
   },
   {
-   "tex": "bld_techshop_22.png",
-   "tl": [
-    -108,
-    224
-   ],
-   "key": 386.4,
-   "kind": "bld",
-   "name": "bld_techshop"
-  },
-  {
-   "tex": "traffic_light_67.png",
+   "tex": "traffic_light_72.png",
    "tl": [
     1156,
     336
@@ -1608,9 +1638,29 @@
    "name": "traffic_light"
   },
   {
-   "tex": "hedge_sidewalk_68.png",
+   "tex": "palms_hedge_73.png",
    "tl": [
-    612,
+    1032,
+    324
+   ],
+   "key": 386.4,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "neon_fountain_tile_74.png",
+   "tl": [
+    1432,
+    324
+   ],
+   "key": 386.4,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "hedge_sidewalk_75.png",
+   "tl": [
+    512,
     316
    ],
    "key": 386.4,
@@ -1618,39 +1668,39 @@
    "name": "hedge_sidewalk"
   },
   {
-   "tex": "bld_techshop_69.png",
+   "tex": "flower_plaza_76.png",
    "tl": [
-    728,
-    256
+    716,
+    312
    ],
-   "key": 416.0,
-   "kind": "bld",
-   "name": "bld_techshop"
+   "key": 386.4,
+   "kind": "prop",
+   "name": "flower_plaza"
   },
   {
-   "tex": "bld_cafe_70.png",
+   "tex": "neon_fountain_tile_77.png",
    "tl": [
-    412,
-    252
+    560,
+    352
    ],
    "key": 416.0,
-   "kind": "bld",
-   "name": "bld_cafe"
+   "kind": "neon",
+   "name": "neon_fountain_tile"
   },
   {
-   "tex": "flower_tile_71.png",
+   "tex": "palms_hedge_78.png",
    "tl": [
-    664,
-    348
+    756,
+    356
    ],
    "key": 416.0,
    "kind": "prop",
-   "name": "flower_tile"
+   "name": "palms_hedge"
   },
   {
-   "tex": "palm_planter_plaza_72.png",
+   "tex": "palm_planter_plaza_79.png",
    "tl": [
-    560,
+    660,
     344
    ],
    "key": 416.0,
@@ -1658,7 +1708,17 @@
    "name": "palm_planter_plaza"
   },
   {
-   "tex": "neon_sign_a_73.png",
+   "tex": "palm_planter_plaza_80.png",
+   "tl": [
+    156,
+    344
+   ],
+   "key": 416.0,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "neon_sign_a_81.png",
    "tl": [
     1424,
     388
@@ -1668,7 +1728,7 @@
    "name": "neon_sign_a"
   },
   {
-   "tex": "trash_74.png",
+   "tex": "trash_82.png",
    "tl": [
     184,
     408
@@ -1678,7 +1738,7 @@
    "name": "trash"
   },
   {
-   "tex": "pad_teal_38.png",
+   "tex": "pad_teal_39.png",
    "tl": [
     1336,
     376
@@ -1689,7 +1749,17 @@
    "pad": 19
   },
   {
-   "tex": "bld_station_75.png",
+   "tex": "bld_records_83.png",
+   "tl": [
+    1500,
+    292
+   ],
+   "key": 442.9,
+   "kind": "bld",
+   "name": "bld_records"
+  },
+  {
+   "tex": "bld_station_84.png",
    "tl": [
     -44,
     316
@@ -1699,29 +1769,49 @@
    "name": "bld_station"
   },
   {
-   "tex": "bld_hotel_76.png",
+   "tex": "palms_hedge_85.png",
    "tl": [
-    1496,
-    236
+    520,
+    384
    ],
    "key": 445.6,
-   "kind": "bld",
-   "name": "bld_hotel"
+   "kind": "prop",
+   "name": "palms_hedge"
   },
   {
-   "tex": "bld_hotel_77.png",
+   "tex": "palms_hedge_86.png",
    "tl": [
-    880,
-    236
+    828,
+    384
    ],
    "key": 445.6,
-   "kind": "bld",
-   "name": "bld_hotel"
+   "kind": "prop",
+   "name": "palms_hedge"
   },
   {
-   "tex": "flower_tile_78.png",
+   "tex": "palms_hedge_87.png",
    "tl": [
-    512,
+    1424,
+    384
+   ],
+   "key": 445.6,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "parking_lot_88.png",
+   "tl": [
+    100,
+    372
+   ],
+   "key": 445.6,
+   "kind": "prop",
+   "name": "parking_lot"
+  },
+  {
+   "tex": "flower_tile_89.png",
+   "tl": [
+    612,
     376
    ],
    "key": 445.6,
@@ -1729,51 +1819,27 @@
    "name": "flower_tile"
   },
   {
-   "tex": "hedge_sidewalk_79.png",
+   "tex": "palms_hedge_85.png",
    "tl": [
-    716,
-    376
+    1032,
+    384
    ],
    "key": 445.6,
    "kind": "prop",
-   "name": "hedge_sidewalk"
+   "name": "palms_hedge"
   },
   {
-   "tex": "palm_planter_plaza_80.png",
+   "tex": "taxi_90.png",
    "tl": [
-    1436,
-    376
-   ],
-   "key": 445.6,
-   "kind": "prop",
-   "name": "palm_planter_plaza"
-  },
-  {
-   "tex": "fountain_plaza_81.png",
-   "tl": [
-    1024,
+    104,
     372
    ],
-   "key": 445.6,
+   "key": 446.4,
    "kind": "prop",
-   "name": "fountain_plaza"
+   "name": "taxi"
   },
   {
-   "tex": "portal_82.png",
-   "tl": [
-    200,
-    300
-   ],
-   "key": 460.5,
-   "kind": "portal",
-   "name": "portal",
-   "ring": [
-    348.8,
-    374.4
-   ]
-  },
-  {
-   "tex": "traffic_light_83.png",
+   "tex": "traffic_light_91.png",
    "tl": [
     912,
     416
@@ -1783,7 +1849,25 @@
    "name": "traffic_light"
   },
   {
-   "tex": "vending_84.png",
+   "tex": "portal_92.png",
+   "tl": [
+    272,
+    212
+   ],
+   "key": 468.6,
+   "kind": "portal",
+   "name": "portal",
+   "ring": [
+    396.9,
+    291.4
+   ],
+   "ring_r": [
+    45.4,
+    65.2
+   ]
+  },
+  {
+   "tex": "vending_93.png",
    "tl": [
     848,
     424
@@ -1793,7 +1877,7 @@
    "name": "vending"
   },
   {
-   "tex": "neon_sign_b_85.png",
+   "tex": "neon_sign_b_94.png",
    "tl": [
     968,
     416
@@ -1803,7 +1887,7 @@
    "name": "neon_sign_b"
   },
   {
-   "tex": "lamp_86.png",
+   "tex": "lamp_95.png",
    "tl": [
     124,
     412
@@ -1813,7 +1897,7 @@
    "name": "lamp"
   },
   {
-   "tex": "pad_teal_44.png",
+   "tex": "pad_teal_46.png",
    "tl": [
     1184,
     404
@@ -1824,27 +1908,47 @@
    "pad": 18
   },
   {
-   "tex": "palms_hedge_87.png",
+   "tex": "hedge_sidewalk_96.png",
    "tl": [
-    1064,
-    412
-   ],
-   "key": 475.2,
-   "kind": "prop",
-   "name": "palms_hedge"
-  },
-  {
-   "tex": "fountain_plaza_88.png",
-   "tl": [
-    460,
+    664,
     404
    ],
    "key": 475.2,
    "kind": "prop",
-   "name": "fountain_plaza"
+   "name": "hedge_sidewalk"
   },
   {
-   "tex": "traffic_light_89.png",
+   "tex": "flower_tile_97.png",
+   "tl": [
+    768,
+    408
+   ],
+   "key": 475.2,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "neon_fountain_tile_98.png",
+   "tl": [
+    1076,
+    412
+   ],
+   "key": 475.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "palm_planter_plaza_99.png",
+   "tl": [
+    1480,
+    404
+   ],
+   "key": 475.2,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "traffic_light_100.png",
    "tl": [
     452,
     444
@@ -1854,7 +1958,7 @@
    "name": "traffic_light"
   },
   {
-   "tex": "phone_booth_90.png",
+   "tex": "phone_booth_101.png",
    "tl": [
     796,
     452
@@ -1864,7 +1968,7 @@
    "name": "phone_booth"
   },
   {
-   "tex": "lamp_91.png",
+   "tex": "lamp_102.png",
    "tl": [
     508,
     444
@@ -1874,27 +1978,17 @@
    "name": "lamp"
   },
   {
-   "tex": "bld_arcade_92.png",
+   "tex": "bld_diner_103.png",
    "tl": [
-    564,
+    -144,
     344
    ],
-   "key": 504.8,
+   "key": 503.7,
    "kind": "bld",
-   "name": "bld_arcade"
+   "name": "bld_diner"
   },
   {
-   "tex": "bld_arcade_93.png",
-   "tl": [
-    -140,
-    344
-   ],
-   "key": 504.8,
-   "kind": "bld",
-   "name": "bld_arcade"
-  },
-  {
-   "tex": "lamp_94.png",
+   "tex": "lamp_104.png",
    "tl": [
     1148,
     472
@@ -1904,7 +1998,7 @@
    "name": "lamp"
   },
   {
-   "tex": "palm_planter_a_95.png",
+   "tex": "palm_planter_a_105.png",
    "tl": [
     1064,
     464
@@ -1915,7 +2009,7 @@
    "foot": 529.1
   },
   {
-   "tex": "palm_planter_b_96.png",
+   "tex": "palm_planter_b_106.png",
    "tl": [
     24,
     472
@@ -1926,7 +2020,7 @@
    "foot": 529.1
   },
   {
-   "tex": "pad_teal_52.png",
+   "tex": "pad_teal_54.png",
    "tl": [
     1388,
     464
@@ -1937,7 +2031,7 @@
    "pad": 20
   },
   {
-   "tex": "pad_teal_97.png",
+   "tex": "pad_teal_107.png",
    "tl": [
     1184,
     464
@@ -1948,7 +2042,7 @@
    "pad": 21
   },
   {
-   "tex": "pad_teal_98.png",
+   "tex": "pad_teal_108.png",
    "tl": [
     980,
     464
@@ -1959,7 +2053,7 @@
    "pad": 26
   },
   {
-   "tex": "pad_teal_50.png",
+   "tex": "pad_teal_52.png",
    "tl": [
     56,
     464
@@ -1970,7 +2064,7 @@
    "pad": 38
   },
   {
-   "tex": "pad_teal_51.png",
+   "tex": "pad_teal_53.png",
    "tl": [
     260,
     464
@@ -1981,7 +2075,17 @@
    "pad": 39
   },
   {
-   "tex": "lamp_99.png",
+   "tex": "flower_plaza_76.png",
+   "tl": [
+    -52,
+    460
+   ],
+   "key": 534.4,
+   "kind": "prop",
+   "name": "flower_plaza"
+  },
+  {
+   "tex": "lamp_109.png",
    "tl": [
     688,
     504
@@ -1991,7 +2095,7 @@
    "name": "lamp"
   },
   {
-   "tex": "palm_planter_a_100.png",
+   "tex": "palm_planter_a_110.png",
    "tl": [
     604,
     492
@@ -2002,7 +2106,7 @@
    "foot": 558.7
   },
   {
-   "tex": "pad_teal_55.png",
+   "tex": "pad_teal_56.png",
    "tl": [
     724,
     492
@@ -2013,7 +2117,7 @@
    "pad": 27
   },
   {
-   "tex": "pad_teal_32.png",
+   "tex": "pad_teal_33.png",
    "tl": [
     516,
     492
@@ -2024,17 +2128,17 @@
    "pad": 33
   },
   {
-   "tex": "bld_hotel_101.png",
+   "tex": "bld_diner_111.png",
    "tl": [
-    1496,
-    356
+    1492,
+    416
    ],
-   "key": 564.0,
+   "key": 561.7,
    "kind": "bld",
-   "name": "bld_hotel"
+   "name": "bld_diner"
   },
   {
-   "tex": "pad_teal_102.png",
+   "tex": "pad_teal_112.png",
    "tl": [
     1284,
     524
@@ -2045,7 +2149,7 @@
    "pad": 22
   },
   {
-   "tex": "pad_teal_38.png",
+   "tex": "pad_teal_39.png",
    "tl": [
     1080,
     524
@@ -2056,7 +2160,7 @@
    "pad": 23
   },
   {
-   "tex": "pad_teal_102.png",
+   "tex": "pad_teal_112.png",
    "tl": [
     260,
     524
@@ -2067,7 +2171,7 @@
    "pad": 34
   },
   {
-   "tex": "pad_teal_39.png",
+   "tex": "pad_teal_40.png",
    "tl": [
     160,
     524
@@ -2078,27 +2182,7 @@
    "pad": 37
   },
   {
-   "tex": "fountain_plaza_103.png",
-   "tl": [
-    1484,
-    520
-   ],
-   "key": 593.6,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "palms_hedge_104.png",
-   "tl": [
-    1388,
-    532
-   ],
-   "key": 593.6,
-   "kind": "prop",
-   "name": "palms_hedge"
-  },
-  {
-   "tex": "bench_105.png",
+   "tex": "bench_113.png",
    "tl": [
     444,
     564
@@ -2108,7 +2192,7 @@
    "name": "bench"
   },
   {
-   "tex": "neon_sign_a_106.png",
+   "tex": "neon_sign_a_114.png",
    "tl": [
     24,
     548
@@ -2118,7 +2202,7 @@
    "name": "neon_sign_a"
   },
   {
-   "tex": "pad_teal_44.png",
+   "tex": "pad_teal_46.png",
    "tl": [
     928,
     552
@@ -2129,7 +2213,7 @@
    "pad": 25
   },
   {
-   "tex": "pad_teal_107.png",
+   "tex": "pad_teal_115.png",
    "tl": [
     824,
     552
@@ -2140,7 +2224,7 @@
    "pad": 28
   },
   {
-   "tex": "pad_teal_108.png",
+   "tex": "pad_teal_116.png",
    "tl": [
     620,
     552
@@ -2151,17 +2235,17 @@
    "pad": 29
   },
   {
-   "tex": "bld_hotel_109.png",
+   "tex": "bld_arcade_117.png",
    "tl": [
-    -144,
-    416
+    -140,
+    468
    ],
-   "key": 623.2,
+   "key": 621.0,
    "kind": "bld",
-   "name": "bld_hotel"
+   "name": "bld_arcade"
   },
   {
-   "tex": "pad_teal_110.png",
+   "tex": "pad_teal_118.png",
    "tl": [
     1184,
     580
@@ -2172,7 +2256,7 @@
    "pad": 24
   },
   {
-   "tex": "pad_teal_111.png",
+   "tex": "pad_teal_119.png",
    "tl": [
     468,
     580
@@ -2183,7 +2267,7 @@
    "pad": 32
   },
   {
-   "tex": "pad_teal_112.png",
+   "tex": "pad_teal_120.png",
    "tl": [
     364,
     580
@@ -2194,27 +2278,7 @@
    "pad": 35
   },
   {
-   "tex": "plaza_props_113.png",
-   "tl": [
-    -52,
-    580
-   ],
-   "key": 652.8,
-   "kind": "prop",
-   "name": "plaza_props"
-  },
-  {
-   "tex": "neon_fountain_tile_114.png",
-   "tl": [
-    1276,
-    588
-   ],
-   "key": 652.8,
-   "kind": "neon",
-   "name": "neon_fountain_tile"
-  },
-  {
-   "tex": "trash_115.png",
+   "tex": "trash_121.png",
    "tl": [
     1176,
     624
@@ -2224,7 +2288,17 @@
    "name": "trash"
   },
   {
-   "tex": "pad_teal_98.png",
+   "tex": "bld_arcade_122.png",
+   "tl": [
+    1388,
+    524
+   ],
+   "key": 676.6,
+   "kind": "bld",
+   "name": "bld_arcade"
+  },
+  {
+   "tex": "pad_teal_108.png",
    "tl": [
     724,
     612
@@ -2235,7 +2309,7 @@
    "pad": 30
   },
   {
-   "tex": "pad_teal_52.png",
+   "tex": "pad_teal_54.png",
    "tl": [
     108,
     612
@@ -2246,19 +2320,9 @@
    "pad": 36
   },
   {
-   "tex": "bld_cafe_116.png",
+   "tex": "palms_hedge_73.png",
    "tl": [
-    1400,
-    516
-   ],
-   "key": 682.4,
-   "kind": "bld",
-   "name": "bld_cafe"
-  },
-  {
-   "tex": "palms_hedge_117.png",
-   "tl": [
-    928,
+    8,
     620
    ],
    "key": 682.4,
@@ -2266,27 +2330,7 @@
    "name": "palms_hedge"
   },
   {
-   "tex": "fountain_plaza_118.png",
-   "tl": [
-    -4,
-    612
-   ],
-   "key": 682.4,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "neon_fountain_tile_119.png",
-   "tl": [
-    816,
-    620
-   ],
-   "key": 682.4,
-   "kind": "neon",
-   "name": "neon_fountain_tile"
-  },
-  {
-   "tex": "pad_teal_120.png",
+   "tex": "pad_teal_123.png",
    "tl": [
     568,
     640
@@ -2297,19 +2341,29 @@
    "pad": 31
   },
   {
-   "tex": "palm_planter_plaza_121.png",
+   "tex": "parking_lot_124.png",
    "tl": [
     1484,
-    640
+    636
    ],
    "key": 712.0,
    "kind": "prop",
-   "name": "palm_planter_plaza"
+   "name": "parking_lot"
   },
   {
-   "tex": "flower_tile_71.png",
+   "tex": "palms_hedge_125.png",
    "tl": [
-    1176,
+    40,
+    652
+   ],
+   "key": 712.0,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "flower_tile_126.png",
+   "tl": [
+    356,
     644
    ],
    "key": 712.0,
@@ -2317,49 +2371,59 @@
    "name": "flower_tile"
   },
   {
-   "tex": "bld_cafe_122.png",
+   "tex": "tool_tile_127.png",
    "tl": [
-    -152,
-    576
+    872,
+    636
    ],
-   "key": 741.6,
-   "kind": "bld",
-   "name": "bld_cafe"
+   "key": 712.0,
+   "kind": "prop",
+   "name": "tool_tile"
   },
   {
-   "tex": "bld_theater_123.png",
+   "tex": "car_pink_128.png",
    "tl": [
-    1316,
-    552
+    1484,
+    644
    ],
-   "key": 741.6,
+   "key": 712.8,
+   "kind": "prop",
+   "name": "car_pink"
+  },
+  {
+   "tex": "bld_theater_129.png",
+   "tl": [
+    -152,
+    560
+   ],
+   "key": 738.1,
    "kind": "bld",
    "name": "bld_theater"
   },
   {
-   "tex": "plaza_props_124.png",
+   "tex": "bld_techshop_130.png",
    "tl": [
-    0,
-    672
+    1332,
+    584
+   ],
+   "key": 738.8,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "palms_hedge_86.png",
+   "tl": [
+    316,
+    680
    ],
    "key": 741.6,
    "kind": "prop",
-   "name": "plaza_props"
+   "name": "palms_hedge"
   },
   {
-   "tex": "fountain_plaza_125.png",
+   "tex": "tool_tile_131.png",
    "tl": [
-    1124,
-    668
-   ],
-   "key": 741.6,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "tool_tile_126.png",
-   "tl": [
-    308,
+    408,
     664
    ],
    "key": 741.6,
@@ -2367,49 +2431,79 @@
    "name": "tool_tile"
   },
   {
-   "tex": "bld_techshop_127.png",
+   "tex": "parking_lot_132.png",
    "tl": [
-    936,
-    608
+    1432,
+    668
    ],
-   "key": 771.2,
+   "key": 741.6,
+   "kind": "prop",
+   "name": "parking_lot"
+  },
+  {
+   "tex": "neon_fountain_tile_133.png",
+   "tl": [
+    100,
+    680
+   ],
+   "key": 741.6,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "palms_hedge_134.png",
+   "tl": [
+    -12,
+    680
+   ],
+   "key": 741.6,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "palm_planter_plaza_135.png",
+   "tl": [
+    1120,
+    672
+   ],
+   "key": 741.6,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "car_pink_136.png",
+   "tl": [
+    1432,
+    672
+   ],
+   "key": 742.4,
+   "kind": "prop",
+   "name": "car_pink"
+  },
+  {
+   "tex": "bld_diner_137.png",
+   "tl": [
+    932,
+    612
+   ],
+   "key": 766.6,
    "kind": "bld",
-   "name": "bld_techshop"
+   "name": "bld_diner"
   },
   {
-   "tex": "fountain_plaza_128.png",
+   "tex": "flower_plaza_138.png",
    "tl": [
-    356,
-    700
+    156,
+    696
    ],
    "key": 771.2,
    "kind": "prop",
-   "name": "fountain_plaza"
+   "name": "flower_plaza"
   },
   {
-   "tex": "fountain_plaza_88.png",
+   "tex": "neon_fountain_tile_139.png",
    "tl": [
-    -52,
-    700
-   ],
-   "key": 771.2,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "flower_tile_129.png",
-   "tl": [
-    256,
-    704
-   ],
-   "key": 771.2,
-   "kind": "prop",
-   "name": "flower_tile"
-  },
-  {
-   "tex": "neon_fountain_tile_130.png",
-   "tl": [
-    1380,
+    252,
     708
    ],
    "key": 771.2,
@@ -2417,49 +2511,89 @@
    "name": "neon_fountain_tile"
   },
   {
-   "tex": "bld_theater_131.png",
+   "tex": "neon_fountain_tile_140.png",
    "tl": [
-    804,
-    612
+    560,
+    708
    ],
-   "key": 800.8,
-   "kind": "bld",
-   "name": "bld_theater"
+   "key": 771.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
   },
   {
-   "tex": "bld_arcade_132.png",
+   "tex": "hedge_sidewalk_141.png",
    "tl": [
-    1192,
-    640
+    1072,
+    700
    ],
-   "key": 800.8,
-   "kind": "bld",
-   "name": "bld_arcade"
-  },
-  {
-   "tex": "bld_theater_133.png",
-   "tl": [
-    1520,
-    612
-   ],
-   "key": 800.8,
-   "kind": "bld",
-   "name": "bld_theater"
-  },
-  {
-   "tex": "hedge_sidewalk_134.png",
-   "tl": [
-    1124,
-    728
-   ],
-   "key": 800.8,
+   "key": 771.2,
    "kind": "prop",
    "name": "hedge_sidewalk"
   },
   {
-   "tex": "palms_hedge_135.png",
+   "tex": "flower_plaza_142.png",
    "tl": [
-    1320,
+    1376,
+    696
+   ],
+   "key": 771.2,
+   "kind": "prop",
+   "name": "flower_plaza"
+  },
+  {
+   "tex": "neon_fountain_tile_143.png",
+   "tl": [
+    356,
+    708
+   ],
+   "key": 771.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "neon_fountain_tile_144.png",
+   "tl": [
+    -52,
+    708
+   ],
+   "key": 771.2,
+   "kind": "neon",
+   "name": "neon_fountain_tile"
+  },
+  {
+   "tex": "bld_motel_145.png",
+   "tl": [
+    1196,
+    636
+   ],
+   "key": 797.7,
+   "kind": "bld",
+   "name": "bld_motel"
+  },
+  {
+   "tex": "bld_apartments_146.png",
+   "tl": [
+    780,
+    616
+   ],
+   "key": 799.2,
+   "kind": "bld",
+   "name": "bld_apartments"
+  },
+  {
+   "tex": "bld_records_147.png",
+   "tl": [
+    1492,
+    640
+   ],
+   "key": 799.9,
+   "kind": "bld",
+   "name": "bld_records"
+  },
+  {
+   "tex": "palms_hedge_148.png",
+   "tl": [
+    1132,
     740
    ],
    "key": 800.8,
@@ -2467,99 +2601,139 @@
    "name": "palms_hedge"
   },
   {
-   "tex": "bld_cafe_136.png",
+   "tex": "flower_plaza_149.png",
    "tl": [
-    412,
-    664
+    924,
+    728
    ],
-   "key": 830.4,
-   "kind": "bld",
-   "name": "bld_cafe"
-  },
-  {
-   "tex": "bld_techshop_137.png",
-   "tl": [
-    48,
-    668
-   ],
-   "key": 830.4,
-   "kind": "bld",
-   "name": "bld_techshop"
-  },
-  {
-   "tex": "hedge_sidewalk_68.png",
-   "tl": [
-    868,
-    760
-   ],
-   "key": 830.4,
+   "key": 800.8,
    "kind": "prop",
-   "name": "hedge_sidewalk"
+   "name": "flower_plaza"
   },
   {
-   "tex": "bld_hotel_138.png",
+   "tex": "plaza_props_150.png",
    "tl": [
-    984,
-    652
+    1332,
+    728
    ],
-   "key": 860.0,
-   "kind": "bld",
-   "name": "bld_hotel"
-  },
-  {
-   "tex": "bld_arcade_34.png",
-   "tl": [
-    268,
-    696
-   ],
-   "key": 860.0,
-   "kind": "bld",
-   "name": "bld_arcade"
-  },
-  {
-   "tex": "bld_cafe_139.png",
-   "tl": [
-    580,
-    696
-   ],
-   "key": 860.0,
-   "kind": "bld",
-   "name": "bld_cafe"
-  },
-  {
-   "tex": "bld_hotel_140.png",
-   "tl": [
-    1396,
-    652
-   ],
-   "key": 860.0,
-   "kind": "bld",
-   "name": "bld_hotel"
-  },
-  {
-   "tex": "bld_theater_141.png",
-   "tl": [
-    -120,
-    672
-   ],
-   "key": 860.0,
-   "kind": "bld",
-   "name": "bld_theater"
-  },
-  {
-   "tex": "plaza_props_142.png",
-   "tl": [
-    408,
-    788
-   ],
-   "key": 860.0,
+   "key": 800.8,
    "kind": "prop",
    "name": "plaza_props"
   },
   {
-   "tex": "parking_lot_143.png",
+   "tex": "hedge_sidewalk_151.png",
+   "tl": [
+    204,
+    728
+   ],
+   "key": 800.8,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "palm_planter_plaza_152.png",
+   "tl": [
+    712,
+    728
+   ],
+   "key": 800.8,
+   "kind": "prop",
+   "name": "palm_planter_plaza"
+  },
+  {
+   "tex": "bld_techshop_153.png",
+   "tl": [
+    420,
+    660
+   ],
+   "key": 825.9,
+   "kind": "bld",
+   "name": "bld_techshop"
+  },
+  {
+   "tex": "bld_diner_154.png",
+   "tl": [
+    8,
+    668
+   ],
+   "key": 828.2,
+   "kind": "bld",
+   "name": "bld_diner"
+  },
+  {
+   "tex": "tool_tile_155.png",
+   "tl": [
+    864,
+    752
+   ],
+   "key": 830.4,
+   "kind": "prop",
+   "name": "tool_tile"
+  },
+  {
+   "tex": "bld_hotel_156.png",
+   "tl": [
+    1392,
+    644
+   ],
+   "key": 854.6,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "bld_motel_157.png",
+   "tl": [
+    580,
+    688
+   ],
+   "key": 856.1,
+   "kind": "bld",
+   "name": "bld_motel"
+  },
+  {
+   "tex": "bld_cafe_158.png",
+   "tl": [
+    976,
+    688
+   ],
+   "key": 856.7,
+   "kind": "bld",
+   "name": "bld_cafe"
+  },
+  {
+   "tex": "bld_hotel_159.png",
+   "tl": [
+    -132,
+    660
+   ],
+   "key": 857.2,
+   "kind": "bld",
+   "name": "bld_hotel"
+  },
+  {
+   "tex": "bld_theater_160.png",
+   "tl": [
+    284,
+    664
+   ],
+   "key": 859.5,
+   "kind": "bld",
+   "name": "bld_theater"
+  },
+  {
+   "tex": "flower_tile_161.png",
    "tl": [
     0,
+    792
+   ],
+   "key": 860.0,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "parking_lot_162.png",
+   "tl": [
+    508,
     784
    ],
    "key": 860.0,
@@ -2567,29 +2741,19 @@
    "name": "parking_lot"
   },
   {
-   "tex": "tool_tile_144.png",
+   "tex": "flower_tile_163.png",
    "tl": [
     920,
-    784
+    792
    ],
    "key": 860.0,
    "kind": "prop",
-   "name": "tool_tile"
+   "name": "flower_tile"
   },
   {
-   "tex": "neon_fountain_tile_145.png",
+   "tex": "taxi_164.png",
    "tl": [
-    508,
-    796
-   ],
-   "key": 860.0,
-   "kind": "neon",
-   "name": "neon_fountain_tile"
-  },
-  {
-   "tex": "taxi_146.png",
-   "tl": [
-    28,
+    540,
     788
    ],
    "key": 860.8,
@@ -2597,69 +2761,39 @@
    "name": "taxi"
   },
   {
-   "tex": "bld_arcade_147.png",
+   "tex": "bld_theater_165.png",
    "tl": [
-    116,
-    728
+    1124,
+    704
    ],
-   "key": 889.6,
+   "key": 886.7,
    "kind": "bld",
-   "name": "bld_arcade"
+   "name": "bld_theater"
   },
   {
-   "tex": "bld_arcade_148.png",
+   "tex": "bld_palmhotel_166.png",
    "tl": [
-    728,
-    728
+    92,
+    688
    ],
-   "key": 889.6,
+   "key": 888.7,
    "kind": "bld",
-   "name": "bld_arcade"
+   "name": "bld_palmhotel"
   },
   {
-   "tex": "bld_hotel_77.png",
+   "tex": "bld_hotel_167.png",
    "tl": [
-    1136,
-    680
+    724,
+    676
    ],
-   "key": 889.6,
+   "key": 888.9,
    "kind": "bld",
    "name": "bld_hotel"
   },
   {
-   "tex": "fountain_plaza_149.png",
+   "tex": "plaza_props_41.png",
    "tl": [
-    560,
-    816
-   ],
-   "key": 889.6,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "tool_tile_150.png",
-   "tl": [
-    1376,
-    812
-   ],
-   "key": 889.6,
-   "kind": "prop",
-   "name": "tool_tile"
-  },
-  {
-   "tex": "tool_tile_151.png",
-   "tl": [
-    972,
-    812
-   ],
-   "key": 889.6,
-   "kind": "prop",
-   "name": "tool_tile"
-  },
-  {
-   "tex": "plaza_props_124.png",
-   "tl": [
-    1280,
+    1276,
     820
    ],
    "key": 889.6,
@@ -2667,39 +2801,9 @@
    "name": "plaza_props"
   },
   {
-   "tex": "fountain_plaza_152.png",
+   "tex": "hedge_sidewalk_168.png",
    "tl": [
-    52,
-    816
-   ],
-   "key": 889.6,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "palms_hedge_153.png",
-   "tl": [
-    468,
-    828
-   ],
-   "key": 889.6,
-   "kind": "prop",
-   "name": "palms_hedge"
-  },
-  {
-   "tex": "fountain_plaza_154.png",
-   "tl": [
-    -52,
-    816
-   ],
-   "key": 889.6,
-   "kind": "prop",
-   "name": "fountain_plaza"
-  },
-  {
-   "tex": "hedge_sidewalk_155.png",
-   "tl": [
-    256,
+    560,
     820
    ],
    "key": 889.6,
@@ -2707,19 +2811,19 @@
    "name": "hedge_sidewalk"
   },
   {
-   "tex": "flower_plaza_156.png",
+   "tex": "parking_lot_169.png",
    "tl": [
-    1068,
+    1380,
     816
    ],
    "key": 889.6,
    "kind": "prop",
-   "name": "flower_plaza"
+   "name": "parking_lot"
   },
   {
-   "tex": "palm_planter_plaza_157.png",
+   "tex": "palm_planter_plaza_170.png",
    "tl": [
-    872,
+    460,
     820
    ],
    "key": 889.6,
@@ -2727,14 +2831,74 @@
    "name": "palm_planter_plaza"
   },
   {
-   "tex": "plaza_props_158.png",
+   "tex": "palms_hedge_171.png",
    "tl": [
-    356,
+    348,
+    828
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "palms_hedge"
+  },
+  {
+   "tex": "hedge_sidewalk_172.png",
+   "tl": [
+    972,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "hedge_sidewalk"
+  },
+  {
+   "tex": "flower_tile_173.png",
+   "tl": [
+    1484,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "flower_tile"
+  },
+  {
+   "tex": "plaza_props_174.png",
+   "tl": [
+    664,
     820
    ],
    "key": 889.6,
    "kind": "prop",
    "name": "plaza_props"
+  },
+  {
+   "tex": "plaza_props_175.png",
+   "tl": [
+    52,
+    820
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "plaza_props"
+  },
+  {
+   "tex": "fountain_plaza_04.png",
+   "tl": [
+    868,
+    816
+   ],
+   "key": 889.6,
+   "kind": "prop",
+   "name": "fountain_plaza"
+  },
+  {
+   "tex": "taxi_90.png",
+   "tl": [
+    1384,
+    816
+   ],
+   "key": 890.4,
+   "kind": "prop",
+   "name": "taxi"
   }
  ],
  "period": 4.0,

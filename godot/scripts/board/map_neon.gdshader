@@ -7,6 +7,7 @@ uniform float pad_phase = -1.0; // 0..1 for a build pad, which pulses on its own
 uniform float sway = 0.0; // palm sway: horizontal shear per pixel of height
 uniform float sway_phase = 0.0;
 uniform vec2 ring = vec2(-1.0); // portal ring centre in texture pixels
+uniform vec2 ring_r = vec2(70.0, 66.67); // ring half-width and half-height in mockup pixels (an upright oval for a portal seen side-on)
 uniform float px_scale = 1.25; // mockup pixels per board pixel, so the motion matches the mockup
 
 varying vec2 wpos;
@@ -37,8 +38,7 @@ void fragment() {
 		c.rgb *= 1.0 + 0.10 * e * sin(w + TAU * (0.5 * wpos.x + wpos.y) / 1500.0);
 	}
 	if (ring.x >= 0.0) {
-		vec2 d = (UV / TEXTURE_PIXEL_SIZE - ring) * px_scale;
-		d.y *= 1.05;
+		vec2 d = (UV / TEXTURE_PIXEL_SIZE - ring) * px_scale / ring_r * 70.0;
 		float r = length(d);
 		if (r < 70.0) {
 			float sw = 0.5 + 0.5 * sin(3.0 * atan(d.y, d.x) - w - r / 9.0);
