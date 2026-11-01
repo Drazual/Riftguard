@@ -1869,6 +1869,15 @@ func path_point_near(x: float, y: float, reach: float) -> float:
 
 ## Walls lock onto the grid: the centre of the path tile nearest the cursor.
 func wall_spot(x: float, y: float):
+	if S.map.free_path:
+		# a hand-painted road has no tiles: lock onto the nearest point of the road
+		var d0 := path_point_near(x, y, 140)
+		if d0 < 0:
+			return null
+		var p0 := pos_at(d0)
+		var a0 := pos_at(maxf(0, d0 - 6))
+		var b0 := pos_at(minf(S.map.path_len, d0 + 6))
+		return { d = d0, x = p0.x, y = p0.y, across = absf(b0.x - a0.x) > absf(b0.y - a0.y) }
 	var best = null
 	var bd := 140.0
 	for cell in S.map.path_cells:
@@ -2915,7 +2924,7 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 			h.x += dx / dd * step
 			h.y += dy / dd * step
 	var pb = S.pending_build
-	if pb and hyp(pb.c * C + C / 2 - h.x, pb.r * C + C / 2 - h.y) <= h.build_range:
+	if pb and cell_pos(pb.c, pb.r).distance_to(Vector2(h.x, h.y)) <= h.build_range:
 		S.pending_build = null
 		h.tx = null
 		var why := build_problem(pb.c, pb.r, pb.type)
@@ -3719,7 +3728,7 @@ func tower_at(c: int, r: int) -> Tower:
 ## Towers stand up out of their tile, so pointing at the top of one (the tile above it) picks it too.
 func pick_tower(c: int, r: int) -> Tower:
 	var t := tower_at(c, r)
-	if t:
+	if t or has_pads():
 		return t
 	if not S.map.path_cells.has(Vector2i(c, r)):
 		return tower_at(c, r + 1)
@@ -3728,12 +3737,60 @@ func pick_tower(c: int, r: int) -> Tower:
 
 func in_build_range(c: int, r: int) -> bool:
 	var h := S.hero
-	return hyp(c * C + C / 2 - h.x, r * C + C / 2 - h.y) <= h.build_range
+	return cell_pos(c, r).distance_to(Vector2(h.x, h.y)) <= h.build_range
+
+
+## A hand-painted map has build pads instead of the grid: pad i is the cell (i, MapInfo.SPOT_ROW).
+func has_pads() -> bool:
+	return S != null and S.map != null and not S.map.spots.is_empty()
+
+
+## Where a tower on this cell (or pad) stands.
+func cell_pos(c: int, r: int) -> Vector2:
+	if r == MapInfo.SPOT_ROW and c >= 0 and c < S.map.spots.size():
+		return S.map.spots[c]
+	return Vector2(c * C + C / 2, r * C + C / 2)
+
+
+## Every place a tower could go on this map (the pads, or the grid cells next to the path), for bots and tests.
+func build_cells() -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	if has_pads():
+		for i in S.map.spots.size():
+			out.append(Vector2i(i, MapInfo.SPOT_ROW))
+		return out
+	for cell in S.map.path_cells:
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, -1)]:
+			var c: Vector2i = cell + d
+			if not out.has(c):
+				out.append(c)
+	return out
+
+
+## The pad under (x, y), or the pad of a tower whose body is there; (-1, SPOT_ROW) when there's none.
+func pad_at(x: float, y: float) -> Vector2i:
+	var best := -1
+	var bd := INF
+	for i in S.map.pad_centres.size():
+		var pc: Vector2 = S.map.pad_centres[i]
+		var dx := absf(x - pc.x)
+		var dy := y - pc.y
+		var on_pad := dx / 32.0 + absf(dy) / 25.0 <= 1.0
+		var on_tower := dx <= 22 and dy <= 0 and dy >= -80 and tower_at(i, MapInfo.SPOT_ROW) != null
+		if on_pad or on_tower:
+			var dd := dx + absf(dy) * (1.0 if on_pad else 2.0)
+			if dd < bd:
+				bd = dd
+				best = i
+	return Vector2i(best, MapInfo.SPOT_ROW)
 
 
 func build_problem(c: int, r: int, type: String) -> String:
 	var k := Vector2i(c, r)
-	if c < 0 or r < 0 or c >= COLS or r >= ROWS:
+	if has_pads():
+		if r != MapInfo.SPOT_ROW or c < 0 or c >= S.map.spots.size():
+			return "Build towers on the glowing pads."
+	elif c < 0 or r < 0 or c >= COLS or r >= ROWS:
 		return "Out of bounds."
 	if S.map.path_cells.has(k):
 		return "You can’t build on the path."
@@ -3758,8 +3815,9 @@ func new_tower(type: String, c: int, r: int) -> Tower:
 	t.type = type
 	t.c = c
 	t.r = r
-	t.x = c * C + C / 2
-	t.y = r * C + C / 2
+	var at := cell_pos(c, r)
+	t.x = at.x
+	t.y = at.y
 	# the all-tower upgrades: main effect, range and attack speed (cheaper level-ups are in level_cost)
 	t.dmg = d.dmg * (1.0 if type == "frost" else main)
 	t.rate = d.rate / (1 + 0.02 * rank(G, "speed"))
@@ -4283,6 +4341,8 @@ func _sum(xs: Array) -> float:
 
 # ---------- player actions (mouse and keys) ----------
 func cell_at(x: float, y: float) -> Vector2i:
+	if has_pads():
+		return pad_at(x, y)
 	return Vector2i(floori(x / C), floori(y / C))
 
 
@@ -4311,6 +4371,9 @@ func can_hold() -> bool:
 
 ## The centre of the path tile nearest (x, y), or null when no path tile is within reach.
 func path_tile_near(x: float, y: float, reach: float):
+	if S.map.free_path:
+		var d0 := path_point_near(x, y, reach)
+		return pos_at(d0) if d0 >= 0 else null
 	var best = null
 	var bd := reach
 	for cell in S.map.path_cells:
@@ -4430,8 +4493,8 @@ func handle_click(x: float, y: float, touch := false) -> void:
 			say("Out of build range, and your hero can't walk there while paused.")
 			return
 		var h := S.hero
-		var cx := cell.x * C + C / 2
-		var cy := cell.y * C + C / 2
+		var cx := cell_pos(cell.x, cell.y).x
+		var cy := cell_pos(cell.x, cell.y).y
 		var d := maxf(0.01, hyp(h.x - cx, h.y - cy))
 		var stop := h.build_range * 0.8
 		if h.hold:

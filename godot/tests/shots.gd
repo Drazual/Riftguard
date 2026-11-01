@@ -29,11 +29,10 @@ func _ready() -> void:
 	var S := g.S
 	S.gold = 2000
 	var placed := 0
-	for c in range(2, 18):
-		for r in range(2, 11):
-			if placed < 6 and g.build_problem(c, r, DB.tower_order[placed % 5]) == "":
-				g.place_tower(c, r, DB.tower_order[placed % 5])
-				placed += 1
+	for cell in _spots(g):
+		if placed < 6 and g.build_problem(cell.x, cell.y, DB.tower_order[placed % 5]) == "":
+			g.place_tower(cell.x, cell.y, DB.tower_order[placed % 5])
+			placed += 1
 	var auto := [true]
 	g.modal.connect(func(kind, _d):
 		if auto[0] and kind == "level_up":
@@ -120,12 +119,11 @@ func _ready() -> void:
 	S = g.S
 	S.gold = 5000
 	var spots := 0
-	for c in range(2, 18):
-		for r in range(2, 11):
-			var k: String = ["shrine", "arcane", "frost", "plasma", "tesla"][spots % 5]
-			if spots < 6 and g.build_problem(c, r, k) == "":
-				g.place_tower(c, r, k)
-				spots += 1
+	for cell in _spots(g):
+		var k: String = ["shrine", "arcane", "frost", "plasma", "tesla"][spots % 5]
+		if spots < 6 and g.build_problem(cell.x, cell.y, k) == "":
+			g.place_tower(cell.x, cell.y, k)
+			spots += 1
 	g.start_wave()
 	S.spawn_q = ["knight", "grunt", "grunt", "brute", "grunt"]
 	for i in 260:
@@ -216,6 +214,8 @@ func _ready() -> void:
 	S = g.S
 	S.gold = 99999
 	var builds := [[8, 5, ["loader", "sear"]], [11, 9, ["flight", "ricochet", "honed"]]]
+	if g.has_pads(): # a hand-painted map builds on its pads
+		builds = [[12, MapInfo.SPOT_ROW, ["loader", "sear"]], [20, MapInfo.SPOT_ROW, ["flight", "ricochet", "honed"]]]
 	for b in builds:
 		g.place_tower(b[0], b[1], "disc")
 		var dt: Tower = S.towers[-1]
@@ -255,3 +255,14 @@ func _shot(name: String) -> void:
 	for i in 12:
 		await get_tree().process_frame
 	get_viewport().get_texture().get_image().save_png(out.path_join(name + ".png"))
+
+
+## Where the screenshots put towers: the build pads of a hand-painted map, else the middle of the grid.
+func _spots(g: Game) -> Array[Vector2i]:
+	if g.has_pads():
+		return g.build_cells()
+	var out: Array[Vector2i] = []
+	for c in range(2, 18):
+		for r in range(2, 11):
+			out.append(Vector2i(c, r))
+	return out
