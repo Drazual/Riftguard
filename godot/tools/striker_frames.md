@@ -37,3 +37,23 @@ The gun tip in each facing (`HeroData.muzzle`, pixels of a 64px frame, taken fro
 N (31.7, 26.1), NE (42.5, 30.2), E (50.7, 41), SE (48.8, 43.6), S (31.9, 52.1), SW (14.2, 43.6), W (12.5, 40.8),
 NW (20.6, 30.3). Bullets leave from there and fly to the target's body at 750 units/s (see `Board._sync_hero_shots`).
 Shooting while moving keeps the walk cycle (backwards when backing away) and adds a muzzle flash.
+
+## Split layers (prototype)
+
+On the board the Striker is two layers (see `Board._sync_hero_gun`):
+
+- **Body** (`HeroData.body_frames` = `art/heroes/striker_body.tres`, sheet `assets/heroes/striker_body.png`): the same
+  sheet with the gun erased, same layout and timings. Only idle and walk play, in 8 facings, so the legs keep walking
+  while it shoots. The fire rows are unused on the board.
+- **Gun and arms** (`HeroData.gun` = `assets/heroes/striker_gun.png`): drawn pointing east. It turns around
+  `gun_pivot` to the exact angle of the target (or the walk direction when not shooting), sits on the body at
+  `HeroData.shoulder[facing]`, flips when aiming left, goes behind the body when aiming up, and kicks back 2px per shot.
+- **Bullets** leave from `gun_tip`, turned with the gun (`Board.hero_muzzle`). Every shot shows the round muzzle flash.
+
+The menus still show the full `frames`. Both PNGs are placeholders made by `tools/striker_split/split.py`
+(the body by erasing gun-coloured pixels, the gun hand-pixelled). Final art needs, at the same 64px scale:
+
+1. The body sheet without any gun, with arms posed to hold one (or arms left off for the gun layer to carry).
+2. One gun-and-arms sprite drawn pointing straight right, about 22-28px long, with its turning point at the shoulder.
+   Optionally a second one drawn from slightly above for aiming down/up, if the side view looks off there.
+3. The shoulder point for each facing and the pivot/tip pixels of the gun (set on `data/heroes/striker.tres`).

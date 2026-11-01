@@ -6,6 +6,8 @@
 [ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_jcdkq"]
 [ext_resource type="Texture2D" uid="uid://bnfwnmxor8r33" path="res://assets/heroes/striker.png" id="4_fek0u"]
 [ext_resource type="SpriteFrames" uid="uid://fc03ka8edcmpb" path="res://art/heroes/striker_fx.tres" id="5_shfx"]
+[ext_resource type="SpriteFrames" uid="uid://cs3bodyk4fr2m" path="res://art/heroes/striker_body.tres" id="6_body"]
+[ext_resource type="Texture2D" uid="uid://dyncl80pwk93b" path="res://assets/heroes/striker_gun.png" id="7_gun"]
 
 [sub_resource type="Resource" id="Resource_uk0wj"]
 script = ExtResource("1_8aiy5")
@@ -87,3 +89,6 @@ frames = ExtResource("2_jcdkq")
 sheet = ExtResource("4_fek0u")
 shot_fx = ExtResource("5_shfx")
 muzzle = PackedVector2Array(31.7, 26.1, 42.5, 30.2, 50.7, 41, 48.8, 43.6, 31.9, 52.1, 14.2, 43.6, 12.5, 40.8, 20.6, 30.3)
+body_frames = ExtResource("6_body")
+gun = ExtResource("7_gun")
+shoulder = PackedVector2Array(34, 39, 35, 38, 30, 40, 31, 37, 33, 35, 33, 37, 34, 40, 29, 38)
