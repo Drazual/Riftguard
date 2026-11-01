@@ -66,6 +66,8 @@ var shake_amt := 0.0
 var shake_dur := 0.0
 var hero_spr: AnimatedSprite2D = null
 var hero_state := {}
+var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
+var hero_flash: AnimatedSprite2D = null
 var bursts := 0
 var _tex_cache := {}
 ## Hand-painted maps (MapScene.art_layout) draw at a higher resolution: F art pixels per base art pixel.
@@ -228,6 +230,7 @@ func sync(dt: float) -> void:
 		speed = S.speed
 	_sync_towers(S, speed)
 	_sync_hero(S, dt, speed)
+	_sync_hero_shots(S, dt, speed)
 	_sync_enemies(S)
 	_sync_shots(S, dt, speed)
 	_sync_art(S)
@@ -351,6 +354,8 @@ func _laser_beam(S: Run, t: Tower, d: TowerData) -> void:
 
 # The hero walks while moving, fires toward its target and idles otherwise, in 8 facings. The facing only
 # changes once the direction is clearly past the edge of its sector, so walking along a diagonal never flickers.
+# Shooting on the move keeps the legs walking: the hero faces the target and the walk plays backwards when
+# it is backing away, so the feet never slide.
 func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var h: Hero = S.hero if S else null
 	if h == null or h.ko > 0 or S.over or h.data.frames == null:
@@ -373,7 +378,7 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		s.offset = Vector2(-fs.x / 2, -HERO_FEET - (fs.y - 48) + 3 * PX)
 		units.add_child(s)
 		hero_spr = s
-		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "" }
+		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO }
 		s.animation_finished.connect(func(): hero_state.anim = "")
 		s.play("idle_4")
 	var st := hero_state
@@ -384,10 +389,12 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	st.ly = h.y
 	if Vector2(mx, my).length() > 0.01:
 		st.move_t = 0.12
+		st.mv = Vector2(mx, my * K).normalized()
 	else:
 		st.move_t -= dt * speed
 	var moving: bool = st.move_t > 0
-	var firing := S.time - h.atk_at < 0.25
+	# keep facing the target between shots, so walking and shooting doesn't flip back and forth
+	var firing := S.time - h.atk_at < maxf(0.25, minf(h.rate, 1.0) + 0.15)
 	# face the target while shooting, else the way it's walking (on screen, so the tilt counts)
 	var v := Vector2.ZERO
 	if firing:
@@ -403,8 +410,12 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var face: int = FACE_COL[st.sector]
 	if h.atk_at != st.fired:
 		st.fired = h.atk_at
-		st.anim = "fire"
-		s.play("fire_%d" % face)
+		st.shot = true
+		if not moving:
+			st.anim = "fire"
+			s.play("fire_%d" % face)
+	if moving and st.anim == "fire":
+		st.anim = "" # started walking mid-shot: the legs take over
 	var want: String = "fire" if st.anim == "fire" else ("walk" if moving else "idle")
 	var k := "%s_%d" % [want, face]
 	# turning keeps the step it was on, so the walk cycle doesn't restart
@@ -416,10 +427,107 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var m := 1.0
 	if want == "walk":
 		m = clampf(h.speed / 145, 0.6, 1.6)
+		# backing away from what it's shooting at: step backwards
+		if firing and st.mv.dot(Vector2.from_angle(st.sector * PI / 4)) < -0.3:
+			m = -m
 	elif want == "fire":
 		m = maxf(1, 0.25 / maxf(0.05, h.rate))
 	s.speed_scale = speed * m
 	s.position = Vector2(h.x, SY(h.y) + 0.0005)
+	st.face = face
+
+
+const BULLET_SPEED := 750.0 # board units per second
+const FLASH_ANIM := ["flash_o", "flash_a", "flash_o", "flash_b", "flash_o", "flash_a", "flash_o", "flash_b"] # by facing
+
+
+## Where the hero's gun tip is on the board right now (its sprite must be placed this frame).
+func hero_muzzle(h: Hero) -> Vector2:
+	var s := hero_spr
+	var face: int = hero_state.get("face", 4)
+	var m := Vector2(32, 26)
+	if face < h.data.muzzle.size():
+		m = h.data.muzzle[face]
+	return s.position + (s.offset + m) / PX
+
+
+## Heroes with bullet sprites (HeroData.shot_fx) fire real bullets instead of the tracer line: each one leaves the
+## gun tip, flies at the target in the matching one of 8 directions and bursts there (bigger on a crit). Shooting on
+## the move also flashes the muzzle, since the walk frames have no flash of their own.
+func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
+	var h: Hero = S.hero if S else null
+	var fx: SpriteFrames = h.data.shot_fx if h else null
+	if fx == null or S.over:
+		for b in hero_bullets:
+			if is_instance_valid(b.sp):
+				b.sp.queue_free()
+		hero_bullets.clear()
+		if hero_flash and is_instance_valid(hero_flash):
+			hero_flash.queue_free()
+		hero_flash = null
+		return
+	var shown := hero_spr != null and is_instance_valid(hero_spr) and hero_spr.visible
+	for f: Dictionary in S.fx:
+		if f.k != "line" or not f.get("hero", false) or f.get("_b", false):
+			continue
+		f._b = true
+		f.quiet = true # the bullet replaces the tracer
+		if not shown:
+			continue
+		var a := hero_muzzle(h)
+		var e: Enemy = null
+		for x in S.enemies:
+			if x.x == f.x2 and x.y == f.y2:
+				e = x
+				break
+		var b := Vector2(f.x2, SY(f.y2) - (body_lift(e) if e else 12.0))
+		var v := b - a
+		var dir := posmod(int(round(v.angle() / (PI / 4))), 8)
+		var sp := AnimatedSprite2D.new()
+		sp.sprite_frames = fx
+		sp.scale = Vector2(1 / PX, 1 / PX)
+		sp.position = a
+		top.add_child(sp)
+		sp.play("bullet_%d" % FACE_COL[dir])
+		hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / BULLET_SPEED), crit = f.w >= 3 })
+	if hero_state.get("shot", false):
+		hero_state.shot = false
+		if shown and String(hero_spr.animation).begins_with("walk"):
+			if hero_flash == null or not is_instance_valid(hero_flash):
+				hero_flash = AnimatedSprite2D.new()
+				hero_flash.sprite_frames = fx
+				hero_flash.scale = Vector2(1 / PX, 1 / PX)
+				top.add_child(hero_flash)
+				hero_flash.animation_finished.connect(func(): hero_flash.visible = false)
+			hero_flash.visible = true
+			hero_flash.play(FLASH_ANIM[hero_state.face])
+	if hero_flash and is_instance_valid(hero_flash) and hero_flash.visible:
+		hero_flash.visible = shown
+		if shown:
+			hero_flash.position = hero_muzzle(h)
+		hero_flash.speed_scale = speed
+	for i in range(hero_bullets.size() - 1, -1, -1):
+		var b: Dictionary = hero_bullets[i]
+		var sp: AnimatedSprite2D = b.sp
+		b.t += dt * speed
+		sp.speed_scale = speed
+		if b.t < b.T:
+			sp.position = b.a.lerp(b.b, b.t / b.T)
+			continue
+		sp.queue_free()
+		hero_bullets.remove_at(i)
+		if bursts < MAX_BURSTS:
+			bursts += 1
+			var hit := AnimatedSprite2D.new()
+			hit.sprite_frames = fx
+			hit.scale = Vector2(1 / PX, 1 / PX)
+			hit.position = b.b
+			hit.speed_scale = speed
+			top.add_child(hit)
+			hit.animation_finished.connect(func():
+				bursts -= 1
+				hit.queue_free())
+			hit.play("crit" if b.crit else "hit")
 
 
 func _burst(k: String, at: Vector2, anim: String) -> void:

@@ -26,3 +26,14 @@ Source cells are written as rROWcCOL of the original sheet.
 | 7 NW | sheet 4 (Northeast) mirrored | r0c0, r0c1, r0c2, r0c3, r0c4, r0c5, r0c6 | r4c3, r2c6, r1c5, r1c4, r4c2, r2c1 | 18 | r5c2, r5c3, r5c4, r5c5, r5c6, r5c7 |
 
 Idle plays at 6 fps and fire at 15 fps. Walk speeds are set so every direction takes a step about every third of a second.
+
+## Shots (`art/heroes/striker_fx.tres`, sheet `assets/heroes/striker_fx.png`)
+
+32px cells, 8 columns. Rows 0-7 are the bullet flying in each facing (N, NE, E, SE, S, SW, W, NW), looping.
+Row 8 is the hit burst, row 9 the bigger crit burst, rows 10 and 11 the diagonal muzzle flashes (`flash_a` for
+NE/SW, `flash_b` for NW/SE; `flash_o` reuses the start of the hit burst for N/E/S/W).
+
+The gun tip in each facing (`HeroData.muzzle`, pixels of a 64px frame, taken from the flash in fire frame 0):
+N (31.7, 26.1), NE (42.5, 30.2), E (50.7, 41), SE (48.8, 43.6), S (31.9, 52.1), SW (14.2, 43.6), W (12.5, 40.8),
+NW (20.6, 30.3). Bullets leave from there and fly to the target's body at 750 units/s (see `Board._sync_hero_shots`).
+Shooting while moving keeps the walk cycle (backwards when backing away) and adds a muzzle flash.
