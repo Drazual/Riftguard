@@ -1,5 +1,7 @@
 ## Close-ups of the Striker walking and shooting, to check the gun layer against the body. Needs a display:
-## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/striker.tscn -- <out dir>
+## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/striker.tscn -- <out dir> [rendered hero]
+## With a second argument (a folder in art_src/heroes rendered by tools/render_hero.gd), the Striker wears that
+## render instead, as one sprite with its own muzzle points, to preview a 3D model in game.
 extends Node
 
 var out := "user://striker"
@@ -13,6 +15,8 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(out)
 	get_tree().create_timer(120).timeout.connect(func(): print("STRIKER TIMEOUT"); get_tree().quit(1))
 	seed(3)
+	if args.size() > 1:
+		_wear(args[1])
 	for id in Menus.FIRST_TIPS:
 		Save.meta.tips[id] = true
 	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
@@ -99,3 +103,19 @@ func _close(name: String) -> void:
 	var c := img.get_region(r)
 	c.resize(c.get_width() * 3, c.get_height() * 3, Image.INTERPOLATE_NEAREST)
 	c.save_png(out.path_join(name + ".png"))
+
+
+## Puts a rendered hero's frames and muzzle points on the Striker, and turns off its split gun layer.
+func _wear(folder: String) -> void:
+	var d: HeroData = DB.heroes["striker"]
+	var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art_src/heroes/%s/hero.json" % folder))
+	var tips: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art_src/heroes/%s/muzzle.json" % folder))
+	d.frames = load("res://art/heroes/%s.tres" % cfg.get("out", folder))
+	d.body_frames = null
+	d.gun = null
+	d.gun_fx = null
+	var m := PackedVector2Array()
+	for face in 8:
+		var t: Array = tips["%d_0" % face]
+		m.append(Vector2(t[0], t[1]))
+	d.muzzle = m

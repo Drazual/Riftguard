@@ -1,0 +1,7 @@
+{
+	"model": "Rogue.glb",
+	"weapon": "2H_Crossbow",
+	"hide": ["1H_Crossbow", "Knife", "Knife_Offhand", "Throwable"],
+	"anims": { "idle": "2H_Ranged_Aiming", "walk": "Walking_A", "fire": "2H_Ranged_Shoot" },
+	"out": "rogue_test"
+}
