@@ -520,8 +520,10 @@ func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, dt: floa
 	if bi < d.body_bob.size():
 		sh += d.body_bob[bi]
 	var base := s.offset + sh
-	# not shooting: carry the gun along the body's facing, so it only turns when the body does
+	# not shooting: carry the gun at the facing's low-ready slant, so it only turns when the body does
 	var want: float = st.sector * PI / 4
+	if face < d.carry.size():
+		want = deg_to_rad(d.carry[face])
 	var kick: float = st.get("kick", 0.0)
 	if kick >= 1.0:
 		# a new shot: remember who it was at, so the gun can follow them until the next one
