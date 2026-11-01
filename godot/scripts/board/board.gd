@@ -1455,6 +1455,9 @@ func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col
 		_ring(o, p, e.r + 3, hx(0x3a4256, 0.95), 3)
 	if e.mark_t > 0 or e.spot_t > 0:
 		_ring(o, p, e.r + 7, hx(0xff2e4d, 0.9), 1.5)
+	if e == S.sel_enemy:
+		# picked in the side panel: a soft white ring that breathes
+		_ring(o, p, e.r + 10, Color(1, 1, 1, 0.55 + 0.35 * sin(S.time * 6)), 2)
 	var w := e.r * 2 + 4
 	o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w, 3), Color(0, 0, 0, 0.6))
 	o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w * maxf(0, e.hp / e.max), 3), hx(0x5fe39a))

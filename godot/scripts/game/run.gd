@@ -30,6 +30,8 @@ var enemies: Array = [] # Enemy
 var towers: Array = [] # Tower
 var fx: Array = [] # Dictionary
 var sel = null # Tower
+## The enemy clicked on, shown in the side panel until it dies or something else is picked.
+var sel_enemy = null # Enemy
 ## The hero is selected (clicked): shows its attack range.
 var hero_sel := false
 var build := ""

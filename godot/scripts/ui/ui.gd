@@ -6,6 +6,12 @@ extends Control
 
 static var me: Ui
 
+## The side panel: how wide it is and how long it takes to slide in and out.
+const PANEL_W := 340.0
+const SLIDE_IN := 0.3
+const SLIDE_OUT := 0.16
+const SWAP := 0.18
+
 const MOVE_KEYS := { KEY_W: "up", KEY_UP: "up", KEY_S: "down", KEY_DOWN: "down", KEY_A: "left", KEY_LEFT: "left", KEY_D: "right", KEY_RIGHT: "right" }
 
 var game: Game
@@ -27,6 +33,14 @@ var hero_card: PanelContainer
 var inspector: PanelContainer
 var codex_box: VBoxContainer
 var enemy_box: VBoxContainer
+var enemy_card: PanelContainer
+var codex_card: PanelContainer
+var enemy_codex_card: PanelContainer
+var side_clip: Control # the side panel's column; it stays put so the board never moves
+var side_slide: ScrollContainer # what slides in and out of that column
+var panel_mode := "" # what the side panel shows: "", "hero", "tower", "build" or "enemy"
+var panel_key := ""
+var panel_tween: Tween
 var toast_box: PanelContainer
 var toast_label: RichTextLabel
 var toast_t := 0.0
@@ -287,12 +301,20 @@ func _board_frame() -> Control:
 	return frame
 
 
+## The side panel is empty until you click something. Clicking a tower, the hero or an enemy (or picking a
+## tower to build) slides its details in from the right; letting go slides them back out.
 func _side() -> Control:
+	side_clip = Control.new()
+	side_clip.custom_minimum_size = Vector2(PANEL_W, 0)
+	side_clip.clip_contents = true
+	side_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sc := ScrollContainer.new()
-	sc.custom_minimum_size = Vector2(340, 0)
+	sc.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	# keep room for the scroll bar so the board doesn't shift when a tall inspector appears or goes
 	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE
+	sc.visible = false
+	side_clip.add_child(sc)
+	side_slide = sc
 	var v := Kit.vbox(8)
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(v)
@@ -300,15 +322,108 @@ func _side() -> Control:
 	v.add_child(hero_card)
 	inspector = Kit.card()
 	v.add_child(inspector)
-	var cx := Kit.card()
+	enemy_card = Kit.card()
+	v.add_child(enemy_card)
+	codex_card = Kit.card()
 	codex_box = Kit.vbox(4)
-	cx.add_child(codex_box)
-	v.add_child(cx)
-	var ex := Kit.card()
+	codex_card.add_child(codex_box)
+	v.add_child(codex_card)
+	enemy_codex_card = Kit.card()
 	enemy_box = Kit.vbox(4)
-	ex.add_child(enemy_box)
-	v.add_child(ex)
-	return sc
+	enemy_codex_card.add_child(enemy_box)
+	v.add_child(enemy_codex_card)
+	return side_clip
+
+
+## What the side panel should show right now: [mode, the thing shown].
+func _panel_want() -> Array:
+	var S := game.S
+	if S == null or S.hero == null or S.over:
+		return ["", null]
+	if S.build != "":
+		return ["build", S.build]
+	if S.sel != null and S.towers.has(S.sel):
+		return ["tower", S.sel]
+	if S.sel_enemy != null:
+		if S.sel_enemy.dead or not S.enemies.has(S.sel_enemy):
+			S.sel_enemy = null
+		else:
+			return ["enemy", S.sel_enemy]
+	if S.hero_sel:
+		return ["hero", S.hero]
+	return ["", null]
+
+
+## Runs every frame: when the selection changes, slide the old details out and the new ones in.
+func sync_panel() -> void:
+	var want := _panel_want()
+	var mode: String = want[0]
+	var key := mode
+	if want[1] is Object:
+		key += ":%d" % (want[1] as Object).get_instance_id()
+	elif want[1] != null:
+		key += ":" + str(want[1])
+	if game.S:
+		key += "@%d" % game.S.get_instance_id()
+	if key == panel_key:
+		return
+	panel_key = key
+	if panel_tween:
+		panel_tween.kill()
+	if mode == "" and not side_slide.visible:
+		_panel_show("")
+		return
+	panel_tween = create_tween()
+	var w := side_clip.size.x if side_clip.size.x > 0 else PANEL_W
+	if mode == "":
+		# slide out to the right, then empty it
+		panel_tween.tween_property(side_slide, "position:x", w, SLIDE_OUT).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		panel_tween.parallel().tween_property(side_slide, "modulate:a", 0.0, SLIDE_OUT)
+		panel_tween.tween_callback(_panel_show.bind(""))
+		return
+	if not side_slide.visible:
+		_panel_show(mode)
+		side_slide.position.x = w
+		side_slide.modulate.a = 0.0
+	elif mode == panel_mode:
+		# another thing of the same kind (tower to tower): swap the details with a small nudge
+		_panel_show(mode)
+		side_slide.position.x = maxf(side_slide.position.x, 36)
+		side_slide.modulate.a = minf(side_slide.modulate.a, 0.35)
+		panel_tween.tween_property(side_slide, "position:x", 0.0, SWAP).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		panel_tween.parallel().tween_property(side_slide, "modulate:a", 1.0, SWAP)
+		return
+	else:
+		# a different kind of thing: out with the old, then in with the new
+		panel_tween.tween_property(side_slide, "position:x", w, SLIDE_OUT * 0.8).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+		panel_tween.parallel().tween_property(side_slide, "modulate:a", 0.0, SLIDE_OUT * 0.8)
+		panel_tween.tween_callback(_panel_show.bind(mode))
+	panel_tween.tween_property(side_slide, "position:x", 0.0, SLIDE_IN).set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	panel_tween.parallel().tween_property(side_slide, "modulate:a", 1.0, SLIDE_IN * 0.7)
+
+
+## Fills the side panel for `mode` and hides the cards that don't belong to it.
+func _panel_show(mode: String) -> void:
+	panel_mode = mode
+	side_slide.visible = mode != ""
+	hero_card.visible = mode == "hero"
+	inspector.visible = mode == "tower" or mode == "build"
+	enemy_card.visible = mode == "enemy"
+	codex_card.visible = mode == "tower" or mode == "build"
+	enemy_codex_card.visible = mode == "enemy"
+	side_slide.scroll_vertical = 0
+	if game.S == null or game.S.hero == null:
+		return
+	match mode:
+		"hero":
+			hero_t = 3
+			render_hero()
+		"tower", "build":
+			render_inspector()
+			render_codex()
+		"enemy":
+			render_enemy()
+			render_enemy_codex()
 
 
 func _screen_layer() -> Control:
@@ -486,6 +601,7 @@ func tick(dt: float) -> void:
 	if hud_t <= 0:
 		hud_t = 0.1
 		update_hud()
+	sync_panel()
 
 
 func update_hud() -> void:
@@ -527,6 +643,8 @@ func update_hud() -> void:
 		render_build_bar()
 	if S.sel != null and floori(S.gold) != floori(last_insp_gold) and S.merge_from == null:
 		render_inspector()
+	if panel_mode == "enemy":
+		render_enemy()
 	hero_t -= 1
 	if hero_t <= 0:
 		hero_t = 3
@@ -759,19 +877,19 @@ func render_inspector() -> void:
 	var S := game.S
 	if S == null or S.hero == null:
 		return
-	Kit.clear(inspector)
-	var v := Kit.vbox(6)
-	inspector.add_child(v)
 	var t: Tower = S.sel
 	if t == null or not S.towers.has(t):
 		S.sel = null
-		if S.build != "":
-			v.add_child(Kit.h3("Placing"))
-			v.add_child(Kit.rich(UiText.build_tip(game, S.build), 13))
-			v.add_child(Kit.muted("Left-click a %s to build. Right-click or press R to cancel." % ("glowing pad" if game.has_pads() else "tile")))
-			return
-		v.add_child(Kit.h3("Tower"))
-		v.add_child(Kit.muted("Hover a tower to see what it does. Pick one, then left-click a free %s. If it's out of reach, your hero walks over and builds it." % ("pad" if game.has_pads() else "tile"), 14))
+		t = null
+		if S.build == "":
+			return # nothing picked: the panel is sliding out, so leave what it showed
+	Kit.clear(inspector)
+	var v := Kit.vbox(6)
+	inspector.add_child(v)
+	if t == null:
+		v.add_child(Kit.h3("Placing"))
+		v.add_child(Kit.rich(UiText.build_tip(game, S.build), 13))
+		v.add_child(Kit.muted("Left-click a free %s to build. If it's out of reach, your hero walks over and builds it. Right-click or press R to cancel." % ("glowing pad" if game.has_pads() else "tile")))
 		v.add_child(Kit.muted(("Towers level up to %d. Each level adds a point to one of 5 paths. A tower uses 3 paths of 4 points (with the Oracle, 4 paths of 3 bigger points). A path's last point unlocks its mastery, and at level %d the tower ascends into a form named after its paths. "
 			+ "Two different level %d towers merge into a hybrid (merging costs %d gold), and two level %d hybrids merge into a super tower (%s gold) with signature powers.") % [DB.rules.max_level, DB.rules.max_level, DB.rules.max_level,
 			DB.rules.merge_cost, DB.rules.max_level, _thousands(DB.rules.super_cost)], 14))
@@ -880,6 +998,55 @@ func _merge_tip() -> void:
 				return
 
 
+## The clicked enemy: what it is, how hurt it is, what's on it and how to beat it.
+func render_enemy() -> void:
+	var S := game.S
+	if S == null or S.hero == null or panel_mode != "enemy":
+		return
+	var e: Enemy = S.sel_enemy
+	if e == null or e.dead:
+		return # it just died: the panel is sliding out, so leave what it showed
+	var d: EnemyData = DB.enemies[e.type]
+	Kit.clear(enemy_card)
+	var v := Kit.vbox(6)
+	enemy_card.add_child(v)
+	var kind := "Boss" if e.boss else ("Special" if d.first_wave > 0 else "Enemy")
+	v.add_child(Kit.h3("%s · %s" % [d.name, kind], e.color))
+	var hp := Kit.meter(maxf(0, e.hp) / e.max, Kit.DANGER if e.boss else Kit.OK, 16)
+	hp.text = "%d/%d HP" % [ceili(maxf(0, e.hp)), roundi(e.max)]
+	v.add_child(hp)
+	v.add_child(Kit.muted(DB.tx("enemy:" + e.type, d.info), 14))
+	var big := Game.BIG_BOSS.has(e.type)
+	var rows := [["Speed", UiText.f0(e.speed)], ["Armor", UiText.pct(game.armor_of(e, null))], ["Gold", str(int(e.gold))],
+		["Base HP cost", "The whole run" if big else str(e.lives)], ["Hits blockers", UiText.f0(e.atk) + "/s"], ["Along the path", UiText.pct(clampf(e.d / S.map.path_len, 0, 1))]]
+	if e.regen:
+		rows.append(["Regen/s", UiText.f1(e.regen)])
+	v.add_child(Kit.stats(rows))
+	var traits := []
+	if e.phase: traits.append("Phases: only Defensive heroes can block it.")
+	if e.unslow: traits.append("Can’t be slowed (stuns still work).")
+	if e.pushback_immune or e.boss: traits.append("Can’t be pushed back.")
+	if e.split: traits.append("Splits into %d Runners when it dies." % e.split)
+	if e.heal: traits.append("Heals nearby enemies %s of their max HP a second." % UiText.pct(e.heal))
+	if e.shield_aura: traits.append("Gives nearby enemies +%s armor." % UiText.pct(e.shield_aura))
+	if e.boss and d.power_name != "": traits.append("%s every %ss." % [d.power_name, UiText.f0(d.power_every)])
+	if traits.size():
+		v.add_child(Kit.rich(UiText.bullets(traits), 13))
+	var now := []
+	if e.stun_t > 0: now.append("Stunned %ss" % UiText.f1(e.stun_t))
+	if e.slow > 0 and e.slow_t > 0: now.append("Slowed %s" % UiText.pct(e.slow))
+	if e.burn_t > 0 or e.fire_t > 0: now.append("Burning")
+	if e.hex_t > 0: now.append("Hexed")
+	if e.mark_t > 0 or e.spot_t > 0: now.append("Marked")
+	if e.brittle_t > 0: now.append("Brittle")
+	if e.taunt_t > 0: now.append("Taunted")
+	if e.blocked: now.append("Blocked")
+	if now.size():
+		v.add_child(Kit.rich(Kit.c("Right now: ", Kit.MUTED) + Kit.c(", ".join(now), Kit.TECH), 13))
+	if d.counter != "":
+		v.add_child(Kit.rich(Kit.c("Counter: " + d.counter, Kit.GOLD), 13))
+
+
 func render_codex() -> void:
 	Kit.clear(codex_box)
 	var head := Kit.button(("▾ " if codex_open else "▸ ") + "MERGE CODEX AND CONTROLS", func():
@@ -940,6 +1107,8 @@ func render_hero() -> void:
 	var S := game.S
 	if S == null or S.hero == null:
 		return
+	if panel_mode != "hero":
+		return # only drawn while the side panel shows the hero
 	var h := S.hero
 	var d := h.data
 	# The card redraws every few frames; rebuilding the tags each time would drop the hovered tag's tooltip.
