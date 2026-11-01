@@ -6,7 +6,8 @@ extends SceneTree
 func _init() -> void:
 	for id in ["anvil", "arcane", "beacon", "disc", "frost", "laser", "mortar", "plasma", "tesla"]:
 		_tower(id)
-	for id in ["oracle", "sniper", "striker", "vanguard", "wizard"]:
+	# striker is left out: its 64px frames are hand-ordered from separate per-direction sheets (see tools/striker_frames.md)
+	for id in ["oracle", "sniper", "vanguard", "wizard"]:
 		_hero(id)
 	_fx()
 	quit()
