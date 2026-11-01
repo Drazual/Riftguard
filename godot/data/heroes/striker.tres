@@ -7,7 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://bnfwnmxor8r33" path="res://assets/heroes/striker.png" id="4_fek0u"]
 [ext_resource type="SpriteFrames" uid="uid://fc03ka8edcmpb" path="res://art/heroes/striker_fx.tres" id="5_shfx"]
 [ext_resource type="SpriteFrames" uid="uid://cs3bodyk4fr2m" path="res://art/heroes/striker_body.tres" id="6_body"]
-[ext_resource type="Texture2D" uid="uid://dyncl80pwk93b" path="res://assets/heroes/striker_gun.png" id="7_gun"]
+[ext_resource type="Texture2D" uid="uid://dyncl80pwla3b" path="res://assets/heroes/striker_gun.png" id="7_gun"]
 [ext_resource type="SpriteFrames" uid="uid://dgunfx7k2m4qa" path="res://art/heroes/striker_gun_fx.tres" id="8_gunfx"]
 
 [sub_resource type="Resource" id="Resource_uk0wj"]

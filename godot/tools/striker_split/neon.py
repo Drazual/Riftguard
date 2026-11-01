@@ -196,8 +196,8 @@ anims = []
 for face in range(8):
 	anims.append(("idle_%d" % face, [(face * 64, r * 64, 64, 64) for r in range(4)], True, 5.0))
 	anims.append(("walk_%d" % face, [(face * 64, r * 64, 64, 64) for r in range(4, 12)], True, 12.0))
-frames_tres("art/heroes/striker_body.tres", "cs3bodyk4fr2m", "res://assets/heroes/striker_body.png", "3qyjxf8pgy6uh", anims)
-frames_tres("art/heroes/striker_gun_fx.tres", "dgunfx7k2m4qa", "res://assets/heroes/striker_gun_fx.png", "egunfx3p8r1tb", [
+frames_tres("art/heroes/striker_body.tres", "cs3bodyk4fr2m", "res://assets/heroes/striker_body.png", "bo4gs1sxik2j4", anims)
+frames_tres("art/heroes/striker_gun_fx.tres", "dgunfx7k2m4qa", "res://assets/heroes/striker_gun_fx.png", "lgrtv6hok52j", [
 	("flash", [(i * 32, 0, 32, 32) for i in range(4)], False, 30.0),
 	("bullet", [(128, 0, 32, 32)], True, 1.0),
 ])
