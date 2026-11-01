@@ -33,6 +33,33 @@ func _ready() -> void:
 		if placed < 6 and g.build_problem(cell.x, cell.y, DB.tower_order[placed % 5]) == "":
 			g.place_tower(cell.x, cell.y, DB.tower_order[placed % 5])
 			placed += 1
+	if g.free_build(): # build mode on an open map: a tower that fits shows green, one that doesn't red
+		var mid: Vector2i = g.build_cells()[0]
+		for cell in g.build_cells():
+			if S.map.path_dist(g.cell_pos(cell.x, cell.y)) > S.map.path_dist(g.cell_pos(mid.x, mid.y)):
+				mid = cell
+		var hp := g.cell_pos(mid.x, mid.y) # the hero stands in the open middle of the loop
+		S.hero.x = hp.x
+		S.hero.y = hp.y
+		var good = null
+		var bad = null
+		for cell in g.build_cells():
+			var d := g.cell_pos(cell.x, cell.y).distance_to(hp)
+			if good == null and d > 70 and d < 130 and g.build_problem(cell.x, cell.y, "arcane") == "":
+				good = cell
+		for j in S.map.build_h:
+			for i in S.map.build_w:
+				var d := g.cell_pos(i, j).distance_to(hp)
+				if bad == null and d < 170 and S.map.path_dist(g.cell_pos(i, j) + Vector2(0, Game.FOOT_DY)) < 4:
+					bad = Vector2i(i, j)
+		S.build = "arcane"
+		for pair in [["04b_build_ok", good], ["04c_build_blocked", bad]]:
+			S.hover = pair[1]
+			for i in 6:
+				await get_tree().process_frame
+			await _shot(pair[0])
+		S.build = ""
+		S.hover = null
 	var auto := [true]
 	g.modal.connect(func(kind, _d):
 		if auto[0] and kind == "level_up":
@@ -216,6 +243,9 @@ func _ready() -> void:
 	var builds := [[8, 5, ["loader", "sear"]], [11, 9, ["flight", "ricochet", "honed"]]]
 	if g.has_pads(): # a hand-painted map builds on its pads
 		builds = [[12, MapInfo.SPOT_ROW, ["loader", "sear"]], [20, MapInfo.SPOT_ROW, ["flight", "ricochet", "honed"]]]
+	elif g.free_build(): # or on open ground by the road
+		var free := _spots(g).filter(func(c): return g.build_problem(c.x, c.y, "disc") == "")
+		builds = [[free[3].x, free[3].y, ["loader", "sear"]], [free[40].x, free[40].y, ["flight", "ricochet", "honed"]]]
 	for b in builds:
 		g.place_tower(b[0], b[1], "disc")
 		var dt: Tower = S.towers[-1]
@@ -257,10 +287,17 @@ func _shot(name: String) -> void:
 	get_viewport().get_texture().get_image().save_png(out.path_join(name + ".png"))
 
 
-## Where the screenshots put towers: the build pads of a hand-painted map, else the middle of the grid.
+## Where the screenshots put towers: the build pads of a hand-painted map (or open ground by its road), else the middle of the grid.
 func _spots(g: Game) -> Array[Vector2i]:
 	if g.has_pads():
 		return g.build_cells()
+	if g.free_build(): # the open ground nearest the road first
+		var cells := g.build_cells()
+		var dist := {}
+		for c in cells:
+			dist[c] = g.S.map.path_dist(g.cell_pos(c.x, c.y))
+		cells.sort_custom(func(a, b): return dist[a] < dist[b])
+		return cells
 	var out: Array[Vector2i] = []
 	for c in range(2, 18):
 		for r in range(2, 11):

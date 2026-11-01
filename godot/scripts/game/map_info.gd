@@ -21,7 +21,8 @@ var blocked := {}
 var base := Vector2.ZERO
 var problem := "" # why the map can't be played, if its path is broken
 ## A hand-painted map (MapScene.art_layout): the layout data, the path as free points instead of tiles, and
-## build pads instead of the build grid. A pad is the cell (index, SPOT_ROW), so towers still key on a cell.
+## build pads or a build mask instead of the build grid. A pad is the cell (index, SPOT_ROW), so towers still key on a cell.
+## With a build mask (layout "build") towers go anywhere it allows: the cell is a step x step square of the field.
 const SPOT_ROW := -1000
 var art := {}
 var art_dir := ""
@@ -29,6 +30,11 @@ var free_path := false
 var spots: Array[Vector2] = [] # where a tower on each pad stands (field units)
 var pad_centres: Array[Vector2] = [] # the middle of each pad on the ground
 var hero_at = null
+var free_build := false # towers go anywhere the build mask allows
+var build_step := 4.0 # field units per build mask cell
+var build_w := 0
+var build_h := 0
+var build_mask := PackedByteArray() # per cell: 0 build, 1 road, 2 object, 3 the edge of the city
 
 
 static func load_scene(ps: PackedScene) -> MapInfo:
@@ -55,7 +61,18 @@ func _read_art(path: String) -> void:
 	wp.clear()
 	for p in art.path:
 		wp.append(Vector2(p[0], p[1]))
-	for pad in art.pads:
+	if art.has("build"):
+		var b: Dictionary = art.build
+		build_step = float(b.step)
+		build_w = int(b.w)
+		build_h = int(b.h)
+		build_mask.resize(build_w * build_h)
+		for y in mini(build_h, b.rows.size()):
+			var row: String = b.rows[y]
+			for x in mini(build_w, row.length()):
+				build_mask[y * build_w + x] = row.unicode_at(x) - 48
+		free_build = build_w > 0 and build_h > 0
+	for pad in art.get("pads", []):
 		spots.append(Vector2(pad.tower[0], pad.tower[1]))
 		pad_centres.append(Vector2(pad.centre[0], pad.centre[1]))
 	if art.has("hero"):
@@ -185,3 +202,20 @@ func hero_start() -> Vector2:
 	if hero_at != null:
 		return hero_at
 	return Vector2(base.x - 80, base.y - 60 if base.y > 120 else base.y + 60)
+
+
+## The build mask's code for a tower standing at p (field units): 0 build, 1 road, 2 object, 3 the edge of the city.
+func build_code(p: Vector2) -> int:
+	var i := floori(p.x / build_step)
+	var j := floori(p.y / build_step)
+	if i < 0 or j < 0 or i >= build_w or j >= build_h:
+		return 3
+	return build_mask[j * build_w + i]
+
+
+## How far p is from the path's centre line (a hand-painted map's free path).
+func path_dist(p: Vector2) -> float:
+	var best := INF
+	for sg in seg:
+		best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, sg.a, sg.b)))
+	return best
