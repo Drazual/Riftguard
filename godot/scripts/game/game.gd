@@ -3853,8 +3853,8 @@ func place_tower(c: int, r: int, type: String) -> void:
 	t.free_ups = (2 if S.specials.get("foundry", false) else 0) + (int(h.rapid) if h.rapid and hyp(h.x - t.x, h.y - t.y) <= h.aura_range else 0) + h.free_build
 	if t.free_ups:
 		ring(t.x, t.y, 30, 0xb07cff, 0.5, true)
-	if S.build != "" and S.gold < tower_cost(S.build):
-		S.build = ""
+	# one click, one tower: let go of the build pick so a second click can't place another by accident
+	S.build = ""
 	sfx("click")
 	refresh("build_bar")
 	refresh("inspector")
@@ -4468,6 +4468,7 @@ func handle_click(x: float, y: float, touch := false) -> void:
 	if t:
 		S.sel = t
 		S.hero_sel = false
+		S.sel_enemy = null
 		S.build = ""
 		S.pending_build = null
 		refresh("build_bar")
@@ -4477,6 +4478,15 @@ func handle_click(x: float, y: float, touch := false) -> void:
 	var on_hero := S.build == "" and hero_hit(x, y)
 	S.hero_sel = on_hero and not S.hero_sel
 	if on_hero:
+		S.sel_enemy = null
+		if S.sel != null:
+			S.sel = null
+			refresh("inspector")
+		return
+	# clicking an enemy shows what it is in the side panel
+	var foe: Enemy = enemy_hit(x, y) if S.build == "" else null
+	S.sel_enemy = foe
+	if foe:
 		if S.sel != null:
 			S.sel = null
 			refresh("inspector")
@@ -4503,6 +4513,9 @@ func handle_click(x: float, y: float, touch := false) -> void:
 		h.tx = cx + (h.x - cx) / d * stop
 		h.ty = cy + (h.y - cy) / d * stop
 		S.pending_build = { c = cell.x, r = cell.y, type = S.build }
+		S.build = "" # the hero walks over to build this one; a second click shouldn't queue another
+		refresh("build_bar")
+		refresh("inspector")
 		return
 	if S.sel != null:
 		S.sel = null
@@ -4517,6 +4530,20 @@ func hero_hit(x: float, y: float) -> bool:
 	return h.ko <= 0 and absf(x - h.x) <= 20 and h.y - y >= -14 and h.y - y <= 55
 
 
+## The live enemy under (x, y), nearest first. Bodies float a little above the path, like on the board.
+func enemy_hit(x: float, y: float) -> Enemy:
+	var best: Enemy = null
+	var bd := INF
+	for e: Enemy in S.enemies:
+		if e.dead or e.fake:
+			continue
+		var dd := hyp(x - e.x, y - (e.y - (e.r * 0.9 - 4)))
+		if dd <= e.r + 8 and dd < bd:
+			bd = dd
+			best = e
+	return best
+
+
 func select_build(k: String) -> void:
 	if S.over or (S.paused and not S.user_pause):
 		return
@@ -4526,6 +4553,7 @@ func select_build(k: String) -> void:
 		S.build = k
 		S.sel = null
 		S.hero_sel = false
+		S.sel_enemy = null
 		S.merge_from = null
 	refresh("build_bar")
 	refresh("inspector")
@@ -4554,8 +4582,9 @@ func esc_step() -> bool:
 	elif S.runes.size():
 		S.runes = []
 		refresh("runes")
-	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null or S.hero_sel:
+	elif S.build != "" or S.merge_from != null or S.sel != null or S.pending_build != null or S.hero_sel or S.sel_enemy != null:
 		S.hero_sel = false
+		S.sel_enemy = null
 		S.build = ""
 		S.merge_from = null
 		S.sel = null
