@@ -66,6 +66,7 @@ var shake_t := 0.0
 var shake_amt := 0.0
 var shake_dur := 0.0
 var hero_spr: AnimatedSprite2D = null
+var hero_3d: Hero3D = null # heroes with a 3D model (HeroData.model_dir): drawn live over an invisible hero_spr
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
 var hero_flash: AnimatedSprite2D = null
@@ -408,9 +409,14 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 			if h == null:
 				hero_spr.queue_free()
 				hero_spr = null
+		if hero_3d and is_instance_valid(hero_3d):
+			hero_3d.visible = false
+			if h == null:
+				hero_3d.queue_free()
+				hero_3d = null
 		return
 	# split-layer heroes draw a gun-less body here and the gun as its own layer (see _sync_hero_gun)
-	var split: bool = h.data.gun != null and h.data.body_frames != null
+	var split: bool = h.data.gun != null and h.data.body_frames != null and h.data.model_dir == ""
 	var sf: SpriteFrames = h.data.body_frames if split else h.data.frames
 	var s := hero_spr
 	if s == null or not is_instance_valid(s) or s.sprite_frames != sf:
@@ -432,6 +438,17 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO }
 		s.animation_finished.connect(func(): hero_state.anim = "")
 		s.play("idle_4")
+		if hero_3d and is_instance_valid(hero_3d):
+			hero_3d.queue_free()
+		hero_3d = null
+		if h.data.model_dir != "":
+			# the sprite keeps the timing and the facing; the live model is what shows
+			s.self_modulate = Color(1, 1, 1, 0)
+			hero_3d = Hero3D.new()
+			hero_3d.scale = Vector2(1 / PX, 1 / PX)
+			units.add_child(hero_3d)
+			hero_3d.setup(h.data.model_dir)
+			hero_3d.face(PI / 2, true)
 	var st := hero_state
 	s.visible = true
 	var mx: float = h.x - st.lx
@@ -459,7 +476,9 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		if off > PI / 8 + 0.14:
 			st.sector = posmod(int(round(ang / (PI / 4))), 8)
 	var face: int = FACE_COL[st.sector]
+	var shot_now := false
 	if h.atk_at != st.fired:
+		shot_now = true
 		st.fired = h.atk_at
 		st.shot = true
 		st.kick = 1.0
@@ -487,6 +506,16 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	s.speed_scale = speed * m
 	s.position = Vector2(h.x, SY(h.y) + 0.0005)
 	st.face = face
+	if hero_3d and is_instance_valid(hero_3d):
+		# the live model turns to the exact angle (of the target while shooting), not just the 8 facings
+		hero_3d.visible = true
+		hero_3d.position = s.position
+		if v != Vector2.ZERO:
+			hero_3d.face(v.angle())
+		if want != "fire":
+			hero_3d.play(want, speed * m)
+		elif shot_now:
+			hero_3d.play("fire", speed * m)
 	_sync_hero_gun(S, h, s, firing, dt, speed)
 
 
@@ -570,6 +599,8 @@ func hero_muzzle(h: Hero) -> Vector2:
 	if g and is_instance_valid(g) and g.get_parent() == s:
 		var tip := (h.data.gun_tip - h.data.gun_pivot) * g.scale
 		return s.position + (g.position + tip.rotated(g.rotation)) / PX
+	if hero_3d and is_instance_valid(hero_3d):
+		return hero_3d.position + hero_3d.tip() / PX
 	var face: int = hero_state.get("face", 4)
 	var m := Vector2(32, 26)
 	if face < h.data.muzzle.size():
@@ -627,7 +658,8 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		# split-layer heroes with their own flash turn it with the gun
 		var turn: bool = split and h.data.gun_fx != null and h.data.gun_fx.has_animation("flash")
 		var ff: SpriteFrames = h.data.gun_fx if turn else fx
-		if shown and (split or String(hero_spr.animation).begins_with("walk")):
+		var live := hero_3d != null and is_instance_valid(hero_3d)
+		if shown and (split or live or String(hero_spr.animation).begins_with("walk")):
 			if hero_flash and is_instance_valid(hero_flash) and hero_flash.sprite_frames != ff:
 				hero_flash.queue_free()
 			if hero_flash == null or not is_instance_valid(hero_flash) or hero_flash.is_queued_for_deletion():

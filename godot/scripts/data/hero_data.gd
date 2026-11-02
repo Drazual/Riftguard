@@ -41,6 +41,9 @@ extends Resource
 ## How big a `frames` pixel is on the board. Rendered heroes are drawn at 2x (128px frames) and shown at 0.5, smoothed,
 ## so they keep their detail on big screens and match the painted map; hand-made pixel sheets stay at 1.
 @export var art_scale := 1.0
+## A folder with a hero.json (see tools/render_hero.md): the hero is drawn live from that 3D model on the board
+## (Hero3D) instead of from `frames`, turning to any angle. `frames` still shows in the menus.
+@export_dir var model_dir := ""
 ## 10 rows (idle 1-2, walk 1-4, fire 1-4) by 8 facings of 48px frames (the source of the animations above).
 ## The Striker's sheet is 64px frames instead: rows 0-7 idle, 8-15 walk, 16-21 fire, one column per facing.
 @export var sheet: Texture2D
