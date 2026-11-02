@@ -111,6 +111,7 @@ func _wear(folder: String) -> void:
 	var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art_src/heroes/%s/hero.json" % folder))
 	var tips: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://art_src/heroes/%s/muzzle.json" % folder))
 	d.frames = load("res://art/heroes/%s.tres" % cfg.get("out", folder))
+	d.art_scale = 64.0 / cfg.get("size", 64)
 	d.body_frames = null
 	d.gun = null
 	d.gun_fx = null

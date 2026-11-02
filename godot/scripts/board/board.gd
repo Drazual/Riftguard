@@ -419,10 +419,14 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		s = AnimatedSprite2D.new()
 		s.sprite_frames = sf
 		s.centered = false
-		s.scale = Vector2(1 / PX, 1 / PX)
+		var a: float = h.data.art_scale
+		s.scale = Vector2(a / PX, a / PX)
+		if a != 1.0:
+			s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		# frames are 48px (feet on row 43) or bigger with the feet the same distance from the bottom edge
+		# (in board pixels, so 10 texture pixels on a 0.5-scale rendered hero)
 		var fs := sf.get_frame_texture("idle_4", 0).get_size()
-		s.offset = Vector2(-fs.x / 2, -HERO_FEET - (fs.y - 48) + 3 * PX)
+		s.offset = Vector2(-fs.x / 2, -fs.y + (48 - HERO_FEET + 3 * PX) / a)
 		units.add_child(s)
 		hero_spr = s
 		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO }
@@ -570,7 +574,7 @@ func hero_muzzle(h: Hero) -> Vector2:
 	var m := Vector2(32, 26)
 	if face < h.data.muzzle.size():
 		m = h.data.muzzle[face]
-	return s.position + (s.offset + m) / PX
+	return s.position + (s.offset + m) * h.data.art_scale / PX
 
 
 ## Heroes with bullet sprites (HeroData.shot_fx) fire real bullets instead of the tracer line: each one leaves the

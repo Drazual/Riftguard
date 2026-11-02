@@ -1445,19 +1445,20 @@ class Portrait extends TextureRect:
 	static func make(id: String, z: float) -> Portrait:
 		var p := Portrait.new()
 		var sf: SpriteFrames = DB.heroes[id].frames
+		var box: float = 48 / DB.heroes[id].art_scale
 		for f in sf.get_frame_count("idle_4"):
 			var src := sf.get_frame_texture("idle_4", f) as AtlasTexture
 			var r := src.region
 			var a := AtlasTexture.new()
 			a.atlas = src.atlas
-			a.region = Rect2(r.position + Vector2((r.size.x - 48) / 2, r.size.y - 48), Vector2(48, 48))
+			a.region = Rect2(r.position + Vector2((r.size.x - box) / 2, r.size.y - box), Vector2(box, box))
 			p.frames.append(a)
 		p.step = 1.0 / maxf(1, sf.get_animation_speed("idle_4"))
 		p.texture = p.frames[0]
 		p.custom_minimum_size = Vector2(48, 48) * z
 		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		p.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if box == 48 else CanvasItem.TEXTURE_FILTER_LINEAR
 		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		return p
 
