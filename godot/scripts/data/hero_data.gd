@@ -38,6 +38,9 @@ extends Resource
 @export var meta: Array[UpgradeData] = []
 ## The hero's animations: idle_N, walk_N and fire_N for each facing N (0 = north, then clockwise).
 @export var frames: SpriteFrames
+## How big a `frames` pixel is on the board. Rendered heroes are drawn at 2x (128px frames) and shown at 0.5, smoothed,
+## so they keep their detail on big screens and match the painted map; hand-made pixel sheets stay at 1.
+@export var art_scale := 1.0
 ## 10 rows (idle 1-2, walk 1-4, fire 1-4) by 8 facings of 48px frames (the source of the animations above).
 ## The Striker's sheet is 64px frames instead: rows 0-7 idle, 8-15 walk, 16-21 fire, one column per facing.
 @export var sheet: Texture2D

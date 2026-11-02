@@ -12,5 +12,7 @@
 		"turn": 180
 	},
 	"lock_root": "mixamorig_Hips",
-	"out": "striker_3d"
+	"out": "striker_3d",
+	"size": 128,
+	"style": "painted"
 }

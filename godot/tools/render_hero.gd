@@ -16,15 +16,21 @@ extends SceneTree
 ##   weapon  optional: the node of the weapon mesh; its front end is the muzzle if there's no "Muzzle" node
 ##   hide    optional: nodes to hide (spare weapons and props)
 ##   out     the name of the files it writes
+##   size    optional: frame size, 64 (default) or 128 for heroes shown at 0.5 (HeroData.art_scale)
+##   style   optional: "pixel" (default) or "painted"
 ## It writes res://assets/heroes/<out>.png (8 columns N, NE, E, SE, S, SW, W, NW; rows idle 0-3, walk 4-11,
 ## fire 12-15, 64px frames, feet on row 59), res://art/heroes/<out>.tres (SpriteFrames idle_N, walk_N, fire_N)
 ## and res://art_src/heroes/<folder>/muzzle.json (the gun tip in every direction and fire frame, in frame pixels).
 ## How it all fits together, and how to make a model for it: tools/render_hero.md.
 
-const FRAME := 64
-const SS := 4 # render at 4x, then shrink: crisp pixels, no blur
-const FEET := Vector2(32, 59) # where the hero's origin lands in a frame
-const TALL := 38.0 # how many pixels a 1.8-unit hero stands on screen
+## Frame size and framing are for 64px frames; "size" in hero.json scales all three (128 = drawn at 2x).
+var FRAME := 64
+const SS := 4 # render at 4x, then shrink
+var FEET := Vector2(32, 59) # where the hero's origin lands in a frame
+var TALL := 38.0 # how many pixels a 1.8-unit hero stands in a frame
+## "pixel": toon bands, hard edges and a 1px outline. "painted": smooth shading, soft anti-aliased edges and a soft
+## dark outline, like the painted map sprites.
+var painted := false
 const K := 0.75 # the board squashes the ground vertically by this (Board.K); the 8 facings follow it
 ## How far the camera looks down. Flatter than the ground's tilt (asin(K), about 49) so characters read more
 ## from the front, like hand-drawn 3/4 sprites.
@@ -50,6 +56,11 @@ func _run() -> void:
 	var dir := "res://art_src/heroes/%s/" % args[0]
 	var cfg: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(dir + "hero.json"))
 	var out: String = cfg.get("out", args[0])
+	var k: float = cfg.get("size", 64) / 64.0
+	FRAME = int(64 * k)
+	FEET *= k
+	TALL *= k
+	painted = cfg.get("style", "pixel") == "painted"
 	_stage()
 	var model: Node3D = (load(dir + cfg.model) as PackedScene).instantiate()
 	pivot.add_child(model)
@@ -99,7 +110,10 @@ func _run() -> void:
 				await process_frame
 				await RenderingServer.frame_post_draw
 				var img := _shrink(vp.get_texture().get_image())
-				_outline(img)
+				if painted:
+					img = _soft_outline(img)
+				else:
+					_outline(img)
 				sheet.blit_rect(img, Rect2i(0, 0, FRAME, FRAME), Vector2i(face * FRAME, (r[0] + f) * FRAME))
 				if anim == "fire":
 					var tip := _tip(muzzle, weapon, face)
@@ -172,6 +186,18 @@ func _stage() -> void:
 	sun.rotation_degrees = Vector3(-50, -35, 0)
 	sun.light_energy = 1.25
 	vp.add_child(sun)
+	if painted:
+		# soft studio light like the map's sprites: warm key from the top left, a cool pink-violet rim from behind
+		# on the right (the neon city), and a brighter, slightly warm ambient so shadows stay colourful
+		sun.light_color = Color(1.0, 0.95, 0.9)
+		sun.light_energy = 1.35
+		env.ambient_light_color = Color(0.78, 0.7, 0.85)
+		env.ambient_light_energy = 0.6
+		var rim := DirectionalLight3D.new()
+		rim.rotation_degrees = Vector3(-20, 140, 0)
+		rim.light_color = Color(1.0, 0.45, 0.85)
+		rim.light_energy = 0.8
+		vp.add_child(rim)
 	pivot = Node3D.new()
 	vp.add_child(pivot)
 	cam = Camera3D.new()
@@ -237,9 +263,15 @@ func _toon(n: Node) -> void:
 			var m := mi.get_active_material(i)
 			if m is StandardMaterial3D:
 				var t: StandardMaterial3D = m.duplicate()
-				t.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
-				t.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
-				t.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+				if painted:
+					t.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP
+					t.metallic = 0.0
+					t.roughness = maxf(t.roughness, 0.6)
+					t.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+				else:
+					t.diffuse_mode = BaseMaterial3D.DIFFUSE_TOON
+					t.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+					t.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 				mi.set_surface_override_material(i, t)
 	for c in n.get_children():
 		_toon(c)
@@ -263,7 +295,10 @@ func _shrink(src: Image) -> Image:
 					g += c.g * c.a
 					b += c.b * c.a
 					a += c.a
-			if a / n >= 0.45:
+			if painted:
+				if a > 0.0:
+					out.set_pixel(x, y, Color(r / a, g / a, b / a, a / n))
+			elif a / n >= 0.45:
 				out.set_pixel(x, y, Color(r / a, g / a, b / a, 1))
 	return out
 
@@ -282,6 +317,27 @@ func _outline(img: Image) -> void:
 					break
 	for p in edge:
 		img.set_pixelv(p, OUTLINE)
+
+
+## Painted style: a soft dark line around the silhouette, about one screen pixel wide, drawn under the hero.
+func _soft_outline(img: Image) -> Image:
+	var out := Image.create(FRAME, FRAME, false, Image.FORMAT_RGBA8)
+	var line := OUTLINE.lerp(Color(0.2, 0.08, 0.25), 0.3)
+	for y in FRAME:
+		for x in FRAME:
+			var a := 0.0
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)]:
+				var p: Vector2i = Vector2i(x, y) + d
+				if p.x >= 0 and p.y >= 0 and p.x < FRAME and p.y < FRAME:
+					a = maxf(a, img.get_pixelv(p).a * (1.0 if d.x == 0 or d.y == 0 else 0.7))
+			var c := img.get_pixel(x, y)
+			var under := Color(line, a * 0.85)
+			# hero over the outline ("over" compositing, straight alpha)
+			var oa := c.a + under.a * (1.0 - c.a)
+			if oa > 0.0:
+				var rgb := (Color(c.r, c.g, c.b) * c.a + Color(under.r, under.g, under.b) * under.a * (1.0 - c.a)) / oa
+				out.set_pixel(x, y, Color(rgb.r, rgb.g, rgb.b, oa))
+	return out
 
 
 ## The gun tip in frame pixels: the "Muzzle" node if the model has one, else the front of the weapon's box.
