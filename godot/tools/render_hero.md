@@ -116,3 +116,12 @@ The split body-plus-gun layer added for the 2D Striker is no longer needed for 3
 - The tool works end to end on a placeholder: the free CC0 KayKit Rogue with a two-handed crossbow (`art_src/heroes/rogue_test`), rendered to `assets/heroes/rogue_test.png` and previewed in game.
 - No real hero uses a render yet. The shipped Striker is unchanged.
 - Swapping in a real model later means dropping in a new `.glb` and re-running the tool.
+
+## Live 3D instead of sprites
+
+A hero can also skip the sprite sheet and be drawn live from its model: set `HeroData.model_dir` to the hero's
+source folder (the one with `hero.json`). `scripts/board/hero_3d.gd` renders the model every frame into a small
+transparent viewport with the same camera angle and the painted lighting, plus a dark outline, and draws it on the
+board. The hero then turns to any angle, aims exactly at its target and blends between idle, walk and fire. The
+same `hero.json` drives both, so a hero can switch between live and pre-rendered at any time. `frames` is still
+used for the menu portrait. The folder must ship with the game, so it is not covered by the export exclude filter.
