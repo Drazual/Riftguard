@@ -26,6 +26,7 @@ var anims := {}
 var pic: Sprite2D
 var yaw := 0.0 # the model's current turn, eased toward the wanted one
 var want_yaw := 0.0
+var aim_fix := 0.0 # extra turn while shooting so the barrel, not the body, points at the target
 var state := ""
 var fitted := false
 var tall := 38.0
@@ -76,6 +77,10 @@ func setup(dir: String, height: float = 38.0) -> void:
 			_lock_root(anim, cfg.lock_root)
 		anim.loop_mode = Animation.LOOP_NONE if a == "fire" else Animation.LOOP_LINEAR
 		anims[a] = clip
+	# a shooting clip that steps around (Mixamo's "Firing Rifle" does) would make him walk on the spot when he
+	# shoots standing still, so his legs and hips keep the idle pose while his upper body fires
+	if cfg.get("fire_legs", "") == "idle" and anims.has("fire") and anims.has("idle"):
+		_legs_from(ap.get_animation(anims.fire), ap.get_animation(anims.idle))
 	if cfg.has("held"):
 		held = (load(dir.path_join(cfg.held.scene)) as PackedScene).instantiate()
 		vp.add_child(held)
@@ -155,6 +160,26 @@ func _import_clip(path: String, name: String) -> String:
 	return "ext/" + name
 
 
+## Replaces the leg and root (hips) tracks of `to` with those of `from`, over `to`'s length.
+func _legs_from(to: Animation, from: Animation) -> void:
+	for t in to.get_track_count():
+		var path := String(to.track_get_path(t))
+		var bone := path.get_slice(":", 1)
+		var leg := bone.contains("Leg") or bone.contains("Foot") or bone.contains("Toe")
+		if not leg and not bone.ends_with("Hips"):
+			continue
+		var src := from.find_track(to.track_get_path(t), to.track_get_type(t))
+		if src < 0:
+			continue
+		while to.track_get_key_count(t) > 0:
+			to.track_remove_key(t, 0)
+		for k in from.track_get_key_count(src):
+			var at := from.track_get_key_time(src, k)
+			if at > to.length:
+				break
+			to.track_insert_key(t, at, from.track_get_key_value(src, k))
+
+
 ## Pins the root bone's sideways position to where it starts, so the hero walks on the spot.
 func _lock_root(a: Animation, bone: String) -> void:
 	for t in a.get_track_count():
@@ -190,11 +215,19 @@ func _process(dt: float) -> void:
 	if model == null:
 		return
 	yaw = lerp_angle(yaw, want_yaw, 1.0 - exp(-dt * 16.0))
-	model.rotation.y = yaw
 	if not fitted:
 		_fit()
 	if held:
 		_hold()
+		# while shooting, turn the body a little more or less so the barrel itself points at the target (the
+		# clip's torso twist would otherwise aim it up to ~30 degrees off); eases back once he stops
+		var fix := 0.0
+		if state == "fire" and muzzle:
+			var m := muzzle.global_position - held.global_position
+			if Vector2(m.x, m.z).length() > 0.05:
+				fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
+		aim_fix = lerpf(aim_fix, fix, 1.0 - exp(-dt * 12.0))
+	model.rotation.y = yaw + aim_fix
 
 
 ## Scales the model so it stands `tall` pixels, measured from its skeleton (head top to toes) once it is posed,
