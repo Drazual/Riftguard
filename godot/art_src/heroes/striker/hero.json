@@ -1,0 +1,16 @@
+{
+	"model": "striker.fbx",
+	"anims": {
+		"idle": "idle.fbx",
+		"walk": "walk.fbx",
+		"fire": "fire.fbx"
+	},
+	"held": {
+		"scene": "rifle.glb",
+		"grip": "mixamorig_RightHandIndex1",
+		"support": "mixamorig_LeftHandIndex1",
+		"turn": 180
+	},
+	"lock_root": "mixamorig_Hips",
+	"out": "striker_3d"
+}
