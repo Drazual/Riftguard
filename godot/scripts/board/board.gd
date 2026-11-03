@@ -515,12 +515,15 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		if v != Vector2.ZERO:
 			hero_3d.face(v.angle())
 		if want == "walk":
-			# feet keep pace with the ground: the clip plays as fast as the hero really covers it
+			# long strides at a steady pace (see Hero3D.move)
 			hero_3d.move(st.get("gv", h.speed) * PX, speed, m < 0)
-		elif want != "fire":
-			hero_3d.play(want, speed * m)
 		elif shot_now:
 			hero_3d.play("fire", speed * m)
+		elif want == "fire" or firing or h.aim_live:
+			# between shots (and while lining one up) the gun stays raised on the target
+			hero_3d.aim()
+		else:
+			hero_3d.play(want, speed * m)
 	_sync_hero_gun(S, h, s, firing, dt, speed)
 
 
@@ -596,7 +599,7 @@ func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, dt: floa
 const BULLET_SPEED := 750.0 # board units per second
 ## Rounds drawn pointing right (shot_fx with "bullet", e.g. the Sniper's): they turn to fly at any angle, start at the
 ## gun tip with their glowing tail growing out of the barrel, fly faster and are drawn smaller than their art.
-const ROUND_SPEED := 1500.0
+const ROUND_SPEED := 900.0
 const ROUND_SCALE := 0.6
 const FLASH_ANIM := ["flash_o", "flash_a", "flash_o", "flash_b", "flash_o", "flash_a", "flash_o", "flash_b"] # by facing
 
@@ -666,7 +669,7 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 			var w := fx.get_frame_texture(anim, 0).get_size().x
 			sp.offset = Vector2(-w / 2 + 3, 0)
 			sp.play(anim)
-			hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / ROUND_SPEED), crit = crit, pierce = pierce, tail = w * ROUND_SCALE })
+			hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / ROUND_SPEED), crit = crit, pierce = pierce, tail = w * ROUND_SCALE, fresh = true })
 			continue
 		if h.data.gun_fx and h.data.gun_fx.has_animation("bullet"):
 			sp.sprite_frames = h.data.gun_fx # drawn pointing right: turn it to fly at any angle
@@ -675,7 +678,7 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		else:
 			sp.sprite_frames = fx
 			sp.play("bullet_%d" % FACE_COL[dir])
-		hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / BULLET_SPEED), crit = f.w >= 3 })
+		hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / BULLET_SPEED), crit = f.w >= 3, fresh = true })
 	if hero_state.get("shot", false):
 		hero_state.shot = false
 		var split := hero_gun != null and is_instance_valid(hero_gun)
@@ -707,6 +710,10 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 	for i in range(hero_bullets.size() - 1, -1, -1):
 		var b: Dictionary = hero_bullets[i]
 		var sp: AnimatedSprite2D = b.sp
+		if b.get("fresh", false) and shown:
+			# the shot's pose only lands on the 3D model this frame, so the round starts from where the tip is now
+			b.a = hero_muzzle(h)
+		b.erase("fresh")
 		b.t += dt * speed
 		sp.speed_scale = speed
 		if b.t < b.T:
