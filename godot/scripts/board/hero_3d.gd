@@ -30,6 +30,10 @@ var aim_fix := 0.0 # extra turn while shooting so the barrel, not the body, poin
 var state := ""
 var fitted := false
 var tall := 38.0
+## How fast the walk (and run) clips would carry the hero, in world units per second of a 1.8-unit hero, measured
+## from the clip: twice the forward-and-back swing of one foot (relative to the hips) per cycle, over its length.
+var walk_speed := 1.0
+var run_speed := 0.0
 var lines: Array[StandardMaterial3D] = [] # the model's outline materials (their width follows its scale)
 
 
@@ -249,6 +253,10 @@ func _fit() -> void:
 	for l in lines:
 		l.grow_amount = LINE_W / model.scale.x
 	fitted = true
+	walk_speed = _stride_speed(anims.walk) if anims.has("walk") else 1.0
+	run_speed = _stride_speed(anims.run) if anims.has("run") else 0.0
+	if state != "":
+		ap.play(anims[state]) # measuring moved the player off the current clip
 
 
 ## Puts the held weapon in the grip hand, its barrel pointing through the support hand.
@@ -265,7 +273,39 @@ func _hold() -> void:
 
 
 ## Where the gun tip is, in board pixels from the hero's feet.
+## Walks (or runs, if the hero has a "run" clip and is going fast) at `px_per_s` screen pixels of ground a second,
+## with the clip playing exactly as fast as the ground goes by, so the feet don't slide. Backwards steps it in reverse.
+func move(px_per_s: float, game_speed: float, backwards: bool) -> void:
+	var px_per_unit := tall / 1.8
+	var what := "walk"
+	var rate := px_per_s / (walk_speed * px_per_unit)
+	if run_speed > 0.0 and rate > 1.4:
+		what = "run"
+		rate = px_per_s / (run_speed * px_per_unit)
+	play(what, game_speed * clampf(rate, 0.3, 8.0) * (-1.0 if backwards else 1.0))
+
+
 func tip() -> Vector2:
 	if muzzle == null:
 		return Vector2(0, -tall * 0.6)
 	return cam.unproject_position(muzzle.global_position) / Q - FEET
+
+
+## Measures how fast a looping in-place clip would carry the hero (see walk_speed). Call once fitted.
+func _stride_speed(clip: String) -> float:
+	var a := ap.get_animation(clip)
+	var foot := skel.find_bone(cfg.get("foot", "mixamorig_LeftFoot"))
+	var hip := skel.find_bone(cfg.get("lock_root", "mixamorig_Hips"))
+	if foot < 0 or hip < 0 or a.length <= 0:
+		return 1.0
+	var fwd := Vector3(sin(model.rotation.y), 0, cos(model.rotation.y))
+	var lo := INF
+	var hi := -INF
+	for i in 40:
+		ap.play(clip, 0.0)
+		ap.seek(a.length * i / 40.0, true)
+		var f := skel.get_bone_global_pose(foot).origin - skel.get_bone_global_pose(hip).origin
+		var d := (skel.global_transform.basis * f).dot(fwd)
+		lo = minf(lo, d)
+		hi = maxf(hi, d)
+	return maxf(0.05, 2.0 * (hi - lo) / a.length)

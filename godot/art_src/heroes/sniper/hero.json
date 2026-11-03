@@ -1,5 +1,9 @@
 {
 	"model": "sniper.glb",
-	"anims": { "idle": "idle", "walk": "walk", "fire": "fire" },
+	"anims": {
+		"idle": "idle",
+		"walk": "walk",
+		"fire": "fire"
+	},
 	"lock_root": "mixamorig_Hips"
 }

@@ -5,6 +5,7 @@
 [ext_resource type="SpriteFrames" uid="uid://cavoi57slxq8j" path="res://art/heroes/sniper.tres" id="2_8b2t1"]
 [ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_8b2t1"]
 [ext_resource type="Texture2D" uid="uid://do5py3jyxpkd2" path="res://assets/heroes/sniper.png" id="4_5gskk"]
+[ext_resource type="SpriteFrames" path="res://art/heroes/sniper_shots.tres" id="9_shots"]
 
 [sub_resource type="Resource" id="Resource_v0u3i"]
 script = ExtResource("1_5qh7a")
@@ -80,4 +81,5 @@ ability = SubResource("Resource_v0u3i")
 alt = SubResource("Resource_tdfem")
 meta = Array[ExtResource("2_0pu25")]([SubResource("Resource_pqs5a"), SubResource("Resource_7bjss"), SubResource("Resource_k5i7h"), SubResource("Resource_bck4n")])
 frames = ExtResource("2_8b2t1")
+shot_fx = ExtResource("9_shots")
 sheet = ExtResource("4_5gskk")
