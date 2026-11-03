@@ -13,6 +13,10 @@ const BOX := Vector2(128, 128) # the viewport in board pixels
 const FEET := Vector2(64, 112) # where the hero's feet land in the viewport, in board pixels
 const OUTLINE := Color(0.13, 0.06, 0.2)
 const LINE_W := 0.014 # outline thickness, in world units of a 1.8-unit hero
+## Heroes cover ground far faster than a walk clip steps (several body lengths a second), so the clip's leg swing is
+## stretched by STRIDE for longer steps, and its pace is capped at MAX_PACE times normal; past that the feet glide.
+const STRIDE := 1.7
+const MAX_PACE := 1.5
 
 var vp: SubViewport
 var cam: Camera3D
@@ -34,6 +38,8 @@ var tall := 38.0
 ## from the clip: twice the forward-and-back swing of one foot (relative to the hips) per cycle, over its length.
 var walk_speed := 1.0
 var run_speed := 0.0
+var base_y := 0.0 # the model's height offset once fitted, before the walk's hip drop
+var ankle := 0.0 # how high the ankles sit when standing, so longer strides can lower the hips to keep feet down
 var lines: Array[StandardMaterial3D] = [] # the model's outline materials (their width follows its scale)
 
 
@@ -80,6 +86,12 @@ func setup(dir: String, height: float = 38.0) -> void:
 		if cfg.has("lock_root"):
 			_lock_root(anim, cfg.lock_root)
 		anim.loop_mode = Animation.LOOP_NONE if a == "fire" else Animation.LOOP_LINEAR
+		if a == "walk" or a == "run":
+			_stretch(anim, cfg.get("stride", STRIDE))
+		# a firing clip that lowers the gun after the shot is cut where the gun is still up, so firing again and
+		# again keeps it raised (each shot restarts the clip, and it holds its last pose between shots)
+		if a == "fire" and cfg.has("fire_end"):
+			_trim(anim, cfg.fire_end)
 		anims[a] = clip
 	# a shooting clip that steps around (Mixamo's "Firing Rifle" does) would make him walk on the spot when he
 	# shoots standing still, so his legs and hips keep the idle pose while his upper body fires
@@ -184,6 +196,48 @@ func _legs_from(to: Animation, from: Animation) -> void:
 			to.track_insert_key(t, at, from.track_get_key_value(src, k))
 
 
+## Swings the legs further each step: every leg-bone rotation is pushed away from that bone's average pose
+## over the clip by `k`, so the strides get longer while the rhythm stays the same.
+func _stretch(a: Animation, k: float) -> void:
+	for t in a.get_track_count():
+		if a.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+			continue
+		var bone := String(a.track_get_path(t)).get_slice(":", 1)
+		if not (bone.contains("UpLeg") or bone.ends_with("Leg") or bone.contains("Foot")):
+			continue
+		var n := a.track_get_key_count(t)
+		if n < 2:
+			continue
+		var q0: Quaternion = a.track_get_key_value(t, 0)
+		var sum := Quaternion(0, 0, 0, 0)
+		for i in n:
+			var q: Quaternion = a.track_get_key_value(t, i)
+			if q.dot(q0) < 0:
+				q = -q
+			sum = Quaternion(sum.x + q.x, sum.y + q.y, sum.z + q.z, sum.w + q.w)
+		var mean := sum.normalized()
+		for i in n:
+			var q: Quaternion = a.track_get_key_value(t, i)
+			var d := mean.inverse() * q
+			if d.w < 0:
+				d = -d
+			var ang := d.get_angle()
+			if ang < 0.0001:
+				continue
+			a.track_set_key_value(t, i, (mean * Quaternion(d.get_axis(), ang * k)).normalized())
+
+
+## Cuts a clip off at `end` seconds.
+func _trim(a: Animation, end: float) -> void:
+	if end <= 0.0 or end >= a.length:
+		return
+	for t in a.get_track_count():
+		for i in range(a.track_get_key_count(t) - 1, -1, -1):
+			if a.track_get_key_time(t, i) > end + 0.0001:
+				a.track_remove_key(t, i)
+	a.length = end
+
+
 ## Pins the root bone's sideways position to where it starts, so the hero walks on the spot.
 func _lock_root(a: Animation, bone: String) -> void:
 	for t in a.get_track_count():
@@ -200,11 +254,21 @@ func play(what: String, speed: float = 1.0) -> void:
 	if not anims.has(what):
 		return
 	if what != state or what == "fire":
-		ap.play(anims[what], 0.12)
+		ap.play(anims[what], 0.0 if what == state else 0.12)
 		if what == "fire":
 			ap.seek(0.0, true)
 		state = what
 	ap.speed_scale = speed
+
+
+## Raises the gun and holds it on target between shots (the fire clip's last pose), without shooting.
+func aim() -> void:
+	if state == "fire" or not anims.has("fire"):
+		return
+	ap.play(anims.fire, 0.12)
+	ap.seek(ap.get_animation(anims.fire).length, true)
+	ap.speed_scale = 1.0
+	state = "fire"
 
 
 ## Turns the hero to face a direction on screen (any angle: 0 = right, PI/2 = down the screen).
@@ -229,11 +293,22 @@ func _process(dt: float) -> void:
 	var gun: Node3D = held if held else (muzzle.get_parent() as Node3D if muzzle else null)
 	var fix := 0.0
 	if state == "fire" and gun:
-		var m := muzzle.global_position - gun.global_position
+		var m := muzzle_at() - _on_bone(gun)
 		if Vector2(m.x, m.z).length() > 0.05:
 			fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
 	aim_fix = lerpf(aim_fix, fix, 1.0 - exp(-dt * 12.0))
 	model.rotation.y = yaw + aim_fix
+	# the stretched strides lift the feet off the ground, so the hips come down to keep the lower foot on it
+	var drop := 0.0
+	if fitted and ankle > 0.0 and (state == "walk" or state == "run"):
+		var low := INF
+		for f in [cfg.get("foot", "mixamorig_LeftFoot"), cfg.get("foot_r", "mixamorig_RightFoot")]:
+			var b := skel.find_bone(f)
+			if b >= 0:
+				low = minf(low, (skel.global_transform * skel.get_bone_global_pose(b).origin).y - model.position.y + base_y)
+		if low < INF:
+			drop = minf(0.0, ankle - low)
+	model.position.y = lerpf(model.position.y, base_y + drop, 1.0 - exp(-dt * 20.0))
 
 
 ## Scales the model so it stands `tall` pixels, measured from its skeleton (head top to toes) once it is posed,
@@ -253,6 +328,13 @@ func _fit() -> void:
 	for l in lines:
 		l.grow_amount = LINE_W / model.scale.x
 	fitted = true
+	base_y = model.position.y
+	var feet := INF
+	for f in [cfg.get("foot", "mixamorig_LeftFoot"), cfg.get("foot_r", "mixamorig_RightFoot")]:
+		var b := skel.find_bone(f)
+		if b >= 0:
+			feet = minf(feet, (skel.global_transform * skel.get_bone_global_pose(b).origin).y)
+	ankle = feet if feet < INF else 0.0
 	walk_speed = _stride_speed(anims.walk) if anims.has("walk") else 1.0
 	run_speed = _stride_speed(anims.run) if anims.has("run") else 0.0
 	if state != "":
@@ -272,9 +354,8 @@ func _hold() -> void:
 	held.global_transform = Transform3D(b, grip)
 
 
-## Where the gun tip is, in board pixels from the hero's feet.
 ## Walks (or runs, if the hero has a "run" clip and is going fast) at `px_per_s` screen pixels of ground a second,
-## with the clip playing exactly as fast as the ground goes by, so the feet don't slide. Backwards steps it in reverse.
+## with the clip keeping pace with the ground up to MAX_PACE. Backwards steps it in reverse.
 func move(px_per_s: float, game_speed: float, backwards: bool) -> void:
 	var px_per_unit := tall / 1.8
 	var what := "walk"
@@ -282,13 +363,36 @@ func move(px_per_s: float, game_speed: float, backwards: bool) -> void:
 	if run_speed > 0.0 and rate > 1.4:
 		what = "run"
 		rate = px_per_s / (run_speed * px_per_unit)
-	play(what, game_speed * clampf(rate, 0.3, 8.0) * (-1.0 if backwards else 1.0))
+	play(what, game_speed * clampf(rate, 0.3, MAX_PACE) * (-1.0 if backwards else 1.0))
 
 
+## Where the gun tip is, in board pixels from the hero's feet.
 func tip() -> Vector2:
 	if muzzle == null:
 		return Vector2(0, -tall * 0.6)
-	return cam.unproject_position(muzzle.global_position) / Q - FEET
+	return cam.unproject_position(muzzle_at()) / Q - FEET
+
+
+## The gun tip in the 3D world, from the skeleton's current pose. A weapon on a BoneAttachment3D (as in a .glb)
+## only follows its bone once the frame's pose update has gone out, so reading the Muzzle node itself can be a
+## frame or more behind a new shot's pose; this works it out from the bone instead.
+func muzzle_at() -> Vector3:
+	return _on_bone(muzzle)
+
+
+## A point of the weapon (its Muzzle, or the weapon itself) in the 3D world, following the bone it rides on.
+func _on_bone(p: Node3D) -> Vector3:
+	if held:
+		_hold()
+		return p.global_position
+	var n: Node = p.get_parent()
+	while n and not n is BoneAttachment3D:
+		n = n.get_parent()
+	if n == null:
+		return p.global_position
+	var att: BoneAttachment3D = n
+	var local := att.global_transform.affine_inverse() * p.global_position
+	return skel.global_transform * skel.get_bone_global_pose(skel.find_bone(att.bone_name)) * local
 
 
 ## Measures how fast a looping in-place clip would carry the hero (see walk_speed). Call once fitted.

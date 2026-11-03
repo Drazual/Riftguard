@@ -15,5 +15,6 @@
 	"out": "striker_3d",
 	"size": 128,
 	"style": "painted",
-	"fire_legs": "idle"
+	"fire_legs": "idle",
+	"fire_end": 0.35
 }
