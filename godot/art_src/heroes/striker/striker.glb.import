@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://co5isaa2cmyr1"
-path="res://.godot/imported/rifle.glb-9a277e467b71df3e886367b4a684575e.scn"
+uid="uid://cyar288ahhb75"
+path="res://.godot/imported/striker.glb-9c8903c4a24c0da1d5ac541fc4184ce3.scn"
 
 [deps]
 
-source_file="res://art_src/heroes/striker/rifle.glb"
-dest_files=["res://.godot/imported/rifle.glb-9a277e467b71df3e886367b4a684575e.scn"]
+source_file="res://art_src/heroes/striker/striker.glb"
+dest_files=["res://.godot/imported/striker.glb-9c8903c4a24c0da1d5ac541fc4184ce3.scn"]
 
 [params]
 
