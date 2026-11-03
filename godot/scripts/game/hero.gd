@@ -55,6 +55,7 @@ var tower_range := 0.0
 var interest := 0.0
 var brace := 0.0
 var brace_t := 0.0
+var aim_live := false # bracing with a target in sight: aim_x/aim_y follow the one it will shoot, so it can turn early
 var pierce := 0.0
 var deadeye := 0.0
 var shot_stun := 0.0

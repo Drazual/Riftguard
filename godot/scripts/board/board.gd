@@ -456,6 +456,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	st.lx = h.x
 	st.ly = h.y
 	if Vector2(mx, my).length() > 0.01:
+		# how fast it really walks, in board units per game second (smoothed), for the 3D walk's pace
+		st.gv = lerpf(st.get("gv", h.speed), Vector2(mx, my).length() / maxf(0.0001, dt * speed), 0.3)
 		st.move_t = 0.12
 		st.mv = Vector2(mx, my * K).normalized()
 	else:
@@ -465,7 +467,7 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var firing := S.time - h.atk_at < maxf(0.25, minf(h.rate, 1.0) + 0.15)
 	# face the target while shooting, else the way it's walking (on screen, so the tilt counts)
 	var v := Vector2.ZERO
-	if firing:
+	if firing or (h.aim_live and not moving):
 		v = Vector2(h.aim_x - h.x, (h.aim_y - h.y) * K)
 	elif moving:
 		v = Vector2(mx, my * K)
@@ -512,7 +514,10 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		hero_3d.position = s.position
 		if v != Vector2.ZERO:
 			hero_3d.face(v.angle())
-		if want != "fire":
+		if want == "walk":
+			# feet keep pace with the ground: the clip plays as fast as the hero really covers it
+			hero_3d.move(st.get("gv", h.speed) * PX, speed, m < 0)
+		elif want != "fire":
 			hero_3d.play(want, speed * m)
 		elif shot_now:
 			hero_3d.play("fire", speed * m)
@@ -589,6 +594,10 @@ func _sync_hero_gun(S: Run, h: Hero, s: AnimatedSprite2D, firing: bool, dt: floa
 
 
 const BULLET_SPEED := 750.0 # board units per second
+## Rounds drawn pointing right (shot_fx with "bullet", e.g. the Sniper's): they turn to fly at any angle, start at the
+## gun tip with their glowing tail growing out of the barrel, fly faster and are drawn smaller than their art.
+const ROUND_SPEED := 1500.0
+const ROUND_SCALE := 0.6
 const FLASH_ANIM := ["flash_o", "flash_a", "flash_o", "flash_b", "flash_o", "flash_a", "flash_o", "flash_b"] # by facing
 
 
@@ -624,8 +633,10 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		hero_flash = null
 		return
 	var shown := hero_spr != null and is_instance_valid(hero_spr) and hero_spr.visible
+	var rounds := fx.has_animation("bullet")
 	for f: Dictionary in S.fx:
-		if f.k != "line" or not f.get("hero", false) or f.get("_b", false):
+		var pierce: bool = f.get("pierce", false) and fx.has_animation("bullet_pierce")
+		if f.k != "line" or not (f.get("hero", false) or pierce) or f.get("_b", false):
 			continue
 		f._b = true
 		f.quiet = true # the bullet replaces the tracer
@@ -644,6 +655,19 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		sp.scale = Vector2(1 / PX, 1 / PX)
 		sp.position = a
 		top.add_child(sp)
+		var crit: bool = f.w >= 3 and not pierce
+		if rounds:
+			var anim := "bullet_pierce" if pierce else ("bullet_crit" if crit and fx.has_animation("bullet_crit") else "bullet")
+			sp.sprite_frames = fx
+			sp.material = _additive()
+			sp.rotation = v.angle()
+			sp.scale = Vector2(ROUND_SCALE / PX, ROUND_SCALE / PX)
+			# the art's tip is its origin (a few pixels in from the right edge), the tail trails behind it
+			var w := fx.get_frame_texture(anim, 0).get_size().x
+			sp.offset = Vector2(-w / 2 + 3, 0)
+			sp.play(anim)
+			hero_bullets.append({ sp = sp, a = a, b = b, t = 0.0, T = maxf(0.02, v.length() / ROUND_SPEED), crit = crit, pierce = pierce, tail = w * ROUND_SCALE })
+			continue
 		if h.data.gun_fx and h.data.gun_fx.has_animation("bullet"):
 			sp.sprite_frames = h.data.gun_fx # drawn pointing right: turn it to fly at any angle
 			sp.rotation = v.angle()
@@ -659,7 +683,8 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		var turn: bool = split and h.data.gun_fx != null and h.data.gun_fx.has_animation("flash")
 		var ff: SpriteFrames = h.data.gun_fx if turn else fx
 		var live := hero_3d != null and is_instance_valid(hero_3d)
-		if shown and (split or live or String(hero_spr.animation).begins_with("walk")):
+		var flash_anim: String = "flash" if turn else ("flash_o" if split else FLASH_ANIM[hero_state.face])
+		if shown and ff.has_animation(flash_anim) and (split or live or String(hero_spr.animation).begins_with("walk")):
 			if hero_flash and is_instance_valid(hero_flash) and hero_flash.sprite_frames != ff:
 				hero_flash.queue_free()
 			if hero_flash == null or not is_instance_valid(hero_flash) or hero_flash.is_queued_for_deletion():
@@ -671,7 +696,7 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 				hf.animation_finished.connect(func(): hf.visible = false)
 			hero_flash.visible = true
 			hero_flash.rotation = 0.0
-			hero_flash.play("flash" if turn else ("flash_o" if split else FLASH_ANIM[hero_state.face]))
+			hero_flash.play(flash_anim)
 	if hero_flash and is_instance_valid(hero_flash) and hero_flash.visible:
 		hero_flash.visible = shown
 		if shown:
@@ -686,6 +711,10 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 		sp.speed_scale = speed
 		if b.t < b.T:
 			sp.position = b.a.lerp(b.b, b.t / b.T)
+			if b.has("tail"):
+				# the tail grows out of the barrel instead of poking out behind the hero
+				var gone: float = b.a.distance_to(sp.position) * PX
+				sp.scale.x = ROUND_SCALE / PX * clampf(gone / b.tail, 0.08, 1.0)
 			continue
 		sp.queue_free()
 		hero_bullets.remove_at(i)
@@ -696,11 +725,26 @@ func _sync_hero_shots(S: Run, dt: float, speed: float) -> void:
 			hit.scale = Vector2(1 / PX, 1 / PX)
 			hit.position = b.b
 			hit.speed_scale = speed
+			if b.has("tail"):
+				hit.material = _additive()
+				hit.rotation = (b.b - b.a).angle()
 			top.add_child(hit)
 			hit.animation_finished.connect(func():
 				bursts -= 1
 				hit.queue_free())
-			hit.play("crit" if b.crit else "hit")
+			var ha := "hit_pierce" if b.get("pierce", false) else ("crit" if b.crit else "hit")
+			hit.play(ha if fx.has_animation(ha) else "hit")
+
+
+var _add_mat: CanvasItemMaterial = null
+
+
+## Glowing effects add their light to what's under them.
+func _additive() -> CanvasItemMaterial:
+	if _add_mat == null:
+		_add_mat = CanvasItemMaterial.new()
+		_add_mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	return _add_mat
 
 
 func _burst(k: String, at: Vector2, anim: String) -> void:
@@ -1025,8 +1069,12 @@ func _draw_flat() -> void:
 	if S.build != "" and h.ko <= 0:
 		_circle(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.05))
 		_ring(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.35), 1)
-		if free: # a faint wash over the ground towers can go on
+		if free: # a faint wash over the ground towers can go on, and a dot on every free grid spot they snap to
 			g.draw_texture_rect(_build_wash(S.map), Rect2(0, Game.FOOT_DY, S.map.build_w * S.map.build_step, S.map.build_h * S.map.build_step), false)
+			var dot := hx(0xffffff, 0.35)
+			for c: Vector2i in game.snap_cells():
+				if game.tower_at(c.x, c.y) == null:
+					_circle(g, game.cell_pos(c.x, c.y) + Vector2(0, Game.FOOT_DY), 2.5, dot)
 		if pads: # outline the free pads: green within reach, gold beyond it
 			for i in S.map.pad_centres.size():
 				if game.tower_at(i, MapInfo.SPOT_ROW) == null:

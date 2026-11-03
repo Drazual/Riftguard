@@ -1676,7 +1676,7 @@ func piercing_shot(h: Hero, a: Ability) -> void:
 			ring(e.x, e.y, 50, 0xffb35d, 0.3, true)
 	var ex2 := h.x + ux * 2000
 	var ey2 := h.y + uy * 2000
-	line(h.x, h.y, ex2, ey2, 0xffd36e, 0.35, 14 if a.rail else 4)
+	line(h.x, h.y, ex2, ey2, 0xffd36e, 0.35, 14 if a.rail else 4, { pierce = true })
 	if a.rail:
 		zone({ line = true, x = h.x, y = h.y, x1 = h.x, y1 = h.y, x2 = ex2, y2 = ey2, r = w, t = 3.0, dps = hero_dmg() * 0.8, color = 0xffd36e })
 	if a.bounce:
@@ -2952,6 +2952,15 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 		h.brace_t = minf(h.brace, h.brace_t + dt) if h.x == h.px and h.y == h.py else 0.0
 	h.px = h.x
 	h.py = h.y
+	h.aim_live = false
+	if h.brace and h.brace_t > 0 and h.range > 0:
+		# while bracing, keep aiming at the enemy it will shoot, so it is already turned to it when the shot goes
+		var aimed := in_range(h.x, h.y, hero_range(h))
+		if aimed.size():
+			sort_by_aim(h.target, h.x, h.y, aimed)
+			h.aim_x = aimed[0].x
+			h.aim_y = aimed[0].y
+			h.aim_live = true
 	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0:
 		var inr := in_range(h.x, h.y, hero_range(h))
 		if h.cls == "sniper":
@@ -3752,6 +3761,33 @@ func free_build() -> bool:
 
 const TOWER_GAP := 36.0 # on a free-build map, the closest two towers can stand (field units)
 const FOOT_DY := 12.0 # a tower's foot on the ground sits this far below where it stands (Board.FOOT / Board.K)
+const BUILD_SNAP := 40.0 # on a free-build map, new towers snap to a grid this wide (a bit over TOWER_GAP)
+
+
+## The build cell of the grid point nearest to where a tower would stand at (x, y) on a free-build map.
+func snap_cell(x: float, y: float) -> Vector2i:
+	var st: float = S.map.build_step
+	var sx := (floorf(x / BUILD_SNAP) + 0.5) * BUILD_SNAP
+	var sy := (floorf(y / BUILD_SNAP) + 0.5) * BUILD_SNAP
+	return Vector2i(floori(sx / st), floori(sy / st))
+
+
+## Every snap point on a free-build map where a tower could go (open ground), as build cells. Cached per map.
+func snap_cells() -> Array:
+	if S.map.has_meta("snap_cells"):
+		return S.map.get_meta("snap_cells")
+	var out := []
+	var y := BUILD_SNAP / 2
+	while y < S.map.build_h * S.map.build_step:
+		var x := BUILD_SNAP / 2
+		while x < S.map.build_w * S.map.build_step:
+			var c := snap_cell(x, y)
+			if S.map.build_code(cell_pos(c.x, c.y)) == 0:
+				out.append(c)
+			x += BUILD_SNAP
+		y += BUILD_SNAP
+	S.map.set_meta("snap_cells", out)
+	return out
 
 
 ## Where a tower on this cell (or pad) stands.
@@ -4395,8 +4431,7 @@ func cell_at(x: float, y: float) -> Vector2i:
 		var t := tower_body_at(x, y)
 		if t:
 			return Vector2i(t.c, t.r)
-		var st: float = S.map.build_step
-		return Vector2i(floori(x / st), floori((y - FOOT_DY) / st)) # the pointer marks the new tower's foot
+		return snap_cell(x, y - FOOT_DY) # the pointer marks the new tower's foot, snapped to the build grid
 	if has_pads():
 		return pad_at(x, y)
 	return Vector2i(floori(x / C), floori(y / C))

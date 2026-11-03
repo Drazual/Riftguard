@@ -1,0 +1,780 @@
+{
+  "schema": "riftguard.sniper_projectiles/1",
+  "source": "source/concept_sheet.png",
+  "base_path": "res://art_src/fx/sniper_projectiles",
+  "units": "pixels",
+  "notes": "Strips are horizontal, uniform frames, left->right. Projectile art points +X; pivot = projectile tip.",
+  "types": {
+    "standard": {
+      "display_name": "Standard",
+      "projectile": {
+        "texture": "standard/projectile.png",
+        "size": [
+          153,
+          18
+        ]
+      },
+      "projectile_strip": {
+        "texture": "standard/projectile_strip.png",
+        "frame_size": [
+          153,
+          18
+        ],
+        "frame_count": 4,
+        "fps": 12,
+        "loop": true
+      },
+      "impact_strip": {
+        "texture": "standard/impact_strip.png",
+        "frame_size": [
+          48,
+          48
+        ],
+        "frame_count": 6,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          24.0,
+          24.0
+        ]
+      },
+      "pivot": [
+        150.5,
+        9.0
+      ],
+      "sprite_offset": [
+        -74.0,
+        0.0
+      ],
+      "collision": {
+        "shape": "capsule_x",
+        "length": 14,
+        "radius": 4,
+        "center_from_tip": -7
+      },
+      "suggested_speed": 1400,
+      "max_range": 1600,
+      "damage_mult": 1.0,
+      "pierce": 0,
+      "blend": "add",
+      "additive": true,
+      "texture_filter": "nearest",
+      "tint": "#0ffcfd",
+      "palette_projectile": [
+        {
+          "name": "cyan",
+          "hex": "#0ffcfd",
+          "share": 0.793
+        },
+        {
+          "name": "white",
+          "hex": "#f8fff5",
+          "share": 0.207
+        }
+      ],
+      "palette_impact": [
+        {
+          "name": "cyan",
+          "hex": "#26fcf7",
+          "share": 0.556
+        },
+        {
+          "name": "white",
+          "hex": "#f6fffb",
+          "share": 0.435
+        }
+      ],
+      "particles": {
+        "enabled": false,
+        "colors": [
+          "#0ffcfd",
+          "#ffffff"
+        ],
+        "amount": 0,
+        "lifetime": 0.3,
+        "trail_amount": 0,
+        "spread_deg": 45,
+        "velocity": [
+          80,
+          220
+        ],
+        "size_px": [
+          1,
+          3
+        ]
+      },
+      "source_bbox_sheet_px": {
+        "projectile": [
+          198,
+          173,
+          541,
+          214
+        ],
+        "impact": [
+          411,
+          261,
+          464,
+          313
+        ]
+      }
+    },
+    "charged": {
+      "display_name": "Charged",
+      "projectile": {
+        "texture": "charged/projectile.png",
+        "size": [
+          184,
+          22
+        ]
+      },
+      "projectile_strip": {
+        "texture": "charged/projectile_strip.png",
+        "frame_size": [
+          184,
+          22
+        ],
+        "frame_count": 4,
+        "fps": 12,
+        "loop": true
+      },
+      "impact_strip": {
+        "texture": "charged/impact_strip.png",
+        "frame_size": [
+          48,
+          48
+        ],
+        "frame_count": 6,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          24.0,
+          24.0
+        ]
+      },
+      "pivot": [
+        181.5,
+        12.0
+      ],
+      "sprite_offset": [
+        -89.5,
+        -1.0
+      ],
+      "collision": {
+        "shape": "capsule_x",
+        "length": 14,
+        "radius": 5,
+        "center_from_tip": -7
+      },
+      "suggested_speed": 1700,
+      "max_range": 1600,
+      "damage_mult": 1.6,
+      "pierce": 0,
+      "blend": "add",
+      "additive": true,
+      "texture_filter": "nearest",
+      "tint": "#10fdfc",
+      "palette_projectile": [
+        {
+          "name": "cyan",
+          "hex": "#10fdfc",
+          "share": 0.709
+        },
+        {
+          "name": "white",
+          "hex": "#f8fff6",
+          "share": 0.212
+        },
+        {
+          "name": "magenta",
+          "hex": "#ff14c0",
+          "share": 0.079
+        }
+      ],
+      "palette_impact": [
+        {
+          "name": "white",
+          "hex": "#f8fdf6",
+          "share": 0.383
+        },
+        {
+          "name": "magenta",
+          "hex": "#ff23cc",
+          "share": 0.364
+        },
+        {
+          "name": "cyan",
+          "hex": "#39fbfa",
+          "share": 0.233
+        },
+        {
+          "name": "purple",
+          "hex": "#d394ff",
+          "share": 0.013
+        }
+      ],
+      "particles": {
+        "enabled": true,
+        "colors": [
+          "#10fdfc",
+          "#ff14c0",
+          "#d394ff",
+          "#ffffff"
+        ],
+        "amount": 14,
+        "lifetime": 0.25,
+        "trail_amount": 24,
+        "spread_deg": 35,
+        "velocity": [
+          80,
+          220
+        ],
+        "size_px": [
+          1,
+          3
+        ]
+      },
+      "source_bbox_sheet_px": {
+        "projectile": [
+          819,
+          152,
+          1442,
+          229
+        ],
+        "impact": [
+          1184,
+          247,
+          1272,
+          326
+        ]
+      }
+    },
+    "armor_piercing": {
+      "display_name": "Armor Piercing",
+      "projectile": {
+        "texture": "armor_piercing/projectile.png",
+        "size": [
+          171,
+          20
+        ]
+      },
+      "projectile_strip": {
+        "texture": "armor_piercing/projectile_strip.png",
+        "frame_size": [
+          171,
+          20
+        ],
+        "frame_count": 4,
+        "fps": 12,
+        "loop": true
+      },
+      "impact_strip": {
+        "texture": "armor_piercing/impact_strip.png",
+        "frame_size": [
+          48,
+          48
+        ],
+        "frame_count": 6,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          24.0,
+          24.0
+        ]
+      },
+      "pivot": [
+        166.5,
+        10.0
+      ],
+      "sprite_offset": [
+        -81.0,
+        0.0
+      ],
+      "collision": {
+        "shape": "capsule_x",
+        "length": 14,
+        "radius": 4,
+        "center_from_tip": -7
+      },
+      "suggested_speed": 1900,
+      "max_range": 1600,
+      "damage_mult": 1.3,
+      "pierce": 3,
+      "blend": "add",
+      "additive": true,
+      "texture_filter": "nearest",
+      "tint": "#1efdfb",
+      "palette_projectile": [
+        {
+          "name": "cyan",
+          "hex": "#1efdfb",
+          "share": 0.69
+        },
+        {
+          "name": "white",
+          "hex": "#f5fefc",
+          "share": 0.309
+        }
+      ],
+      "palette_impact": [
+        {
+          "name": "cyan",
+          "hex": "#2bfbfa",
+          "share": 0.687
+        },
+        {
+          "name": "white",
+          "hex": "#f2fff8",
+          "share": 0.313
+        }
+      ],
+      "particles": {
+        "enabled": false,
+        "colors": [
+          "#1efdfb",
+          "#ffffff"
+        ],
+        "amount": 0,
+        "lifetime": 0.3,
+        "trail_amount": 0,
+        "spread_deg": 45,
+        "velocity": [
+          80,
+          220
+        ],
+        "size_px": [
+          1,
+          3
+        ]
+      },
+      "source_bbox_sheet_px": {
+        "projectile": [
+          46,
+          440,
+          713,
+          520
+        ],
+        "impact": [
+          395,
+          542,
+          507,
+          614
+        ]
+      }
+    },
+    "overcharged": {
+      "display_name": "Overcharged",
+      "projectile": {
+        "texture": "overcharged/projectile.png",
+        "size": [
+          184,
+          26
+        ]
+      },
+      "projectile_strip": {
+        "texture": "overcharged/projectile_strip.png",
+        "frame_size": [
+          184,
+          26
+        ],
+        "frame_count": 4,
+        "fps": 12,
+        "loop": true
+      },
+      "impact_strip": {
+        "texture": "overcharged/impact_strip.png",
+        "frame_size": [
+          48,
+          48
+        ],
+        "frame_count": 6,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          24.0,
+          24.0
+        ]
+      },
+      "pivot": [
+        181.5,
+        13.5
+      ],
+      "sprite_offset": [
+        -89.5,
+        -0.5
+      ],
+      "collision": {
+        "shape": "capsule_x",
+        "length": 14,
+        "radius": 6,
+        "center_from_tip": -7
+      },
+      "suggested_speed": 1600,
+      "max_range": 1600,
+      "damage_mult": 2.2,
+      "pierce": 0,
+      "blend": "add",
+      "additive": true,
+      "texture_filter": "nearest",
+      "tint": "#0dfbfd",
+      "palette_projectile": [
+        {
+          "name": "cyan",
+          "hex": "#0dfbfd",
+          "share": 0.475
+        },
+        {
+          "name": "magenta",
+          "hex": "#fe21e7",
+          "share": 0.301
+        },
+        {
+          "name": "white",
+          "hex": "#f8fef6",
+          "share": 0.172
+        },
+        {
+          "name": "purple",
+          "hex": "#ae27ff",
+          "share": 0.038
+        },
+        {
+          "name": "blue",
+          "hex": "#679bff",
+          "share": 0.016
+        }
+      ],
+      "palette_impact": [
+        {
+          "name": "cyan",
+          "hex": "#15fcfd",
+          "share": 0.778
+        },
+        {
+          "name": "white",
+          "hex": "#f5fff6",
+          "share": 0.222
+        }
+      ],
+      "particles": {
+        "enabled": false,
+        "colors": [
+          "#0dfbfd",
+          "#fe21e7",
+          "#ae27ff",
+          "#ffffff"
+        ],
+        "amount": 0,
+        "lifetime": 0.3,
+        "trail_amount": 0,
+        "spread_deg": 45,
+        "velocity": [
+          80,
+          220
+        ],
+        "size_px": [
+          1,
+          3
+        ]
+      },
+      "source_bbox_sheet_px": {
+        "projectile": [
+          791,
+          424,
+          1501,
+          529
+        ],
+        "impact": [
+          1145,
+          535,
+          1326,
+          624
+        ]
+      }
+    },
+    "rift_round": {
+      "display_name": "Rift Round",
+      "projectile": {
+        "texture": "rift_round/projectile.png",
+        "size": [
+          137,
+          26
+        ]
+      },
+      "projectile_strip": {
+        "texture": "rift_round/projectile_strip.png",
+        "frame_size": [
+          137,
+          26
+        ],
+        "frame_count": 4,
+        "fps": 12,
+        "loop": true
+      },
+      "impact_strip": {
+        "texture": "rift_round/impact_strip.png",
+        "frame_size": [
+          48,
+          48
+        ],
+        "frame_count": 6,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          24.0,
+          24.0
+        ]
+      },
+      "pivot": [
+        134.5,
+        12.0
+      ],
+      "sprite_offset": [
+        -66.0,
+        1.0
+      ],
+      "collision": {
+        "shape": "capsule_x",
+        "length": 14,
+        "radius": 5,
+        "center_from_tip": -7
+      },
+      "suggested_speed": 1100,
+      "max_range": 1600,
+      "damage_mult": 1.8,
+      "pierce": 0,
+      "blend": "add",
+      "additive": true,
+      "texture_filter": "nearest",
+      "tint": "#ab2eff",
+      "palette_projectile": [
+        {
+          "name": "purple",
+          "hex": "#ab2eff",
+          "share": 0.404
+        },
+        {
+          "name": "cyan",
+          "hex": "#16f8fd",
+          "share": 0.242
+        },
+        {
+          "name": "magenta",
+          "hex": "#fc24fa",
+          "share": 0.195
+        },
+        {
+          "name": "white",
+          "hex": "#f7fef3",
+          "share": 0.141
+        },
+        {
+          "name": "blue",
+          "hex": "#5787ff",
+          "share": 0.018
+        }
+      ],
+      "palette_impact": [
+        {
+          "name": "magenta",
+          "hex": "#fd2df9",
+          "share": 0.646
+        },
+        {
+          "name": "white",
+          "hex": "#f6f4fb",
+          "share": 0.137
+        },
+        {
+          "name": "purple",
+          "hex": "#ac22ff",
+          "share": 0.12
+        },
+        {
+          "name": "cyan",
+          "hex": "#42f6fa",
+          "share": 0.093
+        }
+      ],
+      "particles": {
+        "enabled": true,
+        "colors": [
+          "#ab2eff",
+          "#16f8fd",
+          "#fc24fa",
+          "#ffffff"
+        ],
+        "amount": 20,
+        "lifetime": 0.45,
+        "trail_amount": 32,
+        "spread_deg": 180,
+        "velocity": [
+          30,
+          110
+        ],
+        "size_px": [
+          1,
+          3
+        ]
+      },
+      "source_bbox_sheet_px": {
+        "projectile": [
+          99,
+          723,
+          658,
+          835
+        ],
+        "impact": [
+          398,
+          859,
+          500,
+          949
+        ]
+      }
+    },
+    "critical_strike": {
+      "display_name": "Critical Strike",
+      "projectile": {
+        "texture": "critical_strike/projectile.png",
+        "size": [
+          173,
+          30
+        ]
+      },
+      "projectile_strip": {
+        "texture": "critical_strike/projectile_strip.png",
+        "frame_size": [
+          173,
+          30
+        ],
+        "frame_count": 4,
+        "fps": 12,
+        "loop": true
+      },
+      "impact_strip": {
+        "texture": "critical_strike/impact_strip.png",
+        "frame_size": [
+          48,
+          48
+        ],
+        "frame_count": 6,
+        "fps": 20,
+        "loop": false,
+        "pivot": [
+          24.0,
+          24.0
+        ]
+      },
+      "pivot": [
+        170.5,
+        15.0
+      ],
+      "sprite_offset": [
+        -84.0,
+        0.0
+      ],
+      "collision": {
+        "shape": "capsule_x",
+        "length": 18,
+        "radius": 6,
+        "center_from_tip": -7
+      },
+      "suggested_speed": 2000,
+      "max_range": 1600,
+      "damage_mult": 3.0,
+      "pierce": 0,
+      "blend": "add",
+      "additive": true,
+      "texture_filter": "nearest",
+      "tint": "#fe1fd3",
+      "palette_projectile": [
+        {
+          "name": "magenta",
+          "hex": "#fe1fd3",
+          "share": 0.39
+        },
+        {
+          "name": "cyan",
+          "hex": "#0cfbfe",
+          "share": 0.32
+        },
+        {
+          "name": "white",
+          "hex": "#fcfcf3",
+          "share": 0.254
+        },
+        {
+          "name": "orange",
+          "hex": "#ffa74d",
+          "share": 0.018
+        },
+        {
+          "name": "purple",
+          "hex": "#bd65ff",
+          "share": 0.01
+        }
+      ],
+      "palette_impact": [
+        {
+          "name": "white",
+          "hex": "#fefaf4",
+          "share": 0.441
+        },
+        {
+          "name": "magenta",
+          "hex": "#ff41e8",
+          "share": 0.317
+        },
+        {
+          "name": "cyan",
+          "hex": "#15fafd",
+          "share": 0.147
+        },
+        {
+          "name": "orange",
+          "hex": "#ffb061",
+          "share": 0.074
+        },
+        {
+          "name": "red",
+          "hex": "#ff95ab",
+          "share": 0.018
+        }
+      ],
+      "particles": {
+        "enabled": true,
+        "colors": [
+          "#fe1fd3",
+          "#0cfbfe",
+          "#ffa74d",
+          "#ffffff"
+        ],
+        "amount": 28,
+        "lifetime": 0.35,
+        "trail_amount": 40,
+        "spread_deg": 60,
+        "velocity": [
+          80,
+          220
+        ],
+        "size_px": [
+          1,
+          3
+        ]
+      },
+      "source_bbox_sheet_px": {
+        "projectile": [
+          790,
+          709,
+          1510,
+          842
+        ],
+        "impact": [
+          1154,
+          830,
+          1332,
+          963
+        ]
+      }
+    }
+  }
+}
