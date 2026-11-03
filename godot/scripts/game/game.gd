@@ -3057,75 +3057,87 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 			say("One Shot!")
 		if h.boon_rail and h.attacks % int(h.boon_rail) == 0:
 			dmg *= 4
-		var ex: bool = h.execute and not t.boss and (t.hp - dmg) / t.max <= h.execute
-		if ex:
-			dmg = t.hp + 1
-		damage(t, dmg, null, 1 if ex else 0, crit and not ex)
-		if h.knock and not t.dead:
-			# Gale: every hit shoves the enemy back a little (bosses barely move)
-			push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)
-			if h.knock_slow:
-				slow_enemy(t, h.knock_slow, 2.0)
-		if h.shot_stun:
-			t.stun_t = maxf(t.stun_t, 0.2 if t.boss else h.shot_stun)
-		if h.spotter:
-			t.spot = maxf(t.spot, h.spotter)
-			t.spot_t = 3
-		if HX.get("marked", 0) and h.attacks % 5 == 0:
-			t.mark = maxf(t.mark, 0.2 * HX.marked)
-			t.mark_t = 4
-			ring(t.x, t.y, t.r + 12, 0xff2e4d, 0.5)
-		if HX.get("ricochet", 0):
-			var from: Enemy = t
-			var done := { t: true }
-			for i in HX.ricochet:
-				var n: Enemy = null
-				for e in in_range(from.x, from.y, 160):
-					if not done.has(e):
-						n = e
-						break
-				if n == null:
+		# a hero that fires real bullets (shot_fx) hits when the bullet gets there, not the moment it shoots
+		var flight := hyp(t.x - h.x, t.y - h.y) / HERO_SHOT_SPEED if h.data and h.data.shot_fx else 0.0
+		line(h.x, h.y, t.x, t.y, 0xffffff if crit else 0xf2c14e, 0.1, 3 if crit else 2, { l1 = 22, hero = true, flight = flight, target = t })
+		if flight > 0:
+			later(flight, func():
+				if not t.dead:
+					_hero_hit(h, HX, t, dmg, crit))
+		else:
+			_hero_hit(h, HX, t, dmg, crit)
+
+
+## What one of the hero's shots does to `t` when it lands.
+func _hero_hit(h: Hero, HX: Dictionary, t: Enemy, dmg: float, crit: bool) -> void:
+	var ex: bool = h.execute and not t.boss and (t.hp - dmg) / t.max <= h.execute
+	if ex:
+		dmg = t.hp + 1
+	damage(t, dmg, null, 1 if ex else 0, crit and not ex)
+	if h.knock and not t.dead:
+		# Gale: every hit shoves the enemy back a little (bosses barely move)
+		push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)
+		if h.knock_slow:
+			slow_enemy(t, h.knock_slow, 2.0)
+	if h.shot_stun:
+		t.stun_t = maxf(t.stun_t, 0.2 if t.boss else h.shot_stun)
+	if h.spotter:
+		t.spot = maxf(t.spot, h.spotter)
+		t.spot_t = 3
+	if HX.get("marked", 0) and h.attacks % 5 == 0:
+		t.mark = maxf(t.mark, 0.2 * HX.marked)
+		t.mark_t = 4
+		ring(t.x, t.y, t.r + 12, 0xff2e4d, 0.5)
+	if HX.get("ricochet", 0):
+		var from: Enemy = t
+		var done := { t: true }
+		for i in HX.ricochet:
+			var n: Enemy = null
+			for e in in_range(from.x, from.y, 160):
+				if not done.has(e):
+					n = e
 					break
-				damage(n, dmg * 0.5)
-				line(from.x, from.y, n.x, n.y, 0xffd36e, 0.15, 2)
-				done[n] = true
-				from = n
-		if h.bounce:
-			var from: Enemy = t
-			var done := { t: true }
-			var bd := dmg
-			for i in int(h.bounce):
-				var n: Enemy = null
-				for e in in_range(from.x, from.y, 160):
-					if not done.has(e) and (n == null or hyp(e.x - from.x, e.y - from.y) < hyp(n.x - from.x, n.y - from.y)):
-						n = e
-				if n == null:
-					break
-				bd *= h.bounce_keep
-				damage(n, bd)
-				line(from.x, from.y, n.x, n.y, 0xf2c14e, 0.12, 1.5)
-				done[n] = true
-				from = n
-		if h.pierce:
-			for o in in_range(t.x, t.y, 60).filter(func(e): return e != t).slice(0, int(h.pierce)):
-				damage(o, dmg * 0.5)
-		if h.boon_slow:
-			slow_enemy(t, h.boon_slow, 1.2)
-		if h.boon_splash:
-			for o in in_range(t.x, t.y, 45):
-				if o != t:
-					damage(o, dmg * h.boon_splash)
-			ring(t.x, t.y, 45, 0xff6fd8, 0.2)
-		if h.boon_chain:
-			for o in in_range(t.x, t.y, 100).filter(func(e): return e != t).slice(0, int(h.boon_chain)):
-				damage(o, dmg * 0.5)
-				slow_enemy(o, 0.3, 1.2)
-				line(t.x, t.y, o.x, o.y, 0x9af0ff, 0.12, 1)
-		line(h.x, h.y, t.x, t.y, 0xffffff if crit else 0xf2c14e, 0.1, 3 if crit else 2, { l1 = 22, hero = true })
-		if HX.get("chainstrike", 0):
-			for o in in_range(t.x, t.y, 100).filter(func(e): return e != t).slice(0, 1 + HX.chainstrike):
-				damage(o, dmg * 0.6)
-				line(t.x, t.y, o.x, o.y, 0xf2c14e, 0.12, 1)
+			if n == null:
+				break
+			damage(n, dmg * 0.5)
+			line(from.x, from.y, n.x, n.y, 0xffd36e, 0.15, 2)
+			done[n] = true
+			from = n
+	if h.bounce:
+		var from: Enemy = t
+		var done := { t: true }
+		var bd := dmg
+		for i in int(h.bounce):
+			var n: Enemy = null
+			for e in in_range(from.x, from.y, 160):
+				if not done.has(e) and (n == null or hyp(e.x - from.x, e.y - from.y) < hyp(n.x - from.x, n.y - from.y)):
+					n = e
+			if n == null:
+				break
+			bd *= h.bounce_keep
+			damage(n, bd)
+			line(from.x, from.y, n.x, n.y, 0xf2c14e, 0.12, 1.5)
+			done[n] = true
+			from = n
+	if h.pierce:
+		for o in in_range(t.x, t.y, 60).filter(func(e): return e != t).slice(0, int(h.pierce)):
+			damage(o, dmg * 0.5)
+	if h.boon_slow:
+		slow_enemy(t, h.boon_slow, 1.2)
+	if h.boon_splash:
+		for o in in_range(t.x, t.y, 45):
+			if o != t:
+				damage(o, dmg * h.boon_splash)
+		ring(t.x, t.y, 45, 0xff6fd8, 0.2)
+	if h.boon_chain:
+		for o in in_range(t.x, t.y, 100).filter(func(e): return e != t).slice(0, int(h.boon_chain)):
+			damage(o, dmg * 0.5)
+			slow_enemy(o, 0.3, 1.2)
+			line(t.x, t.y, o.x, o.y, 0x9af0ff, 0.12, 1)
+	if HX.get("chainstrike", 0):
+		for o in in_range(t.x, t.y, 100).filter(func(e): return e != t).slice(0, 1 + HX.chainstrike):
+			damage(o, dmg * 0.6)
+			line(t.x, t.y, o.x, o.y, 0xf2c14e, 0.12, 1)
 
 
 ## Moves and hurts every enemy. Returns true when the run ended or the wave restarted.
@@ -3762,6 +3774,8 @@ func free_build() -> bool:
 const TOWER_GAP := 36.0 # on a free-build map, the closest two towers can stand (field units)
 const FOOT_DY := 12.0 # a tower's foot on the ground sits this far below where it stands (Board.FOOT / Board.K)
 const BUILD_SNAP := 40.0 # on a free-build map, new towers snap to a grid this wide (a bit over TOWER_GAP)
+## How fast heroes with real bullets (HeroData.shot_fx) shoot, in board units a second: their hits land on arrival.
+const HERO_SHOT_SPEED := 900.0
 
 
 ## The build cell of the grid point nearest to where a tower would stand at (x, y) on a free-build map.

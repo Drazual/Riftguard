@@ -15,8 +15,8 @@ const OUTLINE := Color(0.13, 0.06, 0.2)
 const LINE_W := 0.014 # outline thickness, in world units of a 1.8-unit hero
 ## Heroes cover ground far faster than a walk clip steps (several body lengths a second), so the clip's leg swing is
 ## stretched by STRIDE for longer steps, and its pace is capped at MAX_PACE times normal; past that the feet glide.
-const STRIDE := 1.7
-const MAX_PACE := 1.5
+const STRIDE := 1.15
+const MAX_PACE := 2.2
 
 var vp: SubViewport
 var cam: Camera3D
@@ -33,7 +33,7 @@ var want_yaw := 0.0
 var aim_fix := 0.0 # extra turn while shooting so the barrel, not the body, points at the target
 var state := ""
 var fitted := false
-var tall := 38.0
+var tall := 26.0
 ## How fast the walk (and run) clips would carry the hero, in world units per second of a 1.8-unit hero, measured
 ## from the clip: twice the forward-and-back swing of one foot (relative to the hips) per cycle, over its length.
 var walk_speed := 1.0
@@ -44,7 +44,7 @@ var lines: Array[StandardMaterial3D] = [] # the model's outline materials (their
 
 
 ## dir: the hero's source folder (with hero.json). tall: the hero's height on the board, in pixels.
-func setup(dir: String, height: float = 38.0) -> void:
+func setup(dir: String, height: float = 26.0) -> void:
 	tall = height
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("hero.json")))
 	vp = SubViewport.new()
@@ -97,6 +97,13 @@ func setup(dir: String, height: float = 38.0) -> void:
 	# shoots standing still, so his legs and hips keep the idle pose while his upper body fires
 	if cfg.get("fire_legs", "") == "idle" and anims.has("fire") and anims.has("idle"):
 		_legs_from(ap.get_animation(anims.fire), ap.get_animation(anims.idle))
+	# shooting on the move: the walk's legs and hips with the fire clip's raised, aimed upper body
+	if anims.has("walk") and anims.has("fire"):
+		var wf := _upper_from(ap.get_animation(anims.walk), ap.get_animation(anims.fire))
+		if not ap.has_animation_library("ext"):
+			ap.add_animation_library("ext", AnimationLibrary.new())
+		ap.get_animation_library("ext").add_animation("walkfire", wf)
+		anims.walkfire = "ext/walkfire"
 	if cfg.has("held"):
 		held = (load(dir.path_join(cfg.held.scene)) as PackedScene).instantiate()
 		vp.add_child(held)
@@ -196,6 +203,35 @@ func _legs_from(to: Animation, from: Animation) -> void:
 			to.track_insert_key(t, at, from.track_get_key_value(src, k))
 
 
+## A copy of `walk` whose upper body (everything but the legs and hips) holds `fire`'s last pose.
+func _upper_from(walk: Animation, fire: Animation) -> Animation:
+	var a: Animation = walk.duplicate(true)
+	for t in a.get_track_count():
+		var path := a.track_get_path(t)
+		var bone := String(path).get_slice(":", 1)
+		if bone.contains("Leg") or bone.contains("Foot") or bone.contains("Toe") or bone.ends_with("Hips"):
+			continue
+		var type := a.track_get_type(t)
+		var src := fire.find_track(path, type)
+		if src < 0:
+			continue
+		var at := fire.length
+		var v: Variant
+		match type:
+			Animation.TYPE_ROTATION_3D:
+				v = fire.rotation_track_interpolate(src, at)
+			Animation.TYPE_POSITION_3D:
+				v = fire.position_track_interpolate(src, at)
+			Animation.TYPE_SCALE_3D:
+				v = fire.scale_track_interpolate(src, at)
+			_:
+				continue
+		while a.track_get_key_count(t) > 0:
+			a.track_remove_key(t, 0)
+		a.track_insert_key(t, 0.0, v)
+	return a
+
+
 ## Swings the legs further each step: every leg-bone rotation is pushed away from that bone's average pose
 ## over the clip by `k`, so the strides get longer while the rhythm stays the same.
 func _stretch(a: Animation, k: float) -> void:
@@ -292,7 +328,7 @@ func _process(dt: float) -> void:
 	# weapon's origin to its Muzzle.
 	var gun: Node3D = held if held else (muzzle.get_parent() as Node3D if muzzle else null)
 	var fix := 0.0
-	if state == "fire" and gun:
+	if (state == "fire" or state == "walkfire") and gun:
 		var m := muzzle_at() - _on_bone(gun)
 		if Vector2(m.x, m.z).length() > 0.05:
 			fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
@@ -300,7 +336,7 @@ func _process(dt: float) -> void:
 	model.rotation.y = yaw + aim_fix
 	# the stretched strides lift the feet off the ground, so the hips come down to keep the lower foot on it
 	var drop := 0.0
-	if fitted and ankle > 0.0 and (state == "walk" or state == "run"):
+	if fitted and ankle > 0.0 and (state == "walk" or state == "run" or state == "walkfire"):
 		var low := INF
 		for f in [cfg.get("foot", "mixamorig_LeftFoot"), cfg.get("foot_r", "mixamorig_RightFoot")]:
 			var b := skel.find_bone(f)
@@ -356,11 +392,11 @@ func _hold() -> void:
 
 ## Walks (or runs, if the hero has a "run" clip and is going fast) at `px_per_s` screen pixels of ground a second,
 ## with the clip keeping pace with the ground up to MAX_PACE. Backwards steps it in reverse.
-func move(px_per_s: float, game_speed: float, backwards: bool) -> void:
+func move(px_per_s: float, game_speed: float, backwards: bool, aiming: bool = false) -> void:
 	var px_per_unit := tall / 1.8
-	var what := "walk"
+	var what := "walkfire" if aiming and anims.has("walkfire") else "walk"
 	var rate := px_per_s / (walk_speed * px_per_unit)
-	if run_speed > 0.0 and rate > 1.4:
+	if run_speed > 0.0 and rate > 1.4 and not aiming:
 		what = "run"
 		rate = px_per_s / (run_speed * px_per_unit)
 	play(what, game_speed * clampf(rate, 0.3, MAX_PACE) * (-1.0 if backwards else 1.0))

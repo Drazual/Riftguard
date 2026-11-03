@@ -84,6 +84,17 @@ func _ready() -> void:
 			if is_instance_valid(round.sp):
 				print("  frame %d: round %.0f px out" % [f, round.a.distance_to(round.sp.position) * Board.PX])
 			await _close("side_%d_%d" % [i, f])
+	# walking past the enemy while shooting
+	Engine.time_scale = 1.0
+	var e2: Enemy = S.enemies[0] if S.enemies.size() else null
+	if e2:
+		h.x = e2.x - 80
+		h.y = e2.y + 50
+		h.tx = h.x + 160
+		h.ty = h.y
+		for i in 6:
+			await _frames(5)
+			await _close("walk_shoot_%d" % i)
 	Engine.time_scale = 1.0
 	print("SHOTS DONE worst %.1f px" % worst)
 	get_tree().quit()
