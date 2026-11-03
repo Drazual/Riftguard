@@ -38,6 +38,7 @@ var tall := 26.0
 ## from the clip: twice the forward-and-back swing of one foot (relative to the hips) per cycle, over its length.
 var walk_speed := 1.0
 var run_speed := 0.0
+var kick := 0.0 # recoil left from the last shot, 1 right after it, easing to 0 (hero.json "kick": degrees of lean)
 var base_y := 0.0 # the model's height offset once fitted, before the walk's hip drop
 var ankle := 0.0 # how high the ankles sit when standing, so longer strides can lower the hips to keep feet down
 var lines: Array[StandardMaterial3D] = [] # the model's outline materials (their width follows its scale)
@@ -293,6 +294,7 @@ func play(what: String, speed: float = 1.0) -> void:
 		ap.play(anims[what], 0.0 if what == state else 0.12)
 		if what == "fire":
 			ap.seek(0.0, true)
+			kick = 1.0
 		state = what
 	ap.speed_scale = speed
 
@@ -334,6 +336,13 @@ func _process(dt: float) -> void:
 			fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
 	aim_fix = lerpf(aim_fix, fix, 1.0 - exp(-dt * 12.0))
 	model.rotation.y = yaw + aim_fix
+	# recoil: each shot rocks the hero back on its heels and nudges it back a step, then it settles
+	kick = maxf(0.0, kick - dt * 5.0)
+	var k := kick * kick * float(cfg.get("kick", 0.0))
+	model.rotation.x = -deg_to_rad(k)
+	var back := Vector3(sin(model.rotation.y), 0, cos(model.rotation.y)) * -k * 0.006
+	model.position.x = back.x
+	model.position.z = back.z
 	# the stretched strides lift the feet off the ground, so the hips come down to keep the lower foot on it
 	var drop := 0.0
 	if fitted and ankle > 0.0 and (state == "walk" or state == "run" or state == "walkfire"):

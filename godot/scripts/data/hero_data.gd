@@ -50,6 +50,8 @@ extends Resource
 ## Optional bullet sprites for the hero's normal shot (bullet_N per facing, hit, crit, flash_a/flash_b/flash_o).
 ## Without it the shot is drawn as a tracer line.
 @export var shot_fx: SpriteFrames
+## How fast its bullets fly, in board units a second (its hits land when they arrive). 0 = Game.HERO_SHOT_SPEED.
+@export var shot_speed := 0.0
 ## Where the gun tip is in each facing (0 = north, clockwise), in pixels of a `frames` frame. Shots start here.
 @export var muzzle := PackedVector2Array()
 ## Split-layer heroes (the Striker): on the board the body plays these animations instead of `frames`, and a

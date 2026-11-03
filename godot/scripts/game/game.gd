@@ -3058,7 +3058,7 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 		if h.boon_rail and h.attacks % int(h.boon_rail) == 0:
 			dmg *= 4
 		# a hero that fires real bullets (shot_fx) hits when the bullet gets there, not the moment it shoots
-		var flight := hyp(t.x - h.x, t.y - h.y) / HERO_SHOT_SPEED if h.data and h.data.shot_fx else 0.0
+		var flight := hyp(t.x - h.x, t.y - h.y) / (h.data.shot_speed if h.data.shot_speed > 0 else HERO_SHOT_SPEED) if h.data and h.data.shot_fx else 0.0
 		line(h.x, h.y, t.x, t.y, 0xffffff if crit else 0xf2c14e, 0.1, 3 if crit else 2, { l1 = 22, hero = true, flight = flight, target = t })
 		if flight > 0:
 			later(flight, func():
