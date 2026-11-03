@@ -65,6 +65,7 @@ heroes = PackedStringArray()
 
 [resource]
 script = ExtResource("3_8b2t1")
+model_dir = "res://art_src/heroes/sniper"
 id = "sniper"
 name = "Sniper"
 color = Color(1, 0.827451, 0.43137255, 1)

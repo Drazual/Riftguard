@@ -219,14 +219,16 @@ func _process(dt: float) -> void:
 		_fit()
 	if held:
 		_hold()
-		# while shooting, turn the body a little more or less so the barrel itself points at the target (the
-		# clip's torso twist would otherwise aim it up to ~30 degrees off); eases back once he stops
-		var fix := 0.0
-		if state == "fire" and muzzle:
-			var m := muzzle.global_position - held.global_position
-			if Vector2(m.x, m.z).length() > 0.05:
-				fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
-		aim_fix = lerpf(aim_fix, fix, 1.0 - exp(-dt * 12.0))
+	# while shooting, turn the body a little more or less so the barrel itself points at the target (a clip's
+	# torso twist can otherwise aim it up to ~30 degrees off); eases back once he stops. The barrel runs from the
+	# weapon's origin to its Muzzle.
+	var gun: Node3D = held if held else (muzzle.get_parent() as Node3D if muzzle else null)
+	var fix := 0.0
+	if state == "fire" and gun:
+		var m := muzzle.global_position - gun.global_position
+		if Vector2(m.x, m.z).length() > 0.05:
+			fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
+	aim_fix = lerpf(aim_fix, fix, 1.0 - exp(-dt * 12.0))
 	model.rotation.y = yaw + aim_fix
 
 
