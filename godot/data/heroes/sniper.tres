@@ -82,4 +82,5 @@ alt = SubResource("Resource_tdfem")
 meta = Array[ExtResource("2_0pu25")]([SubResource("Resource_pqs5a"), SubResource("Resource_7bjss"), SubResource("Resource_k5i7h"), SubResource("Resource_bck4n")])
 frames = ExtResource("2_8b2t1")
 shot_fx = ExtResource("9_shots")
+shot_speed = 2400.0
 sheet = ExtResource("4_5gskk")

@@ -60,7 +60,7 @@ extends Resource
 @export var path_max := 4
 ## Paths a tower can use (the Oracle adds 1).
 @export var path_limit := 3
-@export var merge_cost := 1000
+@export var merge_cost := 8000
 @export var super_cost := 20000
 @export var sell_rate := 0.8
 ## Each tower bought makes that tower this much pricier...

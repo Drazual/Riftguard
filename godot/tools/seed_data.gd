@@ -360,7 +360,6 @@ func perks() -> Array:
 		{ id = "reboot", pool = "defensive", name = "Quick Reboot", m = 0.15, desc = "Respawn {pct(min(0.7, m))} faster and +{pct(m)} max HP.", effect = "h.respawn = max(2, h.respawn * (1 - min(0.7, m)))\nh.max_hp = round(h.max_hp * (1 + m))\nh.hp = min(h.max_hp, h.hp + h.max_hp * m)" },
 		{ id = "arch", pool = "support", name = "Architect", m = 0.07, desc = "New towers cost {pct(min(0.5, m))} less to build.", effect = "h.cost_mul *= 1 - min(0.5, m)" },
 		{ id = "engineer", pool = "support", name = "Engineer", m = 0.08, desc = "Tower upgrades (level-ups) cost {pct(min(0.5, m))} less.", effect = "h.lvl_mul *= 1 - min(0.5, m)" },
-		{ id = "reach", pool = "support", name = "Long Reach", m = 0.2, desc = "+{pct(m)} build range and all towers get +{pct(m / 4)} range.", effect = "h.build_range *= 1 + m\nh.tower_range += m / 4" },
 		{ id = "bounty", pool = "offensive", gold = true, name = "Bounty Sigil", m = 0.8, desc = "Enemies your hero kills drop +{max(1, round(m))} gold.", effect = "h.bounty += max(1, round(m))" },
 		{ id = "tithe", pool = "defensive", also_pools = ["support"], gold = true, name = "War Tithe", m = 0.3, desc = "Every enemy killed by your towers or your hero drops +{max(1, round(m))} gold.", effect = "h.tithe += max(1, round(m))" },
 		{ id = "siphon", pool = "defensive", name = "Siphon", m = 3.0, desc = "Heal {round(m)} HP for every kill.", effect = "h.siphon += round(m)" },
@@ -413,7 +412,6 @@ func perks() -> Array:
 	var els := { "fire": ["Fire", "fire"], "water": ["Water", "water"], "earth": ["Earth", "earth"], "air": ["Air", "air"], "storm": ["Lightning", "lightning"], "nature": ["Nature", "nature"], "void": ["Void", "void"], "light": ["Light", "light"] }
 	for el in els:
 		list.append({ id = "att_" + el, pool = "wizard", element = el, name = els[el][0] + " Attunement", m = 0.12, desc = "Spells that use %s deal +{pct(m)} damage." % els[el][1], effect = "h.attune('%s', m)" % el })
-	list.append({ id = "alchemy", pool = "support", name = "Alchemist", m = 0.15, desc = "Tower merges cost {pct(min(0.8, m))} less.", effect = "h.merge_mul *= 1 - min(0.8, m)" })
 	for p in list:
 		if p.has("ability") or ability.has(p.id):
 			p.kind = "ability"

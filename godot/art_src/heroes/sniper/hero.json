@@ -5,5 +5,6 @@
 		"walk": "walk",
 		"fire": "fire"
 	},
-	"lock_root": "mixamorig_Hips"
+	"lock_root": "mixamorig_Hips",
+	"kick": 6
 }
