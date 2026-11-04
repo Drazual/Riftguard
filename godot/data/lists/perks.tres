@@ -7,7 +7,7 @@
 script = ExtResource("1_ttpmk")
 id = "blade"
 name = "Plasma Blade"
-desc = "+{pct(m)} of your starting hero damage."
+desc = "+{pct(m)} of your base hero damage."
 effect = "h.dmg += h.base_dmg * m"
 m = 0.16
 pool = "offensive"
@@ -80,7 +80,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "boots"
 name = "Rift Boots"
-desc = "+{pct(m)} move speed and +{pct(m / 2)} of your starting attack speed."
+desc = "+{pct(m)} move speed and +{pct(m / 2)} of your base attack speed."
 effect = "h.speed *= 1 + m
 h.rate = 1 / (1 / h.rate + m / 2 / h.base_rate)"
 m = 0.15
@@ -243,7 +243,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "clock"
 name = "Overclock"
-desc = "+{pct(m)} of your starting attack speed."
+desc = "+{pct(m)} of your base attack speed."
 effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
 m = 0.15
 pool = "striker"
@@ -293,7 +293,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "momentum"
 name = "Momentum"
-desc = "Each kill by your hero gives +{pct(m)} of your starting attack speed for 4s, stacking up to 10 times."
+desc = "Each kill by your hero gives +{pct(m)} of your base attack speed for 4s, stacking up to 10 times."
 effect = "h.momentum += m"
 m = 0.03
 pool = "striker"
@@ -391,7 +391,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "caliber"
 name = "Heavy Caliber"
-desc = "+{pct(m)} of your starting hero damage."
+desc = "+{pct(m)} of your base hero damage."
 effect = "h.dmg += h.base_dmg * m"
 m = 0.2
 pool = "sniper"
@@ -403,7 +403,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "chamber"
 name = "Fast Chamber"
-desc = "+{pct(m)} of your starting attack speed."
+desc = "+{pct(m)} of your base attack speed."
 effect = "h.rate = 1 / (1 / h.rate + m / h.base_rate)"
 m = 0.12
 pool = "sniper"
@@ -527,7 +527,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "arcpow"
 name = "Arcane Power"
-desc = "Spells deal +{pct(m)} of their starting damage."
+desc = "Spells deal +{pct(m)} of their base damage."
 effect = "h.spell += h.base_spell * m"
 m = 0.15
 pool = "wizard"
@@ -783,7 +783,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "knuckles"
 name = "Iron Knuckles"
-desc = "+{pct(m)} of your starting hero damage."
+desc = "+{pct(m)} of your base hero damage."
 effect = "h.dmg += h.base_dmg * m"
 m = 0.08
 pool = "gale"

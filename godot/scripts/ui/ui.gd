@@ -1222,7 +1222,7 @@ func render_hero() -> void:
 		var col: Color = Kit.RAR.get(top.rarity.id, Kit.TEXT)
 		var label: String = ("☠ " if top.demonic else "") + top.perk.name + (" ×%d" % list.size() if list.size() > 1 else "")
 		var tg := Kit.tag(Kit.c(label, Kit.TEXT if top.rarity.id == "common" else col), Kit.DANGER if top.demonic else col, Color("#2a1220") if top.demonic else Kit.PANEL2)
-		Kit.tip_on(tg, func(): return "\n".join(list.map(func(o): return (o.rarity.name + ": " if list.size() > 1 else "") + game.perk_desc(o) + ((" Curse: " + game.curse_desc(o)) if o.demonic else ""))))
+		Kit.tip_on(tg, func(): return game.stacked_perk_desc(list))
 		tags.add_child(tg)
 	for r: UpgradeData in S.relics:
 		var tg := Kit.tag(Kit.c(r.name, Kit.GOLD), Kit.GOLD)
