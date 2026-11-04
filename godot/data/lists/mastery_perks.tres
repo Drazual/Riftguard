@@ -17,7 +17,7 @@ hero = "striker"
 script = ExtResource("1_s5vre")
 id = "m_momentum"
 name = "Momentum"
-desc = "Each kill gives +3% of your starting attack speed for 4s, stacking up to 10 times."
+desc = "Each kill gives +3% of your base attack speed for 4s, stacking up to 10 times."
 effect = "h.momentum += 0.03"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()

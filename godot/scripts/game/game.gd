@@ -3573,6 +3573,91 @@ func curse_desc(o: Dictionary) -> String:
 	return DB.tx("curse:" + o.curse.id, Fx.text(o.curse.desc, { k = o.k, run = S, h = S.hero }))
 
 
+## The tooltip for every copy of one upgrade the hero owns: the effect once, with all copies added together
+## (three "+20% of your base hero damage" read "+60%"), then how many copies of which rarity, then the curses.
+func stacked_perk_desc(list: Array) -> String:
+	var o: Dictionary = list[0]
+	var p: UpgradeData = o.perk
+	var text: String
+	if list.size() == 1:
+		text = perk_desc(o)
+	elif p.id == "bounce": # its text reads the hero's current ricochet, so describe where the copies left it
+		var h := S.hero
+		var n := int(round(h.bounce))
+		text = "Ricochets bounce %d time%s and keep %s of their damage each bounce." % [n, "" if n == 1 else "s", pct(h.bounce_keep)]
+	else:
+		var m := stacked_value(p.effect, "m", list.map(func(x): return float(x.m)))
+		text = DB.tx(perk_key(o), Fx.text(p.desc, { h = S.hero, run = S, m = m }))
+	if list.size() > 1:
+		var counts := {}
+		var names := []
+		for x in list:
+			if not counts.has(x.rarity.name):
+				counts[x.rarity.name] = 0
+				names.append(x.rarity.name)
+			counts[x.rarity.name] += 1
+		text += "\n[color=#%s]Stacked ×%d: %s[/color]" % [Kit.MUTED.to_html(false), list.size(),
+			", ".join(names.map(func(n): return "%d %s" % [counts[n], n]))]
+	# Demonic copies each bring a curse; the same curse more than once is added up the same way
+	var curses := {}
+	var curse_order := []
+	for x in list:
+		if x.demonic and x.curse:
+			if not curses.has(x.curse.id):
+				curses[x.curse.id] = []
+				curse_order.append(x.curse.id)
+			curses[x.curse.id].append(x)
+	for id in curse_order:
+		var cl: Array = curses[id]
+		var c: UpgradeData = cl[0].curse
+		var k := stacked_value(c.effect, "k", cl.map(func(x): return float(x.k)))
+		text += "\nCurse: " + DB.tx("curse:" + c.id, Fx.text(c.desc, { k = k, run = S, h = S.hero })) + (" (×%d)" % cl.size() if cl.size() > 1 else "")
+	return text
+
+
+## What several copies of an effect add up to, as one value of `v` (the effect's m or k). Most effects just
+## add up. Ones that multiply (`x *= 1 + m`, `x *= 1 - m`) compound, and "max(1, round(m))" counts each copy as
+## at least one, so the total is worked out the way the effects really landed.
+static func stacked_value(effect: String, v: String, vals: Array) -> float:
+	var uses := []
+	var word := RegEx.create_from_string("\\b%s\\b" % v)
+	for line in effect.replace(";", "\n").split("\n"):
+		if word.search(line):
+			uses.append(line)
+	var all_match := func(re: RegEx) -> bool:
+		if uses.is_empty():
+			return false
+		for line in uses:
+			if not re.search(line):
+				return false
+		return true
+	var total := 0.0
+	if all_match.call(RegEx.create_from_string("max\\(1, round\\(%s\\)\\)" % v)):
+		for x in vals:
+			total += max(1.0, round(x))
+		return total
+	var grow := RegEx.create_from_string("\\*=? \\(?1 \\+ (?:([\\d.]+) \\* )?%s\\b(?! [*/])" % v)
+	if all_match.call(grow):
+		var gm := grow.search(uses[0])
+		var coef := float(gm.get_string(1)) if gm.get_string(1) != "" else 1.0
+		var f := 1.0
+		for x in vals:
+			f *= 1.0 + coef * x
+		return (f - 1.0) / coef
+	var shrink := RegEx.create_from_string("\\*=? \\(?1 - (?:min\\(([\\d.]+), )?(?:([\\d.]+) \\* )?%s\\b(?! [*/])" % v)
+	if all_match.call(shrink):
+		var mm := shrink.search(uses[0])
+		var cap := float(mm.get_string(1)) if mm.get_string(1) != "" else 1.0
+		var coef := float(mm.get_string(2)) if mm.get_string(2) != "" else 1.0
+		var f := 1.0
+		for x in vals:
+			f *= 1.0 - min(cap, coef * x)
+		return (1.0 - f) / coef
+	for x in vals:
+		total += x
+	return total
+
+
 func pool_name(o: Dictionary) -> String:
 	var p: UpgradeData = o.perk
 	if o.list == "mod":
