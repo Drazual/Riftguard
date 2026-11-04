@@ -1,0 +1,14 @@
+{
+	"model": "plasma_cannon.glb",
+	"yaw": "Turret/Yaw",
+	"pitch": "Turret/Yaw/Pitch",
+	"anims": { "idle": "idle", "fire": "fire" },
+	"aim": 0.0,
+	"dirs": 16,
+	"fire_frames": 6,
+	"size": 128,
+	"wide": 56,
+	"foot": [64, 104],
+	"out": "plasma_3d",
+	"shot_frame": 1
+}

@@ -55,14 +55,16 @@ extends Resource
 @export var shot_turn := false
 ## Anchor of the hit effect (0..1 of the frame height).
 @export var fx_anchor_y := 0.5
-## Attack frame (0-5) where the shot leaves.
+## Attack frame (0-5) where the shot leaves. For a turret tower, the frame of its fire clip.
 @export var fire_frame := 0
+## How high a shot arcs on its way, as a share of its flight (0 = straight). Only the drawing; it lands as fast.
+@export var shot_arc := 0.0
 @export_group("Turret (rendered from 3D)")
 ## A tower rendered from a 3D model by tools/render_tower.gd: idle_N and fire_N for each facing N (0 = up the
 ## screen, clockwise). When set, the board draws this instead of `frames` idle/attack and turns it to its target;
 ## `frames` still supplies the beam, shot and hit effects.
 @export var turret: SpriteFrames
-## The muzzle in each facing, in turret frame pixels (render_tower.gd prints it). Beams start here.
+## The muzzle in each facing, in turret frame pixels (render_tower.gd prints it). Beams and shots start here.
 @export var turret_muzzle := PackedVector2Array()
 ## Where the base's bottom centre sits in a turret frame, in its pixels.
 @export var turret_foot := Vector2(64, 104)

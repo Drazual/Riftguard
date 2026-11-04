@@ -144,3 +144,9 @@ the export.
 The Prism Laser (`art_src/towers/laser/prism_laser.glb`) is the first: Yaw turns the head, Pitch tilts the prism
 (negative is up), and the beam leaves from the `Muzzle` node. It's baked with a slight downward tilt (`aim` 0.12)
 toward the enemies on the ground. `tests/laser.tscn` takes screenshots of it in a run.
+
+The Plasma Cannon (`art_src/towers/plasma/plasma_cannon.glb`) is the second. Its Pitch range is tiny, so it's baked
+level (`aim` 0) and the shell arcs instead (`TowerData.shot_arc`). `shot_frame` 1 in its `tower.json` takes the
+muzzle point from the fire frame where the glow peaks, which is also its `fire_frame`, so the shell leaves the
+barrel as it flashes. A turret without a held target (no beam) faces where its last shot went.
+`tests/plasma.tscn` takes screenshots of it in a run.

@@ -328,8 +328,9 @@ func _sync_towers(S: Run, speed: float) -> void:
 			_laser_beam(S, t, d)
 
 
-## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target, holds that
-## facing when it has none, and plays its fire clip as it shoots.
+## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target (a beam's
+## target, or where a cannon's last shot went), holds that facing when it has none, and plays its fire clip as it
+## shoots.
 func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	var n := d.turret_muzzle.size()
 	var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
@@ -352,11 +353,17 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
 	s.speed_scale = speed
 	var face: int = s.get_meta("face")
+	# the beam's target, or else where the last shot went (a cannon has no held target)
 	var e = t.last_target
-	if n > 0 and e != null and not e.dead and S.enemies.has(e) and t.stun_t <= 0:
+	var aim = null
+	if e != null and not e.dead and S.enemies.has(e):
+		aim = Vector2(e.x, e.y)
+	elif not t.beam and t.hit_at != null:
+		aim = t.hit_at
+	if n > 0 and aim != null and t.stun_t <= 0:
 		# screen angle from the base to the target, 0 = up the screen, clockwise; it only turns once the target
 		# is clearly past the edge of the current facing's sector
-		var v := Vector2(e.x - t.x, SY(e.y) - SY(t.y))
+		var v := Vector2(aim.x - t.x, SY(aim.y) - SY(t.y))
 		if v.length() > 1:
 			var sector := TAU / n
 			var a := atan2(v.x, -v.y)
@@ -878,8 +885,6 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 		if d == null or d.frames == null:
 			continue
 		var lift0: float = muzzle_lift(p.src) if p.src is Tower else body_lift(p.src)
-		# height eases from where the shot left to the target's middle
-		var lift: float = lift0 * (1 - p.u) + body_lift(p.target) * p.u
 		var sp: AnimatedSprite2D = p.get("_v")
 		if sp == null or not is_instance_valid(sp):
 			sp = AnimatedSprite2D.new()
@@ -892,9 +897,19 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 			top.add_child(sp)
 			p._v = sp
 		_seen(sp)
-		sp.position = Vector2(p.x, SY(p.y) - lift)
+		# a turret tower's shot leaves from the muzzle of the facing it shows as it fires
+		if not sp.has_meta("from"):
+			var tw = p.src
+			var td: TowerData = DB.towers.get(tw.type) if tw is Tower else null
+			sp.set_meta("from", turret_muzzle_at(tw, td) if td and td.turret != null and not td.turret_muzzle.is_empty() else Vector2(p.x0, SY(p.y0) - lift0))
+		var from: Vector2 = sp.get_meta("from")
+		# it flies from there to the target's middle, over an arc if the tower lobs it
+		var to := Vector2(p.x1, SY(p.y1) - body_lift(p.target))
+		var A: float = d.shot_arc * from.distance_to(to)
+		sp.position = from.lerp(to, p.u) - Vector2(0, A * sin(PI * p.u))
 		if d.shot_turn:
-			sp.rotation = atan2(SY(p.y1) - body_lift(p.target) - (SY(p.y0) - lift0), p.x1 - p.x0) - PI / 2
+			var v := to - from - Vector2(0, A * PI * cos(PI * p.u))
+			sp.rotation = atan2(v.y, v.x) - PI / 2
 	# the Chain Laser's short hops between enemies
 	var lf := _frames_of("laser")
 	if lf:
