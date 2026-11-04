@@ -24,6 +24,7 @@ const BOT := 30.0
 const VH := 520.0 # H * K + TOP + BOT
 const ART_W := 768
 const ART_H := 416
+const TURRET_REST := 8 # the facing (of 16, 0 = up the screen) a turret tower starts in: toward the camera
 const FOOT := 9.0 # a tower's base sits this far below its tile's centre on screen
 const BEAM_LEN := 29.0
 const PAL := { ink = Color("#101223"), deep = Color("#24243D"), dusk = Color("#3B3561"), violet = Color("#625080"), mist = Color("#9B8BA5") }
@@ -286,6 +287,9 @@ func _sync_towers(S: Run, speed: float) -> void:
 		if not is_sprite_tower(t):
 			continue
 		var d: TowerData = DB.towers[t.type]
+		if d.turret != null:
+			_sync_turret(S, t, d, speed)
+			continue
 		var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
 		if s == null or not is_instance_valid(s):
 			s = AnimatedSprite2D.new()
@@ -324,6 +328,64 @@ func _sync_towers(S: Run, speed: float) -> void:
 			_laser_beam(S, t, d)
 
 
+## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target, holds that
+## facing when it has none, and plays its fire clip as it shoots.
+func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
+	var n := d.turret_muzzle.size()
+	var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
+	if s == null or not is_instance_valid(s):
+		s = AnimatedSprite2D.new()
+		s.sprite_frames = d.turret
+		s.centered = false
+		s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+		s.set_meta("st", t.shot_at)
+		s.set_meta("face", TURRET_REST * n / 16)
+		s.animation_finished.connect(func(): s.play("idle_%d" % s.get_meta("face")))
+		s.play("idle_%d" % s.get_meta("face"))
+		units.add_child(s)
+		t.set_meta("view", s)
+	_seen(s)
+	var sc := d.turret_scale / PX
+	s.scale = Vector2(sc, sc)
+	s.position = Vector2(t.x, SY(t.y))
+	s.offset = -d.turret_foot + Vector2(0, FOOT / sc)
+	s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
+	s.speed_scale = speed
+	var face: int = s.get_meta("face")
+	var e = t.last_target
+	if n > 0 and e != null and not e.dead and S.enemies.has(e) and t.stun_t <= 0:
+		# screen angle from the base to the target, 0 = up the screen, clockwise; it only turns once the target
+		# is clearly past the edge of the current facing's sector
+		var v := Vector2(e.x - t.x, SY(e.y) - SY(t.y))
+		if v.length() > 1:
+			var sector := TAU / n
+			var a := atan2(v.x, -v.y)
+			if absf(angle_difference(face * sector, a)) > sector * 0.6:
+				face = posmod(roundi(a / sector), n)
+	if t.shot_at != s.get_meta("st"):
+		s.set_meta("st", t.shot_at)
+		if not (s.is_playing() and s.animation.begins_with("fire")):
+			s.play("fire_%d" % face)
+	if face != s.get_meta("face"):
+		s.set_meta("face", face)
+		var kind := "fire" if s.animation.begins_with("fire") else "idle"
+		var at := s.frame
+		var prog := s.frame_progress
+		s.play("%s_%d" % [kind, face])
+		s.set_frame_and_progress(at, prog)
+	if t.beam:
+		_laser_beam(S, t, d)
+
+
+## Where a turret tower's beam starts on the board: its muzzle in the facing it shows.
+func turret_muzzle_at(t: Tower, d: TowerData) -> Vector2:
+	var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
+	var face: int = s.get_meta("face") if s and is_instance_valid(s) else 0
+	var sc := d.turret_scale / PX
+	var off := -d.turret_foot + Vector2(0, FOOT / sc)
+	return Vector2(t.x, SY(t.y)) + (off + d.turret_muzzle[face]) * sc
+
+
 ## On a free-build map, the tower being placed follows the pointer as a ghost: green where it can go (gold if the
 ## hero has to walk there first), red where it can't.
 func _sync_ghost(S: Run) -> void:
@@ -337,14 +399,24 @@ func _sync_ghost(S: Run) -> void:
 				ghost.centered = false
 				ghost.scale = Vector2(1 / PX, 1 / PX)
 				units.add_child(ghost)
+			var d: TowerData = DB.towers[S.build]
+			if d.turret != null:
+				fr = d.turret
 			if ghost.sprite_frames != fr:
 				ghost.sprite_frames = fr
-				ghost.play("idle")
-			var d: TowerData = DB.towers[S.build]
+				ghost.play("idle_%d" % TURRET_REST if d.turret != null else "idle")
 			var p := game.cell_pos(hv.x, hv.y)
 			var ok := game.build_problem(hv.x, hv.y, S.build) == ""
 			ghost.position = Vector2(p.x, SY(p.y))
-			ghost.offset = Vector2(-24, -d.foot_y + FOOT * PX)
+			if d.turret != null:
+				var sc := d.turret_scale / PX
+				ghost.scale = Vector2(sc, sc)
+				ghost.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+				ghost.offset = -d.turret_foot + Vector2(0, FOOT / sc)
+			else:
+				ghost.scale = Vector2(1 / PX, 1 / PX)
+				ghost.texture_filter = CanvasItem.TEXTURE_FILTER_PARENT_NODE
+				ghost.offset = Vector2(-24, -d.foot_y + FOOT * PX)
 			ghost.modulate = Color(1, 0.35, 0.4, 0.6) if not ok else (Color(0.55, 1, 0.65, 0.75) if game.in_build_range(hv.x, hv.y) else Color(1, 0.85, 0.45, 0.7))
 			show = true
 	if ghost != null:
@@ -388,13 +460,16 @@ func _laser_beam(S: Run, t: Tower, d: TowerData) -> void:
 	var on: bool = e != null and not e.dead and t.stun_t <= 0 and S.time - t.fired_at < 0.35 and S.enemies.has(e)
 	if not on or not d.frames.has_animation("beam"):
 		return
-	var b: AnimatedSprite2D = t.get_meta("beam") if t.has_meta("beam") else null
-	if b == null or not is_instance_valid(b):
+	# the beam sprite is freed whenever a frame goes by without it, so check before typing it
+	var old = t.get_meta("beam") if t.has_meta("beam") else null
+	var b: AnimatedSprite2D = old if is_instance_valid(old) else null
+	if b == null:
 		b = _beam_sprite(d.frames)
 		t.set_meta("beam", b)
 	_seen(b)
 	b.speed_scale = 1.0
-	_stretch(b, Vector2(t.x, SY(t.y) - muzzle_lift(t)), Vector2(e.x, SY(e.y) - body_lift(e)), 1 + 0.6 * minf(1, t.stacks / maxf(1, t.ramp_max)))
+	var from := turret_muzzle_at(t, d) if d.turret != null and not d.turret_muzzle.is_empty() else Vector2(t.x, SY(t.y) - muzzle_lift(t))
+	_stretch(b, from, Vector2(e.x, SY(e.y) - body_lift(e)), 1 + 0.6 * minf(1, t.stacks / maxf(1, t.ramp_max)))
 
 
 # The hero walks while moving, fires toward its target and idles otherwise, in 8 facings. The facing only
