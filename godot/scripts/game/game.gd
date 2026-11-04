@@ -503,7 +503,12 @@ func is_sprite_tower(t: Tower) -> bool:
 
 
 func fire_lead(t: Tower) -> float:
-	return DB.towers[t.type].fire_frame / ATK_FPS if is_sprite_tower(t) else 0.0
+	if not is_sprite_tower(t):
+		return 0.0
+	var d: TowerData = DB.towers[t.type]
+	if d.turret != null and d.turret.has_animation("fire_0"):
+		return d.fire_frame / maxf(1.0, d.turret.get_animation_speed("fire_0"))
+	return d.fire_frame / ATK_FPS
 
 
 func overclocked(t: Tower) -> bool:

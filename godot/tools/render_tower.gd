@@ -14,10 +14,13 @@ extends "res://tools/render_hero.gd"
 ##   wide    how wide the base renders facing the camera, in frame pixels
 ##   foot    [x, y]: where the base's bottom centre lands in a frame, in frame pixels
 ##   out     the name of the files it writes
+##   shot_frame  the fire frame whose muzzle point goes in the printed turret_muzzle line (0 by default; a cannon
+##           uses the frame its shell leaves on, the same as TowerData.fire_frame)
 ## It writes res://assets/towers/<out>.png (DIRS columns, facing 0 = up the screen, going clockwise; row 0 idle,
 ## then the fire frames), res://art/towers/<out>.tres (SpriteFrames idle_N and fire_N) and
 ## res://art_src/towers/<folder>/muzzle.json (the Muzzle node in every facing and fire frame, in frame pixels).
-## It prints the TowerData.turret_muzzle line (each facing's first fire frame) to paste into the tower's data.
+## It prints the TowerData.turret_muzzle line (each facing's muzzle at fire frame `shot_frame`) to paste into the
+## tower's data.
 
 var DIRS := 16
 var FIRE := 6
@@ -70,8 +73,9 @@ func _run() -> void:
 	f.store_string(JSON.stringify(tips, "\t"))
 	f.close()
 	var first: Array = []
+	var shot := clampi(int(cfg.get("shot_frame", 0)), 0, FIRE - 1)
 	for face in DIRS:
-		first.append_array(tips["%d_0" % face])
+		first.append_array(tips["%d_%d" % [face, shot]])
 	print("render_tower: wrote %s; TowerData.turret_muzzle = PackedVector2Array(%s)" % [out, ", ".join(first.map(func(v): return str(v)))])
 	quit()
 
