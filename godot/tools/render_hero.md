@@ -125,3 +125,22 @@ transparent viewport with the same camera angle and the painted lighting, plus a
 board. The hero then turns to any angle, aims exactly at its target and blends between idle, walk and fire. The
 same `hero.json` drives both, so a hero can switch between live and pre-rendered at any time. `frames` is still
 used for the menu portrait. The folder must ship with the game, so it is not covered by the export exclude filter.
+
+## Towers rendered from 3D
+
+`tools/render_tower.gd` does the same for a turret tower: `xvfb-run godot --path godot --rendering-driver opengl3 -s
+res://tools/render_tower.gd -- <tower folder>`, for a folder in `godot/art_src/towers/` with the `.glb` and a
+`tower.json` (the options are listed at the top of the tool). It uses the heroes' camera and painted look, sets the
+model's yaw and pitch nodes itself (so any yaw or pitch keys in the clips are overridden), and renders 16 facings,
+each with one idle frame and 6 frames of the fire clip, into 128 px frames drawn at half size.
+
+It writes `assets/towers/<out>.png`, `art/towers/<out>.tres` (`idle_N` and `fire_N`, N = 0 up the screen,
+clockwise) and the muzzle point of every facing, and prints the `TowerData.turret_muzzle` line. Setting
+`TowerData.turret` makes the board draw those frames instead of the tower's `idle` and `attack`, turn the turret to
+the nearest facing toward its target, and start the laser's beam at the muzzle. The tower's old `frames` still
+supply its beam and hit effects. The source models aren't needed at runtime, so `art_src/towers/` is left out of
+the export.
+
+The Prism Laser (`art_src/towers/laser/prism_laser.glb`) is the first: Yaw turns the head, Pitch tilts the prism
+(negative is up), and the beam leaves from the `Muzzle` node. It's baked with a slight downward tilt (`aim` 0.12)
+toward the enemies on the ground. `tests/laser.tscn` takes screenshots of it in a run.
