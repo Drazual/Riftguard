@@ -1,0 +1,14 @@
+{
+	"model": "tesla_coil.glb",
+	"anims": { "idle": "idle", "fire": "attack" },
+	"idle_frames": 12,
+	"idle_time": 2.0,
+	"dirs": 1,
+	"fire_times": [0.05, 0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75],
+	"fire_time": 0.8,
+	"size": 160,
+	"wide": 60,
+	"foot": [80, 150],
+	"out": "tesla_3d",
+	"shot_frame": 4
+}

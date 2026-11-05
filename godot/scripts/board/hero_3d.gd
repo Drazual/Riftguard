@@ -18,6 +18,7 @@ const OUTLINE := Color(0.13, 0.06, 0.2)
 const LINE_W := 0.014 # outline thickness, in world units of a 1.8-unit hero
 ## Heroes cover ground far faster than a walk clip steps (several body lengths a second), so the clip's leg swing is
 ## stretched by STRIDE for longer steps, and its pace is capped at MAX_PACE times normal; past that the feet glide.
+## A hero.json can set its own "stride" and "max_pace" (a short-stepping clip wants a bigger stride and a lower cap).
 const STRIDE := 1.15
 const MAX_PACE := 2.2
 
@@ -161,7 +162,7 @@ func _lights() -> void:
 	vp.add_child(rim)
 
 
-## Soft matte shading, plus a dark outline drawn as a slightly grown back-face shell around every mesh.
+## Soft matte shading, plus a dark outline drawn as a slightly grown back-face shell around every mesh that doesn't glow.
 func _paint(n: Node) -> void:
 	if n is MeshInstance3D:
 		var mi: MeshInstance3D = n
@@ -179,7 +180,10 @@ func _paint(n: Node) -> void:
 				t.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP
 				t.metallic = 0.0
 				t.roughness = maxf(t.roughness, 0.6)
-				t.next_pass = line
+				# glowing bits (the Wizard's cast spheres) get no outline: they grow from a bone scaled to nearly
+				# nothing, where the outline's grown shell blows up into a big dark shape on screen
+				if not t.emission_enabled:
+					t.next_pass = line
 				mi.set_surface_override_material(i, t)
 	for c in n.get_children():
 		_paint(c)
@@ -453,7 +457,7 @@ func move(px_per_s: float, game_speed: float, backwards: bool, aiming: bool = fa
 	if run_speed > 0.0 and rate > 1.4 and not aiming:
 		what = "run"
 		rate = px_per_s / (run_speed * px_per_unit)
-	play(what, game_speed * clampf(rate, 0.3, MAX_PACE) * (-1.0 if backwards else 1.0))
+	play(what, game_speed * clampf(rate, 0.3, float(cfg.get("max_pace", MAX_PACE))) * (-1.0 if backwards else 1.0))
 
 
 ## Where the gun tip is, in board pixels from the hero's feet.
