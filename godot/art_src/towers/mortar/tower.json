@@ -1,0 +1,17 @@
+{
+	"model": "mortar.glb",
+	"yaw": "Turret/Yaw",
+	"pitch": "Turret/Yaw/Pitch",
+	"anims": { "idle": "idle", "fire": "fire" },
+	"idle_frames": 8,
+	"idle_time": 2.4,
+	"idle_make": {"Turret/Yaw/Pitch/Gun/Barrel/Muzzle/MuzzleGlow": {"scale": [0.2, 0.6]}, "Turret/Yaw": {"move": [0, 0.012, 0]}},
+	"aim": -1.086,
+	"dirs": 16,
+	"fire_frames": 6,
+	"size": 128,
+	"wide": 68,
+	"foot": [64, 104],
+	"out": "mortar_3d",
+	"shot_frame": 1
+}

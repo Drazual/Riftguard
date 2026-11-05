@@ -1002,17 +1002,24 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 			sp.offset = -d.shot_anchor
 			sp.scale = Vector2(1 / PX, 1 / PX)
 			sp.set_meta("lift", muzzle_lift(sh.tw))
+			sp.set_meta("x0", sh.x0)
+			if d.turret != null and not d.turret_muzzle.is_empty():
+				# a 3D mortar's shell leaves from its barrel in the facing it shows
+				var m := turret_muzzle_at(sh.tw, d)
+				sp.set_meta("x0", m.x)
+				sp.set_meta("lift", SY(sh.y0) - m.y)
 			top.add_child(sp)
 			sh._v = sp
 		_seen(sp)
 		var lift: float = sp.get_meta("lift")
+		var x0: float = sp.get_meta("x0")
 		var u: float = sh.t / sh.T
 		var y0 := SY(sh.y0)
 		var y1 := SY(sh.y1)
-		var A := minf(140, Vector2(sh.x1 - sh.x0, y1 - y0).length() * 0.4)
-		var x: float = sh.x0 + (sh.x1 - sh.x0) * u
+		var A := minf(140, Vector2(sh.x1 - x0, y1 - y0).length() * 0.4)
+		var x: float = x0 + (sh.x1 - x0) * u
 		var y := y0 + (y1 - y0) * u - A * sin(PI * u) - lift * (1 - u)
-		var vx: float = sh.x1 - sh.x0
+		var vx: float = sh.x1 - x0
 		var vy := y1 - y0 - A * PI * cos(PI * u) + lift
 		sp.position = Vector2(x, y)
 		sp.rotation = atan2(vy, vx) - PI / 2
