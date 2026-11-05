@@ -1760,6 +1760,38 @@ func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
 		e.spot_t = maxf(e.spot_t, R.tailwind_time)
 
 
+const PULL_TIME := 0.3
+## Air and earth spells clump enemies: each one hit slides along the path to the point of it nearest the spell's middle
+## (looking a little way back and ahead of where it is), over PULL_TIME, then walks on. Bosses come a third of the way.
+func pull_enemy(e: Enemy, at: Vector2, h: Hero) -> void:
+	if e.pushback_immune or e.dead:
+		return
+	var best := e.d
+	var bd := INF
+	var reach := 260.0
+	var d := maxf(MapInfo.C, e.d - reach)
+	while d <= minf(S.map.path_len, e.d + reach):
+		var q := pos_at(d)
+		var dd := q.distance_squared_to(at)
+		if dd < bd:
+			bd = dd
+			best = d
+		d += 4.0
+	# Pulls wear off like pushes, so recasting on the same spot can't hold a group in place.
+	if S.time - e.pull_at > R.push_wear_time:
+		e.pull_n = 0
+	var to := lerpf(e.d, best, (0.35 if e.boss else 1.0) * pow(R.push_wear, e.pull_n))
+	e.pull_n += 1
+	e.pull_at = S.time
+	if absf(to - e.d) < 1.0:
+		return
+	e.pull_to = to
+	e.pull_t = PULL_TIME
+	e.pull_spd = absf(to - e.d) / PULL_TIME
+	if h.cls == "wizard":
+		_wizard_push() # moving enemies with spells counts toward Gale
+
+
 ## A spell's push-back wears off: each push on the same enemy within R.push_wear_time seconds is R.push_wear as long.
 func spell_push(e: Enemy, dur: float, spd: float, h: Hero) -> void:
 	if S.time - e.push_at > R.push_wear_time:
@@ -1936,8 +1968,8 @@ func launch(h: Hero, x: float, y: float, color, size: float, land: Callable) -> 
 
 
 ## What one enemy hit by a spell gets: freezes, stuns, roots, push-back, poison, exposure, armor break.
-func _spell_each(sp: SpellData, h: Hero, p: float, push_only := []):
-	var any := sp.freeze or sp.stun or sp.root or sp.push or sp.poison_dps or sp.expose or sp.armor_break
+func _spell_each(sp: SpellData, h: Hero, p: float, push_only := [], at := Vector2.INF):
+	var any := sp.freeze or sp.stun or sp.root or sp.push or sp.pull or sp.poison_dps or sp.expose or sp.armor_break
 	if not any:
 		return null
 	return func(e: Enemy):
@@ -1949,6 +1981,8 @@ func _spell_each(sp: SpellData, h: Hero, p: float, push_only := []):
 			root_enemy(e, sp.root)
 		if sp.push and (push_only.is_empty() or push_only.has(e)):
 			spell_push(e, sp.push, sp.push_speed, h)
+		if sp.pull and at != Vector2.INF:
+			pull_enemy(e, at, h)
 		if sp.poison_dps:
 			e.burn_t = maxf(e.burn_t, sp.poison_time)
 			e.burn_dps = maxf(e.burn_dps, sp.poison_dps * p)
@@ -1968,7 +2002,7 @@ func _spell_burst(sp: SpellData, h: Hero, x: float, y: float, p: float) -> void:
 		push_only = in_range(x, y, r)
 		push_only.sort_custom(func(a, b): return hyp(a.x - x, a.y - y) < hyp(b.x - x, b.y - y))
 		push_only = push_only.slice(0, sp.push_max)
-	var each = _spell_each(sp, h, p, push_only)
+	var each = _spell_each(sp, h, p, push_only, Vector2(x, y))
 	if sp.dmg or each:
 		hit_area(x, y, r, sp.dmg * p, each)
 	if sp.burn_time:
@@ -1987,7 +2021,7 @@ func cast_spell(key: String, h: Hero, x: float, y: float, p: float) -> bool:
 		return _as_fire(func(): return cast_spell(key, h, x, y, p))
 	var sp: SpellData = DB.spells[key]
 	var r := sp.r * h.spell_r
-	var each = _spell_each(sp, h, p)
+	var each = _spell_each(sp, h, p, [], Vector2(x, y))
 	match sp.delivery:
 		"launch":
 			launch(h, x, y, sp.color, sp.size, func(): _spell_burst(sp, h, x, y, p))
@@ -3243,7 +3277,14 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 				continue
 		if S.overclock_t > 0 and h.time_warp and e.pos().distance_to(S.overclock_at) <= h.ab.r:
 			slow_enemy(e, h.time_warp, 0.3)
-		if e.push_t > 0 and not e.pushback_immune:
+		if e.pull_t > 0 and not e.pushback_immune:
+			e.pull_t -= dt
+			if e.stun_t > 0:
+				e.stun_t -= dt
+			e.d = move_toward(e.d, e.pull_to, e.pull_spd * dt)
+			if absf(e.d - e.pull_to) < 0.5:
+				e.pull_t = 0.0
+		elif e.push_t > 0 and not e.pushback_immune:
 			e.push_t -= dt
 			if e.stun_t > 0:
 				e.stun_t -= dt

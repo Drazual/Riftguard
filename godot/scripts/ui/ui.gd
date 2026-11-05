@@ -95,11 +95,6 @@ func setup(g: Game, b: Board) -> void:
 	game.toast.connect(toast)
 	game.changed.connect(_on_changed)
 	game.modal.connect(dialogs.open)
-	board.tower_hover.connect(func(t: Tower, at: Vector2):
-		if t:
-			show_tip(UiText.tower_tip(game, t), Rect2(at, Vector2.ZERO), "below")
-		else:
-			hide_tip())
 
 
 func S() -> Run:
@@ -599,6 +594,13 @@ func tick(dt: float) -> void:
 		toast_t -= dt
 		if toast_t <= 0:
 			toast_box.visible = false
+	# messages (e.g. "Wave 3 incoming.") sit in the top right corner, where the side panel slides in: while it's
+	# open they move to its left, so they never cover what you clicked
+	var right := -10.0
+	if side_slide and side_slide.visible:
+		right = -10.0 - side_clip.size.x + side_slide.position.x - 8.0
+	toast_box.offset_right = right
+	toast_box.offset_left = right - 320.0
 	if game.S and game.S.hero:
 		var held := {}
 		for k in held_keys:

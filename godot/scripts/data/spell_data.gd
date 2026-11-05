@@ -28,6 +28,9 @@ extends Resource
 @export var push_speed := 90.0
 ## Push back only this many enemies, nearest the cast point first (0 = every enemy hit).
 @export var push_max := 0
+## Drags every enemy hit along the path to the spell's middle (once, over PULL_TIME), clumping them; they walk on
+## at once, even while the spell lasts. Bosses come a third of the way.
+@export var pull := false
 @export var poison_dps := 0.0
 @export var poison_time := 0.0
 ## Takes more damage from everything.
