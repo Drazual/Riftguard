@@ -152,3 +152,9 @@ level (`aim` 0), and its shell flies straight from the muzzle (`TowerData.shot_a
 muzzle point from the fire frame where the glow peaks, which is also its `fire_frame`, so the shell leaves the
 barrel as it flashes. A turret without a held target (no beam) faces where its last shot went.
 `tests/plasma.tscn` takes screenshots of it in a run.
+
+The Arcane Bolt (`art_src/towers/arcane/arcane_bolt.glb`) is the third. Its crystal rests tilted 45° up, so it's
+baked at that rest pitch (`aim` -0.789) and only turns (yaw). Its base is 1.0 m across against the Plasma Cannon's
+1.33 m, so it renders at `wide` 42 (56 / 1.33) to keep the same pixels per metre, and draws at the same
+`turret_scale` 0.38. The bolt leaves the crystal tip (`Muzzle`) at `shot_frame` 1, where the tip glows, and flies
+straight. `tests/arcane.tscn` takes screenshots of it in a run.
