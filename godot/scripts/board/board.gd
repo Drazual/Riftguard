@@ -888,11 +888,18 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 		var sp: AnimatedSprite2D = p.get("_v")
 		if sp == null or not is_instance_valid(sp):
 			sp = AnimatedSprite2D.new()
-			sp.sprite_frames = d.frames
+			if d.turret != null and d.turret.has_animation("shot"):
+				# a projectile rendered from the tower's model (the Frost Pylon's ice orb), at the turret's scale
+				sp.sprite_frames = d.turret
+				sp.centered = true
+				sp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+				sp.scale = Vector2(d.turret_scale / PX, d.turret_scale / PX)
+			else:
+				sp.sprite_frames = d.frames
+				sp.centered = false
+				sp.offset = -d.shot_anchor
+				sp.scale = Vector2(1 / PX, 1 / PX)
 			sp.animation = "shot"
-			sp.centered = false
-			sp.offset = -d.shot_anchor
-			sp.scale = Vector2(1 / PX, 1 / PX)
 			sp.set_meta("shot", p)
 			top.add_child(sp)
 			p._v = sp

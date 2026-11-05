@@ -158,3 +158,15 @@ baked at that rest pitch (`aim` -0.789) and only turns (yaw). Its base is 1.0 m 
 1.33 m, so it renders at `wide` 42 (56 / 1.33) to keep the same pixels per metre, and draws at the same
 `turret_scale` 0.38. The bolt leaves the crystal tip (`Muzzle`) at `shot_frame` 1, where the tip glows, and flies
 straight. `tests/arcane.tscn` takes screenshots of it in a run.
+
+The Frost Pylon (`art_src/towers/ice/ice_tower.glb`, out `ice_3d`) is the fourth, and the first that charges before it
+shoots. Its fire frames come from the model's `attack` clip (charge, then fire) at the times listed in `fire_times`:
+six frames of the ice orb forming on top (rings closing in, shards pulled to it), then three of the burst. They play
+in `fire_time` 0.55 s, and the orb leaves at `shot_frame` 6, the first frame where the tower's own orb is gone. It
+renders at `wide` 50 (56 × 1.2 / 1.33, its 1.2 m base at the Plasma Cannon's pixels per metre) and draws at
+`turret_scale` 0.38. Its effects are small next to the tower, so `muzzle_scale` 1.7 enlarges everything under
+`Muzzle` to read at board size. The `shot` option renders the orb on its own (IceOrb, its core and halo) into
+`ice_3d_shot.png`, added to the SpriteFrames as `shot`; the board draws a tower's shots from that instead of its
+pixel-art shot when its turret frames have one. Translucent effects are un-premultiplied and kept out of the dark
+outline so they stay light. `tests/frost.tscn` takes screenshots of it in a run beside an Arcane Bolt and a Plasma
+Cannon.
