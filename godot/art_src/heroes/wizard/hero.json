@@ -1,0 +1,72 @@
+{
+	"model": "wizard.glb",
+	"anims": {
+		"idle": "idle",
+		"walk": "walk",
+		"fire": "cast_fire"
+	},
+	"lock_root": "mixamorig_Hips",
+	"weapon": "WizardStaff",
+	"muzzle": "CastPoint",
+	"out": "wizard_3d",
+	"size": 128,
+	"style": "painted",
+	"walkfire": false,
+	"windup": 0.15,
+	"extra": {
+		"fire": {
+			"cast_fire": 7,
+			"cast_fire_strong": 10
+		},
+		"water": {
+			"cast_water": 7,
+			"cast_water_strong": 10
+		},
+		"earth": {
+			"cast_earth": 7,
+			"cast_earth_strong": 10
+		},
+		"air": {
+			"cast_air": 7,
+			"cast_air_strong": 10
+		},
+		"storm": {
+			"cast_storm": 7,
+			"cast_storm_strong": 10
+		},
+		"nature": {
+			"cast_nature": 7,
+			"cast_nature_strong": 10
+		},
+		"void": {
+			"cast_void": 7,
+			"cast_void_strong": 10
+		},
+		"light": {
+			"cast_light": 7,
+			"cast_light_strong": 10
+		},
+		"ultimate": {
+			"cast_ultimate": 14
+		}
+	},
+	"release": {
+		"cast_fire": 0.31,
+		"cast_water": 0.4,
+		"cast_earth": 0.36,
+		"cast_air": 0.34,
+		"cast_storm": 0.42,
+		"cast_nature": 0.42,
+		"cast_void": 0.4,
+		"cast_light": 0.42,
+		"cast_fire_strong": 0.52,
+		"cast_water_strong": 0.65,
+		"cast_earth_strong": 0.59,
+		"cast_air_strong": 0.57,
+		"cast_storm_strong": 0.68,
+		"cast_nature_strong": 0.68,
+		"cast_void_strong": 0.65,
+		"cast_light_strong": 0.68,
+		"cast_ultimate": 1.22
+	}
+}

@@ -139,6 +139,7 @@ var aim_y := 0.0
 var atk_at := -99.0
 var cast_t := 0.0
 var casts := 0
+var cast_key := "" # the Wizard's last spell (its runes, e.g. "fire+water"), so the board can play its cast
 
 
 static func make(id: String, base: Vector2) -> Hero:
