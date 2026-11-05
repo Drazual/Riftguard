@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cxq3fjvt4y47u" path="res://scripts/data/tower_path_set.gd" id="2_i5njh"]
 [ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_nvxlv"]
 [ext_resource type="Texture2D" uid="uid://2v01vlfeehfh" path="res://assets/towers/arcane.png" id="3_i5njh"]
+[ext_resource type="SpriteFrames" path="res://art/towers/arcane_3d.tres" id="4_turret"]
 
 [sub_resource type="Resource" id="Resource_q2rm3"]
 script = ExtResource("1_lvjcc")
@@ -115,3 +116,6 @@ shot_anchor = Vector2(24, 31)
 shot_turn = true
 fx_anchor_y = 0.75
 fire_frame = 1
+turret = ExtResource("4_turret")
+turret_muzzle = PackedVector2Array(64.0, 14.5, 71.2, 15.1, 78.6, 17.2, 85.2, 21.6, 88.3, 28.4, 85.2, 35.1, 78.6, 39.5, 71.2, 41.6, 64.0, 42.3, 56.8, 41.6, 49.4, 39.5, 42.8, 35.1, 39.7, 28.4, 42.8, 21.6, 49.4, 17.2, 56.8, 15.1)
+turret_scale = 0.38
