@@ -132,7 +132,9 @@ used for the menu portrait. The folder must ship with the game, so it is not cov
 res://tools/render_tower.gd -- <tower folder>`, for a folder in `godot/art_src/towers/` with the `.glb` and a
 `tower.json` (the options are listed at the top of the tool). It uses the heroes' camera and painted look, sets the
 model's yaw and pitch nodes itself (so any yaw or pitch keys in the clips are overridden), and renders 16 facings,
-each with one idle frame and 6 frames of the fire clip, into 128 px frames drawn at half size.
+each with one idle frame and 6 frames of the fire clip, into 128 px frames. The board draws them at
+`TowerData.turret_scale` (0.38 for the Prism Laser and Plasma Cannon, so they stand about as tall as the pixel-art
+towers); change that number to resize a turret without baking again.
 
 It writes `assets/towers/<out>.png`, `art/towers/<out>.tres` (`idle_N` and `fire_N`, N = 0 up the screen,
 clockwise) and the muzzle point of every facing, and prints the `TowerData.turret_muzzle` line. Setting
@@ -146,7 +148,7 @@ The Prism Laser (`art_src/towers/laser/prism_laser.glb`) is the first: Yaw turns
 toward the enemies on the ground. `tests/laser.tscn` takes screenshots of it in a run.
 
 The Plasma Cannon (`art_src/towers/plasma/plasma_cannon.glb`) is the second. Its Pitch range is tiny, so it's baked
-level (`aim` 0) and the shell arcs instead (`TowerData.shot_arc`). `shot_frame` 1 in its `tower.json` takes the
+level (`aim` 0), and its shell flies straight from the muzzle (`TowerData.shot_arc` 0). `shot_frame` 1 in its `tower.json` takes the
 muzzle point from the fire frame where the glow peaks, which is also its `fire_frame`, so the shell leaves the
 barrel as it flashes. A turret without a held target (no beam) faces where its last shot went.
 `tests/plasma.tscn` takes screenshots of it in a run.
