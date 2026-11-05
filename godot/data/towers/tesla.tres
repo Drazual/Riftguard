@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cxq3fjvt4y47u" path="res://scripts/data/tower_path_set.gd" id="2_8kqpc"]
 [ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="2_ui3f5"]
 [ext_resource type="Texture2D" uid="uid://cf5i0sl10sok3" path="res://assets/towers/tesla.png" id="3_8kqpc"]
+[ext_resource type="SpriteFrames" path="res://art/towers/tesla_3d.tres" id="4_turret"]
 
 [sub_resource type="Resource" id="Resource_rnw8n"]
 script = ExtResource("1_w7usc")
@@ -116,4 +117,9 @@ sheet = ExtResource("3_8kqpc")
 muzzle_y = 13.0
 shot_anchor = Vector2(23.5, 16.5)
 fx_anchor_y = 0.75
-fire_frame = 3
+fire_frame = 4
+turret = ExtResource("4_turret")
+turret_muzzle = PackedVector2Array(80.0, 66.3)
+turret_foot = Vector2(80, 150)
+turret_scale = 0.38
+shot_up = true

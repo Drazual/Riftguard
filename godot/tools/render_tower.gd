@@ -4,7 +4,8 @@ extends "res://tools/render_hero.gd"
 ##   xvfb-run godot --path godot --rendering-driver opengl3 -s res://tools/render_tower.gd -- <tower folder>
 ## <tower folder> is a folder in res://art_src/towers/ holding the model and a tower.json:
 ##   model   the .glb: Y up, metres, origin at the base's bottom centre, the turret aiming +Z
-##   yaw     the node that turns the turret (rotation.y); pitch: the node that tilts it (rotation.x, negative = up)
+##   yaw     the node that turns the turret (rotation.y); pitch: the node that tilts it (rotation.x, negative = up).
+##           Both optional: a tower that never turns (the Tesla Coil) leaves them out and uses "dirs": 1.
 ##   anims   { "idle": clip, "fire": clip }. The tool sets yaw and pitch itself, so any yaw/pitch keys in those
 ##           clips are overridden. The idle clip's yaw and pitch tracks are dropped altogether, so an idle that sweeps
 ##           the turret around (e.g. "idle" on the cannons) never fights the aim; use an aim-safe clip like the Frost
@@ -78,8 +79,8 @@ func _run() -> void:
 	var model: Node3D = (load(dir + cfg.model) as PackedScene).instantiate()
 	pivot.add_child(model)
 	_toon(model)
-	yaw_node = model.get_node(cfg.yaw)
-	pitch_node = model.get_node(cfg.pitch)
+	yaw_node = model.get_node_or_null(cfg.get("yaw", ""))
+	pitch_node = model.get_node_or_null(cfg.get("pitch", ""))
 	var muzzle: Node3D = model.find_child("Muzzle", true, false)
 	var ap: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
 	var idle := _safe_idle(model, ap, cfg)
@@ -204,8 +205,10 @@ func _pose(ap: AnimationPlayer, clip: String, t: float, yaw: float) -> void:
 			n.position = n.get_meta("rest_pos")
 		if a.find_track(NodePath(path), Animation.TYPE_SCALE_3D) < 0:
 			n.scale = n.get_meta("rest_scale")
-	yaw_node.rotation = Vector3(0, yaw, 0)
-	pitch_node.rotation = Vector3(aim, 0, 0)
+	if yaw_node:
+		yaw_node.rotation = Vector3(0, yaw, 0)
+	if pitch_node:
+		pitch_node.rotation = Vector3(aim, 0, 0)
 	if muzzle_node:
 		muzzle_node.scale = muzzle_rest * muzzle_scale
 	await process_frame
@@ -247,7 +250,7 @@ func _safe_idle(model: Node3D, ap: AnimationPlayer, cfg: Dictionary) -> String:
 		a = ap.get_animation(src).duplicate(true)
 		for t in range(a.get_track_count() - 1, -1, -1):
 			var path := String(a.track_get_path(t)).get_slice(":", 0)
-			if path == cfg.yaw or path == cfg.pitch:
+			if path == cfg.get("yaw", "-") or path == cfg.get("pitch", "-"):
 				a.remove_track(t)
 	var make: Dictionary = cfg.get("idle_make", {})
 	if make.size() and a.get_track_count() == 0:

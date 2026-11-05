@@ -1,5 +1,5 @@
 ## Close-ups of the Wizard drawn live from its 3D model, casting a spell of each kind (one element, doubled, a
-## combination, an ultimate, a flying bolt) in a few directions, to check each spell plays its own cast clip and
+## combination, an ultimate, a flying bolt) in a few directions, and walking (to check the stride), to check each spell plays its own cast clip and
 ## bolts leave from the staff. Needs a display:
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/wizard.tscn -- <out dir>
 extends Node
@@ -37,6 +37,21 @@ func _ready() -> void:
 	await _frames(10)
 	await _close("00_idle")
 	var b: Board = main.board
+	# walking east, then south, to check the stride
+	for d in [["walk_e", Vector2(1, 0)], ["walk_s", Vector2(0, 1)]]:
+		h.tx = h.x + d[1].x * 400
+		h.ty = h.y + d[1].y * 400
+		await _frames(20)
+		for i in 8:
+			await _frames(2)
+			await _close("00_%s_%d" % [d[0], i])
+		if b.hero_3d:
+			print("%s: pace %.2f walk_speed %.2f gv %.1f" % [d[0], b.hero_3d.ap.speed_scale, b.hero_3d.walk_speed, b.hero_state.get("gv", 0.0)])
+		h.tx = null
+		h.ty = null
+		h.x = mid.x + 60
+		h.y = mid.y + 60
+		await _frames(10)
 	var casts := [["fire"], ["water", "water"], ["fire", "earth"], ["light", "light", "light"], ["storm"], ["void", "void"], ["nature"], ["air", "air"]]
 	for i in casts.size():
 		var key := Progress.spell_key(casts[i])

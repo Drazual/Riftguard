@@ -384,6 +384,49 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 		_laser_beam(S, t, d)
 
 
+## A Tesla Coil shot (TowerData.shot_up): lightning leaps straight up out of the coil's tip, then a bolt falls from the
+## sky onto the target as the shot lands. Two jagged lines each (a wide glow and a white core) that flicker every frame.
+const SKY_UP := 0.35 # share of the flight spent going up
+func _sky_bolt(p: Dictionary, d: TowerData, lift0: float) -> void:
+	var n: Node2D = p.get("_v")
+	if n == null or not is_instance_valid(n):
+		n = Node2D.new()
+		for w in [5.0, 1.6]:
+			var l := Line2D.new()
+			l.width = w
+			l.default_color = d.color.lightened(0.35) if w > 2 else Color.WHITE
+			l.joint_mode = Line2D.LINE_JOINT_ROUND
+			n.add_child(l)
+		n.set_meta("shot", p)
+		top.add_child(n)
+		p._v = n
+		var tw: Tower = p.src
+		n.set_meta("from", turret_muzzle_at(tw, d) if d.turret != null and not d.turret_muzzle.is_empty() else Vector2(p.x0, SY(p.y0) - lift0))
+	_seen(n)
+	var from: Vector2 = n.get_meta("from")
+	var to := Vector2(p.x1, SY(p.y1) - body_lift(p.target))
+	var u: float = p.u
+	var a: Vector2
+	var b: Vector2
+	if u < SKY_UP:
+		# going up: from the tip to well above the screen
+		a = from
+		b = from + Vector2(0, -360 * ease(u / SKY_UP, 0.5))
+	else:
+		# coming down on the target from straight above it
+		a = Vector2(to.x, to.y - 360)
+		b = a.lerp(to, ease((u - SKY_UP) / (1 - SKY_UP), 0.6))
+	var pts := PackedVector2Array()
+	var seg := 9
+	for i in seg + 1:
+		var q := float(i) / seg
+		var jit := 0.0 if i == 0 or i == seg else randf_range(-7.0, 7.0)
+		pts.append(a.lerp(b, q) + Vector2(jit, 0))
+	for l: Line2D in n.get_children():
+		l.points = pts
+	n.modulate.a = 1.0
+
+
 ## Where a turret tower's beam starts on the board: its muzzle in the facing it shows.
 func turret_muzzle_at(t: Tower, d: TowerData) -> Vector2:
 	var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
@@ -411,7 +454,7 @@ func _sync_ghost(S: Run) -> void:
 				fr = d.turret
 			if ghost.sprite_frames != fr:
 				ghost.sprite_frames = fr
-				ghost.play("idle_%d" % TURRET_REST if d.turret != null else "idle")
+				ghost.play("idle_%d" % (TURRET_REST * d.turret_muzzle.size() / 16) if d.turret != null else "idle")
 			var p := game.cell_pos(hv.x, hv.y)
 			var ok := game.build_problem(hv.x, hv.y, S.build) == ""
 			ghost.position = Vector2(p.x, SY(p.y))
@@ -899,6 +942,9 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 		if d == null or d.frames == null:
 			continue
 		var lift0: float = muzzle_lift(p.src) if p.src is Tower else body_lift(p.src)
+		if d.shot_up and p.src is Tower:
+			_sky_bolt(p, d, lift0)
+			continue
 		var sp: AnimatedSprite2D = p.get("_v")
 		if sp == null or not is_instance_valid(sp):
 			sp = AnimatedSprite2D.new()

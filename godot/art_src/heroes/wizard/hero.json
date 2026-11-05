@@ -68,5 +68,7 @@
 		"cast_void_strong": 0.65,
 		"cast_light_strong": 0.68,
 		"cast_ultimate": 1.22
-	}
+	},
+	"stride": 2.0,
+	"max_pace": 1.5
 }
