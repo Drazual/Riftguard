@@ -104,6 +104,13 @@ func setup(dir: String, height: float = 26.0) -> void:
 	# shoots standing still, so his legs and hips keep the idle pose while his upper body fires
 	if cfg.get("fire_legs", "") == "idle" and anims.has("fire") and anims.has("idle"):
 		_legs_from(ap.get_animation(anims.fire), ap.get_animation(anims.idle))
+	# a model with only a walk can run: hero.json "run_from_walk" makes one out of it (see _run_from)
+	if cfg.has("run_from_walk") and anims.has("walk") and not anims.has("run"):
+		var run := _run_from(ap.get_animation(anims.walk), cfg.run_from_walk)
+		if not ap.has_animation_library("ext"):
+			ap.add_animation_library("ext", AnimationLibrary.new())
+		ap.get_animation_library("ext").add_animation("run", run)
+		anims.run = "ext/run"
 	# one-shot casts (every clip named in "release"): root locked like the rest, played once
 	for clip in cfg.get("release", {}):
 		if ap.has_animation(clip):
@@ -279,6 +286,36 @@ func _stretch(a: Animation, k: float) -> void:
 			if ang < 0.0001:
 				continue
 			a.track_set_key_value(t, i, (mean * Quaternion(d.get_axis().normalized(), ang * k)).normalized())
+
+
+## A run made from a walk: the legs swing `stride` times further (on top of the walk's own stretch), the upper body
+## leans `lean` degrees forward, and the hips bob up `bounce` metres between footfalls (twice a cycle).
+## { "stride": 1.4, "lean": 12, "bounce": 0.04 }
+func _run_from(walk: Animation, c: Dictionary) -> Animation:
+	var a: Animation = walk.duplicate(true)
+	_stretch(a, float(c.get("stride", 1.4)))
+	var lean := deg_to_rad(float(c.get("lean", 12.0)))
+	var bounce := float(c.get("bounce", 0.04))
+	var spine := String(c.get("spine", "mixamorig_Spine"))
+	var hips := String(cfg.get("lock_root", "mixamorig_Hips"))
+	for t in a.get_track_count():
+		var bone := String(a.track_get_path(t)).get_slice(":", 1)
+		var type := a.track_get_type(t)
+		if bone == spine and type == Animation.TYPE_ROTATION_3D and lean != 0.0:
+			# tip forward about the skeleton's sideways axis (the model faces +Z), turned into the bone's own space
+			var b := skel.find_bone(bone)
+			var par := skel.get_bone_parent(b)
+			var pq := skel.get_bone_global_rest(par).basis.get_rotation_quaternion() if par >= 0 else Quaternion.IDENTITY
+			var tilt := pq.inverse() * Quaternion(Vector3.RIGHT, lean) * pq
+			for k in a.track_get_key_count(t):
+				a.track_set_key_value(t, k, (tilt * (a.track_get_key_value(t, k) as Quaternion)).normalized())
+		elif bone == hips and type == Animation.TYPE_POSITION_3D and bounce != 0.0:
+			for k in a.track_get_key_count(t):
+				var at := a.track_get_key_time(t, k)
+				var s := sin(TAU * at / a.length)
+				var p: Vector3 = a.track_get_key_value(t, k)
+				a.track_set_key_value(t, k, p + Vector3(0, bounce * s * s, 0))
+	return a
 
 
 ## Cuts a clip off at `end` seconds.

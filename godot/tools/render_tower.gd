@@ -31,6 +31,8 @@ extends "res://tools/render_hero.gd"
 ##   wide    how wide the base renders facing the camera, in frame pixels
 ##   foot    [x, y]: where the base's bottom centre lands in a frame, in frame pixels
 ##   out     the name of the files it writes
+##   vibrance  optional: [saturation, contrast] the frames are punched up by after rendering ([1.9, 1.3] by
+##           default), so the painted towers stand out on the bright, busy map instead of looking washed out; [1, 1] = off
 ##   shot_frame  the fire frame whose muzzle point goes in the printed turret_muzzle line (0 by default; a cannon
 ##           uses the frame its shell leaves on, the same as TowerData.fire_frame)
 ## It writes res://assets/towers/<out>.png (DIRS columns, facing 0 = up the screen, going clockwise; the idle_frames
@@ -42,6 +44,7 @@ extends "res://tools/render_hero.gd"
 var DIRS := 16
 var FIRE := 6
 var IDLE := 8
+var vibrance := [1.9, 1.3]
 var idle_time := 2.4
 var aim := 0.0
 var yaw_node: Node3D
@@ -73,6 +76,7 @@ func _run() -> void:
 		FIRE = times.size()
 	aim = cfg.get("aim", 0.0)
 	IDLE = maxi(1, int(cfg.get("idle_frames", 8)))
+	vibrance = cfg.get("vibrance", vibrance)
 	idle_time = float(cfg.get("idle_time", 2.4))
 	painted = cfg.get("style", "painted") == "painted"
 	_stage()
@@ -99,7 +103,7 @@ func _run() -> void:
 			var clip: String = idle if f < 0 else cfg.anims.fire
 			var t := idle_len * row / IDLE if f < 0 else (float(times[f]) if times.size() else ap.get_animation(clip).length * f / FIRE)
 			await _pose(ap, clip, t, _yaw16(face))
-			var img := _shrink(_straight(vp.get_texture().get_image()))
+			var img := _vivid(_shrink(_straight(vp.get_texture().get_image())))
 			img = _fx_outline(img) if painted else _outlined(img)
 			sheet.blit_rect(img, Rect2i(0, 0, FRAME, FRAME), Vector2i(face * FRAME, row * FRAME))
 			if f >= 0:
@@ -150,7 +154,7 @@ func _render_shot(model: Node3D, ap: AnimationPlayer, muzzle: Node3D, c: Diction
 	await process_frame
 	await process_frame
 	await RenderingServer.frame_post_draw
-	var img := _shrink(_straight(vp.get_texture().get_image()))
+	var img := _vivid(_shrink(_straight(vp.get_texture().get_image())))
 	var o := (FRAME - shot_size) / 2
 	var cut := img.get_region(Rect2i(o, o, shot_size, shot_size))
 	cut.save_png("res://assets/towers/%s_shot.png" % out)
@@ -160,6 +164,23 @@ func _render_shot(model: Node3D, ap: AnimationPlayer, muzzle: Node3D, c: Diction
 	for n in hidden:
 		n.layers = 1
 	cam.cull_mask = 0xFFFFF
+
+
+## Stronger colour: saturation times vibrance[0], and the brightness spread out from the middle by vibrance[1] (with
+## a slight lift so the darks don't crush). Alpha is left alone.
+func _vivid(img: Image) -> Image:
+	var sat := float(vibrance[0])
+	var con := float(vibrance[1])
+	if is_equal_approx(sat, 1.0) and is_equal_approx(con, 1.0):
+		return img
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			if c.a <= 0.0:
+				continue
+			var v := clampf((c.v - 0.5) * con + 0.52, 0.0, 1.0)
+			img.set_pixel(x, y, Color.from_hsv(c.h, clampf(c.s * sat, 0.0, 1.0), v, c.a))
+	return img
 
 
 ## Translucent effects (an ice orb, a glow) render over the empty background with their colour already multiplied

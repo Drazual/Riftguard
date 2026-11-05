@@ -70,5 +70,10 @@
 		"cast_ultimate": 1.22
 	},
 	"stride": 2.0,
-	"max_pace": 1.5
+	"max_pace": 1.5,
+	"run_from_walk": {
+		"stride": 1.35,
+		"lean": 14,
+		"bounce": 0.05
+	}
 }
