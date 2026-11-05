@@ -5,6 +5,9 @@ extends Node2D
 ## So the hero turns smoothly to any angle, aims exactly at its target, and blends between idle, walk and fire.
 ## It reads the same hero.json as tools/render_hero.gd (model, animation files, held weapon, root lock), from the
 ## folder in HeroData.model_dir. Painted look: soft lambert-wrap light, warm key, pink neon rim, dark outline.
+## Spell casters (the Wizard) also play any of the model's one-shot clips by name with cast(): its hero.json
+## "release" times say when in each clip the spell leaves, and the wind-up before it is sped up to "windup" seconds,
+## since the spell itself lands the moment it is cast.
 
 const PITCH := 35.0 # how far the camera looks down (flatter than the ground's tilt, so heroes read from the front)
 const K := 0.75 # Board.K: the ground's vertical squash; facings go through it so they match the screen
@@ -32,6 +35,8 @@ var yaw := 0.0 # the model's current turn, eased toward the wanted one
 var want_yaw := 0.0
 var aim_fix := 0.0 # extra turn while shooting so the barrel, not the body, points at the target
 var state := ""
+var cast_rel := 0.0 # while casting: the clip time the spell leaves at; the wind-up before it plays fast
+var cast_speed := 1.0
 var fitted := false
 var tall := 26.0
 ## How fast the walk (and run) clips would carry the hero, in world units per second of a 1.8-unit hero, measured
@@ -98,8 +103,16 @@ func setup(dir: String, height: float = 26.0) -> void:
 	# shoots standing still, so his legs and hips keep the idle pose while his upper body fires
 	if cfg.get("fire_legs", "") == "idle" and anims.has("fire") and anims.has("idle"):
 		_legs_from(ap.get_animation(anims.fire), ap.get_animation(anims.idle))
-	# shooting on the move: the walk's legs and hips with the fire clip's raised, aimed upper body
-	if anims.has("walk") and anims.has("fire"):
+	# one-shot casts (every clip named in "release"): root locked like the rest, played once
+	for clip in cfg.get("release", {}):
+		if ap.has_animation(clip):
+			var anim := ap.get_animation(clip)
+			if cfg.has("lock_root"):
+				_lock_root(anim, cfg.lock_root)
+			anim.loop_mode = Animation.LOOP_NONE
+	# shooting on the move: the walk's legs and hips with the fire clip's raised, aimed upper body (not for a
+	# caster, whose "fire" is a whole-body cast: "walkfire": false)
+	if anims.has("walk") and anims.has("fire") and cfg.get("walkfire", true):
 		var wf := _upper_from(ap.get_animation(anims.walk), ap.get_animation(anims.fire))
 		if not ap.has_animation_library("ext"):
 			ap.add_animation_library("ext", AnimationLibrary.new())
@@ -108,7 +121,7 @@ func setup(dir: String, height: float = 26.0) -> void:
 	if cfg.has("held"):
 		held = (load(dir.path_join(cfg.held.scene)) as PackedScene).instantiate()
 		vp.add_child(held)
-	muzzle = (held if held else model).find_child("Muzzle", true, false)
+	muzzle = (held if held else model).find_child(cfg.get("muzzle", "Muzzle"), true, false)
 	_paint(model)
 	var model_lines := lines.duplicate()
 	if held:
@@ -261,7 +274,7 @@ func _stretch(a: Animation, k: float) -> void:
 			var ang := d.get_angle()
 			if ang < 0.0001:
 				continue
-			a.track_set_key_value(t, i, (mean * Quaternion(d.get_axis(), ang * k)).normalized())
+			a.track_set_key_value(t, i, (mean * Quaternion(d.get_axis().normalized(), ang * k)).normalized())
 
 
 ## Cuts a clip off at `end` seconds.
@@ -286,10 +299,15 @@ func _lock_root(a: Animation, bone: String) -> void:
 			a.track_set_key_value(t, k, Vector3(p0.x, p.y, p0.z))
 
 
-## Plays idle, walk or fire with a short blend. Fire restarts on every call (one per shot).
+## Plays idle, walk or fire with a short blend. Fire restarts on every call (one per shot). A cast still playing
+## isn't cut short by idle (only by walking or another cast).
 func play(what: String, speed: float = 1.0) -> void:
 	if not anims.has(what):
 		return
+	if state == "cast" and what == "idle" and ap.is_playing():
+		cast_speed = speed
+		return
+	cast_rel = 0.0
 	if what != state or what == "fire":
 		ap.play(anims[what], 0.0 if what == state else 0.12)
 		if what == "fire":
@@ -299,9 +317,30 @@ func play(what: String, speed: float = 1.0) -> void:
 	ap.speed_scale = speed
 
 
+## Plays a one-shot clip of the model by name (a spell cast), from the start, with a short blend. Up to its
+## release time (hero.json "release") it plays fast enough to reach it in "windup" seconds, then at `speed`.
+func cast(clip: String, speed: float = 1.0) -> void:
+	if not ap.has_animation(clip):
+		play("fire", speed)
+		return
+	ap.play(clip, 0.08)
+	ap.seek(0.0, true)
+	state = "cast"
+	cast_speed = speed
+	cast_rel = float(cfg.get("release", {}).get(clip, 0.0))
+	ap.speed_scale = speed * _windup_rate()
+
+
+func _windup_rate() -> float:
+	var w := float(cfg.get("windup", 0.0))
+	if cast_rel <= 0.0 or w <= 0.0:
+		return 1.0
+	return maxf(1.0, cast_rel / w)
+
+
 ## Raises the gun and holds it on target between shots (the fire clip's last pose), without shooting.
 func aim() -> void:
-	if state == "fire" or not anims.has("fire"):
+	if state == "fire" or state == "cast" or not anims.has("fire") or not cfg.get("walkfire", true):
 		return
 	ap.play(anims.fire, 0.12)
 	ap.seek(ap.get_animation(anims.fire).length, true)
@@ -321,6 +360,12 @@ func _process(dt: float) -> void:
 	if model == null:
 		return
 	yaw = lerp_angle(yaw, want_yaw, 1.0 - exp(-dt * 16.0))
+	if state == "cast" and cast_rel > 0.0:
+		if ap.current_animation_position >= cast_rel:
+			cast_rel = 0.0
+			ap.speed_scale = cast_speed
+		else:
+			ap.speed_scale = cast_speed * _windup_rate()
 	if not fitted:
 		_fit()
 	if held:
@@ -382,7 +427,7 @@ func _fit() -> void:
 	ankle = feet if feet < INF else 0.0
 	walk_speed = _stride_speed(anims.walk) if anims.has("walk") else 1.0
 	run_speed = _stride_speed(anims.run) if anims.has("run") else 0.0
-	if state != "":
+	if anims.has(state):
 		ap.play(anims[state]) # measuring moved the player off the current clip
 
 

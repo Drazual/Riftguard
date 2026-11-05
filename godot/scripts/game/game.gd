@@ -2201,6 +2201,7 @@ func cast_runes(x: float, y: float) -> void:
 	h.aim_x = x
 	h.aim_y = y
 	h.atk_at = S.time
+	h.cast_key = key
 	h.casts += 1
 	if h.echo and h.casts % int(h.echo) == 0:
 		later(0.4, func():

@@ -14,13 +14,23 @@ extends SceneTree
 ##           "turn": 180 for a weapon modelled with its barrel along +Z.
 ##   lock_root optional: the root bone (e.g. "mixamorig_Hips"); its sideways drift is removed so walks stay in place
 ##   weapon  optional: the node of the weapon mesh; its front end is the muzzle if there's no "Muzzle" node
+##   muzzle  optional: the name of the node at the weapon's tip ("Muzzle" by default; the Wizard's is "CastPoint")
+##   extra   optional: more one-shot clips (casts) beyond idle, walk and fire, in groups:
+##           { "<group>": { "<clip>": frames, ... }, ... }. Each group gets its own sheet,
+##           res://assets/heroes/<out>_<group>.png (8 columns, the group's clips one after another, `frames` rows
+##           each), so a hero with many clips never makes one texture taller than the GPU allows (16384 px). Their
+##           animations, <clip>_N per facing at the clip's own speed, go in res://art/heroes/<out>_extra.tres, apart
+##           from the hero's main SpriteFrames, so the game doesn't load them unless it asks for them.
+##   release optional: { "<clip>": seconds }: the moment in a one-shot clip the shot or spell leaves. That clip's
+##           frames are spaced so one lands exactly on it, and muzzle.json says which ("release": { animation: frame }, e.g. "fire" or "cast_water_strong").
 ##   hide    optional: nodes to hide (spare weapons and props)
 ##   out     the name of the files it writes
 ##   size    optional: frame size, 64 (default) or 128 for heroes shown at 0.5 (HeroData.art_scale)
 ##   style   optional: "pixel" (default) or "painted"
 ## It writes res://assets/heroes/<out>.png (8 columns N, NE, E, SE, S, SW, W, NW; rows idle 0-3, walk 4-11,
 ## fire 12-15, 64px frames, feet on row 59), res://art/heroes/<out>.tres (SpriteFrames idle_N, walk_N, fire_N)
-## and res://art_src/heroes/<folder>/muzzle.json (the gun tip in every direction and fire frame, in frame pixels).
+## and res://art_src/heroes/<folder>/muzzle.json (the gun tip in every direction and fire frame, in frame pixels; for
+## the extra clips "<clip>_<facing>_<frame>").
 ## How it all fits together, and how to make a model for it: tools/render_hero.md.
 
 ## Frame size and framing are for 64px frames; "size" in hero.json scales all three (128 = drawn at 2x).
@@ -87,39 +97,70 @@ func _run() -> void:
 		held = (load(dir + cfg.held.scene) as PackedScene).instantiate()
 		vp.add_child(held)
 		_toon(held)
-	var muzzle: Node3D = (held if held else model).find_child("Muzzle", true, false)
+	var muzzle: Node3D = (held if held else model).find_child(cfg.get("muzzle", "Muzzle"), true, false)
 	var weapon: Node3D = held
 	if cfg.has("weapon"):
 		weapon = model.find_child(cfg.weapon, true, false)
 	await _fit(model, ap, anims.idle, weapon)
-	var sheet := Image.create(FRAME * 8, FRAME * 16, false, Image.FORMAT_RGBA8)
+	var release: Dictionary = cfg.get("release", {})
+	var rel_frames := {}
+	# the sheets to draw: the main one (ROWS: idle, walk, fire), then one per group of extra clips. Each row set is
+	# { anim: [first row, frames, fps, loops] }; an extra clip's animation is named after the clip itself.
+	var sheets := [{ name = out, rows = ROWS }]
+	var extra: Dictionary = cfg.get("extra", {})
+	for g in extra:
+		var rows := {}
+		var next := 0
+		for clip in extra[g]:
+			var n := int(extra[g][clip])
+			anims[clip] = clip
+			if cfg.has("lock_root"):
+				_lock_root(ap.get_animation(clip), cfg.lock_root)
+			rows[clip] = [next, n, snappedf(n / ap.get_animation(clip).length, 0.1), false]
+			next += n
+		sheets.append({ name = "%s_%s" % [out, g], rows = rows })
 	var tips := {}
-	for face in 8:
-		pivot.rotation.y = _yaw(face)
-		for anim in ROWS:
-			var r: Array = ROWS[anim]
-			var clip: String = anims[anim]
-			var span: Array = cfg.get("span", {}).get(anim, [0.0, ap.get_animation(clip).length])
-			for f in r[1]:
-				ap.play(clip)
-				ap.seek(span[0] + (span[1] - span[0]) * f / r[1], true)
-				ap.pause()
-				await process_frame
-				if held:
-					_hold(held, skel, cfg.held)
-				await process_frame
-				await RenderingServer.frame_post_draw
-				var img := _shrink(vp.get_texture().get_image())
-				if painted:
-					img = _soft_outline(img)
-				else:
-					_outline(img)
-				sheet.blit_rect(img, Rect2i(0, 0, FRAME, FRAME), Vector2i(face * FRAME, (r[0] + f) * FRAME))
-				if anim == "fire":
-					var tip := _tip(muzzle, weapon, face)
-					tips["%d_%d" % [face, f]] = [snappedf(tip.x, 0.1), snappedf(tip.y, 0.1)]
-	sheet.save_png("res://assets/heroes/%s.png" % out)
-	_frames_tres(out)
+	for sh in sheets:
+		var rows: Dictionary = sh.rows
+		var tall := 0
+		for anim in rows:
+			tall = maxi(tall, rows[anim][0] + rows[anim][1])
+		var sheet := Image.create(FRAME * 8, FRAME * tall, false, Image.FORMAT_RGBA8)
+		for face in 8:
+			pivot.rotation.y = _yaw(face)
+			for anim in rows:
+				var r: Array = rows[anim]
+				var clip: String = anims[anim]
+				var span: Array = cfg.get("span", {}).get(anim, [0.0, ap.get_animation(clip).length])
+				var at := _sample_times(span, r[1], release.get(clip, -1.0))
+				if release.has(clip):
+					rel_frames[anim] = at.find(float(release[clip]))
+				for f in r[1]:
+					ap.play(clip)
+					ap.seek(at[f], true)
+					ap.pause()
+					await process_frame
+					if held:
+						_hold(held, skel, cfg.held)
+					await process_frame
+					await RenderingServer.frame_post_draw
+					var img := _shrink(vp.get_texture().get_image())
+					if painted:
+						img = _soft_outline(img)
+					else:
+						_outline(img)
+					sheet.blit_rect(img, Rect2i(0, 0, FRAME, FRAME), Vector2i(face * FRAME, (r[0] + f) * FRAME))
+					if not r[3]:
+						# every one-shot row records its tip; the fire row keeps its old "<facing>_<frame>" keys
+						var tip := _tip(muzzle, weapon, face)
+						var key := "%d_%d" % [face, f] if anim == "fire" else "%s_%d_%d" % [anim, face, f]
+						tips[key] = [snappedf(tip.x, 0.1), snappedf(tip.y, 0.1)]
+		sheet.save_png("res://assets/heroes/%s.png" % sh.name)
+	_frames_tres(out, [sheets[0]], "res://art/heroes/%s.tres" % out)
+	if sheets.size() > 1:
+		_frames_tres(out, sheets.slice(1), "res://art/heroes/%s_extra.tres" % out)
+	if rel_frames.size():
+		tips["release"] = rel_frames
 	var f := FileAccess.open(dir + "muzzle.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(tips, "\t"))
 	f.close()
@@ -128,6 +169,22 @@ func _run() -> void:
 		first.append_array(tips["%d_0" % face])
 	print("render_hero: wrote %s; HeroData.muzzle = PackedVector2Array(%s)" % [out, ", ".join(first.map(func(v): return str(v)))])
 	quit()
+
+
+## When to take n frames from a clip's span: evenly spaced, and if the clip has a release time, shifted so one frame
+## lands exactly on it (the frame the spell spawns on), kept inside the span.
+func _sample_times(span: Array, n: int, rel: float) -> Array:
+	var step: float = (span[1] - span[0]) / n
+	var at := []
+	var shift := 0.0
+	if rel >= span[0] and rel <= span[1]:
+		var k := roundi((rel - span[0]) / step)
+		shift = rel - (span[0] + k * step)
+	for f in n:
+		at.append(clampf(span[0] + f * step + shift, span[0], span[1]))
+	if rel >= span[0] and rel <= span[1]:
+		at[roundi((rel - span[0]) / step)] = rel # exactly, so it can be found again
+	return at
 
 
 ## Adds the first clip of a separate animation file (same skeleton) to the model's player, as "ext/<name>".
@@ -368,23 +425,28 @@ func _tip(muzzle: Node3D, weapon: Node3D, face: int) -> Vector2:
 	return cam.unproject_position(at) / SS
 
 
-## Writes the SpriteFrames: idle_N, walk_N and fire_N for each facing N, cut from the sheet.
-func _frames_tres(out: String) -> void:
+## Writes a SpriteFrames to `path`: <anim>_N for each facing N and each row set of `sheets` (see _run), cut from
+## that sheet's PNG.
+func _frames_tres(out: String, sheets: Array, path: String) -> void:
 	var subs := PackedStringArray()
 	var anims := PackedStringArray()
+	var exts := PackedStringArray()
 	var id := 0
-	for face in 8:
-		for anim in ROWS:
-			var r: Array = ROWS[anim]
-			var refs := PackedStringArray()
-			for f in r[1]:
-				id += 1
-				subs.append('[sub_resource type="AtlasTexture" id="A%d"]\natlas = ExtResource("1")\nregion = Rect2(%d, %d, %d, %d)\n' % [id, face * FRAME, (r[0] + f) * FRAME, FRAME, FRAME])
-				refs.append('{\n"duration": 1.0,\n"texture": SubResource("A%d")\n}' % id)
-			anims.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s_%d",\n"speed": %.1f\n}' % [", ".join(refs), "true" if r[3] else "false", anim, face, r[2]])
-	var f := FileAccess.open("res://art/heroes/%s.tres" % out, FileAccess.WRITE)
-	f.store_string('[gd_resource type="SpriteFrames" load_steps=%d format=3]\n\n' % (id + 2))
-	f.store_string('[ext_resource type="Texture2D" path="res://assets/heroes/%s.png" id="1"]\n\n' % out)
+	for si in sheets.size():
+		exts.append('[ext_resource type="Texture2D" path="res://assets/heroes/%s.png" id="%d"]' % [sheets[si].name, si + 1])
+		var rows: Dictionary = sheets[si].rows
+		for face in 8:
+			for anim in rows:
+				var r: Array = rows[anim]
+				var refs := PackedStringArray()
+				for f in r[1]:
+					id += 1
+					subs.append('[sub_resource type="AtlasTexture" id="A%d"]\natlas = ExtResource("%d")\nregion = Rect2(%d, %d, %d, %d)\n' % [id, si + 1, face * FRAME, (r[0] + f) * FRAME, FRAME, FRAME])
+					refs.append('{\n"duration": 1.0,\n"texture": SubResource("A%d")\n}' % id)
+				anims.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s_%d",\n"speed": %.1f\n}' % [", ".join(refs), "true" if r[3] else "false", anim, face, r[2]])
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_string('[gd_resource type="SpriteFrames" load_steps=%d format=3]\n\n' % (id + 1 + sheets.size()))
+	f.store_string("\n".join(exts) + "\n\n")
 	f.store_string("\n".join(subs))
 	f.store_string("\n[resource]\nanimations = [%s]\n" % ", ".join(anims))
 	f.close()

@@ -599,6 +599,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		if want == "walk":
 			# long strides at a steady pace (see Hero3D.move)
 			hero_3d.move(st.get("gv", h.speed) * PX, speed, m < 0, firing)
+		elif shot_now and h.data.spells:
+			hero_3d.cast(cast_clip(h.cast_key), speed)
 		elif shot_now:
 			hero_3d.play("fire", speed * m)
 		elif want == "fire" or firing or h.aim_live:
@@ -607,6 +609,18 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		else:
 			hero_3d.play(want, speed * m)
 	_sync_hero_gun(S, h, s, firing, dt, speed)
+
+
+## The Wizard model's clip for a spell (its runes, e.g. "fire+water"): one element casts cast_<element>, the same
+## element twice its _strong version, three (an ultimate) cast_ultimate, and a combination the cast of its first
+## element in the element order (rune keys are already in that order).
+static func cast_clip(key: String) -> String:
+	var els := key.split("+")
+	if els.size() >= 3:
+		return "cast_ultimate"
+	if els.size() == 2 and els[0] == els[1]:
+		return "cast_%s_strong" % els[0]
+	return "cast_%s" % els[0]
 
 
 ## Split-layer heroes: the body keeps its 8 facings while the gun and arms turn freely to the exact angle of the
@@ -1046,6 +1060,10 @@ func _sync_art(S: Run) -> void:
 		var tint = it.get("tint")
 		sp.modulate = tint if tint is Color else Color.WHITE
 		var gy: float = FX_GROUND.get(a, 58) / FX_FH
+		# a hero drawn from its 3D model sends bolts and beams from its staff or gun tip
+		if (it.get("fly", false) or it.get("beam", false)) and not it.has("from") and hero_3d and is_instance_valid(hero_3d) \
+				and S.hero and absf(it.x1 - S.hero.x) < 0.5 and absf(it.y1 - S.hero.y) < 0.5:
+			it.from = hero_muzzle(S.hero)
 		if it.get("fly", false):
 			var q := minf(1, (S.time - it.t0) / it.dur)
 			var p0 := _fly_pos(it, q)
@@ -1059,7 +1077,7 @@ func _sync_art(S: Run) -> void:
 			var sz: float = it.size
 			_fx_place(sp, a, f, Vector2(0.78, 0.72), Vector2(it.x - 130 * sz * (1 - e), SY(it.y) - 230 * sz * (1 - e)), Vector2(0.7 * sz, 0.7 * sz))
 		elif it.get("beam", false):
-			var p0 := Vector2(it.x1, SY(it.y1) - 12)
+			var p0: Vector2 = it.get("from", Vector2(it.x1, SY(it.y1) - 12))
 			var p1 := Vector2(it.x2, SY(it.y2) - 4)
 			var ang := (p1 - p0).angle()
 			var L := p0.distance_to(p1) + 50
@@ -1093,7 +1111,8 @@ func _sync_art(S: Run) -> void:
 
 
 func _fly_pos(it: Dictionary, q: float) -> Vector2:
-	return Vector2(it.x1 + (it.x2 - it.x1) * q, SY(it.y1 + (it.y2 - it.y1) * q) - 18 * (1 - q) - 16 * sin(PI * q))
+	var from: Vector2 = it.get("from", Vector2(it.x1, SY(it.y1) - 18))
+	return from.lerp(Vector2(it.x2, SY(it.y2)), q) - Vector2(0, 16 * sin(PI * q))
 
 
 # ---------- drawing helpers ----------

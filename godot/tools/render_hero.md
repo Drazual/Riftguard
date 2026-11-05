@@ -170,3 +170,9 @@ renders at `wide` 50 (56 × 1.2 / 1.33, its 1.2 m base at the Plasma Cannon's pi
 pixel-art shot when its turret frames have one. Translucent effects are un-premultiplied and kept out of the dark
 outline so they stay light. `tests/frost.tscn` takes screenshots of it in a run beside an Arcane Bolt and a Plasma
 Cannon.
+
+## Casters with many clips (the Wizard)
+
+`hero.json` can name the tip node (`"muzzle": "CastPoint"`) and list more one-shot clips in groups (`"extra"`), each group baked to its own sheet (`assets/heroes/<out>_<group>.png`) so no texture passes the 16384 px GPU limit. Their animations (`<clip>_N`) go in `art/heroes/<out>_extra.tres`, which the game doesn't load. `"release"` gives each clip's spell-release time: one frame is sampled exactly on it, and `muzzle.json` records which under `"release"`.
+
+On the board the Wizard is drawn live from the model (`Hero3D.cast`): each spell plays its clip (`Board.cast_clip`: `cast_<element>`, `_strong` when doubled, `cast_ultimate` for a triple, the first element's cast for a combination). Spells land the moment they're cast, so the wind-up before the release plays fast enough to reach it in `"windup"` seconds (0.15). `"walkfire": false` keeps the caster from blending its cast into the walk.

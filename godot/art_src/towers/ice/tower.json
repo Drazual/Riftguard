@@ -3,6 +3,8 @@
 	"yaw": "Turret/Yaw",
 	"pitch": "Turret/Yaw/Pitch",
 	"anims": { "idle": "shimmer", "fire": "attack" },
+	"idle_frames": 8,
+	"idle_time": 2.4,
 	"aim": 0.0,
 	"dirs": 16,
 	"fire_times": [0.08, 0.2, 0.32, 0.44, 0.56, 0.68, 0.79, 0.86, 0.93],
