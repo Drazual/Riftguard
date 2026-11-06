@@ -559,19 +559,20 @@ func seg_dist(px: float, py: float, z: Dictionary) -> float:
 
 # ---------- combat ----------
 ## Armor: % damage taken off, capped. Brittle enemies have none; Shieldbearers add to it; Sunder and Armor Break cut it.
-func armor_of(e: Enemy, src) -> float:
+## pen: the share of the armor the hit ignores (the hero's Armor Piercing).
+func armor_of(e: Enemy, src, pen := 0.0) -> float:
 	if e.brittle_t > 0:
 		return 0.0
 	var a := e.armor + e.aura_armor - (e.brk if e.brk_t > 0 else 0.0)
 	if src is Tower:
 		a -= src.sunder + (src.buff.sunder if src.buff else 0.0)
-	return clampf(a, 0, R.boss_armor_cap if e.boss else R.armor_cap)
+	return clampf(a, 0, R.boss_armor_cap if e.boss else R.armor_cap) * (1.0 - pen)
 
 
 ## src: the Tower that dealt it, or null for the hero and spells.
 ## pierce: 0 normal, 1 ignores armor (burns, zones, executes), 2 = Hex Brand pulse (ignores armor and doesn't feed the brand).
-## crit: a critical hit, shown as a number popping up over the enemy.
-func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false) -> void:
+## crit: a critical hit, shown as a number popping up over the enemy. pen: the share of armor it ignores.
+func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false, pen := 0.0) -> void:
 	if e.dead:
 		return
 	var tw: bool = src is Tower
@@ -579,7 +580,7 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false) -> voi
 	if tw and src.curse_t > 0:
 		amt *= 1 - src.curse_dmg
 	if not pierce:
-		amt *= 1 - armor_of(e, src)
+		amt *= 1 - armor_of(e, src, pen)
 	var dealt := minf(amt, e.hp)
 	if crit:
 		fx_add({ k = "num", x = e.x + randf_range(-8, 8), y = e.y, text = UiText.f0(amt), color = 0xffd36e, t = 1.3, r = e.r })
@@ -1514,6 +1515,9 @@ func orbital_strike(h: Hero, a: Ability) -> void:
 		ring(x, y, r, 0xffd36e, 0.5, true)
 		if a.scorch:
 			zone({ x = x, y = y, r = r * 0.8, t = 4.0, dps = hero_dmg() * 0.6, color = 0xff8a3d })
+		if a.rad_t > 0 and mult >= 1.0:
+			# Radiation Field: a glowing patch that keeps burning and slowing whatever walks through it
+			zone({ x = x, y = y, r = r * 0.9, t = a.rad_t, dps = hero_dmg() * a.rad_dps, slow = 0.3, color = 0x7dff4a, rad = true })
 	later(0.8, func():
 		boom.call(at.x, at.y, a.r, 1.0)
 		do_shake(0.014, 280)
@@ -1571,7 +1575,14 @@ func _nova_blast(a: Ability, x: float, y: float, r: float, dmg: float, depth: in
 				later(0.12, func(): _nova_blast(a, ex, ey, 55, dmg * 0.5, depth + 1))
 
 
+## Rift Nova hits for its damage times how much the hero's own damage has grown (upgrades, shrines, Overdrive's
+## crits aside), so it keeps up with the hero instead of staying at its base number.
+func nova_dmg(h: Hero, a: Ability) -> float:
+	return a.dmg * hero_dmg() / maxf(1.0, h.data.dmg)
+
+
 func rift_nova(h: Hero, a: Ability) -> void:
+	var nd := nova_dmg(h, a)
 	if a.dash and S.pointer != null:
 		var dx: float = S.pointer.x - h.x
 		var dy: float = S.pointer.y - h.y
@@ -1582,7 +1593,7 @@ func rift_nova(h: Hero, a: Ability) -> void:
 		var nx := h.x + dx / d * len
 		var ny := h.y + dy / d * len
 		for i in 6:
-			zone({ x = h.x + (nx - h.x) * i / 5.0, y = h.y + (ny - h.y) * i / 5.0, r = 26.0, t = 3.0, dps = a.dmg * 0.5, color = 0xff6f6f })
+			zone({ x = h.x + (nx - h.x) * i / 5.0, y = h.y + (ny - h.y) * i / 5.0, r = 26.0, t = 3.0, dps = nd * 0.5, color = 0xff6f6f })
 		line(h.x, h.y, nx, ny, 0xffffff, 0.3, 6)
 		h.x = nx
 		h.y = ny
@@ -1594,11 +1605,11 @@ func rift_nova(h: Hero, a: Ability) -> void:
 			e.stun_t = maxf(e.stun_t, 1.5)
 		zone({ x = x, y = y, r = a.r, t = 1.5, color = 0x9a7cff, vortex = true })
 		later(1.5, func():
-			_nova_blast(a, x, y, a.r, a.dmg * 1.5, 0)
+			_nova_blast(a, x, y, a.r, nd * 1.5, 0)
 			do_shake(0.015, 300)
 			sfx("boom"))
 	else:
-		_nova_blast(a, h.x, h.y, a.r, a.dmg, 0)
+		_nova_blast(a, h.x, h.y, a.r, nd, 0)
 		do_shake(0.006, 180)
 	if a.twin:
 		var tough: Enemy = null
@@ -1606,7 +1617,7 @@ func rift_nova(h: Hero, a: Ability) -> void:
 			if not e.dead and (tough == null or e.hp > tough.hp):
 				tough = e
 		if tough:
-			later(0.25, func(): _nova_blast(a, tough.x, tough.y, a.r * 0.8, a.dmg, 0))
+			later(0.25, func(): _nova_blast(a, tough.x, tough.y, a.r * 0.8, nd, 0))
 
 
 ## Enemies a shot from the hero toward goal would pass through.
@@ -3156,7 +3167,7 @@ func _hero_hit(h: Hero, HX: Dictionary, t: Enemy, dmg: float, crit: bool) -> voi
 	var ex: bool = h.execute and not t.boss and (t.hp - dmg) / t.max <= h.execute
 	if ex:
 		dmg = t.hp + 1
-	damage(t, dmg, null, 1 if ex else 0, crit and not ex)
+	damage(t, dmg, null, 1 if ex else 0, crit and not ex, h.armor_pen)
 	if h.knock and not t.dead:
 		# Gale: every hit shoves the enemy back a little (bosses barely move)
 		push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)

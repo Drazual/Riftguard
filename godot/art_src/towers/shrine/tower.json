@@ -1,0 +1,15 @@
+{
+	"model": "hero_shrine.glb",
+	"anims": { "idle": "idle", "fire": "idle" },
+	"muzzle": "BuffPoint",
+	"idle_frames": 16,
+	"idle_time": 4.0,
+	"dirs": 1,
+	"fire_frames": 1,
+	"fire_time": 0.1,
+	"size": 160,
+	"wide": 56,
+	"foot": [80, 150],
+	"out": "shrine_3d",
+	"shot_frame": 0
+}

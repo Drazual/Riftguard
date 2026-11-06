@@ -18,7 +18,7 @@ func _ready() -> void:
 		Save.meta.tips[id] = true
 	var main: Main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	add_child(main)
-	var kinds := ["disc", "plasma", "laser", "frost", "tesla", "mortar"]
+	var kinds := ["disc", "plasma", "laser", "frost", "tesla", "shrine", "mortar"]
 	main.ui.menus.new_run("canal")
 	main.ui.menus.start_run("striker", kinds)
 	for i in 10:

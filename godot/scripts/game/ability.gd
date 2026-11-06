@@ -40,6 +40,8 @@ var shatter_s := false
 var anchor := false
 var carpet := false
 var scorch := false
+var rad_t := 0.0 # Radiation Field: how long the strike's field lasts (0 = none)
+var rad_dps := 0.0 # and its damage per second, as a share of the hero's damage
 var exec_r := false
 var follow_s := false
 var downdraft := false

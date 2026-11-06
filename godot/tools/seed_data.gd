@@ -329,7 +329,7 @@ func heroes() -> Array:
 		H({ id = "sniper", name = "Sniper", role = "Offensive", category = "offensive", color = col(0xffd36e),
 			desc = "Hits anything on the map, but has to stand still and brace before every shot. Slow, heavy, precise.",
 			hp = 170.0, dmg = 48.0, rate = 2.4, range = 9999.0, block = 1, armor = 0.0, regen = 2.0, speed = 140.0, brace = 1.2, crit = 0.1 },
-			A({ id = "pierce", name = "Piercing Shot", cd = 16.0, mult = 4.0, w = 18.0, desc = "Hold Q to see its exact path and who it will hit, and let go to fire a round through every enemy on that line for {f1(a.mult)}× damage." }),
+			A({ id = "pierce", name = "Piercing Shot", cd = 16.0, mult = 2.5, w = 18.0, desc = "Hold Q to see its exact path and who it will hit, and let go to fire a round through every enemy on that line for {f1(a.mult)}× damage." }),
 			A({ id = "strike", name = "Orbital Strike", cd = 16.0, mult = 5.0, r = 90.0, desc = "Calls a strike where your cursor is on the map (or the toughest enemy). After 0.8s it hits everything within {f0(a.r)} for {f1(a.mult)}× damage." }), [
 			{ id = "rounds", name = "Heavy Rounds", cost = "60 + 50 * r", desc = "+{5 * r}% damage", effect = "h.dmg *= 1 + 0.05 * r" },
 			{ id = "stance", name = "Steady Stance", cost = "80 + 60 * r", desc = "Brace {5 * r}% faster", effect = "h.brace *= 1 - 0.05 * r" },
@@ -351,7 +351,7 @@ func heroes() -> Array:
 func perks() -> Array:
 	var ability := ["seismic", "after", "daze", "core", "nfocus", "wide", "surge", "extend", "apround", "steady", "barrier", "adren", "redline", "payload"]
 	var kinds := { "blade": "damage", "caliber": "damage", "headhunter": "damage", "crit": "crit", "critdmg": "crit", "clock": "speed", "chamber": "speed", "study": "xp", "momentum": "speed",
-		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "arch": "cost", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "finisher": "execute",
+		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "arch": "cost", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "armorpen": "armorpen",
 		"arcpow": "damage", "manapool": "mana", "manaflow": "mana", "thrift": "mana", "reachsp": "range", "rime": "control", "zephyr": "control", "masonry": "wall", "bounces": "bounce" }
 	var list := [
 		{ id = "blade", pool = "offensive", name = "Plasma Blade", m = 0.2, desc = "+{pct(m)} hero damage.", effect = "h.dmg *= 1 + m" },
@@ -375,7 +375,7 @@ func perks() -> Array:
 		{ id = "critdmg", pool = "offensive", name = "Lethal Edge", m = 0.25, desc = "+{pct(m)} crit damage.", effect = "h.crit_dmg += m" },
 		{ id = "bounce", pool = "striker", name = "Ricochet", m = 0.1, desc = "{iff(h.bounce_keep >= 0.999, 'Ricochets bounce 1 more time, still at full damage.', iff(h.bounce, 'Ricochets', 'Shots ricochet to 1 more enemy and') + ' keep ' + pct(iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)) + ' of their damage each bounce.')}", effect = "h.bounce = iff(h.bounce_keep >= 0.999, min(8, h.bounce + 1), max(1, h.bounce))\nh.bounce_keep = iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)" },
 		{ id = "bounces", pool = "striker", name = "Extra Bounce", m = 1.0, after = "bounce", desc = "Ricochets bounce {max(1, round(m))} more time{iff(round(m) > 1, 's', '')}.", effect = "h.bounce = min(8, h.bounce + max(1, round(m)))" },
-		{ id = "finisher", pool = "striker", name = "Finisher", m = 0.06, desc = "Your shots instantly finish off non-boss enemies left at {pct(m)} HP or less (stacks, up to 30%).", effect = "h.execute = min(0.3, h.execute + m)" },
+		{ id = "armorpen", pool = "striker", name = "Armor Piercing", m = 0.2, desc = "Your hero's shots ignore {pct(m)} of enemy armor (stacks, up to 75%).", effect = "h.armor_pen = min(0.75, h.armor_pen + m)" },
 		{ id = "clock", pool = "striker", name = "Overclock", m = 0.15, desc = "+{pct(m)} attack speed.", effect = "h.rate /= 1 + m" },
 		{ id = "core", pool = "striker", ability = "nova", name = "Nova Core", m = 0.3, desc = "Rift Nova deals +{pct(m)} damage.", effect = "h.ab.dmg *= 1 + m" },
 		{ id = "nfocus", pool = "striker", name = "Rift Focus", m = 0.1, desc = "{h.ab.name} recharges {pct(min(0.5, m))} faster.", effect = "h.ab.cd = max(6, h.ab.cd * (1 - min(0.5, m)))" },
@@ -399,6 +399,7 @@ func perks() -> Array:
 		{ id = "barrier", pool = "vanguard", ability = "bulwark", name = "Hardened Barrier", m = 1.0, desc = "Bulwark Shield lasts {f1(m)}s longer.", effect = "h.ab.dur += m" },
 		{ id = "adren", pool = "striker", ability = "overdrive", name = "Adrenaline", m = 1.0, desc = "Overdrive lasts {f1(m)}s longer.", effect = "h.ab.dur += m" },
 		{ id = "redline", pool = "striker", ability = "overdrive", name = "Redline", m = 0.25, desc = "Overdrive gives +{pct(m)} more attack speed.", effect = "h.ab.power += m" },
+		{ id = "radfield", pool = "sniper", ability = "strike", name = "Radiation Field", m = 0.3, desc = "{iff(h.ab.rad_t > 0, 'The radiation field lasts 1s longer and deals +' + pct(m) + ' of your hero damage more each second.', 'Orbital Strike leaves a radiation field for 4s: enemies in it are slowed 30% and take ' + pct(m) + ' of your hero damage every second.')}", effect = "h.ab.rad_dps += m\nh.ab.rad_t = iff(h.ab.rad_t > 0, h.ab.rad_t + 1, 4.0)" },
 		{ id = "payload", pool = "sniper", ability = "strike", name = "Bigger Payload", m = 0.15, desc = "Orbital Strike blast is {pct(m)} wider.", effect = "h.ab.r *= 1 + m" },
 		{ id = "arcpow", pool = "wizard", name = "Arcane Power", m = 0.15, desc = "Spells deal +{pct(m)} damage.", effect = "h.spell *= 1 + m" },
 		{ id = "manapool", pool = "wizard", name = "Deep Reserves", m = 20.0, desc = "+{round(m)} max mana and a full refill.", effect = "h.max_mana += round(m)\nh.mana = h.max_mana" },

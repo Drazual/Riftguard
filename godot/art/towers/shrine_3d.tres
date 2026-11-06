@@ -1,0 +1,135 @@
+[gd_resource type="SpriteFrames" load_steps=19 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/towers/shrine_3d.png" id="1"]
+
+[sub_resource type="AtlasTexture" id="A1"]
+atlas = ExtResource("1")
+region = Rect2(0, 0, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A2"]
+atlas = ExtResource("1")
+region = Rect2(0, 160, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A3"]
+atlas = ExtResource("1")
+region = Rect2(0, 320, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A4"]
+atlas = ExtResource("1")
+region = Rect2(0, 480, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A5"]
+atlas = ExtResource("1")
+region = Rect2(0, 640, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A6"]
+atlas = ExtResource("1")
+region = Rect2(0, 800, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A7"]
+atlas = ExtResource("1")
+region = Rect2(0, 960, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A8"]
+atlas = ExtResource("1")
+region = Rect2(0, 1120, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A9"]
+atlas = ExtResource("1")
+region = Rect2(0, 1280, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A10"]
+atlas = ExtResource("1")
+region = Rect2(0, 1440, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A11"]
+atlas = ExtResource("1")
+region = Rect2(0, 1600, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A12"]
+atlas = ExtResource("1")
+region = Rect2(0, 1760, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A13"]
+atlas = ExtResource("1")
+region = Rect2(0, 1920, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A14"]
+atlas = ExtResource("1")
+region = Rect2(0, 2080, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A15"]
+atlas = ExtResource("1")
+region = Rect2(0, 2240, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A16"]
+atlas = ExtResource("1")
+region = Rect2(0, 2400, 160, 160)
+
+[sub_resource type="AtlasTexture" id="A17"]
+atlas = ExtResource("1")
+region = Rect2(0, 2560, 160, 160)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("A1")
+}, {
+"duration": 1.0,
+"texture": SubResource("A2")
+}, {
+"duration": 1.0,
+"texture": SubResource("A3")
+}, {
+"duration": 1.0,
+"texture": SubResource("A4")
+}, {
+"duration": 1.0,
+"texture": SubResource("A5")
+}, {
+"duration": 1.0,
+"texture": SubResource("A6")
+}, {
+"duration": 1.0,
+"texture": SubResource("A7")
+}, {
+"duration": 1.0,
+"texture": SubResource("A8")
+}, {
+"duration": 1.0,
+"texture": SubResource("A9")
+}, {
+"duration": 1.0,
+"texture": SubResource("A10")
+}, {
+"duration": 1.0,
+"texture": SubResource("A11")
+}, {
+"duration": 1.0,
+"texture": SubResource("A12")
+}, {
+"duration": 1.0,
+"texture": SubResource("A13")
+}, {
+"duration": 1.0,
+"texture": SubResource("A14")
+}, {
+"duration": 1.0,
+"texture": SubResource("A15")
+}, {
+"duration": 1.0,
+"texture": SubResource("A16")
+}],
+"loop": true,
+"name": &"idle_0",
+"speed": 4.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("A17")
+}],
+"loop": false,
+"name": &"fire_0",
+"speed": 10.0
+}]

@@ -7,6 +7,7 @@ extends "res://tools/render_hero.gd"
 ##   model   the .glb: Y up, metres, origin at the base's bottom centre, the turret aiming +Z
 ##   yaw     the node that turns the turret (rotation.y); pitch: the node that tilts it (rotation.x, negative = up).
 ##           Both optional: a tower that never turns (the Tesla Coil) leaves them out and uses "dirs": 1.
+##   muzzle  the node shots (or a support tower's buff effects) come from (default "Muzzle")
 ##   anims   { "idle": clip, "fire": clip }. The tool sets yaw and pitch itself, so any yaw/pitch keys in those
 ##           clips are overridden. The idle clip's yaw and pitch tracks are dropped altogether, so an idle that sweeps
 ##           the turret around (e.g. "idle" on the cannons) never fights the aim; use an aim-safe clip like the Frost
@@ -94,7 +95,7 @@ func _run() -> void:
 	_toon(model)
 	yaw_node = model.get_node_or_null(cfg.get("yaw", ""))
 	pitch_node = model.get_node_or_null(cfg.get("pitch", ""))
-	var muzzle: Node3D = model.find_child("Muzzle", true, false)
+	var muzzle: Node3D = model.find_child(cfg.get("muzzle", "Muzzle"), true, false)
 	var ap: AnimationPlayer = model.find_child("AnimationPlayer", true, false)
 	var idle := _safe_idle(model, ap, cfg)
 	var idle_len := ap.get_animation(idle).length

@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://d2xlxwjceghwt" path="res://scripts/data/tower_data.gd" id="3_td"]
 [ext_resource type="SpriteFrames" uid="uid://bbriy71hnn38q" path="res://art/towers/shrine.tres" id="4_fr"]
 [ext_resource type="Texture2D" uid="uid://cai0xyap2jtve" path="res://assets/towers/shrine.png" id="5_sh"]
+[ext_resource type="SpriteFrames" path="res://art/towers/shrine_3d.tres" id="6_turret"]
 
 [sub_resource type="Resource" id="Path_fury"]
 script = ExtResource("1_tp")
@@ -240,3 +241,7 @@ frames = ExtResource("4_fr")
 sheet = ExtResource("5_sh")
 foot_y = 37.0
 muzzle_y = 22.0
+turret = ExtResource("6_turret")
+turret_muzzle = PackedVector2Array(80.0, 84.2)
+turret_foot = Vector2(80, 150)
+turret_scale = 0.38
