@@ -79,6 +79,10 @@ var F := 1
 var bg: ColorRect
 var art_flat: Node2D # the map's road glints and build pads, on the ground under everything
 var art_glow: Sprite2D # the map's neon glow, added over the standing sprites
+var zoom := 1.0 # how far the map is zoomed in (1 = the whole map)
+var cam := Vector2(ART_W / 2.0, ART_H / 2.0) # the map point in the middle of the view, in art pixels (F = 1)
+var panning := false
+const ZOOM_MAX := 2.5
 var art_sprites: Array[Node] = [] # the map's buildings and props, sorted with the units
 const NEON_SHADER := preload("res://scripts/board/map_neon.gdshader")
 const GLOW_SHADER := preload("res://scripts/board/map_glow.gdshader")
@@ -165,7 +169,7 @@ func to_field(p: Vector2) -> Vector2:
 	var vs := Vector2(ART_W * F, ART_H * F)
 	var s := minf(size.x / vs.x, size.y / vs.y)
 	var off := (size - vs * s) / 2
-	var art := (p - off) / s
+	var art := _unzoom((p - off) / s)
 	var sx := art.x / (PX * F)
 	var sy := art.y / (PX * F)
 	return Vector2(sx, (sy - TOP) / K)
@@ -174,6 +178,9 @@ func to_field(p: Vector2) -> Vector2:
 func _gui_input(ev: InputEvent) -> void:
 	var S := _S()
 	if S == null or S.hero == null:
+		return
+	if _zoom_input(ev):
+		accept_event()
 		return
 	if ev is InputEventMouseButton and ev.pressed:
 		var p := to_field(ev.position)
@@ -216,6 +223,68 @@ func _notification(what: int) -> void:
 		_hide_tip()
 
 
+# ---------- zoom ----------
+## The view's transform: the map scaled by `zoom` about `cam`, which sits in the middle of the view.
+func _view() -> Transform2D:
+	var mid := Vector2(ART_W, ART_H) * F / 2.0
+	return Transform2D(0, Vector2(zoom, zoom), 0, mid - cam * F * zoom)
+
+
+## A point in the view's pixels -> the same point on the unzoomed map, in viewport pixels.
+func _unzoom(v: Vector2) -> Vector2:
+	return _view().affine_inverse() * v
+
+
+## Mouse wheel / pinch zooms toward the pointer; middle-drag, or a two-finger trackpad scroll while zoomed, pans.
+## Returns true when it used the event.
+func _zoom_input(ev: InputEvent) -> bool:
+	if ev is InputEventMouseButton:
+		if ev.button_index == MOUSE_BUTTON_WHEEL_UP or ev.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			if ev.pressed:
+				var f: float = ev.factor if ev.factor > 0 else 1.0
+				zoom_by(pow(1.15, f) if ev.button_index == MOUSE_BUTTON_WHEEL_UP else pow(1.15, -f), ev.position)
+			return true
+		if ev.button_index == MOUSE_BUTTON_MIDDLE:
+			panning = ev.pressed
+			return true
+	elif ev is InputEventMouseMotion and panning:
+		pan_by(ev.relative)
+		return true
+	elif ev is InputEventMagnifyGesture:
+		zoom_by(ev.factor, ev.position)
+		return true
+	elif ev is InputEventPanGesture and zoom > 1.0:
+		pan_by(-ev.delta * 12.0)
+		return true
+	return false
+
+
+## Zooms by `f` keeping the map point under `at` (a point on the board control) where it is.
+func zoom_by(f: float, at: Vector2) -> void:
+	var vs := Vector2(ART_W * F, ART_H * F)
+	var s := minf(size.x / vs.x, size.y / vs.y)
+	var v := (at - (size - vs * s) / 2) / s # the pointer, in the view's pixels
+	var before := _unzoom(v)
+	zoom = clampf(zoom * f, 1.0, ZOOM_MAX)
+	var after := _unzoom(v)
+	cam += (before - after) / F
+	_clamp_cam()
+
+
+## Moves the view by a drag of `d` board-control pixels.
+func pan_by(d: Vector2) -> void:
+	var vs := Vector2(ART_W * F, ART_H * F)
+	var s := minf(size.x / vs.x, size.y / vs.y)
+	cam -= d / s / F / zoom
+	_clamp_cam()
+
+
+## Keeps the view on the map.
+func _clamp_cam() -> void:
+	var half := Vector2(ART_W, ART_H) / (2.0 * zoom)
+	cam = cam.clamp(half, Vector2(ART_W, ART_H) - half)
+
+
 # ---------- per frame ----------
 func sync(dt: float) -> void:
 	frame_no += 1
@@ -226,9 +295,9 @@ func sync(dt: float) -> void:
 	if shake_t > 0:
 		shake_t -= dt
 		var a := shake_amt * ART_W * F * (shake_t / shake_dur if shake_dur > 0 else 0.0)
-		viewport.canvas_transform = Transform2D(0, Vector2(randf_range(-a, a), randf_range(-a, a)))
-	elif viewport.canvas_transform.origin != Vector2.ZERO:
-		viewport.canvas_transform = Transform2D.IDENTITY
+		viewport.canvas_transform = _view().translated(Vector2(randf_range(-a, a), randf_range(-a, a)))
+	else:
+		viewport.canvas_transform = _view()
 	var speed := 0.0
 	if S and not S.paused and not S.over:
 		speed = S.speed
@@ -471,6 +540,15 @@ func _sync_ghost(S: Run) -> void:
 			show = true
 	if ghost != null:
 		ghost.visible = show
+
+
+## The grid square a tower standing at p fills on a free-build map: the snap grid square its foot is in (the same
+## squares Game.snap_cell picks from), a hair inside the grid lines.
+func _snap_square(p: Vector2) -> Rect2:
+	var g := Game.BUILD_SNAP
+	var mid := Vector2((floorf(p.x / g) + 0.5) * g, (floorf(p.y / g) + 0.5) * g + Game.FOOT_DY)
+	var half := g / 2.0 - 1.0
+	return Rect2(mid.x - half, mid.y - half, half * 2, half * 2)
 
 
 ## The build mask as a faint green wash over the ground where towers can go (made once per map).
@@ -1259,12 +1337,12 @@ func _draw_flat() -> void:
 	if S.build != "" and h.ko <= 0:
 		_circle(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.05))
 		_ring(g, h.pos(), h.build_range, hx(0x4fd8e8, 0.35), 1)
-		if free: # a faint wash over the ground towers can go on, and a dot on every free grid spot they snap to
+		if free: # a faint wash over the ground towers can go on, and the outline of every free grid square they snap to
 			g.draw_texture_rect(_build_wash(S.map), Rect2(0, Game.FOOT_DY, S.map.build_w * S.map.build_step, S.map.build_h * S.map.build_step), false)
-			var dot := hx(0xffffff, 0.35)
+			var edge := hx(0xffffff, 0.22)
 			for c: Vector2i in game.snap_cells():
 				if game.tower_at(c.x, c.y) == null:
-					_circle(g, game.cell_pos(c.x, c.y) + Vector2(0, Game.FOOT_DY), 2.5, dot)
+					g.draw_rect(_snap_square(game.cell_pos(c.x, c.y)), edge, false, 1.0)
 		if pads: # outline the free pads: green within reach, gold beyond it
 			for i in S.map.pad_centres.size():
 				if game.tower_at(i, MapInfo.SPOT_ROW) == null:
@@ -1278,9 +1356,9 @@ func _draw_flat() -> void:
 				_pad_mark(g, hv.x, hc2, true)
 			elif free: # the new tower's footprint; the tower itself shows as a tinted ghost (_sync_ghost)
 				if game.tower_at(hv.x, hv.y) == null:
-					var foot := game.cell_pos(hv.x, hv.y) + Vector2(0, Game.FOOT_DY)
-					_circle(g, foot, 17, ca(hc2, 0.3))
-					_ring(g, foot, 17, ca(hc2, 0.9), 1.5)
+					var sq := _snap_square(game.cell_pos(hv.x, hv.y))
+					g.draw_rect(sq, ca(hc2, 0.3))
+					g.draw_rect(sq, ca(hc2, 0.9), false, 1.5)
 			else:
 				g.draw_rect(Rect2(hv.x * C, hv.y * C, C, C), hc2)
 			if ok and not (free and game.tower_at(hv.x, hv.y) != null):
@@ -1291,7 +1369,7 @@ func _draw_flat() -> void:
 		if pads:
 			_pad_mark(g, pb.c, ca(DB.towers[pb.type].color, 0.8), false, 2)
 		elif free:
-			_ring(g, game.cell_pos(pb.c, pb.r) + Vector2(0, Game.FOOT_DY), 17, ca(DB.towers[pb.type].color, 0.8), 2)
+			g.draw_rect(_snap_square(game.cell_pos(pb.c, pb.r)), ca(DB.towers[pb.type].color, 0.8), false, 2)
 		else:
 			g.draw_rect(Rect2(pb.c * C + 4, pb.r * C + 4, C - 8, C - 8), ca(DB.towers[pb.type].color, 0.8), false, 2)
 	var show_r: Tower = S.sel if S.sel != null else tip_tower
@@ -1610,6 +1688,9 @@ func _tile_image(tex: Texture2D) -> Image:
 
 func bake_ground(m: MapInfo) -> void:
 	ground_for = m
+	zoom = 1.0 # a new map starts zoomed all the way out
+	cam = Vector2(ART_W / 2.0, ART_H / 2.0)
+	panning = false
 	_clear_art()
 	if not m.art.is_empty():
 		_build_art(m)

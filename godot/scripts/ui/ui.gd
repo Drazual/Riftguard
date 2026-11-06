@@ -1081,7 +1081,7 @@ func render_codex() -> void:
 			h.add_child(Kit.spacer())
 			h.add_child(Kit.label("Undiscovered", 13, Kit.MUTED))
 		codex_box.add_child(h)
-	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, T change the selected tower’s target, Space start wave, Esc settings."))
+	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, T change the selected tower’s target, Space start wave, Esc settings. Mouse wheel or pinch zooms the map; drag with the middle button (or two-finger scroll) to look around while zoomed."))
 
 
 func render_enemy_codex() -> void:
