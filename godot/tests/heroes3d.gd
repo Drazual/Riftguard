@@ -11,7 +11,7 @@ func _ready() -> void:
 	if args.size():
 		out = args[0]
 	DirAccess.make_dir_recursive_absolute(out)
-	get_tree().create_timer(150).timeout.connect(func(): print("HEROES TIMEOUT"); get_tree().quit(1))
+	get_tree().create_timer(220).timeout.connect(func(): print("HEROES TIMEOUT"); get_tree().quit(1))
 	seed(5)
 	Save.meta.secret_heroes = {}
 	for id in Menus.FIRST_TIPS:
@@ -21,7 +21,7 @@ func _ready() -> void:
 	main.ui.menus.new_run("canal")
 	main.ui.menus.show_hero_select()
 	await _shot("00_select", 20)
-	for hero in ["striker", "sniper", "wizard"]:
+	for hero in ["striker", "sniper", "wizard", "vanguard"]:
 		main.ui.menus.start_run(hero, ["arcane", "plasma", "laser", "frost", "tesla", "mortar"])
 		for i in 10:
 			await get_tree().process_frame

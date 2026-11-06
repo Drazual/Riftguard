@@ -368,13 +368,17 @@ func _lock_root(a: Animation, bone: String) -> void:
 			a.track_set_key_value(t, k, Vector3(p0.x, p.y, p0.z))
 
 
-## Plays idle, walk or fire with a short blend. Fire restarts on every call (one per shot). A cast still playing
-## isn't cut short by idle (only by walking or another cast).
+## Plays idle, walk or fire (or a hero's extra looping stances: "block", "hold") with a short blend. Fire restarts on
+## every call (one per shot). A cast or swing still playing isn't cut short by standing still, nor a cast by a shot
+## (only by walking or another cast).
 func play(what: String, speed: float = 1.0) -> void:
 	if not anims.has(what):
 		return
-	if state == "cast" and what == "idle" and ap.is_playing():
-		cast_speed = speed
+	# a cast, or a melee swing, still playing isn't cut short by standing still (idle, a block or a held guard)
+	if (state == "cast" or state == "fire") and what in ["idle", "block", "hold"] and ap.is_playing() \
+			or state == "cast" and what == "fire" and ap.is_playing():
+		if state == "cast":
+			cast_speed = speed
 		return
 	cast_rel = 0.0
 	if what != state or what == "fire":
@@ -539,7 +543,11 @@ func _barrel_turn(d: Vector3) -> float:
 func _fit() -> void:
 	var top := -INF
 	var low := INF
+	# only the body's own bones count (an effect bone, like the Vanguard's BulwarkFX, can sit anywhere)
+	var mixamo := skel.find_bone(cfg.get("lock_root", "mixamorig_Hips")) >= 0
 	for i in skel.get_bone_count():
+		if mixamo and not skel.get_bone_name(i).begins_with("mixamorig"):
+			continue
 		var y := (skel.global_transform * skel.get_bone_global_pose(i).origin).y
 		top = maxf(top, y)
 		low = minf(low, y)

@@ -683,7 +683,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		s.set_meta("hero", h.data.id)
 		units.add_child(s)
 		hero_spr = s
-		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO }
+		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO,
+			ab_at = h.ab_at, burst_at = h.burst_at }
 		s.animation_finished.connect(func(): hero_state.anim = "")
 		if not live3d:
 			s.play("idle_4")
@@ -712,9 +713,11 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var moving: bool = st.move_t > 0
 	# keep facing the target between shots, so walking and shooting doesn't flip back and forth
 	var firing := S.time - h.atk_at < maxf(0.25, minf(h.rate, 1.0) + 0.15)
+	# the Vanguard turns to the enemy it brings its Shield Slam down on (its ability cast, see Game.cast_ability)
+	var slamming := h.ab.id == "slam" and S.time - h.ab_at < 1.1
 	# face the target while shooting, else the way it's walking (on screen, so the tilt counts)
 	var v := Vector2.ZERO
-	if firing or (h.aim_live and not moving):
+	if firing or slamming or (h.aim_live and not moving):
 		v = Vector2(h.aim_x - h.x, (h.aim_y - h.y) * K)
 	elif moving:
 		v = Vector2(mx, my * K)
@@ -765,6 +768,13 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		if want == "walk":
 			# long strides at a steady pace (see Hero3D.move)
 			hero_3d.move(st.get("gv", h.speed) * PX, speed, m < 0, firing)
+		elif h.ab_at != st.ab_at and ABILITY_CLIP.has(h.ab.id) and hero_3d.ap.has_animation(ABILITY_CLIP[h.ab.id]):
+			hero_3d.cast(ABILITY_CLIP[h.ab.id], speed)
+		elif h.burst_at != st.burst_at and hero_3d.ap.has_animation("bulwark_burst"):
+			hero_3d.cast("bulwark_burst", speed)
+		elif h.ab.id == "bulwark" and h.shield_t > 0 and hero_3d.anims.has("hold"):
+			# braced behind the Bulwark Shield for as long as it lasts (it keeps hitting, without the swing)
+			hero_3d.play("hold", speed)
 		elif shot_now and h.data.spells:
 			hero_3d.cast(cast_clip(h.cast_key), speed)
 		elif shot_now:
@@ -772,9 +782,18 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		elif want == "fire" or firing or h.aim_live:
 			# between shots (and while lining one up) the gun stays raised on the target
 			hero_3d.aim()
+		elif want == "idle" and hero_3d.anims.has("block") and S.enemies.any(func(e): return e.blocked and not e.dead):
+			# holding enemies back: the shield up in a braced guard
+			hero_3d.play("block", speed)
 		else:
 			hero_3d.play(want, speed * m)
+	st.ab_at = h.ab_at
+	st.burst_at = h.burst_at
 	_sync_hero_gun(S, h, s, firing, dt, speed)
+
+
+## The model clip each ability plays as it is cast (the Vanguard's tank model). Abilities not listed have none.
+const ABILITY_CLIP := { slam = "shield_slam", bulwark = "bulwark" }
 
 
 ## The Wizard model's clip for a spell (its runes, e.g. "fire+water"): one element casts cast_<element>, the same

@@ -13,4 +13,7 @@ extends Resource
 @export var power := 0.0
 @export var mult := 0.0
 @export var w := 0.0
+## Seconds into the hero's cast animation before the ability takes effect (the Vanguard's shield comes down or
+## goes up then). 0 = at once.
+@export var release := 0.0
 @export_multiline var desc := ""

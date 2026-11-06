@@ -1326,6 +1326,27 @@ func cast_ability(_free: bool) -> void:
 		piercing_shot(h, a)
 		return
 	sfx("ability")
+	# an ability with a cast animation (the Vanguard's) lands at its release moment in the clip, not at once
+	if a.release > 0 and a.id in ["slam", "bulwark"]:
+		h.ab_at = S.time
+		var at := h.pos()
+		if a.id == "slam":
+			# the shield comes down just ahead of the hero, toward the nearest enemy it can reach (else straight on)
+			var goal := in_range(h.x, h.y, a.r)
+			goal.sort_custom(func(p, q): return hyp(p.x - h.x, p.y - h.y) < hyp(q.x - h.x, q.y - h.y))
+			if goal.size():
+				h.aim_x = goal[0].x
+				h.aim_y = goal[0].y
+			at = Vector2(h.aim_x, h.aim_y) if goal.size() else at
+		var dir := (at - h.pos()).normalized() if at != h.pos() else Vector2.ZERO
+		later(a.release, func():
+			if S.hero != h or h.ko > 0 or S.over:
+				return
+			if a.id == "slam":
+				slam(h, a, 1.0, h.pos() + dir * SLAM_AHEAD)
+			else:
+				bulwark_shield(h, a))
+		return
 	match a.id:
 		"slam":
 			slam(h, a, 1.0)
@@ -1449,7 +1470,9 @@ func end_shield(h: Hero) -> void:
 		h.shield_t = 0
 		h.soaked = 0
 		return
-	var dmg := ab_dmg(h, a) + h.soaked * 0.6
+	# the burst is its own base damage plus 60% of what the shield really soaked (not the hero's max HP)
+	var dmg := a.dmg + h.soaked * 0.6
+	h.burst_at = S.time
 	for e in in_range(h.x, h.y, a.r):
 		damage(e, dmg)
 	if a.overflow and h.shield > 0:
@@ -1529,9 +1552,13 @@ func orbital_strike(h: Hero, a: Ability) -> void:
 				later(0.15 * (i + 1), func(): boom.call(at.x + cos(ang) * dd, at.y + sin(ang) * dd, a.r * 0.7, 0.5)))
 
 
-func slam(h: Hero, a: Ability, mult: float) -> void:
-	var x := h.x
-	var y := h.y
+## How far ahead of the Vanguard's feet its Shield Slam lands (the model's SlamPoint, 0.8 m in front of a 1.9 m hero).
+const SLAM_AHEAD := 14.0
+
+## at: where the shield hits the ground (the hero's feet if not given).
+func slam(h: Hero, a: Ability, mult: float, at = null) -> void:
+	var x: float = at.x if at != null else h.x
+	var y: float = at.y if at != null else h.y
 	var r := a.r * (1.5 if a.magnet else 1.0)
 	for e in in_range(x, y, r):
 		damage(e, ab_dmg(h, a) * mult)
@@ -3153,6 +3180,16 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 			dmg *= 4
 		# a hero that fires real bullets (shot_fx) hits when the bullet gets there, not the moment it shoots
 		var flight := hyp(t.x - h.x, t.y - h.y) / (h.data.shot_speed if h.data.shot_speed > 0 else HERO_SHOT_SPEED) if h.data and h.data.shot_fx else 0.0
+		if h.data and h.data.hit_time > 0:
+			# a melee swing (the Vanguard's shield bash) lands partway into its animation, once, if the target is
+			# still alive and within reach by then
+			var reach := hero_range(h)
+			later(h.data.hit_time, func():
+				if t.dead or h.ko > 0 or S.hero != h or hyp(t.x - h.x, t.y - h.y) > reach + t.r + 10:
+					return
+				ring(t.x, t.y, t.r + 6, 0xffffff if crit else 0x9af0ff, 0.2)
+				_hero_hit(h, HX, t, dmg, crit))
+			continue
 		line(h.x, h.y, t.x, t.y, 0xffffff if crit else 0xf2c14e, 0.1, 3 if crit else 2, { l1 = 22, hero = true, flight = flight, target = t })
 		if flight > 0:
 			later(flight, func():

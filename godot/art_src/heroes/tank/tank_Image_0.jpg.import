@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://diwqymacxgvf7"
-path="res://.godot/imported/vanguard.png-b810c7c83b0a1b09c964f830fbd979a5.ctex"
+uid="uid://cejj00w27famv"
+path="res://.godot/imported/tank_Image_0.jpg-344412f442c9d3a691b088b2862e301e.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "be34caa43e2f75952a0b507ec59e1c34"
 }
 
 [deps]
 
-source_file="res://assets/heroes/vanguard.png"
-dest_files=["res://.godot/imported/vanguard.png-b810c7c83b0a1b09c964f830fbd979a5.ctex"]
+source_file="res://art_src/heroes/tank/tank_Image_0.jpg"
+dest_files=["res://.godot/imported/tank_Image_0.jpg-344412f442c9d3a691b088b2862e301e.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
