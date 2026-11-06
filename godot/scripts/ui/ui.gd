@@ -837,7 +837,19 @@ func _rune_bar() -> void:
 	Kit.tip_on(box, tip_fn, "above")
 	rune_cast = Kit.rich("", 13)
 	rune_cast.autowrap_mode = TextServer.AUTOWRAP_OFF
-	rune_cast.custom_minimum_size = Vector2(170, 0)
+	# a fixed width, as wide as its longest line can get (three runes and the longest spell name), so readying
+	# runes never changes the bar's width: growing, it would wrap the bar onto a second row and squash the map
+	rune_cast.fit_content = false
+	rune_cast.clip_contents = true
+	rune_cast.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	var bold := rune_cast.get_theme_font("bold_font")
+	var norm := rune_cast.get_theme_font("normal_font")
+	var widest := norm.get_string_size("Ready runes with " + " ".join(S.rune_keys.keys()).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+	for key in DB.spells:
+		widest = maxf(widest, bold.get_string_size(DB.spells[key].name, HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x
+			+ norm.get_string_size(" 999 mana · left-click", HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x)
+	widest += norm.get_string_size("● ● ● ", HORIZONTAL_ALIGNMENT_LEFT, -1, 13).x + 6
+	rune_cast.custom_minimum_size = Vector2(ceilf(widest), norm.get_height(13) + 4)
 	rune_cast.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	box.add_child(rune_cast)
 	mana_meter = Kit.meter(0, Color("#5fa8ff"))
