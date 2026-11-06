@@ -2,9 +2,7 @@
 
 [ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_ab"]
 [ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_up"]
-[ext_resource type="SpriteFrames" uid="uid://bgrxhil3j28yl" path="res://art/heroes/gale.tres" id="3_fr"]
 [ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="4_hd"]
-[ext_resource type="Texture2D" uid="uid://ifirifpbsd3i" path="res://assets/heroes/gale.png" id="5_sh"]
 
 [sub_resource type="Resource" id="Resource_whirl"]
 script = ExtResource("1_ab")
@@ -15,6 +13,7 @@ dmg = 40.0
 r = 95.0
 stun = 0.4
 dur = 5.0
+release = 0.5
 power = 300.0
 mult = 0.2
 desc = "Spins, dealing {f0(a.dmg)} damage within {f0(a.r)} and throwing enemies far back along the path. Gives a shield worth {pct(a.mult)} of max HP for {f1(a.dur)}s."
@@ -30,6 +29,7 @@ stun = 1.6
 dur = 0.8
 mult = 0.25
 w = 22.0
+release = 0.35
 desc = "Shoots a beam of wind {f0(a.r)} long at the lead enemy. After {f1(a.dur)}s every enemy it caught is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
 
 [sub_resource type="Resource" id="Resource_m1"]
@@ -84,12 +84,12 @@ dmg = 18.0
 rate = 0.75
 range = 70.0
 block = 999
-armor = 0.12
+armor = 60.0
 regen = 4.5
 knock = 14.0
 secret = false
 ability = SubResource("Resource_whirl")
 alt = SubResource("Resource_stream")
 meta = Array[ExtResource("2_up")]([SubResource("Resource_m1"), SubResource("Resource_m2"), SubResource("Resource_m3"), SubResource("Resource_m4")])
-frames = ExtResource("3_fr")
-sheet = ExtResource("5_sh")
+model_dir = "res://art_src/heroes/gale_tank"
+hit_time = 0.3

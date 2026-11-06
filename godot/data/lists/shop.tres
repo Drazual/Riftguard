@@ -84,10 +84,10 @@ heroes = PackedStringArray()
 script = ExtResource("1_ywjn6")
 id = "titan"
 name = "Titan Frame"
-desc = "Hero +{pct(m)} max HP and takes {pct(m / 2)} less damage."
+desc = "Hero +{pct(m)} max HP and +{f0(m * 100)} armor."
 effect = "h.max_hp = round(h.max_hp * (1 + m))
 h.hp = h.max_hp
-h.armor = min(0.8, h.armor + m / 2)"
+h.armor += m * 100"
 m = 0.4
 also_pools = PackedStringArray()
 price = 260

@@ -713,8 +713,9 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var moving: bool = st.move_t > 0
 	# keep facing the target between shots, so walking and shooting doesn't flip back and forth
 	var firing := S.time - h.atk_at < maxf(0.25, minf(h.rate, 1.0) + 0.15)
-	# the Vanguard turns to the enemy it brings its Shield Slam down on (its ability cast, see Game.cast_ability)
-	var slamming := h.ab.id == "slam" and S.time - h.ab_at < 1.1
+	# the Vanguard turns to the enemy it brings its Shield Slam down on, Gale to the one it blasts with Air Stream
+	# (their ability casts, see Game.cast_ability)
+	var slamming := h.ab.id in ["slam", "stream"] and S.time - h.ab_at < 1.1
 	# face the target while shooting, else the way it's walking (on screen, so the tilt counts)
 	var v := Vector2.ZERO
 	if firing or slamming or (h.aim_live and not moving):
@@ -782,8 +783,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		elif want == "fire" or firing or h.aim_live:
 			# between shots (and while lining one up) the gun stays raised on the target
 			hero_3d.aim()
-		elif want == "idle" and hero_3d.anims.has("block") and S.enemies.any(func(e): return e.blocked and not e.dead):
-			# holding enemies back: the shield up in a braced guard
+		elif want == "idle" and hero_3d.anims.has("block") and (h.hold or S.enemies.any(func(e): return e.blocked and not e.dead)):
+			# holding position (H) or holding enemies back: braced behind the shield
 			hero_3d.play("block", speed)
 		else:
 			hero_3d.play(want, speed * m)
@@ -792,8 +793,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	_sync_hero_gun(S, h, s, firing, dt, speed)
 
 
-## The model clip each ability plays as it is cast (the Vanguard's tank model). Abilities not listed have none.
-const ABILITY_CLIP := { slam = "shield_slam", bulwark = "bulwark" }
+## The model clip each ability plays as it is cast (the Vanguard's and Gale's models). Abilities not listed have none.
+const ABILITY_CLIP := { slam = "shield_slam", bulwark = "bulwark", whirl = "shield_slam", stream = "bash" }
 
 
 ## The Wizard model's clip for a spell (its runes, e.g. "fire+water"): one element casts cast_<element>, the same

@@ -104,9 +104,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "shell"
 name = "Hardlight Shell"
-desc = "Take {pct(m)} less damage (up to 75%)."
-effect = "h.armor = min(0.75, h.armor + m)"
-m = 0.08
+desc = "+{f0(m)} armor."
+effect = "h.armor += m"
+m = 15.0
 pool = "vanguard"
 also_pools = PackedStringArray()
 kind = "shell"
@@ -767,9 +767,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "bracing"
 name = "Bracing Winds"
-desc = "Take {pct(m * 0.5)} less damage."
-effect = "h.armor = min(0.75, h.armor + m * 0.5)"
-m = 0.06
+desc = "+{f0(m)} armor."
+effect = "h.armor += m"
+m = 12.0
 pool = "gale"
 also_pools = PackedStringArray()
 kind = "tough"

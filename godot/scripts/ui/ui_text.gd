@@ -4,7 +4,7 @@ extends RefCounted
 
 const ROLE_LEVEL := {
 	offensive = "+2% damage, +1% range, +1.5% attack speed",
-	defensive = "+3% max HP, +0.5% damage reduction, +0.2% of max HP as regen per second",
+	defensive = "+3% max HP, +2 armor, +0.2% of max HP as regen per second",
 	support = "+1% range and aura reach, +1% XP gain",
 	special = "+4% spell damage, +3 max mana, +0.15 mana per second",
 }
@@ -224,11 +224,11 @@ static func hero_stats(g: Game, h: Hero) -> Array:
 	var a := h.ab
 	var an := a.name if a else ""
 	return [
-		["Damage", h.dmg, "n"], ["Attacks", 1 / h.rate, "r"], ["Max HP", h.max_hp, "n"], ["Armor", h.armor, "p"], ["Regen/s", h.regen, "n"],
+		["Damage", h.dmg, "n"], ["Attacks", 1 / h.rate, "r"], ["Max HP", h.max_hp, "n"], ["Armor", h.armor, "n"], ["Damage blocked by armor", h.armor_cut(), "p"], ["Regen/s", h.regen, "n"],
 		["Crit chance", h.crit, "p"], ["Crit damage", h.crit_dmg, "p"], ["Bounces", h.bounce, "n"], ["Bounce damage kept", h.bounce_keep, "p"], ["Range", minf(9999, h.range), "n"],
 		["Move speed", h.speed, "n"], ["Blocks", mini(h.block, Game.ALL_BLOCK - 1), "n"], ["Respawn", h.respawn, "s"], ["Build range", h.build_range, "n"],
 		["Tower aura", h.aura, "p"], ["Aura reach", h.aura_range, "n"], ["Aura slow", h.aura_slow, "p"], ["Heal per kill", h.siphon, "n"],
-		["Hero kill gold", h.bounty, "n"], ["Kill gold (all)", h.tithe, "n"], ["Thorns/s", h.thorns, "n"], ["Taunt", h.taunt, "s"],
+		["Hero kill gold", h.bounty, "n"], ["Kill gold (all)", h.tithe, "n"], ["Thorns/s", h.thorns_dps(), "n"], ["Taunt", h.taunt, "s"],
 		["Momentum per kill", h.momentum, "p"], ["Free level-ups near you", h.rapid, "n"], ["Spotter", h.spotter, "p"], ["Boss damage", h.headhunter, "p"],
 		["Interest", h.interest, "p"], ["XP gain", h.xp_gain, "p"], ["Brace time", h.brace, "s"], ["Extra hits", h.pierce, "n"], ["Tower range", h.tower_range, "p"],
 		["Tower build cost", h.cost_mul, "p"], ["Level-up cost", h.lvl_mul, "p"], ["Merge cost", h.merge_mul, "p"], ["Boss stun reduction", minf(0.8, h.grounded), "p"],
