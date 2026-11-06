@@ -61,6 +61,7 @@ var deadeye := 0.0
 var shot_stun := 0.0
 var grounded := 0.0
 var execute := 0.0
+var armor_pen := 0.0 # the share of enemy armor the hero's attacks ignore (Armor Piercing)
 var bullet_storm := 0.0
 var attacks := 0
 var unbreakable := false

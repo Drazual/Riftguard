@@ -38,6 +38,10 @@ var aim_fix := 0.0 # extra turn while shooting so the barrel, not the body, poin
 var state := ""
 var cast_rel := 0.0 # while casting: the clip time the spell leaves at; the wind-up before it plays fast
 var cast_speed := 1.0
+var cast_at := 0.0 # the clip time this cast lets go at (kept after cast_rel clears), for its squash and pop
+var cast_spin := 0.0 # a full twirl through the wind-up (the ultimate)
+var fit_scale := Vector3.ONE
+var ground_y := 0.0 # the model's height before a cast's hop (eased toward base_y less the hip drop)
 var fitted := false
 var tall := 26.0
 ## How fast the walk (and run) clips would carry the hero, in world units per second of a 1.8-unit hero, measured
@@ -117,6 +121,8 @@ func setup(dir: String, height: float = 26.0) -> void:
 			if cfg.has("lock_root"):
 				_lock_root(anim, cfg.lock_root)
 			anim.loop_mode = Animation.LOOP_NONE
+			if cfg.has("cast_big"):
+				_exaggerate(anim, float(cfg.cast_big))
 	# shooting on the move: the walk's legs and hips with the fire clip's raised, aimed upper body (not for a
 	# caster, whose "fire" is a whole-body cast: "walkfire": false)
 	if anims.has("walk") and anims.has("fire") and cfg.get("walkfire", true):
@@ -284,6 +290,32 @@ func _stretch(a: Animation, k: float) -> void:
 			a.track_set_key_value(t, i, (mean * Quaternion(d.get_axis().normalized(), ang * k)).normalized())
 
 
+## Bigger, cartoonier casts: every upper-body bone (spine, neck, head, arms, hands) swings `k` times as far from
+## the clip's first pose (the stance it starts from), so the staff goes higher, the lean deeper and the throw wider.
+## The extra is capped at about 30 degrees a bone, so the big swings keep their shape instead of folding over.
+func _exaggerate(a: Animation, k: float) -> void:
+	for t in a.get_track_count():
+		if a.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+			continue
+		var bone := String(a.track_get_path(t)).get_slice(":", 1)
+		if not (bone.contains("Spine") or bone.contains("Neck") or bone.contains("Head") or bone.contains("Shoulder") \
+				or bone.contains("Arm") or bone.ends_with("Hand")):
+			continue
+		var n := a.track_get_key_count(t)
+		if n < 2:
+			continue
+		var q0: Quaternion = a.track_get_key_value(t, 0)
+		for i in range(1, n):
+			var q: Quaternion = a.track_get_key_value(t, i)
+			var d := q0.inverse() * q
+			if d.w < 0:
+				d = -d
+			var ang := d.get_angle()
+			if ang < 0.0001:
+				continue
+			a.track_set_key_value(t, i, (q0 * Quaternion(d.get_axis().normalized(), ang + minf(ang * (k - 1.0), 0.5))).normalized())
+
+
 ## A run made from a walk: the legs swing `stride` times further (on top of the walk's own stretch), the upper body
 ## leans `lean` degrees forward, and the hips bob up `bounce` metres between footfalls (twice a cycle).
 ## { "stride": 1.4, "lean": 12, "bounce": 0.04 }
@@ -365,6 +397,8 @@ func cast(clip: String, speed: float = 1.0) -> void:
 	state = "cast"
 	cast_speed = speed
 	cast_rel = float(cfg.get("release", {}).get(clip, 0.0))
+	cast_at = cast_rel if cast_rel > 0.0 else ap.get_animation(clip).length * 0.35
+	cast_spin = TAU if clip == "cast_ultimate" and cfg.has("cast_big") else 0.0
 	ap.speed_scale = speed * _windup_rate()
 
 
@@ -439,7 +473,44 @@ func _process(dt: float) -> void:
 				low = minf(low, (skel.global_transform * skel.get_bone_global_pose(b).origin).y - model.position.y + base_y)
 		if low < INF:
 			drop = minf(0.0, ankle - low)
-	model.position.y = lerpf(model.position.y, base_y + drop, 1.0 - exp(-dt * 20.0))
+	ground_y = lerpf(ground_y, base_y + drop, 1.0 - exp(-dt * 20.0))
+	model.position.y = ground_y
+	_cast_body()
+
+
+## A cartoony cast (hero.json "cast_big"): he crouches and leans back winding up, then springs up taller and
+## thinner with a little hop and a lean into the throw as the spell leaves, and settles. The ultimate also spins
+## him round once on the wind-up.
+func _cast_body() -> void:
+	if not fitted or not cfg.has("cast_big"):
+		return
+	var sy := 1.0
+	var sxz := 1.0
+	var hop := 0.0
+	var lean := 0.0
+	var spin := 0.0
+	if state == "cast" and ap.is_playing():
+		var pos := ap.current_animation_position
+		var len := ap.current_animation_length
+		if pos < cast_at:
+			var w := pos / maxf(0.001, cast_at)
+			var e := sin(w * PI / 2)
+			sy = 1.0 - 0.14 * e
+			sxz = 1.0 + 0.1 * e
+			lean = -10.0 * e
+			spin = cast_spin * w * w * (3 - 2 * w)
+		else:
+			var v := clampf((pos - cast_at) / maxf(0.05, len - cast_at), 0, 1)
+			var e := pow(1.0 - v, 3)
+			var up := sin(minf(1.0, v * 3.0) * PI)
+			sy = 1.0 + 0.2 * e * (1.0 if v < 0.33 else 0.6)
+			sxz = 1.0 - 0.08 * e
+			hop = 0.22 * up
+			lean = 12.0 * e
+	model.scale = fit_scale * Vector3(sxz, sy, sxz)
+	model.position.y += hop
+	model.rotation.x += deg_to_rad(lean)
+	model.rotation.y += spin
 
 
 ## How much more to turn the hero (about the vertical) so its barrel, `d` from the weapon to the Muzzle, points
@@ -478,7 +549,9 @@ func _fit() -> void:
 	model.scale *= 1.8 / ((top - low) * 1.08)
 	model.position.y -= low * 1.8 / ((top - low) * 1.08)
 	fitted = true
+	fit_scale = model.scale
 	base_y = model.position.y
+	ground_y = base_y
 	var feet := INF
 	for f in [cfg.get("foot", "mixamorig_LeftFoot"), cfg.get("foot_r", "mixamorig_RightFoot")]:
 		var b := skel.find_bone(f)

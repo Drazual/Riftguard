@@ -13,6 +13,7 @@
 	"style": "painted",
 	"walkfire": false,
 	"windup": 0.15,
+	"cast_big": 1.5,
 	"extra": {
 		"fire": {
 			"cast_fire": 7,

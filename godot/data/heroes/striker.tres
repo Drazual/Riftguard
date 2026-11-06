@@ -13,7 +13,7 @@ name = "Rift Nova"
 cd = 10.0
 dmg = 160.0
 r = 120.0
-desc = "Deals {f0(a.dmg)} damage to every enemy within {f0(a.r)}."
+desc = "Deals {f1(a.dmg / 40)}× your hero damage to every enemy within {f0(a.r)}, so it grows with every damage upgrade."
 
 [sub_resource type="Resource" id="Resource_bymy4"]
 script = ExtResource("1_8aiy5")

@@ -6,7 +6,7 @@
 script = ExtResource("1_t6bmd")
 texts = {
 "ability:bulwark": "A shield absorbs damage, then bursts to hurt enemies.",
-"ability:nova": "Damages every enemy around you.",
+"ability:nova": "Damages every enemy around you. It gets stronger as your hero's damage does.",
 "ability:overclock": "Nearby towers fire much faster for a while.",
 "ability:overdrive": "You attack much faster for a short time.",
 "ability:pierce": "Fires a powerful shot through a whole line of enemies.",
@@ -273,7 +273,8 @@ texts = {
 "perk:reachsp": "Spells cover a bigger area.",
 "perk:redline": "Overdrive makes you attack even faster.",
 "perk:rime": "Freezes last longer.",
-"perk:finisher": "Your hero's shots finish off badly hurt enemies.",
+"perk:radfield": "Orbital Strike leaves a field that hurts and slows enemies.",
+"perk:armorpen": "Your hero's shots ignore part of enemy armor.",
 "perk:seismic": "Your ability hits harder.",
 "perk:shell": "Your hero takes less damage.",
 "perk:signal": "All towers get more range.",

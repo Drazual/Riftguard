@@ -10,7 +10,7 @@ script = ExtResource("1_5qh7a")
 id = "pierce"
 name = "Piercing Shot"
 cd = 16.0
-mult = 4.0
+mult = 2.5
 w = 18.0
 desc = "Hold Q to see its exact path and who it will hit, and let go to fire a round through every enemy on that line for {f1(a.mult)}× damage."
 

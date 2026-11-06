@@ -1537,6 +1537,25 @@ func _draw_flat() -> void:
 		if z.get("line", false):
 			_line(g, Vector2(z.x1, z.y1), Vector2(z.x2, z.y2), ca(zc, 0.22 * a), z.r * 2)
 			_line(g, Vector2(z.x1, z.y1), Vector2(z.x2, z.y2), ca(zc, 0.7 * a), 2)
+		elif z.get("rad", false):
+			# Radiation Field: a glowing green pool with a slow-turning trefoil and specks drifting up out of it
+			var c := Vector2(z.x, z.y)
+			_circle(g, c, z.r, ca(zc, (0.16 + 0.08 * pulse) * a))
+			_circle(g, c, z.r * 0.6, ca(zc, (0.1 + 0.06 * pulse) * a))
+			_ring(g, c, z.r, ca(zc, 0.75 * a), 2)
+			_ring(g, c, z.r * (0.6 + 0.4 * fmod(S.time * 0.8, 1.0)), ca(zc, 0.35 * a * (1 - fmod(S.time * 0.8, 1.0))), 1)
+			var turn := S.time * 0.6
+			for i in 3:
+				var a0 := turn + i * TAU / 3
+				var pts := PackedVector2Array([c])
+				for j in 7:
+					pts.append(c + Vector2.from_angle(a0 + j * (PI / 3) / 6) * z.r * 0.42)
+				g.draw_colored_polygon(pts, ca(hx(0x1b2a10), 0.35 * a))
+			_circle(g, c, z.r * 0.09, ca(hx(0x1b2a10), 0.45 * a))
+			for i in 6:
+				var k := fmod(S.time * 0.7 + i / 6.0, 1.0)
+				var ang := i * 2.4
+				_circle(g, c + Vector2(cos(ang), sin(ang)) * z.r * (0.25 + 0.6 * fmod(i * 0.37, 1.0)) - Vector2(0, k * 26 / K), 2.5 * (1 - k), ca(hx(0xc8ff9a), 0.8 * a * (1 - k)))
 		elif z.get("vortex", false):
 			for i in 3:
 				_ring(g, Vector2(z.x, z.y), z.r * (1 - fmod(S.time * 1.5 + i / 3.0, 1.0)), ca(zc, 0.8 * a), 2)
