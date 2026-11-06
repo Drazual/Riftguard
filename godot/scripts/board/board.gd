@@ -1582,7 +1582,8 @@ func _draw_flat() -> void:
 		var HX := S.heroics
 		if HX.get("wither", 0):
 			_circle(g, h.pos(), 90 + 20 * HX.wither, hx(0x7a2e5a, 0.12))
-		if h.range < 9999 and S.hero_sel:
+		# (the Wizard's reach also shows while a spell is readied, since it can only cast inside it)
+		if h.range < 9999 and (S.hero_sel or (h.data.spells and S.runes.size())):
 			# a tinted disc with a dark-backed bright edge, so the reach reads on busy, light maps
 			_circle(g, h.pos(), h.range, ca(hc, 0.16))
 			_ring(g, h.pos(), h.range, Color(0.06, 0.03, 0.12, 0.7), 8)

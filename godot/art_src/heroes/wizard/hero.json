@@ -76,5 +76,6 @@
 		"stride": 1.35,
 		"lean": 14,
 		"bounce": 0.05
-	}
+	},
+	"narrow": 8
 }
