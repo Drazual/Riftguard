@@ -958,14 +958,15 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 				cd *= 0.85
 
 
-## Siege Mortar: shells fly slowly toward where the target will be (leading it along the path) and blast on landing.
+## Siege Mortar: shells go straight up out of sight and come down fast on where the target will be (leading it
+## along the path), and blast on landing. Every shell takes the same short time, however far it goes, so the lead
+## stays accurate.
+const SHELL_TIME := 0.8
 func lob_shell(t: Tower, e: Enemy, mult: float) -> void:
-	var speed := 170.0 * (1.4 if S.sig.get("mortar", false) else 1.0)
 	var wait := fire_lead(t)
-	var T := maxf(0.6, hyp(e.x - t.x, e.y - t.y) / speed)
+	var T := SHELL_TIME / (1.25 if S.sig.get("mortar", false) else 1.0)
 	var lead := 0.0 if e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * (T + wait)
 	var p := pos_at(minf(S.map.path_len, e.d + lead))
-	T = maxf(0.6, hyp(p.x - t.x, p.y - t.y) / speed)
 	t.shot_at = S.time
 	t.hit_at = p # a 3D mortar turns toward where the shell will land
 	S.shells.append({ tw = t, x0 = t.x, y0 = t.y, x1 = p.x, y1 = p.y, t = 0.0, T = T, mult = mult, wait = wait, done = false })

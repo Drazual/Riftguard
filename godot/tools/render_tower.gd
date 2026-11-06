@@ -144,6 +144,7 @@ func _run() -> void:
 var shot_size := 32
 var shot_frames := 1 # frames in the "shot" animation (a separate projectile model spins through several)
 var shot_fps := 1.0
+var shot_zoom := 1.0 # how many times larger than on the tower the shot renders (metadata/shot_zoom of the .tres)
 
 
 ## The projectile on its own: only `nodes` shown, posed at `t` of `clip`, the camera zoomed in `zoom` times on the
@@ -166,7 +167,8 @@ func _render_shot(model: Node3D, ap: AnimationPlayer, muzzle: Node3D, c: Diction
 	var mid := cam.project_position(Vector2(FRAME * SS, FRAME * SS) / 2.0, 20.0)
 	var at := cam.project_position(cam.unproject_position(muzzle.global_position), 20.0)
 	cam.position += at - mid
-	cam.size = size0 / float(c.get("zoom", 1.0))
+	shot_zoom = float(c.get("zoom", 1.0))
+	cam.size = size0 / shot_zoom
 	cam.set_orthogonal(cam.size, cam.near, cam.far)
 	await process_frame
 	await process_frame
@@ -207,7 +209,8 @@ func _render_projectile(tower: Node3D, dir: String, c: Dictionary, out: String) 
 	var mid := cam.project_position(Vector2(FRAME * SS, FRAME * SS) / 2.0, 20.0)
 	var at := cam.project_position(cam.unproject_position(p.global_position), 20.0)
 	cam.position += at - mid
-	cam.size = size0 / float(c.get("zoom", 1.0))
+	shot_zoom = float(c.get("zoom", 1.0))
+	cam.size = size0 / shot_zoom
 	cam.set_orthogonal(cam.size, cam.near, cam.far)
 	var strip := Image.create(shot_size * shot_frames, shot_size, false, Image.FORMAT_RGBA8)
 	var o := (FRAME - shot_size) / 2
@@ -405,4 +408,6 @@ func _tower_frames_tres(out: String, fire_len: float, shot := false) -> void:
 	f.store_string("\n")
 	f.store_string("\n".join(subs))
 	f.store_string("\n[resource]\nanimations = [%s]\n" % ", ".join(anims))
+	if shot:
+		f.store_string("metadata/shot_zoom = %s\n" % shot_zoom)
 	f.close()

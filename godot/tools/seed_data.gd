@@ -350,8 +350,8 @@ func heroes() -> Array:
 # ---------------- hero upgrades ----------------
 func perks() -> Array:
 	var ability := ["seismic", "after", "daze", "core", "nfocus", "wide", "surge", "extend", "apround", "steady", "barrier", "adren", "redline", "payload"]
-	var kinds := { "blade": "damage", "caliber": "damage", "headhunter": "damage", "crit": "crit", "critdmg": "crit", "clock": "speed", "chamber": "speed", "boots": "speed", "momentum": "speed",
-		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "arch": "cost", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "scope": "range",
+	var kinds := { "blade": "damage", "caliber": "damage", "headhunter": "damage", "crit": "crit", "critdmg": "crit", "clock": "speed", "chamber": "speed", "study": "xp", "momentum": "speed",
+		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "arch": "cost", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "finisher": "execute",
 		"arcpow": "damage", "manapool": "mana", "manaflow": "mana", "thrift": "mana", "reachsp": "range", "rime": "control", "zephyr": "control", "masonry": "wall", "bounces": "bounce" }
 	var list := [
 		{ id = "blade", pool = "offensive", name = "Plasma Blade", m = 0.2, desc = "+{pct(m)} hero damage.", effect = "h.dmg *= 1 + m" },
@@ -363,7 +363,7 @@ func perks() -> Array:
 		{ id = "bounty", pool = "offensive", gold = true, name = "Bounty Sigil", m = 0.8, desc = "Enemies your hero kills drop +{max(1, round(m))} gold.", effect = "h.bounty += max(1, round(m))" },
 		{ id = "tithe", pool = "defensive", also_pools = ["support"], gold = true, name = "War Tithe", m = 0.3, desc = "Every enemy killed by your towers or your hero drops +{max(1, round(m))} gold.", effect = "h.tithe += max(1, round(m))" },
 		{ id = "siphon", pool = "defensive", name = "Siphon", m = 3.0, desc = "Heal {round(m)} HP for every kill.", effect = "h.siphon += round(m)" },
-		{ id = "boots", pool = "any", attack_speed = true, name = "Rift Boots", m = 0.15, desc = "+{pct(m)} move speed and +{pct(m / 2)} attack speed.", effect = "h.speed *= 1 + m\nh.rate /= 1 + m / 2" },
+		{ id = "study", pool = "any", name = "Quick Study", m = 0.15, desc = "Your hero earns +{pct(m)} more XP, so levels up sooner.", effect = "h.xp_gain += m" },
 		{ id = "taunt", pool = "vanguard", name = "Taunt", m = 2.0, desc = "After Shield Slam, enemies within 120 stop and attack you for {f1(m)}s.", effect = "h.taunt += m" },
 		{ id = "shell", pool = "vanguard", name = "Hardlight Shell", m = 0.08, desc = "Take {pct(m)} less damage (up to 75%).", effect = "h.armor = min(0.75, h.armor + m)" },
 		{ id = "thorns", pool = "vanguard", name = "Thorn Field", m = 8.0, desc = "Enemies you block take {round(m)} damage per second.", effect = "h.thorns += m" },
@@ -375,7 +375,7 @@ func perks() -> Array:
 		{ id = "critdmg", pool = "offensive", name = "Lethal Edge", m = 0.25, desc = "+{pct(m)} crit damage.", effect = "h.crit_dmg += m" },
 		{ id = "bounce", pool = "striker", name = "Ricochet", m = 0.1, desc = "{iff(h.bounce_keep >= 0.999, 'Ricochets bounce 1 more time, still at full damage.', iff(h.bounce, 'Ricochets', 'Shots ricochet to 1 more enemy and') + ' keep ' + pct(iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)) + ' of their damage each bounce.')}", effect = "h.bounce = iff(h.bounce_keep >= 0.999, min(8, h.bounce + 1), max(1, h.bounce))\nh.bounce_keep = iff(h.bounce_keep, min(1, h.bounce_keep + m), 0.4 + m)" },
 		{ id = "bounces", pool = "striker", name = "Extra Bounce", m = 1.0, after = "bounce", desc = "Ricochets bounce {max(1, round(m))} more time{iff(round(m) > 1, 's', '')}.", effect = "h.bounce = min(8, h.bounce + max(1, round(m)))" },
-		{ id = "scope", pool = "striker", name = "Long Barrel", m = 0.12, weight = 0.35, desc = "+{pct(m)} attack range.", effect = "h.range *= 1 + m" },
+		{ id = "finisher", pool = "striker", name = "Finisher", m = 0.06, desc = "Your shots instantly finish off non-boss enemies left at {pct(m)} HP or less (stacks, up to 30%).", effect = "h.execute = min(0.3, h.execute + m)" },
 		{ id = "clock", pool = "striker", name = "Overclock", m = 0.15, desc = "+{pct(m)} attack speed.", effect = "h.rate /= 1 + m" },
 		{ id = "core", pool = "striker", ability = "nova", name = "Nova Core", m = 0.3, desc = "Rift Nova deals +{pct(m)} damage.", effect = "h.ab.dmg *= 1 + m" },
 		{ id = "nfocus", pool = "striker", name = "Rift Focus", m = 0.1, desc = "{h.ab.name} recharges {pct(min(0.5, m))} faster.", effect = "h.ab.cd = max(6, h.ab.cd * (1 - min(0.5, m)))" },
@@ -383,7 +383,7 @@ func perks() -> Array:
 		{ id = "momentum", pool = "striker", name = "Momentum", m = 0.03, desc = "Each kill by your hero gives +{pct(m)} attack speed for 4s, stacking up to 10 times.", effect = "h.momentum += m" },
 		{ id = "rapid", pool = "oracle", min_rarity = "rare", name = "Rapid Construction", m = 0.6, desc = "Towers you build within your aura get their first {max(1, round(m))} level-up{iff(round(m) > 1, 's', '')} free.", effect = "h.rapid += max(1, round(m))" },
 		{ id = "aura", pool = "oracle", name = "Commander Aura", m = 0.08, desc = "Towers near you deal +{pct(m)} more damage.", effect = "h.aura += m" },
-		{ id = "signal", pool = "oracle", name = "Signal Boost", m = 0.15, desc = "Aura reaches {pct(m)} farther and all towers get +{pct(m / 3)} range.", effect = "h.aura_range *= 1 + m\nh.tower_range += m / 3" },
+		{ id = "signal", pool = "oracle", name = "Signal Boost", m = 0.05, desc = "All towers get +{pct(m)} range.", effect = "h.tower_range += m" },
 		{ id = "surge", pool = "oracle", name = "Power Surge", m = 0.15, desc = "{iff(h.ab.id == 'stasis', 'Stasis Field slows ' + pct(m * 0.75) + ' more.', 'Overclock Field speeds towers up ' + pct(m) + ' more.')}", effect = "h.ab.power += m" },
 		{ id = "extend", pool = "oracle", name = "Extended Field", m = 1.5, desc = "{h.ab.name} lasts {f1(m)}s longer.", effect = "h.ab.dur += m" },
 		{ id = "chill", pool = "oracle", name = "Chilling Presence", m = 0.08, desc = "Towers near you also slow enemies by {pct(m)}.", effect = "h.aura_slow = min(0.6, h.aura_slow + m)" },

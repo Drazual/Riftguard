@@ -78,15 +78,13 @@ heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_jql25"]
 script = ExtResource("1_ttpmk")
-id = "boots"
-name = "Rift Boots"
-desc = "+{pct(m)} move speed and +{pct(m / 2)} of your base attack speed."
-effect = "h.speed *= 1 + m
-h.rate = 1 / (1 / h.rate + m / 2 / h.base_rate)"
+id = "study"
+name = "Quick Study"
+desc = "Your hero earns +{pct(m)} more XP, so levels up sooner."
+effect = "h.xp_gain += m"
 m = 0.15
 also_pools = PackedStringArray()
-attack_speed = true
-kind = "speed"
+kind = "xp"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_7ow2v"]
@@ -228,15 +226,14 @@ heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_660rp"]
 script = ExtResource("1_ttpmk")
-id = "scope"
-name = "Long Barrel"
-desc = "+{pct(m)} attack range."
-effect = "h.range *= 1 + m"
-m = 0.12
+id = "finisher"
+name = "Finisher"
+desc = "Your shots instantly finish off non-boss enemies left at {pct(m)} HP or less (stacks, up to 30%)."
+effect = "h.execute = min(0.3, h.execute + m)"
+m = 0.06
 pool = "striker"
 also_pools = PackedStringArray()
-kind = "range"
-weight = 0.35
+kind = "execute"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_egr0f"]
@@ -330,10 +327,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "signal"
 name = "Signal Boost"
-desc = "Aura reaches {pct(m)} farther and all towers get +{pct(m / 3)} range."
-effect = "h.aura_range *= 1 + m
-h.tower_range += m / 3"
-m = 0.15
+desc = "All towers get +{pct(m)} range."
+effect = "h.tower_range += m"
+m = 0.05
 pool = "oracle"
 also_pools = PackedStringArray()
 kind = "range"
