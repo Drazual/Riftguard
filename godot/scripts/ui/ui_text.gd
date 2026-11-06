@@ -317,7 +317,7 @@ static func ability_text(g: Game, h: Hero) -> String:
 		return ("Ready elements with %s, then left-click to cast at the cursor. Same element twice: a stronger spell. Two elements: a combination spell. Three of an element mastered to level %d: its ultimate. "
 			+ "Elements you cast rest for %ss. Spells cost mana, which flows only during waves; clearing a wave refills 30%% of it.") % [", ".join(keys), DB.rules.triple_at, f1t(DB.rules.element_rest)]
 	var t := ab_text(h.ab)
-	if t != "" and h.data and h.data.category == "defensive":
+	if t != "" and h.data and h.data.category == "defensive" and h.ab.id != "bulwark":
 		t += " Its damage grows with your max HP (+%d now)." % int(round(h.max_hp * DB.rules.tank_ability_hp))
 	return t
 

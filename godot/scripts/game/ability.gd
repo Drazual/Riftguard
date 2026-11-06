@@ -13,6 +13,7 @@ var dur := 0.0
 var power := 0.0
 var mult := 0.0
 var w := 0.0
+var release := 0.0 # seconds into the cast animation before it takes effect
 var desc := ""
 var t := 0.0 # cooldown left
 var haste := 0.0
@@ -51,7 +52,7 @@ static func from_data(a: AbilityData) -> Ability:
 	var b := Ability.new()
 	if a == null:
 		return b
-	for k in ["id", "name", "cd", "dmg", "r", "stun", "dur", "power", "mult", "w", "desc"]:
+	for k in ["id", "name", "cd", "dmg", "r", "stun", "dur", "power", "mult", "w", "release", "desc"]:
 		b.set(k, a.get(k))
 	b.base_dmg = b.dmg
 	return b

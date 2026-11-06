@@ -2,9 +2,7 @@
 
 [ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_s1qux"]
 [ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_picai"]
-[ext_resource type="SpriteFrames" uid="uid://3unflah6g4l1" path="res://art/heroes/vanguard.tres" id="2_yftxd"]
 [ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_yftxd"]
-[ext_resource type="Texture2D" uid="uid://diwqymacxgvf7" path="res://assets/heroes/vanguard.png" id="4_3ftpl"]
 
 [sub_resource type="Resource" id="Resource_hfr1b"]
 script = ExtResource("1_s1qux")
@@ -14,6 +12,7 @@ cd = 12.0
 dmg = 60.0
 r = 100.0
 stun = 1.5
+release = 0.5
 desc = "Deals {f0(a.dmg)} damage and stuns enemies within {f0(a.r)} for {f1(a.stun)}s."
 
 [sub_resource type="Resource" id="Resource_bnd7b"]
@@ -24,6 +23,7 @@ cd = 12.0
 dmg = 45.0
 r = 110.0
 dur = 5.0
+release = 0.35
 desc = "Raises a shield that soaks {f0(a.dmg * 5 * iff(a.overflow, 1.5, 1))} damage for {f1(a.dur)}s. When it breaks or ends it bursts, hitting enemies within {f0(a.r)} for {f0(a.dmg)} plus 60% of what it soaked."
 
 [sub_resource type="Resource" id="Resource_ym1xd"]
@@ -85,5 +85,5 @@ speed = 135.0
 ability = SubResource("Resource_hfr1b")
 alt = SubResource("Resource_bnd7b")
 meta = Array[ExtResource("2_picai")]([SubResource("Resource_ym1xd"), SubResource("Resource_isgv3"), SubResource("Resource_fh8k1"), SubResource("Resource_6vjy8")])
-frames = ExtResource("2_yftxd")
-sheet = ExtResource("4_3ftpl")
+model_dir = "res://art_src/heroes/tank"
+hit_time = 0.3

@@ -1,0 +1,17 @@
+{
+	"model": "tank.glb",
+	"anims": {
+		"idle": "idle",
+		"walk": "walk",
+		"fire": "attack",
+		"block": "block",
+		"hold": "bulwark_hold"
+	},
+	"lock_root": "mixamorig_Hips",
+	"walkfire": false,
+	"release": {
+		"shield_slam": 0.5,
+		"bulwark": 0.35,
+		"bulwark_burst": 0.2
+	}
+}
