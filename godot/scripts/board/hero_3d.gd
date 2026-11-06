@@ -33,6 +33,7 @@ var anims := {}
 var pic: Sprite2D
 var yaw := 0.0 # the model's current turn, eased toward the wanted one
 var want_yaw := 0.0
+var want_screen := PI / 2 # the screen angle it was last asked to face
 var aim_fix := 0.0 # extra turn while shooting so the barrel, not the body, points at the target
 var state := ""
 var cast_rel := 0.0 # while casting: the clip time the spell leaves at; the wind-up before it plays fast
@@ -386,7 +387,9 @@ func aim() -> void:
 
 ## Turns the hero to face a direction on screen (any angle: 0 = right, PI/2 = down the screen).
 func face(screen_angle: float, instant: bool = false) -> void:
-	var g := Vector2(cos(screen_angle), sin(screen_angle) / K) # on the ground: x right, y toward the camera
+	# on the ground (x right, y toward the camera), through this camera's own tilt so it matches on screen
+	want_screen = screen_angle
+	var g := Vector2(cos(screen_angle), sin(screen_angle) / sin(deg_to_rad(PITCH)))
 	want_yaw = atan2(g.x, g.y)
 	if instant:
 		yaw = want_yaw
@@ -415,8 +418,8 @@ func _process(dt: float) -> void:
 	var fix := 0.0
 	if (state == "fire" or state == "walkfire") and gun:
 		var m := muzzle_at() - _on_bone(gun)
-		if Vector2(m.x, m.z).length() > 0.05:
-			fix = clampf(wrapf(want_yaw - atan2(m.x, m.z) + aim_fix, -PI, PI), -0.7, 0.7)
+		if m.length() > 0.05:
+			fix = clampf(aim_fix + _barrel_turn(m), -1.2, 1.2)
 	aim_fix = lerpf(aim_fix, fix, 1.0 - exp(-dt * 12.0))
 	model.rotation.y = yaw + aim_fix
 	# recoil: each shot rocks the hero back on its heels and nudges it back a step, then it settles
@@ -437,6 +440,27 @@ func _process(dt: float) -> void:
 		if low < INF:
 			drop = minf(0.0, ankle - low)
 	model.position.y = lerpf(model.position.y, base_y + drop, 1.0 - exp(-dt * 20.0))
+
+
+## How much more to turn the hero (about the vertical) so its barrel, `d` from the weapon to the Muzzle, points
+## at `want_screen` as drawn on screen. That counts the barrel's own tilt up or down (the clip's), which turning
+## the ground facing alone leaves off by up to ~35 degrees. Of the turns that line it up, the smallest.
+func _barrel_turn(d: Vector3) -> float:
+	var p := deg_to_rad(PITCH)
+	var best := 0.0
+	var score := INF
+	for i in range(-48, 49):
+		var f := i * 0.025
+		var x := d.x * cos(f) + d.z * sin(f)
+		var z := -d.x * sin(f) + d.z * cos(f)
+		var s := Vector2(x, z * sin(p) - d.y * cos(p)) # on screen, y down
+		if s.length() < 0.01:
+			continue
+		var e := absf(angle_difference(s.angle(), want_screen)) + absf(f) * 0.02
+		if e < score:
+			score = e
+			best = f
+	return best
 
 
 ## Scales the model so it stands `tall` pixels, measured from its skeleton (head top to toes) once it is posed,

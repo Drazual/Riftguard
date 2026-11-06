@@ -25,6 +25,10 @@ const VH := 520.0 # H * K + TOP + BOT
 const ART_W := 768
 const ART_H := 416
 const TURRET_REST := 8 # the facing (of 16, 0 = up the screen) a turret tower starts in: toward the camera
+const DISC_R := 15.0 # a Razor Disc's starting radius (Tower.disc_r): its saw shows at the tower blade's size
+const SHELL_UP := 0.35 # a mortar shell's flight: rising until this far through it, hidden, then falling from here
+const SHELL_DOWN := 0.45
+const SHELL_HIGH := 700.0 # how far above the screen it goes (off the top at any zoom)
 const FOOT := 9.0 # a tower's base sits this far below its tile's centre on screen
 const BEAM_LEN := 29.0
 const PAL := { ink = Color("#101223"), deep = Color("#24243D"), dusk = Color("#3B3561"), violet = Color("#625080"), mist = Color("#9B8BA5") }
@@ -1133,15 +1137,17 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 		var lift: float = sp.get_meta("lift")
 		var x0: float = sp.get_meta("x0")
 		var u: float = sh.t / sh.T
-		var y0 := SY(sh.y0)
-		var y1 := SY(sh.y1)
-		var A := minf(140, Vector2(sh.x1 - x0, y1 - y0).length() * 0.4)
-		var x: float = x0 + (sh.x1 - x0) * u
-		var y := y0 + (y1 - y0) * u - A * sin(PI * u) - lift * (1 - u)
-		var vx: float = sh.x1 - x0
-		var vy := y1 - y0 - A * PI * cos(PI * u) + lift
-		sp.position = Vector2(x, y)
-		sp.rotation = atan2(vy, vx) - PI / 2
+		# straight up out of the barrel and off the top of the screen, a moment out of sight, then straight down
+		# onto the target, faster and faster (the sprite's nose points along +y)
+		sp.visible = u < SHELL_UP or u > SHELL_DOWN
+		if u < SHELL_UP:
+			var w := u / SHELL_UP
+			sp.position = Vector2(x0, SY(sh.y0) - lift - SHELL_HIGH * w * w)
+			sp.rotation = PI
+		else:
+			var w := clampf((u - SHELL_DOWN) / (1.0 - SHELL_DOWN), 0, 1)
+			sp.position = Vector2(sh.x1, SY(sh.y1) - SHELL_HIGH * (1 - w * w))
+			sp.rotation = 0.0
 	# Razor Discs with a saw rendered from 3D (the "shot" animation of TowerData.turret): it spins flat at knee
 	# height, drawn about as wide as what it cuts
 	for dk in S.discs:
@@ -1159,10 +1165,19 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 			sp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 			top.add_child(sp)
 			dk._v = sp
+			# it leaves from the blade loaded on the tower (the muzzle of the facing it shows), at that height
+			var m := turret_muzzle_at(dk.tw, d) if not d.turret_muzzle.is_empty() else Vector2(dk.tw.x, SY(dk.tw.y) - 10)
+			sp.set_meta("lift", SY(dk.tw.y) - m.y)
+			sp.set_meta("off", m - Vector2(dk.x, SY(dk.y) - (SY(dk.tw.y) - m.y)))
 		_seen(sp)
-		var k: float = dk.r * 2.3 / d.turret.get_frame_texture("shot", 0).get_width()
+		# the same scale as the tower's own blade (the strip renders it `shot_zoom` times larger), and larger
+		# when the disc is (upgrades, the signature)
+		var k: float = d.turret_scale / PX / float(d.turret.get_meta("shot_zoom", 1.0)) * dk.r / DISC_R
 		sp.scale = Vector2(k, k)
-		sp.position = Vector2(dk.x, SY(dk.y) - 10)
+		dk._vr = k * d.turret.get_frame_texture("shot", 0).get_width() * 0.45
+		var lift: float = sp.get_meta("lift")
+		var off: Vector2 = sp.get_meta("off")
+		sp.position = Vector2(dk.x, SY(dk.y) - lift) + off * (1.0 - clampf(dk.flown / 40.0, 0, 1))
 		var n := d.turret.get_frame_count("shot")
 		sp.frame = posmod(int(dk.spin / TAU * n), n)
 
@@ -1451,9 +1466,17 @@ func _draw_flat() -> void:
 	for t: Tower in S.towers:
 		if t.warn_t > 0:
 			_rrect(g, Rect2(t.x - 20, t.y - 20, 40, 40), 6, hx(0xff2e4d, 0.25 + 0.25 * sin(S.time * 30)))
-		_shadow(g, t.x, t.y + FOOT / K, 42)
-		if is_sprite_tower(t):
-			_ellipse(g, Vector2(t.x, t.y + 4), 46, 34, ca(t.color, 1.0 if t == S.sel else 0.35), false, 2)
+		var td: TowerData = DB.towers.get(t.type)
+		if td != null and td.turret != null and is_sprite_tower(t):
+			# a 3D-rendered turret: a tight contact shadow right under its base, so it sits on the ground
+			var f := td.turret_scale / 0.38
+			var c := Vector2(t.x, t.y + (FOOT - 4 * f) / K)
+			_ellipse(g, c, 32 * f, 15 * f / K, hx(0x101223, 0.3))
+			_ellipse(g, c, 24 * f, 10 * f / K, hx(0x101223, 0.45))
+		else:
+			_shadow(g, t.x, t.y + FOOT / K, 42)
+		if is_sprite_tower(t) and t == S.sel:
+			_ellipse(g, Vector2(t.x, t.y + 4), 46, 34, t.color, false, 2)
 		if game.overclocked(t):
 			_rrect(g, Rect2(t.x - 19, t.y - 19, 38, 38), 6, hx(0xb07cff, 0.9), false, 1)
 		if t.is_super:
@@ -1532,7 +1555,13 @@ func _draw_flat() -> void:
 		var u: float = 0.0 if sh.wait > 0 else sh.t / sh.T
 		var gp := Vector2(sh.x0 + (sh.x1 - sh.x0) * u, sh.y0 + (sh.y1 - sh.y0) * u)
 		_ring(g, Vector2(sh.x1, sh.y1), sh.tw.splash * (1.1 - 0.3 * u), hx(0xff5d6c, 0.25 + 0.4 * u), 1)
-		_circle(g, gp, 4, Color(0, 0, 0, 0.35))
+		if is_sprite_tower(sh.tw):
+			# a 3D mortar's shell drops straight down: its shadow grows on the target as it falls
+			if u > SHELL_DOWN:
+				var w := (u - SHELL_DOWN) / (1.0 - SHELL_DOWN)
+				_circle(g, Vector2(sh.x1, sh.y1), 2 + 4 * w, Color(0, 0, 0, 0.2 + 0.25 * w))
+		else:
+			_circle(g, gp, 4, Color(0, 0, 0, 0.35))
 	# a wall spell readied: the path tile it will lock onto
 	if h.cls == "wizard" and S.pointer != null and h.ko <= 0:
 		var rr = game.resolve_runes(S.runes)
@@ -1674,7 +1703,7 @@ func _draw_over() -> void:
 			continue
 		var r: float = dk.r
 		o.draw_set_transform(Vector2(dk.x, SY(dk.y)), 0, Vector2(1, 0.45))
-		o.draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.25))
+		o.draw_circle(Vector2.ZERO, dk.get("_vr", r), Color(0, 0, 0, 0.25))
 		if dk.get("_v") != null and is_instance_valid(dk._v): # the 3D saw sprite is drawn instead (_sync_shots)
 			o.draw_set_transform(Vector2.ZERO)
 			continue

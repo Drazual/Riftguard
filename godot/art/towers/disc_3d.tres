@@ -1794,3 +1794,4 @@ animations = [{
 "name": &"shot",
 "speed": 48.0
 }]
+metadata/shot_zoom = 2.0
