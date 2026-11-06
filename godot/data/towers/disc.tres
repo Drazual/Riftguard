@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/data/tower_path_set.gd" id="2_0goco"]
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="2_data"]
 [ext_resource type="Texture2D" path="res://assets/towers/disc.png" id="3_sheet"]
+[ext_resource type="SpriteFrames" path="res://art/towers/disc_3d.tres" id="4_turret"]
 
 [sub_resource type="Resource" id="Resource_dhone"]
 script = ExtResource("1_path")
@@ -115,4 +116,7 @@ frames = ExtResource("1_771xw")
 sheet = ExtResource("3_sheet")
 foot_y = 41.0
 muzzle_y = 18.0
-fire_frame = 3
+fire_frame = 1
+turret = ExtResource("4_turret")
+turret_muzzle = PackedVector2Array(64.0, 64.8, 65.9, 65.0, 67.9, 65.6, 69.7, 66.8, 70.5, 68.5, 69.7, 70.3, 67.9, 71.5, 65.9, 72.1, 64.0, 72.3, 62.1, 72.1, 60.1, 71.5, 58.3, 70.3, 57.5, 68.5, 58.3, 66.8, 60.1, 65.6, 62.1, 65.0)
+turret_scale = 0.38

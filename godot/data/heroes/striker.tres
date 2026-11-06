@@ -1,13 +1,9 @@
 [gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://bqxits25lqsme"]
 
 [ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_8aiy5"]
-[ext_resource type="SpriteFrames" uid="uid://x8ux4h2g5ccs" path="res://art/heroes/striker.tres" id="2_jcdkq"]
 [ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_ygewa"]
 [ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_jcdkq"]
-[ext_resource type="Texture2D" uid="uid://bnfwnmxor8r33" path="res://assets/heroes/striker.png" id="4_fek0u"]
 [ext_resource type="SpriteFrames" uid="uid://fc03ka8edcmpb" path="res://art/heroes/striker_fx.tres" id="5_shfx"]
-[ext_resource type="SpriteFrames" uid="uid://cs3bodyk4fr2m" path="res://art/heroes/striker_body.tres" id="6_body"]
-[ext_resource type="Texture2D" uid="uid://dyncl80pwla3b" path="res://assets/heroes/striker_gun.png" id="7_gun"]
 [ext_resource type="SpriteFrames" uid="uid://dgunfx7k2m4qa" path="res://art/heroes/striker_gun_fx.tres" id="8_gunfx"]
 
 [sub_resource type="Resource" id="Resource_uk0wj"]
@@ -87,15 +83,5 @@ crit = 0.05
 ability = SubResource("Resource_uk0wj")
 alt = SubResource("Resource_bymy4")
 meta = Array[ExtResource("2_ygewa")]([SubResource("Resource_ubv40"), SubResource("Resource_glpnq"), SubResource("Resource_7s1xb"), SubResource("Resource_m0nvr")])
-frames = ExtResource("2_jcdkq")
-sheet = ExtResource("4_fek0u")
 shot_fx = ExtResource("5_shfx")
-muzzle = PackedVector2Array(31.7, 26.1, 42.5, 30.2, 50.7, 41, 48.8, 43.6, 31.9, 52.1, 14.2, 43.6, 12.5, 40.8, 20.6, 30.3)
-body_frames = ExtResource("6_body")
-gun = ExtResource("7_gun")
-gun_pivot = Vector2(0.5, 4.9)
-gun_tip = Vector2(28, 2.4)
-shoulder = PackedVector2Array(38, 38, 39, 38, 31, 39, 31, 39, 33, 38, 33, 39, 33, 39, 25, 38)
 gun_fx = ExtResource("8_gunfx")
-body_bob = PackedVector2Array(0, 0, 0, 0, 0, 0, 0, 0, 0, -2, 0, -2, 0, -1, 0, -1, 0, -2, 0, -2, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -2, 0, -2, 0, -2, 0, -1, 0, -2, 0, -2, 0, -2, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-carry = PackedFloat32Array(-70, -40, 20, 40, 65, 140, 160, -140)

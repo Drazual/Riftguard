@@ -1,5 +1,9 @@
 # Riftguard: 3D models rendered to hero sprites
 
+> Not used for heroes any more: heroes with a 3D model are drawn live by `scripts/board/hero_3d.gd` (Hero3D), on the
+> board and in the hero portraits, so their baked sheets were removed. The script stays for reference; towers still
+> bake through `render_tower.gd`, which extends it.
+
 How Riftguard turns 3D character models into the pixel-art sprite sheets the game uses. The game stays 2D: hand-painted maps, sprite towers, and Godot 4.7 with 2D nodes. Only the characters start as 3D models, and they are rendered to sprites ahead of time by a tool inside the Godot project.
 
 ## Why

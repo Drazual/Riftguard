@@ -329,7 +329,7 @@ func heroes() -> Array:
 		H({ id = "sniper", name = "Sniper", role = "Offensive", category = "offensive", color = col(0xffd36e),
 			desc = "Hits anything on the map, but has to stand still and brace before every shot. Slow, heavy, precise.",
 			hp = 170.0, dmg = 48.0, rate = 2.4, range = 9999.0, block = 1, armor = 0.0, regen = 2.0, speed = 140.0, brace = 1.2, crit = 0.1 },
-			A({ id = "pierce", name = "Piercing Shot", cd = 16.0, mult = 4.0, w = 18.0, desc = "Fires a round through every enemy in a line toward your aim point (or the lead enemy) for {f1(a.mult)}× damage." }),
+			A({ id = "pierce", name = "Piercing Shot", cd = 16.0, mult = 4.0, w = 18.0, desc = "Hold Q to see its exact path and who it will hit, and let go to fire a round through every enemy on that line for {f1(a.mult)}× damage." }),
 			A({ id = "strike", name = "Orbital Strike", cd = 16.0, mult = 5.0, r = 90.0, desc = "Calls a strike where your cursor is on the map (or the toughest enemy). After 0.8s it hits everything within {f0(a.r)} for {f1(a.mult)}× damage." }), [
 			{ id = "rounds", name = "Heavy Rounds", cost = "60 + 50 * r", desc = "+{5 * r}% damage", effect = "h.dmg *= 1 + 0.05 * r" },
 			{ id = "stance", name = "Steady Stance", cost = "80 + 60 * r", desc = "Brace {5 * r}% faster", effect = "h.brace *= 1 - 0.05 * r" },

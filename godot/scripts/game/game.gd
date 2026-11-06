@@ -490,6 +490,13 @@ func ab_dmg(h: Hero, a: Ability) -> float:
 	return a.dmg + (h.max_hp * R.tank_ability_hp if h.data.category == "defensive" else 0.0)
 
 
+## The part of the field the board shows: Board.W wide, and the board's VH screen pixels tall with the ground squashed
+## by K under a TOP margin. Heroes never shoot at enemies outside it (paths start and end off the edge).
+const VIEW := Rect2(0, -40.0 / 0.75, 960, 520.0 / 0.75)
+func in_view(e) -> bool:
+	return VIEW.has_point(Vector2(e.x, e.y))
+
+
 func hero_range(h: Hero) -> float:
 	return h.range if h.range >= 9999 else h.range * (1 + sb("range"))
 
@@ -1005,7 +1012,7 @@ func throw_disc(t: Tower, e, mult := 1.0, dir = null, hits := -1) -> Vector2:
 	t.shots += 1
 	t.shot_at = S.time
 	t.fired_at = S.time
-	t.hit_at = null
+	t.hit_at = t.pos() + dir * 80.0 # a 3D Razor Disc turns its launcher along the throw
 	sfx("shot")
 	S.discs.append({ tw = t, x = t.x, y = t.y, dir = dir, speed = t.disc_speed, r = t.disc_r * (1.25 if sig else 1.0), dmg = dmg,
 		hits = n, left = 1e9 if t.disc_unbound else n, hit = {}, flown = 0.0, reach = t.disc_reach, back = false, spin = randf() * TAU,
@@ -1295,7 +1302,7 @@ func use_ability(auto := false) -> void:
 		say("No target for " + a.name + ".")
 		return
 	# with an aim point set, Piercing Shot holds fire (and keeps its charge) until an enemy is on its line
-	if a.id == "pierce" and not pierce_cursor() and S.aim != null and pierce_line(h, a, S.aim).is_empty():
+	if a.id == "pierce" and S.pierce_at == null and not pierce_cursor() and S.aim != null and pierce_line(h, a, S.aim).is_empty():
 		say("No enemy on the aim line yet. Piercing Shot holds its fire.")
 		return
 	# Orbital Strike: the first press readies it and shows the blast, the second fires at the cursor
@@ -1612,7 +1619,7 @@ func pierce_line(h: Hero, a: Ability, goal) -> Array:
 	var uy := dy / len
 	var w := a.w * (3.0 if a.rail else 1.0)
 	return S.enemies.filter(func(e):
-		if e.dead:
+		if e.dead or not in_view(e):
 			return false
 		var along: float = (e.x - h.x) * ux + (e.y - h.y) * uy
 		var off: float = absf((e.x - h.x) * uy - (e.y - h.y) * ux)
@@ -1631,8 +1638,11 @@ func pierce_cursor() -> bool:
 	return bool(Save.settings.get("pierce_cursor", false))
 
 
-## Where Piercing Shot fires: the cursor (in cursor mode), else the aim point, else the lead enemy.
+## Where Piercing Shot fires: where it was just aimed (held Q / its button), else the cursor (in cursor mode), else the
+## aim point, else the lead enemy.
 func pierce_goal():
+	if S.pierce_at != null:
+		return S.pierce_at
 	if pierce_cursor() and S.pointer != null:
 		return S.pointer
 	if S.aim != null:
@@ -1648,6 +1658,35 @@ func lead_enemy() -> Enemy:
 		if best == null or (e.boss and not best.boss) or (e.boss == best.boss and e.d > best.d):
 			best = e
 	return best
+
+
+## Piercing Shot is aimed by hand: holding Q (or clicking its button) shows its exact path to the cursor, and letting
+## go of Q (or clicking the map) fires it there. Returns false when the hero has no Piercing Shot.
+func pierce_aim_start(click := false) -> bool:
+	var h := S.hero if S else null
+	if h == null or h.ab.id != "pierce":
+		return false
+	if h.ko > 0 or h.ab.t > 0 or S.over or S.paused or h.stun_t > 0:
+		use_ability() # says why it can't fire
+		return true
+	S.pierce_aiming = true
+	S.pierce_click = click
+	if click:
+		say("Aim Piercing Shot: click the map to fire. Esc cancels.")
+	refresh("build_bar")
+	return true
+
+
+## Fires the Piercing Shot being aimed at (x, y) (the cursor when Q is let go), or at the usual goal off the map.
+func pierce_aim_fire(at = null) -> void:
+	if not S.pierce_aiming:
+		return
+	S.pierce_aiming = false
+	S.pierce_click = false
+	S.pierce_at = at if at != null else S.pointer
+	use_ability()
+	S.pierce_at = null
+	refresh("build_bar")
 
 
 func piercing_shot(h: Hero, a: Ability) -> void:
@@ -2741,6 +2780,8 @@ func knock_out(h: Hero) -> void:
 	h.stun_t = 0
 	h.debt = 0.0
 	S.strike_ready = false
+	S.pierce_aiming = false
+	S.pierce_click = false
 	# Respawning at the base with Hold on would pin the hero there, so Hold always turns off.
 	if h.hold:
 		h.hold = false
@@ -2996,14 +3037,14 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 	h.aim_live = false
 	if h.brace and h.brace_t > 0 and h.range > 0:
 		# while bracing, keep aiming at the enemy it will shoot, so it is already turned to it when the shot goes
-		var aimed := in_range(h.x, h.y, hero_range(h))
+		var aimed := in_range(h.x, h.y, hero_range(h)).filter(in_view)
 		if aimed.size():
 			sort_by_aim(h.target, h.x, h.y, aimed)
 			h.aim_x = aimed[0].x
 			h.aim_y = aimed[0].y
 			h.aim_live = true
 	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0:
-		var inr := in_range(h.x, h.y, hero_range(h))
+		var inr := in_range(h.x, h.y, hero_range(h)).filter(in_view)
 		if h.cls == "sniper":
 			sort_by_aim(h.target, h.x, h.y, inr)
 		else:
@@ -4585,6 +4626,12 @@ func cell_at(x: float, y: float) -> Vector2i:
 
 
 func cancel_placing() -> bool:
+	if S.pierce_aiming:
+		S.pierce_aiming = false
+		S.pierce_click = false
+		say("Piercing Shot put away.")
+		refresh("build_bar")
+		return true
 	if S.strike_ready:
 		S.strike_ready = false
 		say("Orbital Strike put away.")
@@ -4698,6 +4745,9 @@ func handle_click(x: float, y: float, touch := false) -> void:
 	if S.strike_ready and S.build == "" and not S.user_pause:
 		S.pointer = Vector2(x, y)
 		use_ability()
+		return
+	if S.pierce_aiming and S.pierce_click and S.build == "":
+		pierce_aim_fire(Vector2(x, y))
 		return
 	# the Wizard casts its readied runes at the cursor
 	if S.hero.cls == "wizard" and S.runes.size() and S.build == "" and not S.user_pause:
@@ -4815,7 +4865,9 @@ func sell_selected() -> void:
 
 ## Escape inside a run: unpause, drop readied runes, then clear the build or selection. Returns false when there was nothing to back out of.
 func esc_step() -> bool:
-	if S.user_pause:
+	if S.pierce_aiming:
+		cancel_placing()
+	elif S.user_pause:
 		toggle_pause()
 	elif S.runes.size():
 		S.runes = []

@@ -363,7 +363,7 @@ static func ability_tip(g: Game, h: Hero) -> String:
 	var extra := ""
 	match a.id:
 		"slam": extra = ("After the slam, enemies within 120 attack you for %ss (bosses half)." % f1(h.taunt)) if h.taunt else ""
-		"pierce": extra = "Press F to set an aim point and it always fires that way. Press F on the point to clear it."
+		"pierce": extra = "Hold Q to see exactly where it will go and who it will hit, and let go to fire at the cursor (or click this button, then click the map). Press F to set an aim point for when it fires on its own; press F on the point to clear it."
 		"strike": extra = "Point at the map and press Q: the strike lands on your cursor."
 	if extra != "":
 		s += "\n" + Kit.c(extra, Kit.MUTED)

@@ -2,9 +2,7 @@
 
 [ext_resource type="Script" uid="uid://k7dl6jamppmh" path="res://scripts/data/ability_data.gd" id="1_5qh7a"]
 [ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="2_0pu25"]
-[ext_resource type="SpriteFrames" uid="uid://cavoi57slxq8j" path="res://art/heroes/sniper.tres" id="2_8b2t1"]
 [ext_resource type="Script" uid="uid://b4i768m8dajax" path="res://scripts/data/hero_data.gd" id="3_8b2t1"]
-[ext_resource type="Texture2D" uid="uid://do5py3jyxpkd2" path="res://assets/heroes/sniper.png" id="4_5gskk"]
 [ext_resource type="SpriteFrames" path="res://art/heroes/sniper_shots.tres" id="9_shots"]
 
 [sub_resource type="Resource" id="Resource_v0u3i"]
@@ -14,7 +12,7 @@ name = "Piercing Shot"
 cd = 16.0
 mult = 4.0
 w = 18.0
-desc = "Fires a round through every enemy in a line toward your aim point (or the lead enemy) for {f1(a.mult)}× damage."
+desc = "Hold Q to see its exact path and who it will hit, and let go to fire a round through every enemy on that line for {f1(a.mult)}× damage."
 
 [sub_resource type="Resource" id="Resource_tdfem"]
 script = ExtResource("1_5qh7a")
@@ -80,7 +78,5 @@ crit = 0.1
 ability = SubResource("Resource_v0u3i")
 alt = SubResource("Resource_tdfem")
 meta = Array[ExtResource("2_0pu25")]([SubResource("Resource_pqs5a"), SubResource("Resource_7bjss"), SubResource("Resource_k5i7h"), SubResource("Resource_bck4n")])
-frames = ExtResource("2_8b2t1")
 shot_fx = ExtResource("9_shots")
 shot_speed = 2400.0
-sheet = ExtResource("4_5gskk")

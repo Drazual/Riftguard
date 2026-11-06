@@ -542,6 +542,41 @@ func _sync_ghost(S: Run) -> void:
 		ghost.visible = show
 
 
+## Piercing Shot's path while it's aimed: a band as wide as what it hits (Game.pierce_line: an enemy is hit when its
+## body touches the band), from the hero to where it leaves the visible map, and a ring on each enemy in it.
+func _pierce_band(g: Node2D, S: Run, h: Hero) -> void:
+	var a := h.ab
+	var from := h.pos()
+	var u: Vector2 = S.pointer - from
+	if u.length() < 1:
+		return
+	u = u.normalized()
+	var w := a.w * (3.0 if a.rail else 1.0)
+	# how far until the shot leaves the board's view
+	var v := Game.VIEW
+	var reach := 4000.0
+	if u.x > 0.001:
+		reach = minf(reach, (v.end.x - from.x) / u.x)
+	elif u.x < -0.001:
+		reach = minf(reach, (v.position.x - from.x) / u.x)
+	if u.y > 0.001:
+		reach = minf(reach, (v.end.y - from.y) / u.y)
+	elif u.y < -0.001:
+		reach = minf(reach, (v.position.y - from.y) / u.y)
+	reach = maxf(reach, 0.0)
+	var n := Vector2(-u.y, u.x) * w
+	var to := from + u * reach
+	var gold := hx(0xffd36e)
+	g.draw_colored_polygon(PackedVector2Array([from + n, to + n, to - n, from - n]), ca(gold, 0.3))
+	# a dark line under each bright edge, so the band reads on light ground
+	for side in [n, -n]:
+		_line(g, from + side, to + side, Color(0.08, 0.04, 0.14, 0.6), 4)
+		_line(g, from + side, to + side, gold, 2)
+	_line(g, from + n, from - n, gold, 2)
+	for e: Enemy in game.pierce_line(h, a, S.pointer):
+		_ring(g, e.pos(), e.r + 4, hx(0xff5d6c, 0.95), 2)
+
+
 ## The grid square a tower standing at p fills on a free-build map: the snap grid square its foot is in (the same
 ## squares Game.snap_cell picks from), a hair inside the grid lines.
 func _snap_square(p: Vector2) -> Rect2:
@@ -600,13 +635,15 @@ func _laser_beam(S: Run, t: Tower, d: TowerData) -> void:
 	_stretch(b, from, Vector2(e.x, SY(e.y) - body_lift(e)), 1 + 0.6 * minf(1, t.stacks / maxf(1, t.ramp_max)))
 
 
-# The hero walks while moving, fires toward its target and idles otherwise, in 8 facings. The facing only
+# The hero walks while moving, fires toward its target and idles otherwise. A hero with a 3D model (HeroData.model_dir)
+# is drawn live by Hero3D, turned to the exact angle; a sprite hero uses 8 facings. The facing only
 # changes once the direction is clearly past the edge of its sector, so walking along a diagonal never flickers.
 # Shooting on the move keeps the legs walking: the hero faces the target and the walk plays backwards when
 # it is backing away, so the feet never slide.
 func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var h: Hero = S.hero if S else null
-	if h == null or h.ko > 0 or S.over or h.data.frames == null:
+	var live3d := h != null and h.data.model_dir != "" # drawn live from its 3D model: no sprite sheet at all
+	if h == null or h.ko > 0 or S.over or (h.data.frames == null and not live3d):
 		if hero_spr and is_instance_valid(hero_spr):
 			hero_spr.visible = false
 			if h == null:
@@ -620,33 +657,36 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		return
 	# split-layer heroes draw a gun-less body here and the gun as its own layer (see _sync_hero_gun)
 	var split: bool = h.data.gun != null and h.data.body_frames != null and h.data.model_dir == ""
-	var sf: SpriteFrames = h.data.body_frames if split else h.data.frames
+	var sf: SpriteFrames = null if live3d else (h.data.body_frames if split else h.data.frames)
 	var s := hero_spr
-	if s == null or not is_instance_valid(s) or s.sprite_frames != sf:
+	if s == null or not is_instance_valid(s) or s.sprite_frames != sf or s.get_meta("hero", "") != h.data.id \
+			or (live3d and (hero_3d == null or not is_instance_valid(hero_3d))):
 		if s and is_instance_valid(s):
 			s.queue_free()
+		# a 3D hero's anchor is an empty sprite (no sheet): it only carries the position; the live model shows
 		s = AnimatedSprite2D.new()
 		s.sprite_frames = sf
 		s.centered = false
-		var a: float = h.data.art_scale
-		s.scale = Vector2(a / PX, a / PX)
-		if a != 1.0:
-			s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
-		# frames are 48px (feet on row 43) or bigger with the feet the same distance from the bottom edge
-		# (in board pixels, so 10 texture pixels on a 0.5-scale rendered hero)
-		var fs := sf.get_frame_texture("idle_4", 0).get_size()
-		s.offset = Vector2(-fs.x / 2, -fs.y + (48 - HERO_FEET + 3 * PX) / a)
+		if not live3d:
+			var a: float = h.data.art_scale
+			s.scale = Vector2(a / PX, a / PX)
+			if a != 1.0:
+				s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			# frames are 48px (feet on row 43) or bigger with the feet the same distance from the bottom edge
+			# (in board pixels, so 10 texture pixels on a 0.5-scale rendered hero)
+			var fs := sf.get_frame_texture("idle_4", 0).get_size()
+			s.offset = Vector2(-fs.x / 2, -fs.y + (48 - HERO_FEET + 3 * PX) / a)
+		s.set_meta("hero", h.data.id)
 		units.add_child(s)
 		hero_spr = s
 		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO }
 		s.animation_finished.connect(func(): hero_state.anim = "")
-		s.play("idle_4")
+		if not live3d:
+			s.play("idle_4")
 		if hero_3d and is_instance_valid(hero_3d):
 			hero_3d.queue_free()
 		hero_3d = null
-		if h.data.model_dir != "":
-			# the sprite keeps the timing and the facing; the live model is what shows
-			s.self_modulate = Color(1, 1, 1, 0)
+		if live3d:
 			hero_3d = Hero3D.new()
 			hero_3d.scale = Vector2(1 / PX, 1 / PX)
 			units.add_child(hero_3d)
@@ -687,7 +727,7 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		st.fired = h.atk_at
 		st.shot = true
 		st.kick = 1.0
-		if not moving and not split:
+		if not moving and not split and not live3d:
 			st.anim = "fire"
 			s.play("fire_%d" % face)
 	if moving and st.anim == "fire":
@@ -695,7 +735,7 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var want: String = "fire" if st.anim == "fire" else ("walk" if moving else "idle")
 	var k := "%s_%d" % [want, face]
 	# turning keeps the step it was on, so the walk cycle doesn't restart
-	if s.animation != k:
+	if not live3d and s.animation != k:
 		var at := s.frame if String(s.animation).begins_with(want) else 0
 		s.play(k)
 		s.set_frame_and_progress(mini(at, s.sprite_frames.get_frame_count(k) - 1), 0.0)
@@ -703,8 +743,9 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var m := 1.0
 	if want == "walk":
 		m = clampf(h.speed / 145, 0.6, 1.6)
-		# backing away from what it's shooting at: step backwards
-		if firing and st.mv.dot(Vector2.from_angle(st.sector * PI / 4)) < -0.3:
+		# backing away from what it's shooting at: step backwards (a 3D hero faces the exact angle, not a sector)
+		var faced := v.normalized() if live3d and v != Vector2.ZERO else Vector2.from_angle(st.sector * PI / 4)
+		if firing and st.mv.dot(faced) < -0.3:
 			m = -m
 	elif want == "fire":
 		m = maxf(1, 0.25 / maxf(0.05, h.rate))
@@ -1101,6 +1142,29 @@ func _sync_shots(S: Run, dt: float, speed: float) -> void:
 		var vy := y1 - y0 - A * PI * cos(PI * u) + lift
 		sp.position = Vector2(x, y)
 		sp.rotation = atan2(vy, vx) - PI / 2
+	# Razor Discs with a saw rendered from 3D (the "shot" animation of TowerData.turret): it spins flat at knee
+	# height, drawn about as wide as what it cuts
+	for dk in S.discs:
+		if dk.wait > 0 or dk.done:
+			continue
+		var d: TowerData = DB.towers.get(dk.tw.type)
+		if d == null or d.turret == null or not d.turret.has_animation("shot"):
+			continue
+		var sp: AnimatedSprite2D = dk.get("_v")
+		if sp == null or not is_instance_valid(sp):
+			sp = AnimatedSprite2D.new()
+			sp.sprite_frames = d.turret
+			sp.animation = "shot"
+			sp.centered = true
+			sp.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			top.add_child(sp)
+			dk._v = sp
+		_seen(sp)
+		var k: float = dk.r * 2.3 / d.turret.get_frame_texture("shot", 0).get_width()
+		sp.scale = Vector2(k, k)
+		sp.position = Vector2(dk.x, SY(dk.y) - 10)
+		var n := d.turret.get_frame_count("shot")
+		sp.frame = posmod(int(dk.spin / TAU * n), n)
 
 
 # ---------- spell effects ----------
@@ -1411,16 +1475,12 @@ func _draw_flat() -> void:
 	if S.strike_ready and h.ko <= 0 and S.pointer != null:
 		_ring(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.75), 2)
 		_circle(g, S.pointer, h.ab.r, hx(0xff5d6c, 0.08))
-	# Piercing Shot in cursor mode: a faint line toward the cursor while it's charged
-	if h.ab.id == "pierce" and game.pierce_cursor() and h.ko <= 0 and not (h.ab.t > 0) and S.pointer != null:
-		var dv0: Vector2 = (S.pointer - h.pos()).normalized()
-		_line(g, h.pos(), h.pos() + dv0 * 1400, hx(0xffd36e, 0.3), 1)
+	# Piercing Shot being aimed: its exact path (the full width that hits, out to the edge of the map) and a ring on
+	# every enemy it would hit
+	if S.pierce_aiming and h.ko <= 0 and S.pointer != null:
+		_pierce_band(g, S, h)
 	if S.aim != null:
 		var a: Vector2 = S.aim
-		var ready := not (h.ab.t > 0)
-		if h.ko <= 0:
-			var dv := (a - h.pos()).normalized()
-			_line(g, h.pos(), h.pos() + dv * 1400, hx(0xffd36e, 0.35 if ready else 0.15), 1)
 		var gold := hx(0xffd36e, 0.95)
 		_ring(g, a, 10, gold, 2)
 		_line(g, a + Vector2(-15, 0), a + Vector2(-5, 0), gold, 2)
@@ -1615,6 +1675,9 @@ func _draw_over() -> void:
 		var r: float = dk.r
 		o.draw_set_transform(Vector2(dk.x, SY(dk.y)), 0, Vector2(1, 0.45))
 		o.draw_circle(Vector2.ZERO, r, Color(0, 0, 0, 0.25))
+		if dk.get("_v") != null and is_instance_valid(dk._v): # the 3D saw sprite is drawn instead (_sync_shots)
+			o.draw_set_transform(Vector2.ZERO)
+			continue
 		o.draw_set_transform(Vector2(dk.x, SY(dk.y) - 10), 0, Vector2(1, 0.6))
 		for i in 8:
 			var a0: float = dk.spin + i * TAU / 8

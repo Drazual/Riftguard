@@ -1435,7 +1435,8 @@ func confirm_quit() -> void:
 	box.add_child(row)
 
 
-## A hero's menu art: its south-facing idle loop, zoomed, cut to a 48px box around the feet.
+## A hero's menu art: its south-facing idle loop, zoomed, cut to a 48px box around the feet. A hero with a 3D model
+## shows the model itself, live (Hero3D), idling and facing the viewer.
 class Portrait extends TextureRect:
 	var frames: Array[AtlasTexture] = []
 	var step := 0.35
@@ -1444,6 +1445,20 @@ class Portrait extends TextureRect:
 
 	static func make(id: String, z: float) -> Portrait:
 		var p := Portrait.new()
+		p.custom_minimum_size = Vector2(48, 48) * z
+		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		p.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var md: String = DB.heroes[id].model_dir
+		if md != "":
+			var live := Hero3D.new()
+			p.add_child(live)
+			live.setup(md, 104.0) # most of the 128px box, feet near the bottom
+			live.face(PI / 2, true)
+			live.visible = false # only its picture is shown, as this portrait's texture
+			p.texture = live.vp.get_texture()
+			p.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			return p
 		var sf: SpriteFrames = DB.heroes[id].frames
 		var box: float = 48 / DB.heroes[id].art_scale
 		for f in sf.get_frame_count("idle_4"):
@@ -1455,14 +1470,12 @@ class Portrait extends TextureRect:
 			p.frames.append(a)
 		p.step = 1.0 / maxf(1, sf.get_animation_speed("idle_4"))
 		p.texture = p.frames[0]
-		p.custom_minimum_size = Vector2(48, 48) * z
-		p.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		p.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		p.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if box == 48 else CanvasItem.TEXTURE_FILTER_LINEAR
-		p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		return p
 
 	func _process(dt: float) -> void:
+		if frames.is_empty():
+			return
 		t += dt
 		if t >= step:
 			t = 0.0
