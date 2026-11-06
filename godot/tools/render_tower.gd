@@ -1,6 +1,7 @@
 extends "res://tools/render_hero.gd"
 ## Renders a 3D tower model into directional sprites: the turret turned to DIRS facings, a looping idle and the
-## fire clip for each. Same camera, lights and painted look as the heroes (see render_hero.gd / render_hero.md).
+## fire clip for each. Same camera as the heroes (see render_hero.gd / render_hero.md), and by default the same clean
+## look as the live 3D heroes: the model's own materials under neutral light, no outline, no colour filter.
 ##   xvfb-run godot --path godot --rendering-driver opengl3 -s res://tools/render_tower.gd -- <tower folder>
 ## <tower folder> is a folder in res://art_src/towers/ holding the model and a tower.json:
 ##   model   the .glb: Y up, metres, origin at the base's bottom centre, the turret aiming +Z
@@ -31,9 +32,10 @@ extends "res://tools/render_hero.gd"
 ##   wide    how wide the base renders facing the camera, in frame pixels
 ##   foot    [x, y]: where the base's bottom centre lands in a frame, in frame pixels
 ##   out     the name of the files it writes
-##   vibrance  optional: [saturation, contrast] the frames are punched up by after rendering ([1.6, 1.15] by
-##           default), so the painted towers stand out on the bright, busy map instead of looking washed out; the
-##           saturation only touches already-colourful pixels, so grey parts don't pick up a tint; [1, 1] = off
+##   style   optional: "clean" (default), "painted" (warm key, pink rim, soft outline) or "pixel"
+##   vibrance  optional: [saturation, contrast] the frames are punched up by after rendering (off for "clean";
+##           [1.6, 1.15] for the other styles); the saturation only touches already-colourful pixels, so grey parts
+##           don't pick up a tint; [1, 1] = off
 ##   shot_frame  the fire frame whose muzzle point goes in the printed turret_muzzle line (0 by default; a cannon
 ##           uses the frame its shell leaves on, the same as TowerData.fire_frame)
 ## It writes res://assets/towers/<out>.png (DIRS columns, facing 0 = up the screen, going clockwise; the idle_frames
@@ -79,7 +81,10 @@ func _run() -> void:
 	IDLE = maxi(1, int(cfg.get("idle_frames", 8)))
 	vibrance = cfg.get("vibrance", vibrance)
 	idle_time = float(cfg.get("idle_time", 2.4))
-	painted = cfg.get("style", "painted") == "painted"
+	painted = cfg.get("style", "clean") == "painted"
+	clean = cfg.get("style", "clean") == "clean"
+	if clean and not cfg.has("vibrance"):
+		vibrance = [1.0, 1.0] # the clean look has no colour filter
 	_stage()
 	var model: Node3D = (load(dir + cfg.model) as PackedScene).instantiate()
 	pivot.add_child(model)
@@ -105,7 +110,10 @@ func _run() -> void:
 			var t := idle_len * row / IDLE if f < 0 else (float(times[f]) if times.size() else ap.get_animation(clip).length * f / FIRE)
 			await _pose(ap, clip, t, _yaw16(face))
 			var img := _vivid(_shrink(_straight(vp.get_texture().get_image())))
-			img = _fx_outline(img) if painted else _outlined(img)
+			if painted:
+				img = _fx_outline(img)
+			elif not clean:
+				img = _outlined(img)
 			sheet.blit_rect(img, Rect2i(0, 0, FRAME, FRAME), Vector2i(face * FRAME, row * FRAME))
 			if f >= 0:
 				var tip := cam.unproject_position(muzzle.global_position) / SS

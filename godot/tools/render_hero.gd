@@ -26,7 +26,7 @@ extends SceneTree
 ##   hide    optional: nodes to hide (spare weapons and props)
 ##   out     the name of the files it writes
 ##   size    optional: frame size, 64 (default) or 128 for heroes shown at 0.5 (HeroData.art_scale)
-##   style   optional: "pixel" (default) or "painted"
+##   style   optional: "pixel" (default), "painted" or "clean" (the model as it looks in a model viewer)
 ## It writes res://assets/heroes/<out>.png (8 columns N, NE, E, SE, S, SW, W, NW; rows idle 0-3, walk 4-11,
 ## fire 12-15, 64px frames, feet on row 59), res://art/heroes/<out>.tres (SpriteFrames idle_N, walk_N, fire_N)
 ## and res://art_src/heroes/<folder>/muzzle.json (the gun tip in every direction and fire frame, in frame pixels; for
@@ -41,6 +41,8 @@ var TALL := 38.0 # how many pixels a 1.8-unit hero stands in a frame
 ## "pixel": toon bands, hard edges and a 1px outline. "painted": smooth shading, soft anti-aliased edges and a soft
 ## dark outline, like the painted map sprites.
 var painted := false
+## "clean": the model's own materials under neutral studio light (Hero3D.clean_light), soft edges, no outline.
+var clean := false
 const K := 0.75 # the board squashes the ground vertically by this (Board.K); the 8 facings follow it
 ## How far the camera looks down. Flatter than the ground's tilt (asin(K), about 49) so characters read more
 ## from the front, like hand-drawn 3/4 sprites.
@@ -71,6 +73,7 @@ func _run() -> void:
 	FEET *= k
 	TALL *= k
 	painted = cfg.get("style", "pixel") == "painted"
+	clean = cfg.get("style", "pixel") == "clean"
 	_stage()
 	var model: Node3D = (load(dir + cfg.model) as PackedScene).instantiate()
 	pivot.add_child(model)
@@ -147,7 +150,7 @@ func _run() -> void:
 					var img := _shrink(vp.get_texture().get_image())
 					if painted:
 						img = _soft_outline(img)
-					else:
+					elif not clean:
 						_outline(img)
 					sheet.blit_rect(img, Rect2i(0, 0, FRAME, FRAME), Vector2i(face * FRAME, (r[0] + f) * FRAME))
 					if not r[3]:
@@ -230,6 +233,8 @@ func _stage() -> void:
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	vp.own_world_3d = true
 	root.add_child(vp)
+	if clean:
+		Hero3D.clean_light(vp)
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CLEAR_COLOR
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -238,11 +243,12 @@ func _stage() -> void:
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var we := WorldEnvironment.new()
 	we.environment = env
-	vp.add_child(we)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-50, -35, 0)
 	sun.light_energy = 1.25
-	vp.add_child(sun)
+	if not clean:
+		vp.add_child(we)
+		vp.add_child(sun)
 	if painted:
 		# soft studio light like the map's sprites: warm key from the top left, a cool pink-violet rim from behind
 		# on the right (the neon city), and a brighter, slightly warm ambient so shadows stay colourful
@@ -320,7 +326,9 @@ func _toon(n: Node) -> void:
 			var m := mi.get_active_material(i)
 			if m is StandardMaterial3D:
 				var t: StandardMaterial3D = m.duplicate()
-				if painted:
+				if clean:
+					t.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+				elif painted:
 					t.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP
 					t.metallic = 0.0
 					t.roughness = maxf(t.roughness, 0.6)
@@ -352,7 +360,7 @@ func _shrink(src: Image) -> Image:
 					g += c.g * c.a
 					b += c.b * c.a
 					a += c.a
-			if painted:
+			if painted or clean:
 				if a > 0.0:
 					out.set_pixel(x, y, Color(r / a, g / a, b / a, a / n))
 			elif a / n >= 0.45:
