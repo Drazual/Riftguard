@@ -1,0 +1,17 @@
+{
+	"model": "sawblade.glb",
+	"yaw": "Turret/Yaw",
+	"pitch": "Turret/Yaw/Pitch",
+	"anims": { "idle": "idle", "fire": "fire" },
+	"idle_frames": 8,
+	"idle_time": 3.0,
+	"aim": 0.0,
+	"dirs": 16,
+	"fire_frames": 6,
+	"size": 128,
+	"wide": 52,
+	"foot": [64, 108],
+	"out": "disc_3d",
+	"shot_frame": 1,
+	"projectile": { "model": "sawblade_projectile.glb", "clip": "fly", "turn": 0.3333, "frames": 8, "zoom": 2.0, "size": 48, "hide": ["Glow"] }
+}

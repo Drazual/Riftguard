@@ -1,5 +1,7 @@
 # Striker frames
 
+> Historical: the Striker is now drawn live from its 3D model (Hero3D), and this sheet has been removed.
+
 The Striker uses its own sheet, `assets/heroes/striker.png`, built from AI-made per-direction sheets.
 
 Layout: 64x64 frames, one column per facing (0 = N, then clockwise), rows 0-7 idle, 8-15 walk, 16-21 fire. Feet sit on pixel row 59, the same distance from the bottom as row 43 in the 48px heroes.

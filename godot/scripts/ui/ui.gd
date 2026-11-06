@@ -739,7 +739,12 @@ func render_build_bar() -> void:
 	if S.hero.data.spells:
 		_rune_bar()
 	else:
-		ability_btn = Kit.button(("Fire %s  Q" if S.strike_ready else "%s  Q") % S.hero.ab.name, func(): game.use_ability(), "OnButton" if S.strike_ready else "")
+		var readied: bool = S.strike_ready or S.pierce_aiming
+		ability_btn = Kit.button(("Fire %s  Q" if readied else "%s  Q") % S.hero.ab.name, func():
+			if S.pierce_aiming and S.pierce_click:
+				game.cancel_placing()
+			elif not game.pierce_aim_start(true):
+				game.use_ability(), "OnButton" if readied else "")
 		ability_fill = ColorRect.new()
 		ability_fill.color = Color(0.69, 0.49, 1, 0.45)
 		ability_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1318,6 +1323,9 @@ func _key(ev: InputEventKey) -> void:
 	var S := game.S
 	if not ev.pressed:
 		held_keys.erase(ev.keycode)
+		# letting go of Q fires the Piercing Shot it was aiming
+		if ev.keycode == KEY_Q and S != null and S.pierce_aiming and not S.pierce_click:
+			game.pierce_aim_fire()
 		return
 	if ev.keycode == KEY_ESCAPE:
 		if _esc_back():
@@ -1350,7 +1358,9 @@ func _key(ev: InputEventKey) -> void:
 		if (not S.paused or S.user_pause) and not S.over and not game.cancel_placing():
 			game.sell_selected()
 	elif k == KEY_Q:
-		game.use_ability()
+		# Piercing Shot: hold Q to see its path, let go to fire; anything else fires on the press
+		if not ev.echo and not game.pierce_aim_start():
+			game.use_ability()
 	elif k == KEY_H:
 		game.toggle_hold()
 	elif k == KEY_F:

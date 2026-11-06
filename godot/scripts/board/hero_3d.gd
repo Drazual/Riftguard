@@ -401,7 +401,9 @@ func _process(dt: float) -> void:
 			cast_rel = 0.0
 			ap.speed_scale = cast_speed
 		else:
-			ap.speed_scale = cast_speed * _windup_rate()
+			# fast up to the release, but never so fast that one slow frame skips past it (and the whole clip)
+			var left := (cast_rel - ap.current_animation_position) / maxf(dt, 1.0 / 60.0)
+			ap.speed_scale = cast_speed * clampf(left, 1.0, _windup_rate())
 	if not fitted:
 		_fit()
 	if held:

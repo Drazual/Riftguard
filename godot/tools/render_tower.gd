@@ -25,6 +25,9 @@ extends "res://tools/render_hero.gd"
 ##   fire_time    optional: how long the fire frames play in game, in seconds (the clip's length by default)
 ##   muzzle_scale  optional: scales the Muzzle node (and the charge/fire effects under it) up, so a small effect
 ##           still reads at board size (1 by default)
+##   projectile  optional, instead of shot: a separate projectile model spun into a looping "shot" animation:
+##           { "model": glb in the folder, "clip": its spin clip, "turn": share of the clip that is one full spin,
+##             "frames": how many, "zoom", "size", "hide": [nodes left out] }. The board draws the Razor Disc's thrown saws with it.
 ##   shot    optional: renders the tower's projectile from the model too, as the "shot" animation of the out .tres:
 ##           { "clip": clip, "t": time, "nodes": [mesh names to show], "zoom": how much bigger than on the tower,
 ##             "size": frame size }. The board draws it instead of the tower's pixel-art shot.
@@ -123,6 +126,9 @@ func _run() -> void:
 	if cfg.has("shot"):
 		await _render_shot(model, ap, muzzle, cfg.shot, out)
 		shot = true
+	elif cfg.has("projectile"):
+		await _render_projectile(model, dir, cfg.projectile, out)
+		shot = true
 	_tower_frames_tres(out, float(cfg.get("fire_time", ap.get_animation(cfg.anims.fire).length)), shot)
 	var f := FileAccess.open(dir + "muzzle.json", FileAccess.WRITE)
 	f.store_string(JSON.stringify(tips, "\t"))
@@ -136,6 +142,8 @@ func _run() -> void:
 
 
 var shot_size := 32
+var shot_frames := 1 # frames in the "shot" animation (a separate projectile model spins through several)
+var shot_fps := 1.0
 
 
 ## The projectile on its own: only `nodes` shown, posed at `t` of `clip`, the camera zoomed in `zoom` times on the
@@ -173,6 +181,51 @@ func _render_shot(model: Node3D, ap: AnimationPlayer, muzzle: Node3D, c: Diction
 	for n in hidden:
 		n.layers = 1
 	cam.cull_mask = 0xFFFFF
+
+
+## A projectile that is its own model (the Razor Disc's saw), rendered at the tower's scale as the "shot" animation:
+## `frames` frames evenly through `turn` of its `clip` (one full spin of a round disc, so it loops), zoomed in by
+## `zoom`, cut to `size` pixels, in a strip in <out>_shot.png. The tower is hidden while it renders.
+func _render_projectile(tower: Node3D, dir: String, c: Dictionary, out: String) -> void:
+	shot_size = int(c.get("size", 48))
+	shot_frames = int(c.get("frames", 8))
+	var p: Node3D = (load(dir + c.model) as PackedScene).instantiate()
+	pivot.add_child(p)
+	p.scale = tower.scale
+	tower.visible = false
+	_toon(p)
+	for n in c.get("hide", []):
+		var h := p.find_child(n, true, false)
+		if h:
+			h.visible = false
+	var pap: AnimationPlayer = p.find_child("AnimationPlayer", true, false)
+	var clip: String = c.get("clip", "fly")
+	var span := pap.get_animation(clip).length * float(c.get("turn", 1.0))
+	shot_fps = snappedf(shot_frames / span, 0.1)
+	var size0 := cam.size
+	var pos0 := cam.position
+	var mid := cam.project_position(Vector2(FRAME * SS, FRAME * SS) / 2.0, 20.0)
+	var at := cam.project_position(cam.unproject_position(p.global_position), 20.0)
+	cam.position += at - mid
+	cam.size = size0 / float(c.get("zoom", 1.0))
+	cam.set_orthogonal(cam.size, cam.near, cam.far)
+	var strip := Image.create(shot_size * shot_frames, shot_size, false, Image.FORMAT_RGBA8)
+	var o := (FRAME - shot_size) / 2
+	for i in shot_frames:
+		pap.play(clip)
+		pap.seek(span * i / shot_frames, true)
+		pap.pause()
+		await process_frame
+		await process_frame
+		await RenderingServer.frame_post_draw
+		var img := _vivid(_shrink(_straight(vp.get_texture().get_image())))
+		strip.blit_rect(img, Rect2i(o, o, shot_size, shot_size), Vector2i(i * shot_size, 0))
+	strip.save_png("res://assets/towers/%s_shot.png" % out)
+	cam.size = size0
+	cam.position = pos0
+	cam.set_orthogonal(cam.size, cam.near, cam.far)
+	p.queue_free()
+	tower.visible = true
 
 
 ## Stronger colour without a tint: only pixels that are already colourful (glows, crystals, trim) get their saturation
@@ -338,9 +391,12 @@ func _tower_frames_tres(out: String, fire_len: float, shot := false) -> void:
 			var fps := snappedf(IDLE / idle_time, 0.1) if anim == "idle" else snappedf(FIRE / fire_len, 0.1)
 			anims.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"%s_%d",\n"speed": %.1f\n}' % [", ".join(refs), "true" if anim == "idle" else "false", anim, face, fps])
 	if shot:
-		id += 1
-		subs.append('[sub_resource type="AtlasTexture" id="A%d"]\natlas = ExtResource("2")\nregion = Rect2(0, 0, %d, %d)\n' % [id, shot_size, shot_size])
-		anims.append('{\n"frames": [{\n"duration": 1.0,\n"texture": SubResource("A%d")\n}],\n"loop": false,\n"name": &"shot",\n"speed": 1.0\n}' % id)
+		var refs := PackedStringArray()
+		for i in shot_frames:
+			id += 1
+			subs.append('[sub_resource type="AtlasTexture" id="A%d"]\natlas = ExtResource("2")\nregion = Rect2(%d, 0, %d, %d)\n' % [id, i * shot_size, shot_size, shot_size])
+			refs.append('{\n"duration": 1.0,\n"texture": SubResource("A%d")\n}' % id)
+		anims.append('{\n"frames": [%s],\n"loop": %s,\n"name": &"shot",\n"speed": %.1f\n}' % [", ".join(refs), "true" if shot_frames > 1 else "false", shot_fps])
 	var f := FileAccess.open("res://art/towers/%s.tres" % out, FileAccess.WRITE)
 	f.store_string('[gd_resource type="SpriteFrames" load_steps=%d format=3]\n\n' % (id + 2 + (1 if shot else 0)))
 	f.store_string('[ext_resource type="Texture2D" path="res://assets/towers/%s.png" id="1"]\n' % out)
