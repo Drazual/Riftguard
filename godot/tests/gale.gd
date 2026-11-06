@@ -1,6 +1,6 @@
 ## Gale's live 3D sword-and-shield model in a real run (needs a display for the model):
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/gale.tscn -- <out dir>
-## Checks the clips (its own sword attack, the posed run), the sword hit landing 0.3s into the swing, Whirlwind
+## Checks the clips (its posed stance, run, sword slash and shield brace), the sword hit landing 0.3s into the swing, Whirlwind
 ## landing 0.5s into its shield_slam clip and Air Stream 0.35s into its bash, and armor as points.
 extends Node
 
@@ -56,7 +56,9 @@ func _ready() -> void:
 	S.lives = 999
 	var m := main.board.hero_3d
 	_check(m != null and m.skel.get_bone_count() == 43, "Gale is drawn live from its 3D model (43 bones)")
-	_check(m.anims.walk == "ext/run" and m.anims.fire == "attack", "posed run, sword attack")
+	_check(m.anims.walk == "ext/run" and m.anims.fire == "ext/slash", "posed run, sword slash")
+	_check(m.anims.idle == "ext/stance" and m.anims.block == "ext/brace", "posed stance and shield brace")
+	_check(m.ap.current_animation == "ext/stance", "stands in its stance (%s)" % m.ap.current_animation)
 	_check(is_equal_approx(h.armor, 60) and absf(h.armor_cut() - 0.375) < 0.001, "60 armor = 37.5%% less damage (%.0f)" % h.armor)
 	await _shot("0_idle")
 	var c0 := h.pos()
@@ -84,7 +86,7 @@ func _ready() -> void:
 	var hp0 := e.hp
 	var t0 := h.atk_at
 	await get_tree().process_frame
-	_check(m.ap.current_animation == "attack", "swings the sword (%s)" % m.ap.current_animation)
+	_check(m.ap.current_animation == "ext/slash", "swings the sword (%s)" % m.ap.current_animation)
 	await _wait(0.15)
 	await _shot("2_attack")
 	while S.time < t0 + 0.3:
@@ -116,5 +118,12 @@ func _ready() -> void:
 	_check(m.ap.current_animation == "bash", "Air Stream plays bash (%s)" % m.ap.current_animation)
 	await _wait(0.2)
 	await _shot("4_stream")
+	# holding position (H) away from the fight: braced behind the shield
+	h.x = e.x - 250
+	h.tx = null
+	h.hold = true
+	await _wait(0.6)
+	_check(m.ap.current_animation == "ext/brace", "braces behind the shield while holding (%s)" % m.ap.current_animation)
+	await _shot("5_brace")
 	print("GALE DONE fails=%d" % fails)
 	get_tree().quit(1 if fails else 0)

@@ -293,7 +293,7 @@ func _stretch(a: Animation, k: float) -> void:
 			if d.w < 0:
 				d = -d
 			var ang := d.get_angle()
-			if ang < 0.0001:
+			if ang < 0.0001 or Vector3(d.x, d.y, d.z).length_squared() < 1e-12:
 				continue
 			a.track_set_key_value(t, i, (mean * Quaternion(d.get_axis().normalized(), ang * k)).normalized())
 
@@ -319,7 +319,7 @@ func _exaggerate(a: Animation, k: float) -> void:
 			if d.w < 0:
 				d = -d
 			var ang := d.get_angle()
-			if ang < 0.0001:
+			if ang < 0.0001 or Vector3(d.x, d.y, d.z).length_squared() < 1e-12:
 				continue
 			a.track_set_key_value(t, i, (q0 * Quaternion(d.get_axis().normalized(), ang + minf(ang * (k - 1.0), 0.5))).normalized())
 
@@ -354,7 +354,7 @@ func _run_from(walk: Animation, c: Dictionary) -> Animation:
 	return a
 
 
-## A clip posed by hand from the idle stance (the first frame of "idle"), for a model whose own clips lack a move
+## A clip posed by hand from the idle stance (the first frame of the model's "idle", or of "base"), for a model whose own clips lack a move
 ## (the Vanguard's run, punch and shield brace). c: { "length": s, "loop": bool, "keys": [{ "t": s, "bones":
 ## { "LeftArm": [x, y, z], ... }, "hips": [x, y, z] }, ...], "copy": { "clip": name, "bones": [names] } }.
 ## A bone's [x, y, z] (degrees) turns it about the model's own axes (x sideways: + tips a hanging limb back and the
@@ -365,7 +365,7 @@ func _run_from(walk: Animation, c: Dictionary) -> Animation:
 ## this clip's length, so a looping effect still loops); a bone in "keep" holds its idle facing in the world (plus its
 ## own turn), so a shield or sword in that hand stays as it is held however the arm swings. Keys ease into each other.
 func _posed(c: Dictionary) -> Animation:
-	var idle := ap.get_animation(cfg.anims.get("idle", "idle"))
+	var idle := ap.get_animation(c.get("base", "idle"))
 	var a: Animation = idle.duplicate(true)
 	a.length = float(c.length)
 	a.loop_mode = Animation.LOOP_LINEAR if c.get("loop", false) else Animation.LOOP_NONE

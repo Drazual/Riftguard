@@ -46,6 +46,8 @@ const FX_FW := 128.0
 const FX_FH := 116.0
 const FX_W := 115.0 # painted width of a full-size effect, in frame pixels
 const WALL_W := 76.0 # a wall's width on the board
+## Walls drawn live from a 3D model (Wall3D) instead of the painted frames, by their art name.
+const WALL_MODELS := { stonewall = "res://art_src/fx/walls/stone_wall/stone_wall.glb", greatwall = "res://art_src/fx/walls/great_wall/great_wall.glb" }
 const HERO_FEET := 43.0
 const FACE_COL := [2, 3, 4, 5, 6, 7, 0, 1] # sector (E, SE, S, ... clockwise) to facing
 const MAX_BURSTS := 60
@@ -57,6 +59,7 @@ var ground: Sprite2D
 var flat: Node2D # ground-plane drawing: world coordinates squashed by K
 var low: Node2D # low spell effects, under everything standing
 var units: Node2D # towers, the hero, walls and effects, sorted by depth
+var wall_views: Array[Dictionary] = [] # live 3D walls: { view: Wall3D, w: the wall, run }, kept while they sink away
 var over: Node2D # upright overlay: bars, rings, cores
 var top: Node2D # shots, beams, bursts
 var spell_frames: SpriteFrames = preload("res://art/fx/spells.tres")
@@ -311,7 +314,7 @@ func sync(dt: float) -> void:
 	_sync_hero_shots(S, dt, speed)
 	_sync_enemies(S)
 	_sync_shots(S, dt, speed)
-	_sync_art(S)
+	_sync_art(S, speed)
 	_reap(units)
 	_reap(low)
 	_reap(top)
@@ -1261,7 +1264,7 @@ func _fx_place(sp: AnimatedSprite2D, a: String, f: int, origin: Vector2, pos: Ve
 		sp.offset.y = -(1 - origin.y) * FX_FH
 
 
-func _sync_art(S: Run) -> void:
+func _sync_art(S: Run, speed := 1.0) -> void:
 	if S == null or S.hero == null:
 		return
 	var keep := []
@@ -1312,6 +1315,8 @@ func _sync_art(S: Run) -> void:
 			var ang := (p1 - p0).angle()
 			var L := p0.distance_to(p1) + 50
 			_fx_place(sp, a, f, Vector2(0.5, gy), (p0 + p1) / 2 + Vector2(cos(ang), sin(ang)) * 25, Vector2(maxf(0.6, L / (FX_W - 10)), 1), ang, absf(ang) > PI / 2)
+		elif it.has("wall") and WALL_MODELS.has(a):
+			sp.visible = false # its 3D model sinks away instead (see _sync_wall_3d)
 		elif it.has("wall"):
 			var w: Dictionary = it.wall
 			var s0 := WALL_W / FX_W
@@ -1321,9 +1326,24 @@ func _sync_art(S: Run) -> void:
 			var ang = it.get("ang")
 			_fx_place(sp, a, f, Vector2(0.5, 0.5 if ang != null else gy), Vector2(it.x, SY(it.y) + 0.01), Vector2(k, k), ang if ang != null else 0.0, ang != null and absf(ang) > PI / 2)
 	S.art = keep
+	# walls with a 3D model (WALL_MODELS) are drawn live by Wall3D; when one goes, it sinks (or breaks) away
+	for v: Dictionary in wall_views.duplicate():
+		var view = v.view
+		if not is_instance_valid(view):
+			wall_views.erase(v)
+		elif v.run != S:
+			view.queue_free()
+			wall_views.erase(v)
+		elif v.w.get("gone", false):
+			_seen(view)
+			view.set_speed(speed)
+			view.finish(v.w.hp <= 0)
 	# walls standing on the path: built up over half a second, then held, darkening as they crack
 	for w: Dictionary in S.walls:
 		var a: String = w.get("art", "stonewall")
+		if WALL_MODELS.has(a):
+			_sync_wall_3d(S, w, a, speed)
+			continue
 		if not spell_frames.has_animation(a):
 			continue
 		var sp: AnimatedSprite2D = w.get("_v")
@@ -1338,6 +1358,34 @@ func _sync_art(S: Run) -> void:
 		var col = w.get("color")
 		sp.modulate = (col as Color).lightened(0.25) if col is Color else Color(shade, shade, shade)
 		_fx_place(sp, a, f, Vector2(0.5, FX_GROUND.get(a, 92) / FX_FH), Vector2(w.x, SY(w.y)), Vector2(s0 * 0.5 if w.across else s0, s0))
+
+
+## A wall drawn from its 3D model: placed once, across the path with its front toward the enemies coming, then kept
+## on its wear stage (by HP), shaken when hit and tinted like the painted ones.
+func _sync_wall_3d(S: Run, w: Dictionary, a: String, speed: float) -> void:
+	var v = w.get("_v3")
+	if v == null or not is_instance_valid(v):
+		var dir := game.wall_front(w)
+		var view := Wall3D.new()
+		view.scale = Vector2(1 / PX, 1 / PX)
+		view.position = Vector2(w.x, SY(w.y))
+		units.add_child(view)
+		# the turn that puts the model's front (+Z) toward the enemies, through the camera's tilt like Hero3D.face
+		var g := Vector2(dir.x, dir.y * K / sin(deg_to_rad(Hero3D.PITCH)))
+		view.setup(WALL_MODELS[a], atan2(g.x, g.y))
+		w._v3 = view
+		w._hp_seen = w.hp
+		wall_views.append({ view = view, w = w, run = S })
+		v = view
+	var view: Wall3D = v
+	_seen(view)
+	view.set_speed(speed)
+	view.set_hp(maxf(0, w.hp / w.max))
+	if w.hp < w.get("_hp_seen", w.hp) - 0.5:
+		view.hit()
+	w._hp_seen = w.hp
+	var col = w.get("color")
+	view.modulate = (col as Color).lightened(0.25) if col is Color else Color.WHITE
 
 
 func _fly_pos(it: Dictionary, q: float) -> Vector2:

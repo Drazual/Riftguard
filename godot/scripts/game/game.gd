@@ -2019,6 +2019,19 @@ func wall_spot(x: float, y: float):
 	return { d = d, x = best.x, y = best.y, across = absf(b.x - a.x) > absf(b.y - a.y) }
 
 
+## When a slamming wall (the Great Wall) hits the ground after it is raised, and how far in front of it.
+const WALL_SLAM_AT := 0.85
+const WALL_SLAM_AHEAD := 16.0
+
+
+## The way a wall faces: along the path toward the enemies coming (they walk toward higher d).
+func wall_front(w: Dictionary) -> Vector2:
+	# a short look either side, so a wall at a bend faces along the piece of road it stands on
+	var a := pos_at(maxf(0, w.d - 3))
+	var b := pos_at(minf(S.map.path_len, w.d + 3))
+	return (a - b).normalized() if a != b else Vector2.LEFT
+
+
 ## Seconds for one wall charge to come back.
 func wall_recharge_time(h: Hero) -> float:
 	return maxf(R.wall_recharge_min, R.wall_recharge * h.wall_cd_mul)
@@ -2036,7 +2049,13 @@ func raise_wall(h: Hero, x: float, y: float, hp: float, dur: float, pow: float, 
 	w.merge(more, true)
 	S.walls.append(w)
 	if slam_dmg:
-		hit_area(p.x, p.y, 45, slam_dmg * pow, func(e): e.stun_t = maxf(e.stun_t, 0.3 if e.boss else 1.0))
+		# the Great Wall comes down 0.85s into its rise (its model's spawn clip), once, at its front base: a step
+		# toward the enemies coming
+		var at := Vector2(p.x, p.y) + wall_front(w) * WALL_SLAM_AHEAD
+		later(WALL_SLAM_AT, func():
+			hit_area(at.x, at.y, 45, slam_dmg * pow, func(e): e.stun_t = maxf(e.stun_t, 0.3 if e.boss else 1.0))
+			ring(at.x, at.y, 45, 0xf2c14e, 0.4, true)
+			do_shake(0.006, 140))
 	do_shake(0.004, 120)
 	return true
 

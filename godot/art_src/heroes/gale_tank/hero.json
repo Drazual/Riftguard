@@ -1,10 +1,10 @@
 {
 	"model": "gale_tank.glb",
 	"anims": {
-		"idle": "idle",
+		"idle": "@stance",
 		"walk": "@run",
-		"fire": "attack",
-		"block": "block",
+		"fire": "@slash",
+		"block": "@brace",
 		"hold": "bulwark_hold"
 	},
 	"lock_root": "mixamorig_Hips",
@@ -921,7 +921,6 @@
 					]
 				}
 			],
-			"fill_from": "attack",
 			"keep": [
 				"LeftHand",
 				"RightHand"
@@ -933,7 +932,544 @@
 					"SwordAirFX"
 				],
 				"fit": true
-			}
+			},
+			"fill_from": "attack"
+		},
+		"stance": {
+			"length": 2.0,
+			"loop": true,
+			"keys": [
+				{
+					"t": 0,
+					"bones": {
+						"Spine": [
+							6,
+							-4,
+							0
+						],
+						"Spine1": [
+							2,
+							0,
+							0
+						],
+						"Head": [
+							-2,
+							3,
+							0
+						],
+						"LeftArm": [
+							-6,
+							0,
+							-3
+						],
+						"LeftForeArm": [
+							-10,
+							0,
+							0
+						],
+						"RightArm": [
+							-4,
+							0,
+							4
+						],
+						"RightForeArm": [
+							-10,
+							0,
+							0
+						],
+						"RightHand": [
+							40,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.005,
+						0
+					]
+				},
+				{
+					"t": 1.0,
+					"bones": {
+						"Spine": [
+							9,
+							-4,
+							0
+						],
+						"Spine1": [
+							2,
+							0,
+							0
+						],
+						"Head": [
+							-2,
+							3,
+							0
+						],
+						"LeftArm": [
+							-8,
+							0,
+							-4
+						],
+						"LeftForeArm": [
+							-10,
+							0,
+							0
+						],
+						"RightArm": [
+							-3,
+							0,
+							5
+						],
+						"RightForeArm": [
+							-10,
+							0,
+							0
+						],
+						"RightHand": [
+							40,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.02,
+						0
+					]
+				}
+			],
+			"copy": {
+				"clip": "idle",
+				"bones": [
+					"ShieldAirFX",
+					"SwordAirFX"
+				],
+				"fit": true
+			},
+			"fill_from": "attack"
+		},
+		"brace": {
+			"length": 2.0,
+			"loop": true,
+			"keys": [
+				{
+					"t": 0,
+					"bones": {
+						"LeftUpLeg": [
+							-28,
+							0,
+							0
+						],
+						"LeftLeg": [
+							40,
+							0,
+							0
+						],
+						"LeftFoot": [
+							-12,
+							0,
+							0
+						],
+						"RightUpLeg": [
+							14,
+							0,
+							0
+						],
+						"RightLeg": [
+							30,
+							0,
+							0
+						],
+						"RightFoot": [
+							-30,
+							0,
+							0
+						],
+						"Spine": [
+							10,
+							-24,
+							0
+						],
+						"Spine1": [
+							4,
+							0,
+							0
+						],
+						"Head": [
+							-12,
+							16,
+							0
+						],
+						"LeftArm": [
+							-52,
+							0,
+							-28
+						],
+						"LeftForeArm": [
+							-62,
+							0,
+							0
+						],
+						"RightArm": [
+							18,
+							0,
+							12
+						],
+						"RightForeArm": [
+							-70,
+							0,
+							0
+						],
+						"RightHand": [
+							20,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.08,
+						0
+					]
+				},
+				{
+					"t": 1.0,
+					"bones": {
+						"LeftUpLeg": [
+							-28,
+							0,
+							0
+						],
+						"LeftLeg": [
+							40,
+							0,
+							0
+						],
+						"LeftFoot": [
+							-12,
+							0,
+							0
+						],
+						"RightUpLeg": [
+							14,
+							0,
+							0
+						],
+						"RightLeg": [
+							30,
+							0,
+							0
+						],
+						"RightFoot": [
+							-30,
+							0,
+							0
+						],
+						"Spine": [
+							12,
+							-24,
+							0
+						],
+						"Spine1": [
+							4,
+							0,
+							0
+						],
+						"Head": [
+							-12,
+							16,
+							0
+						],
+						"LeftArm": [
+							-52,
+							0,
+							-28
+						],
+						"LeftForeArm": [
+							-62,
+							0,
+							0
+						],
+						"RightArm": [
+							18,
+							0,
+							12
+						],
+						"RightForeArm": [
+							-70,
+							0,
+							0
+						],
+						"RightHand": [
+							20,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.09,
+						0
+					]
+				}
+			],
+			"keep": [
+				"LeftHand"
+			],
+			"copy": {
+				"clip": "block",
+				"bones": [
+					"ShieldAirFX",
+					"SwordAirFX"
+				],
+				"fit": true
+			},
+			"fill_from": "attack"
+		},
+		"slash": {
+			"length": 0.7,
+			"loop": false,
+			"keys": [
+				{
+					"t": 0,
+					"bones": {}
+				},
+				{
+					"t": 0.18,
+					"bones": {
+						"Spine": [
+							-6,
+							-34,
+							0
+						],
+						"Spine1": [
+							-2,
+							-8,
+							0
+						],
+						"Head": [
+							4,
+							20,
+							0
+						],
+						"RightArm": [
+							-150,
+							0,
+							-22
+						],
+						"RightForeArm": [
+							-55,
+							0,
+							0
+						],
+						"RightHand": [
+							-10,
+							0,
+							0
+						],
+						"LeftArm": [
+							-34,
+							0,
+							-12
+						],
+						"LeftForeArm": [
+							-40,
+							0,
+							0
+						],
+						"RightUpLeg": [
+							8,
+							0,
+							0
+						],
+						"RightLeg": [
+							10,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.02,
+						-0.03
+					]
+				},
+				{
+					"t": 0.3,
+					"bones": {
+						"Spine": [
+							16,
+							36,
+							0
+						],
+						"Spine1": [
+							6,
+							8,
+							0
+						],
+						"Head": [
+							-10,
+							-24,
+							0
+						],
+						"RightArm": [
+							-48,
+							0,
+							48
+						],
+						"RightForeArm": [
+							-12,
+							0,
+							0
+						],
+						"RightHand": [
+							10,
+							0,
+							0
+						],
+						"LeftArm": [
+							-14,
+							0,
+							-10
+						],
+						"LeftForeArm": [
+							-30,
+							0,
+							0
+						],
+						"LeftUpLeg": [
+							-24,
+							0,
+							0
+						],
+						"LeftLeg": [
+							28,
+							0,
+							0
+						],
+						"LeftFoot": [
+							-6,
+							0,
+							0
+						],
+						"RightUpLeg": [
+							16,
+							0,
+							0
+						],
+						"RightLeg": [
+							14,
+							0,
+							0
+						],
+						"RightFoot": [
+							-22,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.07,
+						0.07
+					]
+				},
+				{
+					"t": 0.42,
+					"bones": {
+						"Spine": [
+							18,
+							42,
+							0
+						],
+						"Spine1": [
+							6,
+							8,
+							0
+						],
+						"Head": [
+							-10,
+							-24,
+							0
+						],
+						"RightArm": [
+							-18,
+							0,
+							56
+						],
+						"RightForeArm": [
+							-12,
+							0,
+							0
+						],
+						"RightHand": [
+							10,
+							0,
+							0
+						],
+						"LeftArm": [
+							-14,
+							0,
+							-10
+						],
+						"LeftForeArm": [
+							-30,
+							0,
+							0
+						],
+						"LeftUpLeg": [
+							-24,
+							0,
+							0
+						],
+						"LeftLeg": [
+							28,
+							0,
+							0
+						],
+						"LeftFoot": [
+							-6,
+							0,
+							0
+						],
+						"RightUpLeg": [
+							16,
+							0,
+							0
+						],
+						"RightLeg": [
+							14,
+							0,
+							0
+						],
+						"RightFoot": [
+							-22,
+							0,
+							0
+						]
+					},
+					"hips": [
+						0,
+						-0.07,
+						0.07
+					]
+				},
+				{
+					"t": 0.7,
+					"bones": {}
+				}
+			],
+			"copy": {
+				"clip": "attack",
+				"bones": [
+					"ShieldAirFX",
+					"SwordAirFX"
+				],
+				"fit": true
+			},
+			"fill_from": "attack"
 		}
 	}
 }
