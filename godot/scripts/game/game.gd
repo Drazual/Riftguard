@@ -960,6 +960,7 @@ func lob_shell(t: Tower, e: Enemy, mult: float) -> void:
 	var p := pos_at(minf(S.map.path_len, e.d + lead))
 	T = maxf(0.6, hyp(p.x - t.x, p.y - t.y) / speed)
 	t.shot_at = S.time
+	t.hit_at = p # a 3D mortar turns toward where the shell will land
 	S.shells.append({ tw = t, x0 = t.x, y0 = t.y, x1 = p.x, y1 = p.y, t = 0.0, T = T, mult = mult, wait = wait, done = false })
 
 

@@ -31,8 +31,9 @@ extends "res://tools/render_hero.gd"
 ##   wide    how wide the base renders facing the camera, in frame pixels
 ##   foot    [x, y]: where the base's bottom centre lands in a frame, in frame pixels
 ##   out     the name of the files it writes
-##   vibrance  optional: [saturation, contrast] the frames are punched up by after rendering ([1.9, 1.3] by
-##           default), so the painted towers stand out on the bright, busy map instead of looking washed out; [1, 1] = off
+##   vibrance  optional: [saturation, contrast] the frames are punched up by after rendering ([1.6, 1.15] by
+##           default), so the painted towers stand out on the bright, busy map instead of looking washed out; the
+##           saturation only touches already-colourful pixels, so grey parts don't pick up a tint; [1, 1] = off
 ##   shot_frame  the fire frame whose muzzle point goes in the printed turret_muzzle line (0 by default; a cannon
 ##           uses the frame its shell leaves on, the same as TowerData.fire_frame)
 ## It writes res://assets/towers/<out>.png (DIRS columns, facing 0 = up the screen, going clockwise; the idle_frames
@@ -44,7 +45,7 @@ extends "res://tools/render_hero.gd"
 var DIRS := 16
 var FIRE := 6
 var IDLE := 8
-var vibrance := [1.9, 1.3]
+var vibrance := [1.6, 1.15]
 var idle_time := 2.4
 var aim := 0.0
 var yaw_node: Node3D
@@ -166,8 +167,10 @@ func _render_shot(model: Node3D, ap: AnimationPlayer, muzzle: Node3D, c: Diction
 	cam.cull_mask = 0xFFFFF
 
 
-## Stronger colour: saturation times vibrance[0], and the brightness spread out from the middle by vibrance[1] (with
-## a slight lift so the darks don't crush). Alpha is left alone.
+## Stronger colour without a tint: only pixels that are already colourful (glows, crystals, trim) get their saturation
+## raised, up to vibrance[0] times; near-grey metal and stone keep their hue, so the lights' pink rim isn't amplified
+## into a pink cast. vibrance[1] spreads the brightness out from the middle (contrast), keeping each hue. Alpha is
+## left alone.
 func _vivid(img: Image) -> Image:
 	var sat := float(vibrance[0])
 	var con := float(vibrance[1])
@@ -178,8 +181,12 @@ func _vivid(img: Image) -> Image:
 			var c := img.get_pixel(x, y)
 			if c.a <= 0.0:
 				continue
-			var v := clampf((c.v - 0.5) * con + 0.52, 0.0, 1.0)
-			img.set_pixel(x, y, Color.from_hsv(c.h, clampf(c.s * sat, 0.0, 1.0), v, c.a))
+			var lum := c.r * 0.299 + c.g * 0.587 + c.b * 0.114
+			var k := 1.0 + (sat - 1.0) * clampf((c.s - 0.3) / 0.3, 0.0, 1.0)
+			var r := ((lum + (c.r - lum) * k) - 0.5) * con + 0.5
+			var g := ((lum + (c.g - lum) * k) - 0.5) * con + 0.5
+			var b := ((lum + (c.b - lum) * k) - 0.5) * con + 0.5
+			img.set_pixel(x, y, Color(clampf(r, 0, 1), clampf(g, 0, 1), clampf(b, 0, 1), c.a))
 	return img
 
 
