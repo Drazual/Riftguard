@@ -62,6 +62,8 @@ var modal_body: VBoxContainer
 var modal_esc := Callable()
 var settings_open := false
 var tip: PanelContainer
+var space_at := -100000 # when Space was last pressed (msec), for the double tap that pauses
+const DOUBLE_TAP_MS := 350
 var tip_label: RichTextLabel
 var ability_btn: Button
 var ability_fill: ColorRect
@@ -566,14 +568,21 @@ func show_tip(bb: String, rect: Rect2, where := "below") -> void:
 	# Kept see-through until it's measured and placed, so it never flashes at its old spot or size.
 	tip.modulate.a = 0
 	tip.visible = true
-	tip.size = Vector2(300, 0)
-	tip.reset_size()
-	await get_tree().process_frame
-	if not tip.visible or tip_label.text != bb:
-		return
-	# The label only wraps to its real width after its first layout. Before that it measures as one word
-	# per line, so the very first tip came out as a huge empty box. Shrink to fit now that it's wrapped.
-	tip.reset_size()
+	# The label only wraps to its real width after its first layout. Before that it measures as one word per line,
+	# so the very first tip of a run could come out as a huge empty box. So it gets its width up front, and the tip
+	# stays hidden until its height has stopped changing between frames (and the text has been drawn once).
+	tip_label.size = Vector2(tip.custom_minimum_size.x - 20, 0)
+	var last := -1.0
+	for i in 8:
+		tip.size = Vector2(tip.custom_minimum_size.x, 0)
+		tip.reset_size()
+		await get_tree().process_frame
+		if not tip.visible or tip_label.text != bb:
+			return
+		tip.reset_size()
+		if i > 0 and is_equal_approx(tip.size.y, last):
+			break
+		last = tip.size.y
 	var ts := tip.size
 	var vs := get_viewport_rect().size
 	var x := rect.position.x + rect.size.x / 2 - ts.x / 2
@@ -1081,7 +1090,7 @@ func render_codex() -> void:
 			h.add_child(Kit.spacer())
 			h.add_child(Kit.label("Undiscovered", 13, Kit.MUTED))
 		codex_box.add_child(h)
-	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, T change the selected tower’s target, Space start wave, Esc settings. Mouse wheel or pinch zooms the map; drag with the middle button (or two-finger scroll) to look around while zoomed."))
+	codex_box.add_child(Kit.muted("Right-click to move the hero, or use WASD / arrows when movement keys are on. Stand on the path to block enemies. Left-click to build and select. 1–5 pick a tower, R cancel placing or sell the selected tower, Q hero ability, H hold position (Vanguard, Sniper), F Sniper aim point, T change the selected tower’s target, Space start wave, double-tap Space pause or unpause, Esc settings. Mouse wheel or pinch zooms the map; drag with the middle button (or two-finger scroll) to look around while zoomed."))
 
 
 func render_enemy_codex() -> void:
@@ -1350,7 +1359,14 @@ func _key(ev: InputEventKey) -> void:
 		game.cycle_aim()
 	elif k == KEY_SPACE:
 		if not ev.echo:
-			game.start_wave()
+			# a quick double tap pauses or unpauses; a single press starts the next wave
+			var now := Time.get_ticks_msec()
+			if now - space_at <= DOUBLE_TAP_MS:
+				space_at = -100000
+				game.toggle_pause()
+			else:
+				space_at = now
+				game.start_wave()
 
 
 ## Esc backs out one step: a pop-up's back/close button, then a menu screen's Back, then the in-run steps.

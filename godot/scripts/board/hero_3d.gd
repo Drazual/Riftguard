@@ -4,7 +4,8 @@ extends Node2D
 ## transparent viewport by an orthographic camera at the board's 3/4 angle, and the picture is drawn on the board.
 ## So the hero turns smoothly to any angle, aims exactly at its target, and blends between idle, walk and fire.
 ## It reads the same hero.json as tools/render_hero.gd (model, animation files, held weapon, root lock), from the
-## folder in HeroData.model_dir. Painted look: soft lambert-wrap light, warm key, pink neon rim, dark outline.
+## folder in HeroData.model_dir. Clean look: the model's own materials under neutral white studio light, no outline
+## and no colour filter (clean_light), the same as the 3D towers.
 ## Spell casters (the Wizard) also play any of the model's one-shot clips by name with cast(): its hero.json
 ## "release" times say when in each clip the spell leaves, and the wind-up before it is sped up to "windup" seconds,
 ## since the spell itself lands the moment it is cast.
@@ -14,8 +15,6 @@ const K := 0.75 # Board.K: the ground's vertical squash; facings go through it s
 const Q := 2 # render at 2x board pixels and draw at half size, for detail on big screens
 const BOX := Vector2(128, 128) # the viewport in board pixels
 const FEET := Vector2(64, 112) # where the hero's feet land in the viewport, in board pixels
-const OUTLINE := Color(0.13, 0.06, 0.2)
-const LINE_W := 0.014 # outline thickness, in world units of a 1.8-unit hero
 ## Heroes cover ground far faster than a walk clip steps (several body lengths a second), so the clip's leg swing is
 ## stretched by STRIDE for longer steps, and its pace is capped at MAX_PACE times normal; past that the feet glide.
 ## A hero.json can set its own "stride" and "max_pace" (a short-stepping clip wants a bigger stride and a lower cap).
@@ -47,7 +46,6 @@ var run_speed := 0.0
 var kick := 0.0 # recoil left from the last shot, 1 right after it, easing to 0 (hero.json "kick": degrees of lean)
 var base_y := 0.0 # the model's height offset once fitted, before the walk's hip drop
 var ankle := 0.0 # how high the ankles sit when standing, so longer strides can lower the hips to keep feet down
-var lines: Array[StandardMaterial3D] = [] # the model's outline materials (their width follows its scale)
 
 
 ## dir: the hero's source folder (with hero.json). tall: the hero's height on the board, in pixels.
@@ -131,10 +129,8 @@ func setup(dir: String, height: float = 26.0) -> void:
 		vp.add_child(held)
 	muzzle = (held if held else model).find_child(cfg.get("muzzle", "Muzzle"), true, false)
 	_paint(model)
-	var model_lines := lines.duplicate()
 	if held:
 		_paint(held)
-	lines = model_lines # the weapon isn't rescaled, so its outline keeps LINE_W
 	pic = Sprite2D.new()
 	pic.texture = vp.get_texture()
 	pic.centered = false
@@ -145,52 +141,51 @@ func setup(dir: String, height: float = 26.0) -> void:
 	play("idle")
 
 
-## Soft painted light like the map's sprites: a warm key from the top left, a pink-violet neon rim from behind
-## on the right, and a bright, slightly warm ambient so the shadows stay colourful.
-func _lights() -> void:
+## Neutral studio light, so a model looks as it does in a model viewer: a white key from the top left, a soft white
+## fill from the right, white ambient, and a plain grey sky for metal to reflect (it isn't drawn: the background stays
+## clear). Shared with tools/render_hero.gd and tools/render_tower.gd.
+static func clean_light(parent: Node) -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CLEAR_COLOR
+	var sm := ProceduralSkyMaterial.new()
+	sm.sky_top_color = Color(0.78, 0.8, 0.84)
+	sm.sky_horizon_color = Color(0.82, 0.82, 0.82)
+	sm.ground_horizon_color = Color(0.6, 0.6, 0.6)
+	sm.ground_bottom_color = Color(0.32, 0.32, 0.32)
+	var sky := Sky.new()
+	sky.sky_material = sm
+	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.78, 0.7, 0.85)
-	env.ambient_light_energy = 0.6
+	env.ambient_light_color = Color.WHITE
+	env.ambient_light_energy = 0.5
+	env.reflected_light_source = Environment.REFLECTION_SOURCE_SKY
 	env.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	var we := WorldEnvironment.new()
 	we.environment = env
-	vp.add_child(we)
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50, -35, 0)
-	sun.light_color = Color(1.0, 0.95, 0.9)
-	sun.light_energy = 1.35
-	vp.add_child(sun)
-	var rim := DirectionalLight3D.new()
-	rim.rotation_degrees = Vector3(-20, 140, 0)
-	rim.light_color = Color(1.0, 0.45, 0.85)
-	rim.light_energy = 0.8
-	vp.add_child(rim)
+	parent.add_child(we)
+	var key := DirectionalLight3D.new()
+	key.rotation_degrees = Vector3(-50, -35, 0)
+	key.light_energy = 1.15
+	parent.add_child(key)
+	var fill := DirectionalLight3D.new()
+	fill.rotation_degrees = Vector3(-25, 60, 0)
+	fill.light_energy = 0.35
+	parent.add_child(fill)
 
 
-## Soft matte shading, plus a dark outline drawn as a slightly grown back-face shell around every mesh that doesn't glow.
+func _lights() -> void:
+	clean_light(vp)
+
+
+## The model keeps its own materials. Only the texture filtering is set, so the textures stay smooth at board size.
 func _paint(n: Node) -> void:
 	if n is MeshInstance3D:
 		var mi: MeshInstance3D = n
-		var line := StandardMaterial3D.new()
-		line.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		line.albedo_color = OUTLINE
-		line.cull_mode = BaseMaterial3D.CULL_FRONT
-		line.grow = true
-		line.grow_amount = LINE_W
-		lines.append(line)
 		for i in mi.mesh.get_surface_count():
 			var m := mi.get_active_material(i)
-			if m is StandardMaterial3D:
-				var t: StandardMaterial3D = m.duplicate()
-				t.diffuse_mode = BaseMaterial3D.DIFFUSE_LAMBERT_WRAP
-				t.metallic = 0.0
-				t.roughness = maxf(t.roughness, 0.6)
-				# glowing bits (the Wizard's cast spheres) get no outline: they grow from a bone scaled to nearly
-				# nothing, where the outline's grown shell blows up into a big dark shape on screen
-				if not t.emission_enabled:
-					t.next_pass = line
+			if m is BaseMaterial3D:
+				var t: BaseMaterial3D = m.duplicate()
+				t.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 				mi.set_surface_override_material(i, t)
 	for c in n.get_children():
 		_paint(c)
@@ -456,8 +451,6 @@ func _fit() -> void:
 	# the head-top bone sits inside the hair, so leave a little room above it
 	model.scale *= 1.8 / ((top - low) * 1.08)
 	model.position.y -= low * 1.8 / ((top - low) * 1.08)
-	for l in lines:
-		l.grow_amount = LINE_W / model.scale.x
 	fitted = true
 	base_y = model.position.y
 	var feet := INF
