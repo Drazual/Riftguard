@@ -168,8 +168,8 @@ extends Resource
 @export var tailwind_time := 2.0
 @export_multiline var level_offensive := "h.dmg *= 1.02\nh.range = iff(h.range < 9999, h.range * 1.01, h.range)\nh.rate /= 1.015"
 @export var level_offensive_text := "+2% damage, +1% range, +1.5% attack speed"
-@export_multiline var level_defensive := "h.grow_tank(0.03, 0.005, 0.002)"
-@export var level_defensive_text := "+3% max HP, +0.5% damage reduction, +0.2% of max HP as regen per second"
+@export_multiline var level_defensive := "h.grow_tank(0.03, 2.0, 0.002)"
+@export var level_defensive_text := "+3% max HP, +2 armor, +0.2% of max HP as regen per second"
 @export_multiline var level_support := "h.range = iff(h.range < 9999, h.range * 1.01, h.range)\nh.aura_range *= 1.01\nh.xp_gain += 0.01"
 @export var level_support_text := "+1% range and aura reach, +1% XP gain"
 @export_multiline var level_special := "h.spell *= 1.04\nh.max_mana += 3\nh.mana_regen += 0.15"

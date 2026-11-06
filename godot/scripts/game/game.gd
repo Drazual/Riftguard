@@ -1326,30 +1326,36 @@ func cast_ability(_free: bool) -> void:
 		piercing_shot(h, a)
 		return
 	sfx("ability")
-	# an ability with a cast animation (the Vanguard's) lands at its release moment in the clip, not at once
-	if a.release > 0 and a.id in ["slam", "bulwark"]:
+	# an ability with a cast animation (the Vanguard's and Gale's) lands at its release moment in the clip, not at
+	# once; it is lost if the hero is knocked out first
+	if a.release > 0:
 		h.ab_at = S.time
 		var at := h.pos()
+		var goal = null
 		if a.id == "slam":
 			# the shield comes down just ahead of the hero, toward the nearest enemy it can reach (else straight on)
-			var goal := in_range(h.x, h.y, a.r)
-			goal.sort_custom(func(p, q): return hyp(p.x - h.x, p.y - h.y) < hyp(q.x - h.x, q.y - h.y))
-			if goal.size():
-				h.aim_x = goal[0].x
-				h.aim_y = goal[0].y
-			at = Vector2(h.aim_x, h.aim_y) if goal.size() else at
+			var near := in_range(h.x, h.y, a.r)
+			near.sort_custom(func(p, q): return hyp(p.x - h.x, p.y - h.y) < hyp(q.x - h.x, q.y - h.y))
+			goal = near[0] if near.size() else null
+		elif a.id == "stream":
+			goal = lead_enemy() # Gale turns to the enemy it blasts with Air Stream
+		if goal != null:
+			h.aim_x = goal.x
+			h.aim_y = goal.y
+			at = goal.pos()
 		var dir := (at - h.pos()).normalized() if at != h.pos() else Vector2.ZERO
 		later(a.release, func():
-			if S.hero != h or h.ko > 0 or S.over:
-				return
-			if a.id == "slam":
-				slam(h, a, 1.0, h.pos() + dir * SLAM_AHEAD)
-			else:
-				bulwark_shield(h, a))
+			if S.hero == h and h.ko <= 0 and not S.over:
+				_ability_effect(h, a, dir))
 		return
+	_ability_effect(h, a, Vector2.ZERO)
+
+
+## What the ability does as it lands. dir: the way the hero faced as it cast (Shield Slam lands that far ahead).
+func _ability_effect(h: Hero, a: Ability, dir: Vector2) -> void:
 	match a.id:
 		"slam":
-			slam(h, a, 1.0)
+			slam(h, a, 1.0, h.pos() + dir * SLAM_AHEAD if dir != Vector2.ZERO else null)
 		"nova":
 			rift_nova(h, a)
 		"bulwark":
@@ -3160,7 +3166,7 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 	h.cd = 1 / (1 / h.rate + h.momentum * h.mom_stacks / h.base_rate) / (1 + h.ab.power if h.od_t > 0 else 1.0) / (1 + sb("rate")) / (1 - h.drag if h.drag_t > 0 else 1.0)
 	h.attacks += 1
 	sfx("snipe" if h.brace else "shot")
-	var ts := inr if h.bullet_storm and h.attacks % int(h.bullet_storm) == 0 else inr.slice(0, 1 + int(h.multi) + (2 if h.od_t > 0 and h.ab.afterimg else 0))
+	var ts := inr if h.data.cleave or (h.bullet_storm and h.attacks % int(h.bullet_storm) == 0) else inr.slice(0, 1 + int(h.multi) + (2 if h.od_t > 0 and h.ab.afterimg else 0))
 	for t in ts:
 		var crit := randf() < h.crit + sb("crit") or (h.deadeye and h.attacks % int(h.deadeye) == 0)
 		var dmg := hero_dmg() * (h.crit_dmg if crit else 1.0)
@@ -3181,8 +3187,8 @@ func _hero_attack(h: Hero, HX: Dictionary, inr: Array) -> void:
 		# a hero that fires real bullets (shot_fx) hits when the bullet gets there, not the moment it shoots
 		var flight := hyp(t.x - h.x, t.y - h.y) / (h.data.shot_speed if h.data.shot_speed > 0 else HERO_SHOT_SPEED) if h.data and h.data.shot_fx else 0.0
 		if h.data and h.data.hit_time > 0:
-			# a melee swing (the Vanguard's shield bash) lands partway into its animation, once, if the target is
-			# still alive and within reach by then
+			# a melee swing (the Vanguard's punch) lands partway into its animation, once, if the target is still
+			# alive and within reach by then
 			var reach := hero_range(h)
 			later(h.data.hit_time, func():
 				if t.dead or h.ko > 0 or S.hero != h or hyp(t.x - h.x, t.y - h.y) > reach + t.r + 10:
@@ -3384,19 +3390,21 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			e.stun_t -= dt
 		elif e.taunt_t > 0 and h.ko <= 0:
 			e.taunt_t -= dt
-			hurt_hero(h, e.atk * (1 - h.armor) * dt * 0.5)
+			hurt_hero(h, e.atk * (1 - h.armor_cut()) * dt * 0.5)
 			S.blocked += e.atk * dt * 0.5
+			if h.thorns_dps() > 0:
+				damage(e, h.thorns_dps() * dt)
 		elif e.blocked:
 			var guard := 0.0
 			for t in anvils:
 				if t.guard and hyp(t.x - e.x, t.y - e.y) <= t_range(t):
 					guard = maxf(guard, t.guard)
-			hurt_hero(h, e.atk * (1 - h.armor) * (1 - minf(0.6, guard)) * dt)
+			hurt_hero(h, e.atk * (1 - h.armor_cut()) * (1 - minf(0.6, guard)) * dt)
 			S.blocked += e.atk * dt # defensive mastery: damage held off the base
 			if h.shield > 0 and h.ab.spiked:
 				damage(e, 40 * dt)
-			if h.thorns:
-				damage(e, h.thorns * dt)
+			if h.thorns_dps() > 0:
+				damage(e, h.thorns_dps() * dt)
 		else:
 			# Stone walls stop enemies (Phantoms drift through) and take their attacks
 			var step: float = e.speed * (1 - e.slow) * dt

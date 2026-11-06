@@ -165,7 +165,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_7nimu")
 id = "bruiser"
 name = "Bruiser Form"
-desc = "Gale becomes a Bruiser: 2x damage, 25% faster attacks, +20% max HP, +5% damage reduction and harder knockback, but holds 6 enemies at once instead of every one."
+desc = "Gale becomes a Bruiser: 2x damage, 25% faster attacks, +20% max HP, +20 armor and harder knockback, but holds 6 enemies at once instead of every one."
 effect = "h.bruiser_form()"
 pool = "gale"
 also_pools = PackedStringArray()
@@ -420,6 +420,19 @@ rarity = "developer"
 kind = "unique:dev_lives"
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="U_thornarmor"]
+script = ExtResource("1_7nimu")
+id = "thornarmor"
+name = "Spiked Plating"
+desc = "+15 armor, and every enemy hitting you takes 40% of your armor as damage a second."
+effect = "h.armor += 15
+h.thorns_armor += 0.4"
+pool = "any"
+also_pools = PackedStringArray()
+rarity = "mythic"
+kind = "unique:thornarmor"
+heroes = PackedStringArray()
+
 [resource]
 script = ExtResource("2_rcrdk")
-items = Array[ExtResource("1_7nimu")]([SubResource("U_echo"), SubResource("U_archmage"), SubResource("U_manashield"), SubResource("U_aegis"), SubResource("U_unbreak"), SubResource("U_exec"), SubResource("U_stasisL"), SubResource("U_storm"), SubResource("U_master"), SubResource("U_warp"), SubResource("U_deadeye"), SubResource("U_overwatch"), SubResource("U_abcrit"), SubResource("U_bruiser"), SubResource("U_eyestorm"), SubResource("U_downdraft"), SubResource("U_lifesteal"), SubResource("U_overkill"), SubResource("U_bounty"), SubResource("U_tithe"), SubResource("U_interest"), SubResource("U_sun"), SubResource("U_midas"), SubResource("U_heart"), SubResource("U_sl_overlord"), SubResource("U_sl_titan"), SubResource("U_sl_dilation"), SubResource("U_sm_horizon"), SubResource("U_sm_engine"), SubResource("U_sm_godhand"), SubResource("U_dev_money"), SubResource("U_dev_console"), SubResource("U_dev_noclip"), SubResource("U_dev_lives")])
+items = Array[ExtResource("1_7nimu")]([SubResource("U_thornarmor"), SubResource("U_echo"), SubResource("U_archmage"), SubResource("U_manashield"), SubResource("U_aegis"), SubResource("U_unbreak"), SubResource("U_exec"), SubResource("U_stasisL"), SubResource("U_storm"), SubResource("U_master"), SubResource("U_warp"), SubResource("U_deadeye"), SubResource("U_overwatch"), SubResource("U_abcrit"), SubResource("U_bruiser"), SubResource("U_eyestorm"), SubResource("U_downdraft"), SubResource("U_lifesteal"), SubResource("U_overkill"), SubResource("U_bounty"), SubResource("U_tithe"), SubResource("U_interest"), SubResource("U_sun"), SubResource("U_midas"), SubResource("U_heart"), SubResource("U_sl_overlord"), SubResource("U_sl_titan"), SubResource("U_sl_dilation"), SubResource("U_sm_horizon"), SubResource("U_sm_engine"), SubResource("U_sm_godhand"), SubResource("U_dev_money"), SubResource("U_dev_console"), SubResource("U_dev_noclip"), SubResource("U_dev_lives")])

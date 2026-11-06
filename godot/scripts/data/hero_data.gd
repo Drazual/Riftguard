@@ -54,6 +54,8 @@ extends Resource
 @export var shot_speed := 0.0
 ## A melee hero's hits land this many seconds into its attack animation (the Vanguard's shield bash), not at once.
 @export var hit_time := 0.0
+## Each attack hits every enemy in range, not just its target (the Vanguard's punch).
+@export var cleave := false
 ## Where the gun tip is in each facing (0 = north, clockwise), in pixels of a `frames` frame. Shots start here.
 @export var muzzle := PackedVector2Array()
 ## Split-layer heroes (the Striker): on the board the body plays these animations instead of `frames`, and a

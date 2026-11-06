@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ifirifpbsd3i"
-path="res://.godot/imported/gale.png-2c6bb1a24e396f3942a69da419252209.ctex"
+uid="uid://cca1ip0f4lsfx"
+path="res://.godot/imported/gale_tank_Image_1.jpg-bba42af7efedf2c56f07b06f94b84b58.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "8653a18a57073577f94c16305f661120"
 }
 
 [deps]
 
-source_file="res://assets/heroes/gale.png"
-dest_files=["res://.godot/imported/gale.png-2c6bb1a24e396f3942a69da419252209.ctex"]
+source_file="res://art_src/heroes/gale_tank/gale_tank_Image_1.jpg"
+dest_files=["res://.godot/imported/gale_tank_Image_1.jpg-bba42af7efedf2c56f07b06f94b84b58.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

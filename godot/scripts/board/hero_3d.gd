@@ -88,15 +88,23 @@ func setup(dir: String, height: float = 26.0) -> void:
 			h.visible = false
 	ap = model.find_child("AnimationPlayer", true, false)
 	skel = model.find_child("Skeleton3D", true, false)
+	# clips posed from the idle stance (hero.json "poses"), named "@<pose>" in "anims"
+	for pose in cfg.get("poses", {}):
+		if not ap.has_animation_library("ext"):
+			ap.add_animation_library("ext", AnimationLibrary.new())
+		ap.get_animation_library("ext").add_animation(pose, _posed(cfg.poses[pose]))
 	for a in cfg.anims:
 		var clip: String = cfg.anims[a]
-		if clip.get_extension() in ["fbx", "glb", "gltf"]:
+		var posed := clip.begins_with("@")
+		if posed:
+			clip = "ext/" + clip.substr(1)
+		elif clip.get_extension() in ["fbx", "glb", "gltf"]:
 			clip = _import_clip(dir.path_join(clip), a)
 		var anim := ap.get_animation(clip)
-		if cfg.has("lock_root"):
+		if cfg.has("lock_root") and not posed:
 			_lock_root(anim, cfg.lock_root)
 		anim.loop_mode = Animation.LOOP_NONE if a == "fire" else Animation.LOOP_LINEAR
-		if a == "walk" or a == "run":
+		if (a == "walk" or a == "run") and not posed:
 			_stretch(anim, cfg.get("stride", STRIDE))
 		# a firing clip that lowers the gun after the shot is cut where the gun is still up, so firing again and
 		# again keeps it raised (each shot restarts the clip, and it holds its last pose between shots)
@@ -343,6 +351,137 @@ func _run_from(walk: Animation, c: Dictionary) -> Animation:
 				var s := sin(TAU * at / a.length)
 				var p: Vector3 = a.track_get_key_value(t, k)
 				a.track_set_key_value(t, k, p + Vector3(0, bounce * s * s, 0))
+	return a
+
+
+## A clip posed by hand from the idle stance (the first frame of "idle"), for a model whose own clips lack a move
+## (the Vanguard's run, punch and shield brace). c: { "length": s, "loop": bool, "keys": [{ "t": s, "bones":
+## { "LeftArm": [x, y, z], ... }, "hips": [x, y, z] }, ...], "copy": { "clip": name, "bones": [names] } }.
+## A bone's [x, y, z] (degrees) turns it about the model's own axes (x sideways: + tips a hanging limb back and the
+## spine forward; y up: + turns the right shoulder forward; z forward) on top of wherever its parent carried it, so
+## a bent knee rides along with its thigh. "hips" moves the hips (metres). Bone names leave off the "mixamorig_"
+## prefix. Bones it doesn't name hold the idle stance (or "fill_from"'s first frame, for bones idle has no track
+## for); "copy" takes some bones' tracks whole from another clip (the Bulwark glow; "fit": true squeezes them to
+## this clip's length, so a looping effect still loops); a bone in "keep" holds its idle facing in the world (plus its
+## own turn), so a shield or sword in that hand stays as it is held however the arm swings. Keys ease into each other.
+func _posed(c: Dictionary) -> Animation:
+	var idle := ap.get_animation(cfg.anims.get("idle", "idle"))
+	var a: Animation = idle.duplicate(true)
+	a.length = float(c.length)
+	a.loop_mode = Animation.LOOP_LINEAR if c.get("loop", false) else Animation.LOOP_NONE
+	var pre := "mixamorig_" if skel.find_bone("mixamorig_Hips") >= 0 else ""
+	var hips := String(cfg.get("lock_root", pre + "Hips"))
+	# every track holds its idle value from the first frame
+	for t in a.get_track_count():
+		var v: Variant = null
+		match a.track_get_type(t):
+			Animation.TYPE_ROTATION_3D:
+				v = idle.rotation_track_interpolate(t, 0.0)
+			Animation.TYPE_POSITION_3D:
+				v = idle.position_track_interpolate(t, 0.0)
+			Animation.TYPE_SCALE_3D:
+				v = idle.scale_track_interpolate(t, 0.0)
+		if v == null:
+			continue
+		while a.track_get_key_count(t) > 0:
+			a.track_remove_key(t, 0)
+		a.track_insert_key(t, 0.0, v)
+	var prefix := String(a.track_get_path(0)).get_slice(":", 0)
+	# a bone the idle clip leaves alone (its import dropped the unchanging track) takes its value from the first
+	# frame of "fill_from" (a clip that starts in the idle stance), so an effect bone stays as it is in idle
+	if c.has("fill_from") and ap.has_animation(c.fill_from):
+		var src := ap.get_animation(c.fill_from)
+		for t in src.get_track_count():
+			var type := src.track_get_type(t)
+			if a.find_track(src.track_get_path(t), type) >= 0 or src.track_get_key_count(t) == 0:
+				continue
+			var v: Variant = src.track_get_key_value(t, 0)
+			var nt := a.add_track(type)
+			a.track_set_path(nt, src.track_get_path(t))
+			a.track_insert_key(nt, 0.0, v)
+	var track := func(bone: String, type: int) -> int:
+		var path := NodePath(prefix + ":" + bone)
+		var t := a.find_track(path, type)
+		if t < 0:
+			t = a.add_track(type)
+			a.track_set_path(t, path)
+		return t
+	# the idle stance: each bone's own rotation and the hips' position
+	var base: Array[Quaternion] = []
+	for i in skel.get_bone_count():
+		var t := idle.find_track(NodePath(prefix + ":" + skel.get_bone_name(i)), Animation.TYPE_ROTATION_3D)
+		base.append(idle.rotation_track_interpolate(t, 0.0) if t >= 0 else skel.get_bone_rest(i).basis.get_rotation_quaternion())
+	var ht := idle.find_track(NodePath(prefix + ":" + hips), Animation.TYPE_POSITION_3D)
+	var hips0: Vector3 = idle.position_track_interpolate(ht, 0.0) if ht >= 0 else skel.get_bone_rest(skel.find_bone(hips)).origin
+	var keep: Array = c.get("keep", [])
+	var idle_glob: Array[Quaternion] = []
+	for i in skel.get_bone_count():
+		var par := skel.get_bone_parent(i)
+		idle_glob.append((idle_glob[par] if par >= 0 else Quaternion.IDENTITY) * base[i])
+	var moved := {}
+	for b in keep:
+		moved[skel.find_bone(pre + b)] = true
+	for k in c["keys"]:
+		for b in k.get("bones", {}):
+			moved[skel.find_bone(pre + b)] = true
+	moved.erase(-1)
+	var keys: Array = c["keys"].duplicate()
+	if c.get("loop", false) and keys.size() and float(keys[-1].t) < a.length:
+		var last: Dictionary = keys[0].duplicate()
+		last.t = a.length
+		keys.append(last)
+	var cleared := {}
+	for k in keys:
+		var at := float(k.t)
+		var glob: Array[Quaternion] = []
+		glob.resize(skel.get_bone_count())
+		for i in skel.get_bone_count():
+			var par := skel.get_bone_parent(i)
+			var pg := glob[par] if par >= 0 else Quaternion.IDENTITY
+			var local := base[i]
+			var name := skel.get_bone_name(i).trim_prefix(pre)
+			var d: Array = k.get("bones", {}).get(name, [])
+			var turn := Quaternion.IDENTITY
+			if d.size() == 3:
+				turn = Quaternion.from_euler(Vector3(deg_to_rad(d[0]), deg_to_rad(d[1]), deg_to_rad(d[2])))
+			if name in keep:
+				# keeps its idle facing in the world whatever the arm does (the shield stays upright)
+				local = (pg.inverse() * turn * idle_glob[i]).normalized()
+			elif d.size() == 3:
+				local = (pg.inverse() * turn * pg * local).normalized()
+			glob[i] = pg * local
+			if moved.has(i):
+				var t: int = track.call(skel.get_bone_name(i), Animation.TYPE_ROTATION_3D)
+				if not cleared.has(t):
+					cleared[t] = true
+					while a.track_get_key_count(t) > 0:
+						a.track_remove_key(t, 0)
+					a.track_set_interpolation_type(t, Animation.INTERPOLATION_CUBIC)
+				a.track_insert_key(t, at, local)
+		var hp: Array = k.get("hips", [0, 0, 0])
+		var t: int = track.call(hips, Animation.TYPE_POSITION_3D)
+		if not cleared.has(t):
+			cleared[t] = true
+			while a.track_get_key_count(t) > 0:
+				a.track_remove_key(t, 0)
+			a.track_set_interpolation_type(t, Animation.INTERPOLATION_CUBIC)
+		a.track_insert_key(t, at, hips0 + Vector3(hp[0], hp[1], hp[2]))
+	var cp: Dictionary = c.get("copy", {})
+	if cp.has("clip") and ap.has_animation(cp.clip):
+		var src := ap.get_animation(cp.clip)
+		for b in cp.get("bones", []):
+			for type in [Animation.TYPE_ROTATION_3D, Animation.TYPE_POSITION_3D, Animation.TYPE_SCALE_3D]:
+				var st := src.find_track(NodePath(prefix + ":" + b), type)
+				if st < 0:
+					continue
+				var t: int = track.call(b, type)
+				while a.track_get_key_count(t) > 0:
+					a.track_remove_key(t, 0)
+				# "fit": squeeze or stretch the source to this clip's length, so a looping effect loops with it
+				var k := a.length / src.length if cp.get("fit", false) and src.length > 0 else 1.0
+				for i in src.track_get_key_count(st):
+					if src.track_get_key_time(st, i) * k <= a.length + 0.0001:
+						a.track_insert_key(t, src.track_get_key_time(st, i) * k, src.track_get_key_value(st, i))
 	return a
 
 

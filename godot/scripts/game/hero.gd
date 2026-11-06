@@ -28,7 +28,7 @@ var cd := 0.0
 var range := 100.0
 var block := 1
 var regen := 2.0
-var armor := 0.0
+var armor := 0.0 # armor points: armor / (armor + 100) less damage (100 = half), never all of it
 var speed := 140.0
 var ko := 0.0
 var lvl := 1
@@ -37,6 +37,7 @@ var next := 30.0
 var build_range := 170.0
 var respawn := 8.0
 var thorns := 0.0
+var thorns_armor := 0.0 # Spiked Plating: enemies hitting the hero take this times its armor as damage a second
 var aura := 0.0
 var aura_range := 130.0
 var aura_slow := 0.0
@@ -179,12 +180,23 @@ static func make(id: String, base: Vector2) -> Hero:
 	return h
 
 
-## Tank level-up growth: max HP from the hero's base HP, damage reduction and regen.
+## The share of damage the hero's armor stops: 100 armor halves it, and each point does less than the one before
+## (it never reaches all of it).
+func armor_cut() -> float:
+	return armor / (armor + 100.0) if armor > 0 else 0.0
+
+
+## Damage a second dealt back to each enemy hitting the hero (thorns, plus Spiked Plating's share of its armor).
+func thorns_dps() -> float:
+	return thorns + thorns_armor * maxf(0.0, armor)
+
+
+## Tank level-up growth: max HP from the hero's base HP, armor points and regen.
 func grow_tank(hp_frac: float, armor_add: float, regen_frac: float) -> void:
 	var add := roundf(base_hp * hp_frac)
 	max_hp += add
 	hp = minf(max_hp, hp + add)
-	armor = minf(0.75, armor + armor_add)
+	armor += armor_add
 	regen += max_hp * regen_frac
 
 
@@ -198,7 +210,7 @@ func bruiser_form() -> void:
 	block = DB.rules.bruiser_block
 	max_hp = roundf(max_hp * 1.2)
 	hp = max_hp
-	armor = minf(0.75, armor + 0.05)
+	armor += 20
 	knock *= 1.5
 
 

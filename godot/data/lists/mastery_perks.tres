@@ -190,9 +190,9 @@ hero = "vanguard"
 script = ExtResource("1_s5vre")
 id = "m_bastion"
 name = "Living Bastion"
-desc = "+15% max HP and take 5% less damage."
+desc = "+15% max HP and +20 armor."
 effect = "h.max_hp = round(h.max_hp * 1.15)
-h.armor = min(0.75, h.armor + 0.05)"
+h.armor += 20"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 hero = "vanguard"
@@ -700,8 +700,8 @@ hero = "vanguard"
 script = ExtResource("1_s5vre")
 id = "m_armor"
 name = "Adamant Plating"
-desc = "Take 10% less damage."
-effect = "h.armor = min(0.75, h.armor + 0.1)"
+desc = "+40 armor."
+effect = "h.armor += 40"
 also_pools = PackedStringArray()
 heroes = PackedStringArray()
 hero = "vanguard"
