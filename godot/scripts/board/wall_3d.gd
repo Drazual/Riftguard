@@ -46,10 +46,28 @@ var stage := -1
 var ending := false
 var ended_at := 0.0
 var base := Rect2() # the footprint on the ground (x across, z front), in model metres
+## The unified style: drawn in the board's one shared 3D world (see Live3D) on `anchor`, turned with the shared
+## camera; this node's position is its base, in board world units. Under the ground is cut off by the shared toon
+## material (clip_below), so it still rises out of and sinks into the ground.
+var live: Live3D = null
+var anchor: Node3D = null
 
 
 ## path: the .glb. yaw: the turn about the vertical (radians) that puts the wall's front (+Z) toward the enemies.
-func setup(path: String, yaw: float) -> void:
+## shared: draw it in the board's shared 3D layer instead of its own viewport.
+func setup(path: String, yaw: float, shared: Live3D = null) -> void:
+	if shared:
+		live = shared
+		model = (load(path) as PackedScene).instantiate()
+		model.set_meta("clip_below", 0.0)
+		model.scale = Vector3.ONE * SIZE
+		model.rotation.y = yaw
+		_parts()
+		anchor = live.rig.add_model(model, 0.0, true)
+		live.place(anchor, position)
+		ap.play("spawn")
+		ap.queue("idle")
+		return
 	vp = SubViewport.new()
 	vp.size = Vector2i(BOX * Q)
 	vp.transparent_bg = true
@@ -74,18 +92,7 @@ func setup(path: String, yaw: float) -> void:
 	model = (load(path) as PackedScene).instantiate()
 	vp.add_child(model)
 	model.rotation.y = yaw
-	ap = model.find_child("AnimationPlayer", true, false)
-	wall = model.find_child("Wall", true, false)
-	# the wear stages are exported at scale zero (a .glb can't hide a node): all at full size, one shown
-	for i in 3:
-		var s := wall.get_node_or_null("Wear%d" % i) as Node3D
-		if s:
-			s.scale = Vector3.ONE
-	set_hp(1.0)
-	# the game draws its own shock ring for the slam, and a flat ring at ground level would be cut by the clip
-	var shock := model.find_child("GroundShock", true, false) as Node3D
-	if shock:
-		shock.visible = false
+	_parts()
 	base = _footprint()
 	pic = Sprite2D.new()
 	pic.texture = vp.get_texture()
@@ -102,6 +109,21 @@ func setup(path: String, yaw: float) -> void:
 	_clip_corners()
 	ap.play("spawn")
 	ap.queue("idle")
+
+
+func _parts() -> void:
+	ap = model.find_child("AnimationPlayer", true, false)
+	wall = model.find_child("Wall", true, false)
+	# the wear stages are exported at scale zero (a .glb can't hide a node): all at full size, one shown
+	for i in 3:
+		var s := wall.get_node_or_null("Wear%d" % i) as Node3D
+		if s:
+			s.scale = Vector3.ONE
+	set_hp(1.0)
+	# the game draws its own shock ring for the slam, and a flat ring at ground level would be cut by the clip
+	var shock := model.find_child("GroundShock", true, false) as Node3D
+	if shock:
+		shock.visible = false
 
 
 ## The base of the pristine wall, from its meshes (model space, so before the turn).
@@ -167,5 +189,13 @@ func finish(broken: bool) -> void:
 
 
 func _process(_dt: float) -> void:
+	if anchor:
+		anchor.visible = is_visible_in_tree()
+		live.place(anchor, position)
 	if ending and not ap.is_playing():
 		queue_free()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and anchor and is_instance_valid(anchor):
+		anchor.queue_free()

@@ -1458,6 +1458,7 @@ func show_settings() -> void:
 			ui.render_inspector()
 			ui.render_hero()
 			ui.render_enemy_codex()))
+	_style_settings(box)
 	var row := Kit.flow(8)
 	row.add_child(Kit.go("RESUME" if in_run else "DONE", close_settings))
 	if in_run:
@@ -1472,6 +1473,46 @@ func show_settings() -> void:
 	row.add_child(Kit.button("QUIT GAME", func(): ui.get_tree().quit()))
 	box.add_child(row)
 	ui.settings_open = true
+
+
+## The unified 3D art style (StyleSettings): on or off (off is the old look), and its main knobs. Changes show on the
+## board at once and are saved.
+func _style_settings(box: Control) -> void:
+	var st := Save.settings
+	var style := StyleSettings.saved()
+	var knobs := VBoxContainer.new()
+	knobs.visible = StyleSettings.enabled()
+	var changed := func():
+		style.save()
+		ui.board.restyle()
+	box.add_child(_check("Unified 3D art style (heroes and towers drawn live)", StyleSettings.enabled(), func(on):
+		st.style3d = on
+		Save.save_settings()
+		knobs.visible = on
+		ui.board.restyle()))
+	knobs.add_child(_select("Pixel size", ["Chunky (half resolution)", "Sharp (the scenery's own pixels)"], 0 if style.res_scale < 2.0 else 1, func(i):
+		style.res_scale = 1.0 if i == 0 else 2.0
+		changed.call()))
+	knobs.add_child(_check("Stylized materials (off: the models' own)", style.stylize, func(on):
+		style.stylize = on
+		changed.call()))
+	# sliders run 0..1: palette and shadows as they are, glow and outline over their useful ranges
+	knobs.add_child(_slider("Palette strength", style.palette_strength, func(x):
+		style.palette_strength = x
+		changed.call()))
+	knobs.add_child(_slider("Cast shadows", style.shadow_strength, func(x):
+		style.shadow_strength = x
+		changed.call()))
+	knobs.add_child(_slider("Contact shadows", style.contact_shadow, func(x):
+		style.contact_shadow = x
+		changed.call()))
+	knobs.add_child(_slider("Glow", style.glow / 2.0, func(x):
+		style.glow = x * 2.0
+		changed.call()))
+	knobs.add_child(_slider("Outline", style.outline / 2.0, func(x):
+		style.outline = roundf(x * 4.0) / 2.0
+		changed.call()))
+	box.add_child(knobs)
 
 
 func close_settings() -> void:

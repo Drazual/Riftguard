@@ -160,7 +160,7 @@ func _ready() -> void:
 	var aim0 := fx.global_basis.z if fx else Vector3.ZERO
 	var pos0 := fx.global_position if fx else Vector3.ZERO
 	var tip := b.beam_layer.strike_from + aim0 * b.beam_layer.strike_len
-	var on := b.beam_layer.cam.unproject_position(tip) / Vector2(b.beam_layer.vp.size)
+	var on := b.beam_layer.cam.unproject_position(tip) / Vector2(b.beam_layer.cam.get_viewport().size)
 	_check(on.x <= 0.01 or on.x >= 0.99 or on.y <= 0.01 or on.y >= 0.99, "reaches the screen edge (%.2f, %.2f)" % [on.x, on.y])
 	_check(absf(aim0.y) < 0.001, "aim is flat on the ground")
 	await _board_shot("4_strike")

@@ -33,6 +33,9 @@ uniform float highlight_size = 0.25;
 uniform vec4 rim_color : source_color = vec4(1.0, 0.45, 0.85, 1.0);
 uniform float rim = 0.35;
 uniform float exposure = 1.0;
+// nothing under this world height is drawn (a wall sinking into the ground); far below by default
+uniform float clip_below = -1000.0;
+varying float world_y;
 
 vec3 ramp(float l) {
 	if (l < 0.33) return mix(pal_dark.rgb, pal_mid.rgb, l / 0.33);
@@ -40,7 +43,14 @@ vec3 ramp(float l) {
 	return mix(pal_light.rgb, pal_top.rgb, (l - 0.72) / 0.28);
 }
 
+void vertex() {
+	world_y = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
+}
+
 void fragment() {
+	if (world_y < clip_below) {
+		discard;
+	}
 	vec2 uv = UV * uv_scale + uv_offset;
 	vec4 c = albedo_color;
 	if (use_albedo_tex) {

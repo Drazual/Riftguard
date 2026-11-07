@@ -60,11 +60,10 @@ func _ready() -> void:
 
 func _gale() -> void:
 	hero = Hero3D.new()
-	hero.visible = false
 	add_child(hero)
-	hero.setup(GALE)
-	hero.vp.render_target_update_mode = SubViewport.UPDATE_DISABLED
-	gale = world.add_model(hero.model, 0.42)
+	hero.setup(GALE, 26.0, world.rig) # drawn in the shared world, its position in art pixels
+	hero.position = at
+	gale = hero.anchor
 	world.place_art(gale, at)
 
 
@@ -100,7 +99,7 @@ func _process(dt: float) -> void:
 	if moving:
 		var step := minf(d.length(), speed * dt)
 		at += d.normalized() * step
-		hero.want_yaw = world.face_yaw(d.angle()) - deg_to_rad(StyleWorld.YAW)
+		hero.face(d.angle())
 		hero.move(speed / 2.0, 1.0, false)
 	else:
 		if goal != null:
@@ -108,6 +107,7 @@ func _process(dt: float) -> void:
 		elif not paused:
 			leg = (leg + 1) % PATROL.size()
 		hero.play("idle")
+	hero.position = at
 	world.place_art(gale, at)
 	if tower_yaw:
 		var g := gale.global_position - tower.global_position

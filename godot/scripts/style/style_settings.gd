@@ -50,3 +50,30 @@ extends Resource
 @export_range(0.2, 2.0, 0.01) var exposure := 1.0
 ## Snap moving models to the render's pixel grid along the ground, so they don't shimmer between pixels.
 @export var pixel_snap := true
+
+## The knobs the Settings menu shows and saves (Save.settings.style), over these defaults.
+const SAVED := ["res_scale", "palette_strength", "shadow_strength", "contact_shadow", "glow", "outline", "stylize"]
+
+
+## The player's saved style (Save.settings.style), over the defaults.
+static func saved() -> StyleSettings:
+	var s := StyleSettings.new()
+	var d: Dictionary = Save.settings.get("style", {})
+	for k in SAVED:
+		if d.has(k):
+			s.set(k, d[k])
+	return s
+
+
+func save() -> void:
+	var d := {}
+	for k in SAVED:
+		d[k] = get(k)
+	Save.settings.style = d
+	Save.save_settings()
+
+
+## The unified 3D style is on (Save.settings.style3d, on by default). Off is the old look: each hero in its own
+## small viewport with studio light, and the towers' baked sprites.
+static func enabled() -> bool:
+	return bool(Save.settings.get("style3d", true))
