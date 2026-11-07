@@ -75,6 +75,7 @@ var shake_amt := 0.0
 var shake_dur := 0.0
 var hero_spr: AnimatedSprite2D = null
 var hero_3d: Hero3D = null # heroes with a 3D model (HeroData.model_dir): drawn live over an invisible hero_spr
+var beam_layer: BeamLayer = null # Gale's Air Stream beam, over the board
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
 var hero_flash: AnimatedSprite2D = null
@@ -661,6 +662,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 			if h == null:
 				hero_3d.queue_free()
 				hero_3d = null
+		# knocked out, gone or the run is over: a beam in flight ends at once
+		_drop_beam(h == null)
 		return
 	# split-layer heroes draw a gun-less body here and the gun as its own layer (see _sync_hero_gun)
 	var split: bool = h.data.gun != null and h.data.body_frames != null and h.data.model_dir == ""
@@ -687,19 +690,28 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		units.add_child(s)
 		hero_spr = s
 		hero_state = { sector = 2, lx = h.x, ly = h.y, move_t = 0.0, fired = h.atk_at, anim = "", shot = false, face = 4, mv = Vector2.ZERO,
-			ab_at = h.ab_at, burst_at = h.burst_at }
+			ab_at = h.ab_at, burst_at = h.burst_at, stream_at = h.stream_at }
 		s.animation_finished.connect(func(): hero_state.anim = "")
 		if not live3d:
 			s.play("idle_4")
 		if hero_3d and is_instance_valid(hero_3d):
 			hero_3d.queue_free()
 		hero_3d = null
+		_drop_beam(true)
+		h.beam_3d = false
 		if live3d:
 			hero_3d = Hero3D.new()
 			hero_3d.scale = Vector2(1 / PX, 1 / PX)
 			units.add_child(hero_3d)
 			hero_3d.setup(h.data.model_dir)
 			hero_3d.face(PI / 2, true)
+			# Gale's Air Stream: a beam from the shield to the screen edge, drawn over the board (see BeamLayer)
+			if BeamLayer.fits(hero_3d):
+				beam_layer = BeamLayer.new()
+				world.add_child(beam_layer)
+				world.move_child(beam_layer, units.get_index() + 1)
+				beam_layer.setup(hero_3d, Vector2(W, VH), PX)
+				h.beam_3d = true
 	var st := hero_state
 	s.visible = true
 	var mx: float = h.x - st.lx
@@ -718,7 +730,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	var firing := S.time - h.atk_at < maxf(0.25, minf(h.rate, 1.0) + 0.15)
 	# the Vanguard turns to the enemy it brings its Shield Slam down on, Gale to the one it blasts with Air Stream
 	# (their ability casts, see Game.cast_ability)
-	var slamming := h.ab.id in ["slam", "stream"] and S.time - h.ab_at < 1.1
+	# (Gale holds still on its target through the whole air_beam_cast, so the shield stays on the beam)
+	var slamming := h.ab.id in ["slam", "stream"] and S.time - h.ab_at < (1.3 if h.beam_3d else 1.1)
 	# face the target while shooting, else the way it's walking (on screen, so the tilt counts)
 	var v := Vector2.ZERO
 	if firing or slamming or (h.aim_live and not moving):
@@ -772,8 +785,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		if want == "walk":
 			# long strides at a steady pace (see Hero3D.move)
 			hero_3d.move(st.get("gv", h.speed) * PX, speed, m < 0, firing)
-		elif h.ab_at != st.ab_at and ABILITY_CLIP.has(h.ab.id) and hero_3d.ap.has_animation(ABILITY_CLIP[h.ab.id]):
-			hero_3d.cast(ABILITY_CLIP[h.ab.id], speed)
+		elif h.ab_at != st.ab_at and hero_3d.ap.has_animation(_ability_clip(h)):
+			hero_3d.cast(_ability_clip(h), speed)
 		elif h.burst_at != st.burst_at and hero_3d.ap.has_animation("bulwark_burst"):
 			hero_3d.cast("bulwark_burst", speed)
 		elif h.ab.id == "bulwark" and h.shield_t > 0 and hero_3d.anims.has("hold"):
@@ -791,13 +804,42 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 			hero_3d.play("block", speed)
 		else:
 			hero_3d.play(want, speed * m)
+	if h.ab_at != st.ab_at:
+		st.beamed = false
 	st.ab_at = h.ab_at
 	st.burst_at = h.burst_at
+	# Air Stream: the beam leaves the shield once, as air_beam_cast crosses its release (0.40 s in, by the clip's own
+	# time, so it lines up with the pose whatever the speed), aimed where Gale turned to and locked there. If the clip
+	# didn't play (cast on the move), it goes when the game lets the stream go instead.
+	if beam_layer and is_instance_valid(beam_layer) and not st.get("beamed", true):
+		var rel := float(hero_3d.cfg.get("release", {}).get("air_beam_cast", 0.4))
+		var crossed := hero_3d.ap.current_animation == "air_beam_cast" and hero_3d.ap.current_animation_position >= rel
+		if crossed or h.stream_at != st.get("stream_at", h.stream_at):
+			st.beamed = true
+			var aim := Vector2(h.aim_x - h.x, h.aim_y - h.y)
+			beam_layer.fire(aim.normalized() if aim != Vector2.ZERO and crossed else h.stream_dir, K)
+	st.stream_at = h.stream_at
 	_sync_hero_gun(S, h, s, firing, dt, speed)
 
 
 ## The model clip each ability plays as it is cast (the Vanguard's and Gale's models). Abilities not listed have none.
 const ABILITY_CLIP := { slam = "shield_slam", bulwark = "bulwark", whirl = "shield_slam", stream = "bash" }
+
+
+## This hero's cast clip: Air Stream plays air_beam_cast on a model that has it (the beam fires from its shield).
+func _ability_clip(h: Hero) -> String:
+	if h.ab.id == "stream" and h.beam_3d:
+		return "air_beam_cast"
+	return ABILITY_CLIP.get(h.ab.id, "")
+
+
+## Ends the beam in flight; `free` also removes the layer (the hero model is gone).
+func _drop_beam(free: bool) -> void:
+	if beam_layer and is_instance_valid(beam_layer):
+		beam_layer.stop()
+		if free:
+			beam_layer.queue_free()
+			beam_layer = null
 
 
 ## The Wizard model's clip for a spell (its runes, e.g. "fire+water"): one element casts cast_<element>, the same

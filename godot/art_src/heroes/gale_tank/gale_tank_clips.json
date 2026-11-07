@@ -1,0 +1,165 @@
+{
+  "fps": 60,
+  "clips": {
+    "idle": {
+      "frames": 120,
+      "length_s": 2,
+      "loop": true,
+      "release_s": null,
+      "release_frame": null
+    },
+    "walk": {
+      "frames": 60,
+      "length_s": 1,
+      "loop": true,
+      "release_s": null,
+      "release_frame": null
+    },
+    "block": {
+      "frames": 120,
+      "length_s": 2,
+      "loop": true,
+      "release_s": null,
+      "release_frame": null
+    },
+    "attack": {
+      "frames": 42,
+      "length_s": 0.7,
+      "loop": false,
+      "release_s": 0.3,
+      "release_frame": 18
+    },
+    "bash": {
+      "frames": 51,
+      "length_s": 0.85,
+      "loop": false,
+      "release_s": 0.35,
+      "release_frame": 21
+    },
+    "shield_slam": {
+      "frames": 66,
+      "length_s": 1.1,
+      "loop": false,
+      "release_s": 0.5,
+      "release_frame": 30
+    },
+    "bulwark": {
+      "frames": 60,
+      "length_s": 1,
+      "loop": false,
+      "release_s": 0.35,
+      "release_frame": 21
+    },
+    "bulwark_hold": {
+      "frames": 120,
+      "length_s": 2,
+      "loop": true,
+      "release_s": null,
+      "release_frame": null
+    },
+    "bulwark_burst": {
+      "frames": 36,
+      "length_s": 0.6,
+      "loop": false,
+      "release_s": 0.2,
+      "release_frame": 12
+    },
+    "air_beam_cast": {
+      "frames": 78,
+      "length_s": 1.3,
+      "loop": false,
+      "release_s": 0.4,
+      "release_frame": 24
+    },
+    "air_beam_hold": {
+      "frames": 60,
+      "length_s": 1,
+      "loop": true,
+      "release_s": null,
+      "release_frame": null
+    },
+    "air_beam_end": {
+      "frames": 24,
+      "length_s": 0.4,
+      "loop": false,
+      "release_s": null,
+      "release_frame": null
+    }
+  },
+  "forward": "+Z",
+  "hero_id": "gale_tank",
+  "height_m": 1.896,
+  "shield_hand": "LeftHand",
+  "triangles": {
+    "Mesh_0.001": 33611,
+    "ShieldAir": 576,
+    "Mesh_0.002": 4602,
+    "SwordAir": 576,
+    "Mesh_0.003": 1786
+  },
+  "total_triangles": 41151,
+  "skeleton_bones": 43,
+  "skin": "Anatomical segment envelopes + region fixes (heat solve failed on disconnected Meshy armor)",
+  "sword_hand": "RightHand",
+  "skeleton_path": "GaleTankRig/Skeleton3D",
+  "animation_player_path": "AnimationPlayer",
+  "mesh_triangles": {
+    "GaleTank": 33611,
+    "Shield": 4602,
+    "Sword": 1786,
+    "ShieldAir": 576,
+    "SwordAir": 576
+  },
+  "air_fx_triangles": 1152,
+  "air_fx": "Embedded cosmetic alpha-blended cyan emissive ribbons; swirl all clips; sword attack and shield bash/slam stronger",
+  "nodes": {
+    "HitPoint": "GaleTankRig/Skeleton3D/mixamorig_RightHand/Sword/HitPoint",
+    "BashPoint": "GaleTankRig/Skeleton3D/mixamorig_LeftHand/Shield/BashPoint",
+    "ShieldCenter": "GaleTankRig/Skeleton3D/mixamorig_LeftHand/Shield/ShieldCenter",
+    "BuffPoint": "GaleTankRig/Skeleton3D/mixamorig_LeftHand/Shield/BuffPoint",
+    "SlamPoint": "GaleTankRig/SlamPoint"
+  },
+  "event_semantics": {
+    "attack": "sword hit once",
+    "bash": "shield hit once; alternate animation, no new W stats supplied",
+    "shield_slam": "AOE impact",
+    "bulwark": "shield activation, start 5s timer",
+    "bulwark_burst": "visual peak only; gameplay burst immediately at expiry/depletion"
+  },
+  "gameplay_defaults_from_previous_tank": {
+    "max_hp": 450,
+    "damage_reduction": 0.1,
+    "regen_hp_s": 5,
+    "speed": 135,
+    "block": 999,
+    "blocks_phantoms": true,
+    "basic": {
+      "flat_damage": 16,
+      "max_hp_fraction": 0.02,
+      "cadence_s": 0.7,
+      "range": 80
+    },
+    "shield_slam": {
+      "cooldown_s": 12,
+      "flat_damage": 60,
+      "max_hp_fraction": 0.04,
+      "radius": 100,
+      "stun_s": 1.5
+    },
+    "bulwark": {
+      "cooldown_s": 12,
+      "absorb_capacity": 225,
+      "duration_s": 5,
+      "burst_radius": 110,
+      "burst_flat_damage": 45,
+      "burst_absorbed_fraction": 0.6
+    }
+  },
+  "godot_verification": {
+    "version": "4.7.2.stable",
+    "status": "passed",
+    "clips": 9,
+    "bones": 43,
+    "air_fx_idle_and_peak": "Both swirl in idle; attack/bash peak scale >1.4x idle; material transparency mode 4 (alpha depth prepass)"
+  }
+}

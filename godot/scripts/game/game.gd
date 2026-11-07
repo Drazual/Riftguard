@@ -1445,8 +1445,11 @@ func air_stream(h: Hero, a: Ability) -> void:
 	var y1 := h.y
 	var x2 := h.x + ux * a.r
 	var y2 := h.y + uy * a.r
-	line(x1, y1, x2, y2, 0xd8f6ff, a.dur, a.w * 2)
-	line(x1, y1, x2, y2, 0x9af0ff, a.dur, a.w * 0.7)
+	h.stream_at = S.time
+	h.stream_dir = Vector2(ux, uy)
+	if not h.beam_3d:
+		line(x1, y1, x2, y2, 0xd8f6ff, a.dur, a.w * 2)
+		line(x1, y1, x2, y2, 0x9af0ff, a.dur, a.w * 0.7)
 	if a.downdraft:
 		zone({ line = true, x = x1, y = y1, x1 = x1, y1 = y1, x2 = x2, y2 = y2, r = a.w, t = 3.0, slow = 0.5, color = 0xd8f6ff })
 	for e in hits:
@@ -1463,7 +1466,8 @@ func air_stream(h: Hero, a: Ability) -> void:
 			if not e.dead:
 				e.stun_t = maxf(e.stun_t, a.stun * (0.5 if e.boss else 1.0))
 			ring(e.x, e.y, e.r + 10, 0x9af0ff, 0.35, true)
-		line(x1, y1, x2, y2, 0xffffff, 0.15, a.w)
+		if not h.beam_3d:
+			line(x1, y1, x2, y2, 0xffffff, 0.15, a.w)
 		do_shake(0.006, 160)
 		if S.hero.ko <= 0:
 			give_shield(S.hero, dealt * a.mult, 6.0))
