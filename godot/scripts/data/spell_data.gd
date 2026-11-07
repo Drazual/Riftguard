@@ -61,7 +61,9 @@ extends Resource
 @export_group("Wall")
 @export var wall_hp := 0.0
 @export var wall_hp_per_wave := 0.0
-@export var wall_time := 0.0
+@export var wall_time := 0.0 # (unused: walls stand until they're destroyed)
+## Wall charges this wall uses (the Great Wall takes 2).
+@export var wall_cost := 1
 @export var wall_slam := 0.0
 @export var wall_thorns := 0.0
 @export var wall_color := Color(0, 0, 0, 0)

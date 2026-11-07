@@ -1294,8 +1294,8 @@ func use_ability(auto := false) -> void:
 	if h == null or h.ko > 0 or h.ab.t > 0 or S.over or S.paused or h.data.spells or h.stun_t > 0:
 		return
 	var a := h.ab
-	if a.id == "stream" and live_enemies().is_empty():
-		say("No target for " + a.name + ".")
+	if a.id == "stream" and stream_target(h, a) == null:
+		say("No target in reach for " + a.name + ".")
 		return
 	if a.id == "pierce" and pierce_goal() == null:
 		say("No target for " + a.name + ". Press F to set an aim point.")
@@ -1338,7 +1338,7 @@ func cast_ability(_free: bool) -> void:
 			near.sort_custom(func(p, q): return hyp(p.x - h.x, p.y - h.y) < hyp(q.x - h.x, q.y - h.y))
 			goal = near[0] if near.size() else null
 		elif a.id == "stream":
-			goal = lead_enemy() # Gale turns to the enemy it blasts with Air Stream
+			goal = stream_target(h, a) # Gale turns to the enemy it blasts with Air Stream
 		if goal != null:
 			h.aim_x = goal.x
 			h.aim_y = goal.y
@@ -1370,7 +1370,7 @@ func _ability_effect(h: Hero, a: Ability, dir: Vector2) -> void:
 		"whirl":
 			whirlwind(h, a)
 		"stream":
-			air_stream(h, a)
+			air_stream(h, a, dir)
 		"stasis":
 			S.stasis_t = a.dur
 			S.stasis_at = h.pos()
@@ -1424,12 +1424,23 @@ func whirlwind(h: Hero, a: Ability) -> void:
 
 ## Gale: a beam of wind toward the lead enemy. After a moment every enemy it caught is stunned and hit,
 ## and the hero gains a shield worth a share of the damage dealt.
-func air_stream(h: Hero, a: Ability) -> void:
-	var goal = lead_enemy()
-	if goal == null:
+## Air Stream's target: the enemy furthest along the path (a boss first) within its reach, on screen. None: it can't
+## be cast.
+func stream_target(h: Hero, a: Ability) -> Enemy:
+	var best: Enemy = null
+	for e in in_range(h.x, h.y, a.r).filter(in_view):
+		if best == null or (e.boss and not best.boss) or (e.boss == best.boss and e.d > best.d):
+			best = e
+	return best
+
+
+## dir: the way Gale turned as it cast (the stream still goes that way if its target is gone by the release).
+func air_stream(h: Hero, a: Ability, dir := Vector2.ZERO) -> void:
+	var goal = stream_target(h, a)
+	if goal == null and dir == Vector2.ZERO:
 		return
-	var dx: float = goal.x - h.x
-	var dy: float = goal.y - h.y
+	var dx: float = goal.x - h.x if goal != null else dir.x
+	var dy: float = goal.y - h.y if goal != null else dir.y
 	var len := hyp(dx, dy)
 	if len == 0:
 		len = 1
@@ -2041,13 +2052,15 @@ func wall_recharge_time(h: Hero) -> float:
 	return maxf(R.wall_recharge_min, R.wall_recharge * h.wall_cd_mul)
 
 
-func raise_wall(h: Hero, x: float, y: float, hp: float, dur: float, pow: float, slam_dmg: float, more := {}) -> bool:
-	if h.wall_charges < 1:
+## Walls stand until they're destroyed (dur is unused). cost: the wall charges it takes.
+func raise_wall(h: Hero, x: float, y: float, hp: float, _dur: float, pow: float, slam_dmg: float, more := {}, cost := 1) -> bool:
+	if h.wall_charges < cost:
 		return false
 	var p = wall_spot(x, y)
 	if p == null:
 		return false
-	h.wall_charges -= 1
+	h.wall_charges -= cost
+	var dur := INF
 	var w := { d = p.d, x = p.x, y = p.y, across = p.across, hp = hp * h.wall_bonus, max = hp * h.wall_bonus, t = dur, T = dur,
 		art = "greatwall" if slam_dmg else "stonewall", born = S.time, thorns = 0.0, color = null }
 	w.merge(more, true)
@@ -2184,7 +2197,7 @@ func cast_spell(key: String, h: Hero, x: float, y: float, p: float) -> bool:
 				more.thorns = sp.wall_thorns * p
 			if sp.wall_color.a > 0:
 				more.color = sp.wall_color
-			return raise_wall(h, x, y, sp.wall_hp + sp.wall_hp_per_wave * wave_no(), sp.wall_time, p, sp.wall_slam, more)
+			return raise_wall(h, x, y, sp.wall_hp + sp.wall_hp_per_wave * wave_no(), sp.wall_time, p, sp.wall_slam, more, sp.wall_cost)
 		"zone":
 			if sp.heal:
 				heal_hero(h, sp.heal)
@@ -2305,15 +2318,23 @@ func cast_runes(x: float, y: float) -> void:
 		return
 	if S.time < h.cast_t:
 		return
-	# the Wizard's range is how far it can cast
+	# the Wizard's range is how far it can cast: cast out of reach, it walks into range first, then casts
 	var reach := hero_range(h)
-	if hyp(x - h.x, y - h.y) > reach:
-		say("Out of casting range: move closer to cast there.")
-		ring(h.x, h.y, reach, 0x7fb2ff, 0.4)
+	var d := hyp(x - h.x, y - h.y)
+	if d > reach:
+		if h.hold:
+			say("Out of casting range, and your hero is holding position (H).")
+			return
+		var stop := reach * 0.9
+		h.tx = clampf(x + (h.x - x) / d * stop, 10, W - 10)
+		h.ty = clampf(y + (h.y - y) / d * stop, 10, H - 10)
+		S.pending_build = null
+		S.pending_cast = { runes = S.runes.duplicate(), x = x, y = y }
 		return
+	S.pending_cast = null
 	var mana: float = r.mana * h.spell_cost
-	if r.spell.delivery == "wall" and h.wall_charges < 1:
-		say("No wall charges left: next one in %ds." % ceili(wall_recharge_time(h) - h.wall_t))
+	if r.spell.delivery == "wall" and h.wall_charges < r.spell.wall_cost:
+		say(("No wall charges left" if h.wall_charges < 1 else "%s needs %d wall charges" % [r.spell.name, r.spell.wall_cost]) + ": next one in %ds." % ceili(wall_recharge_time(h) - h.wall_t))
 		return
 	if h.mana < mana:
 		say("Not enough mana for %s (%d needed)." % [r.spell.name, ceili(mana)])
@@ -2372,6 +2393,8 @@ func wall_ahead(e: Enemy, step: float):
 	return null
 
 
+const WALL_BLAST_R := 70.0
+
 func update_walls(dt: float) -> void:
 	for w in S.walls:
 		w.t -= dt
@@ -2380,6 +2403,12 @@ func update_walls(dt: float) -> void:
 				damage(e, w.thorns * dt)
 		if w.t <= 0 or w.hp <= 0:
 			w.gone = true
+			# Volatile Walls: a wall that's destroyed explodes (grows with spell damage)
+			var hb := S.hero
+			if w.hp <= 0 and hb and hb.wall_blast > 0:
+				hit_area(w.x, w.y, WALL_BLAST_R, w.max * hb.wall_blast * spell_pow(hb))
+				ring(w.x, w.y, WALL_BLAST_R, 0xff9a3d, 0.45, true)
+				do_shake(0.006, 160)
 			S.art.append({ a = w.art, wall = w, frames = [7, 6, 5, 4, 3, 2, 1, 0], x = w.x, y = w.y, t0 = S.time, fps = 20.0, tint = w.color if w.color != null else Color.WHITE })
 	S.walls = S.walls.filter(func(w): return not w.get("gone", false))
 
@@ -3079,6 +3108,16 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 		else:
 			h.x += dx / dd * step
 			h.y += dy / dd * step
+	# a spell cast out of reach goes off once the Wizard has walked into range (with the runes it was cast with)
+	var pc = S.pending_cast
+	if pc and hyp(pc.x - h.x, pc.y - h.y) <= hero_range(h):
+		S.pending_cast = null
+		h.tx = null
+		S.runes = pc.runes
+		cast_runes(pc.x, pc.y)
+		if S.runes.size():
+			S.runes = [] # it couldn't go off (no mana, cooling down...): don't leave it readied
+			refresh("runes")
 	var pb = S.pending_build
 	if pb and cell_pos(pb.c, pb.r).distance_to(Vector2(h.x, h.y)) <= h.build_range:
 		S.pending_build = null
@@ -4804,6 +4843,7 @@ func move_hero(x: float, y: float) -> void:
 		say("Holding position. Press H to move again.")
 		return
 	S.pending_build = null
+	S.pending_cast = null
 	S.hero.tx = clampf(x, 10, W - 10)
 	S.hero.ty = clampf(y, 10, H - 10)
 

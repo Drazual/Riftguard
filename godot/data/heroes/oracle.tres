@@ -86,5 +86,6 @@ aura = 0.25
 ability = SubResource("Resource_207id")
 alt = SubResource("Resource_putib")
 meta = Array[ExtResource("2_vb7qr")]([SubResource("Resource_vc421"), SubResource("Resource_4doqw"), SubResource("Resource_auynb"), SubResource("Resource_fsbhq")])
+model_dir = "res://art_src/heroes/oracle"
 frames = ExtResource("2_y0hsd")
 sheet = ExtResource("4_q76ft")

@@ -1,7 +1,7 @@
 ## The Wizard's Stone Wall and Great Wall drawn live from their 3D models, in a real run (needs a display):
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/walls.tscn -- <out dir>
 ## Checks each rises (spawn) then idles, shows exactly one wear stage for its HP, shakes when hit, sinks away
-## (break at 0 HP, despawn on timeout) and is freed; and that the Great Wall's slam lands once, 0.85s in.
+## (break at 0 HP; walls never time out) and is freed; and that the Great Wall's slam lands once, 0.85s in.
 extends Node
 
 var out := "user://walls"
@@ -135,10 +135,44 @@ func _ready() -> void:
 	_check(hp0 - e.hp == hit or e.hp < hp0 - hit, "and only once (%.0f)" % (hp0 - e.hp))
 	_check(v2.ap.current_animation == "idle", "then idles (%s)" % v2.ap.current_animation)
 	await _shot("6_great_idle", spot2)
-	w2.t = 0.01
+	# walls stand until they're destroyed, and the Great Wall takes 2 charges
+	_check(is_inf(w2.t), "walls don't time out")
+	_check(S.hero.wall_charges == 9 - 2, "the Great Wall used 2 charges (%d left)" % S.hero.wall_charges)
+	S.hero.wall_charges = 1
+	S.hero.mana = 999
+	S.runes = ["earth", "earth"]
+	var n_walls := S.walls.size()
+	g.cast_runes(spot2.x + 40, spot2.y)
+	_check(S.walls.size() == n_walls, "one charge isn't enough for a Great Wall")
+	S.runes = []
+	_check(DB.rules.wall_charges == 4, "walls hold up to 4 charges")
+	# Volatile Walls: a wall that's destroyed explodes
+	S.hero.wall_blast = 0.3
+	var hp1 := e.hp
+	w2.hp = 0
 	await _wait(0.15)
-	_check(is_instance_valid(v2) and v2.ap.current_animation == "despawn", "on timeout it sinks (%s)" % (v2.ap.current_animation if is_instance_valid(v2) else "freed"))
+	_check(is_instance_valid(v2) and v2.ap.current_animation == "break", "at 0 HP it breaks (%s)" % (v2.ap.current_animation if is_instance_valid(v2) else "freed"))
+	_check(hp1 - e.hp > 0, "Volatile Walls: it explodes on the enemies near it (%.0f)" % (hp1 - e.hp))
 	await _wait(0.8)
 	_check(not is_instance_valid(v2), "and is freed")
+	# cast out of reach, the Wizard walks into range, then raises it
+	var h := S.hero
+	S.hero.wall_charges = 4
+	S.hero.wall_blast = 0.0
+	var far := g.pos_at(S.map.path_len * 0.7)
+	h.x = far.x - 400 if far.x > 480 else far.x + 400
+	h.y = far.y
+	h.tx = null
+	h.mana = 999
+	h.cast_t = 0
+	S.runes = ["earth"]
+	var n0 := S.walls.size()
+	g.cast_runes(far.x, far.y)
+	_check(S.walls.size() == n0 and h.tx != null and S.pending_cast != null, "out of range: it walks toward the spot first")
+	var t1 := S.time
+	while S.walls.size() == n0 and S.time < t1 + 6.0:
+		await get_tree().process_frame
+	_check(S.walls.size() == n0 + 1 and Vector2(h.x, h.y).distance_to(far) <= g.hero_range(h) + 1,
+		"then casts once in range (%.0f from it)" % Vector2(h.x, h.y).distance_to(far))
 	print("WALLS DONE fails=%d" % fails)
 	get_tree().quit(1 if fails else 0)

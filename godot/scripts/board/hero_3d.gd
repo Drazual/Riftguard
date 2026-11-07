@@ -44,6 +44,7 @@ var cast_spin := 0.0 # a full twirl through the wind-up (the ultimate)
 var fit_scale := Vector3.ONE
 var ground_y := 0.0 # the model's height before a cast's hop (eased toward base_y less the hip drop)
 var fitted := false
+var hover := {} # hero.json "hover": { start, stop } clips into and out of its hover_move (see play)
 var tall := 26.0
 ## How fast the walk (and run) clips would carry the hero, in world units per second of a 1.8-unit hero, measured
 ## from the clip: twice the forward-and-back swing of one foot (relative to the hips) per cycle, over its length.
@@ -101,6 +102,9 @@ func setup(dir: String, height: float = 26.0) -> void:
 		if not ap.has_animation_library("ext"):
 			ap.add_animation_library("ext", AnimationLibrary.new())
 		ap.get_animation_library("ext").add_animation(pose, _posed(cfg.poses[pose]))
+	# a hovering hero (hero.json "hover": its "start" and "stop" clips): no strides to stretch or legs to narrow, and
+	# its mesh floats where it was made to (never pulled down to the ground)
+	hover = cfg.get("hover", {})
 	for a in cfg.anims:
 		var clip: String = cfg.anims[a]
 		var posed := clip.begins_with("@")
@@ -112,7 +116,7 @@ func setup(dir: String, height: float = 26.0) -> void:
 		if cfg.has("lock_root") and not posed:
 			_lock_root(anim, cfg.lock_root)
 		anim.loop_mode = Animation.LOOP_NONE if a == "fire" else Animation.LOOP_LINEAR
-		if (a == "walk" or a == "run") and not posed:
+		if (a == "walk" or a == "run") and not posed and not hover:
 			_stretch(anim, cfg.get("stride", STRIDE))
 			_narrow(anim, float(cfg.get("narrow", NARROW)))
 		# a firing clip that lowers the gun after the shot is cut where the gun is still up, so firing again and
@@ -152,6 +156,11 @@ func setup(dir: String, height: float = 26.0) -> void:
 		held = (load(dir.path_join(cfg.held.scene)) as PackedScene).instantiate()
 		vp.add_child(held)
 	muzzle = (held if held else model).find_child(cfg.get("muzzle", "Muzzle"), true, false)
+	# cosmetic SkeletonModifier3D scripts the model ships with (hero.json "modifiers"), run after its clips under the
+	# Skeleton3D: the Oracle's orb crystal keeps spinning across every clip change
+	for path in cfg.get("modifiers", []):
+		var mod: Node = (load(dir.path_join(path)) as Script).new()
+		skel.add_child(mod)
 	_paint(model)
 	if held:
 		_paint(held)
@@ -571,6 +580,15 @@ func play(what: String, speed: float = 1.0) -> void:
 			cast_speed = speed
 		return
 	cast_rel = 0.0
+	if not hover.is_empty() and what != state and (what == "walk" and state != "walk" or what == "idle" and state == "walk"):
+		# into the hover_move through hover_start, back to the idle hover through hover_stop
+		var via: String = hover.get("start" if what == "walk" else "stop", "")
+		if ap.has_animation(via):
+			ap.play(via, 0.12)
+			ap.queue(anims[what])
+			state = what
+			ap.speed_scale = speed
+			return
 	if what != state or what == "fire":
 		ap.play(anims[what], 0.0 if what == state else 0.12)
 		if what == "fire":
@@ -745,7 +763,8 @@ func _fit() -> void:
 		return
 	# the head-top bone sits inside the hair, so leave a little room above it
 	model.scale *= 1.8 / ((top - low) * 1.08)
-	model.position.y -= low * 1.8 / ((top - low) * 1.08)
+	if hover.is_empty():
+		model.position.y -= low * 1.8 / ((top - low) * 1.08)
 	fitted = true
 	fit_scale = model.scale
 	base_y = model.position.y
@@ -755,8 +774,8 @@ func _fit() -> void:
 		var b := skel.find_bone(f)
 		if b >= 0:
 			feet = minf(feet, (skel.global_transform * skel.get_bone_global_pose(b).origin).y)
-	ankle = feet if feet < INF else 0.0
-	walk_speed = _stride_speed(anims.walk) if anims.has("walk") else 1.0
+	ankle = feet if feet < INF and hover.is_empty() else 0.0
+	walk_speed = _stride_speed(anims.walk) if anims.has("walk") and hover.is_empty() else 1.0
 	run_speed = _stride_speed(anims.run) if anims.has("run") else 0.0
 	if anims.has(state):
 		ap.play(anims[state]) # measuring moved the player off the current clip
@@ -778,6 +797,10 @@ func _hold() -> void:
 ## Walks (or runs, if the hero has a "run" clip and is going fast) at `px_per_s` screen pixels of ground a second,
 ## with the clip keeping pace with the ground up to MAX_PACE. Backwards steps it in reverse.
 func move(px_per_s: float, game_speed: float, backwards: bool, aiming: bool = false) -> void:
+	if not hover.is_empty():
+		# a hover has no feet to keep pace with the ground: it glides at the game's speed
+		play("walk", game_speed)
+		return
 	var px_per_unit := tall / 1.8
 	var what := "walkfire" if aiming and anims.has("walkfire") else "walk"
 	var rate := px_per_s / (walk_speed * px_per_unit)

@@ -1,0 +1,96 @@
+{
+  "hero_id": "oracle",
+  "fps": 60,
+  "forward": "+Z",
+  "up": "+Y",
+  "root_motion": false,
+  "clips": {
+    "idle_hover": {
+      "duration_s": 3.0,
+      "frames_60fps": 180,
+      "loop": true,
+      "events": {},
+      "notes": "replaces idle; subtle bob, coat flutter, orb float, crystal 2 full turns"
+    },
+    "hover_move": {
+      "duration_s": 1.5,
+      "frames_60fps": 90,
+      "loop": true,
+      "events": {},
+      "notes": "REPLACES WALK state; in place, 11\u00b0 forward lean, coat trails, feet hang; crystal 1 full turn"
+    },
+    "hover_start": {
+      "duration_s": 0.5,
+      "frames_60fps": 30,
+      "loop": false,
+      "events": {},
+      "notes": "idle_hover(0) -> hover_move(0); coat hem lags"
+    },
+    "hover_stop": {
+      "duration_s": 0.6,
+      "frames_60fps": 36,
+      "loop": false,
+      "events": {},
+      "notes": "hover_move -> idle_hover(0) with damped back-sway and coat settle"
+    },
+    "cast": {
+      "duration_s": 1.0,
+      "frames_60fps": 60,
+      "loop": false,
+      "events": {
+        "cast_release": 0.45
+      },
+      "notes": "generic orb presentation; cast_release = spawn time at CastPoint; no gameplay attached"
+    }
+  },
+  "triangles": {
+    "Mesh_0.001": 40245,
+    "OrbCore": 225,
+    "OrbFrame": 1530
+  },
+  "total_triangles": 42000,
+  "source_triangles": 816266,
+  "textures": "2048 color + 2048 ORM (source, unmodified) + 2048 baked normal (from 816k source)",
+  "skeleton": {
+    "bones": 68,
+    "path": "OracleRig/Skeleton3D",
+    "core": "Mixamo 41-bone names (mixamorig_*)",
+    "coat": "CoatL_/CoatR_ {Front,Side,BackSide,Back}{0,1,2} = 24 deform bones parented to Hips",
+    "prop": "PropSocket (child LeftHand) > PropFloat > PropCore (non-deform)"
+  },
+  "nodes": {
+    "AnimationPlayer": "AnimationPlayer",
+    "OrbFrame": "OracleRig/Skeleton3D/PropFloat/OrbFrame",
+    "OrbCore": "OracleRig/Skeleton3D/PropCore/OrbCore",
+    "PropCenter": "OracleRig/Skeleton3D/PropFloat/PropCenter",
+    "CastPoint": "OracleRig/Skeleton3D/PropFloat/CastPoint"
+  },
+  "dimensions_m": {
+    "body_toe_to_hair_rest": 1.83,
+    "total_incl_halo_rest": 2.142,
+    "rest_hover_toe_clearance": 0.1,
+    "idle_toe_clearance_range": [
+      0.075,
+      0.124
+    ],
+    "move_toe_clearance_range": [
+      0.141,
+      0.204
+    ],
+    "hips_bob_idle": 0.022,
+    "hips_bob_move": 0.012,
+    "godot_aabb_y": [
+      0.1,
+      2.142
+    ]
+  },
+  "orb": {
+    "float_gap_above_palm_min_m": 0.0157,
+    "float_bob_m": 0.012,
+    "float_orbit_m": 0.004,
+    "crystal_spin_deg_per_s": 240,
+    "crystal_spin_axis": "PropCore local +Y (world up at rest), through crystal center (pivot offset <1e-6 m)",
+    "crystal_to_frame_min_clearance_m": 0.0175,
+    "optional_driver": "oracle_orb_spin.gd (SkeletonModifier3D) for constant phase across transitions"
+  }
+}

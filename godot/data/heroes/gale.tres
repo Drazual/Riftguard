@@ -30,7 +30,7 @@ dur = 0.8
 mult = 0.25
 w = 22.0
 release = 0.4
-desc = "Shoots a beam of wind {f0(a.r)} long at the lead enemy. After {f1(a.dur)}s every enemy it caught is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
+desc = "Shoots a beam of wind {f0(a.r)} long at the lead enemy within that reach (it needs one to cast). After {f1(a.dur)}s every enemy it caught is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
 
 [sub_resource type="Resource" id="Resource_m1"]
 script = ExtResource("2_up")
