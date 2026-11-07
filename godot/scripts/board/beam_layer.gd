@@ -10,7 +10,10 @@ extends Node2D
 const AIR_BEAM := preload("res://effects/gale_air_beam/air_beam.tscn")
 const EDGE := preload("res://effects/gale_air_beam/camera_edge.gd")
 const LAYER := 1 << 19 # the render layer only the beam is on
+const AIR_STRIKE := preload("res://effects/gale_air_strike/air_strike.tscn")
 const MUZZLE := "GaleTankRig/Skeleton3D/mixamorig_LeftHand/Shield/BashPoint"
+const STRIKE_POINT := "GaleTankRig/AirStrikePoint" # where Air Strike's slam lets go (on the ground by the shield)
+const STRIKE_BEAM := 0.42 # Air Strike's beam width, at source scale (the effect's own)
 const RADIUS := 0.46 # the beam's width at the model's source scale (CLAUDE_NOTES)
 const OVERSCAN := 0.8 # how far past the screen edge its soft tip runs, at source scale
 const DURATION := 0.5 # then a 0.14 s fade (the effect's own)
@@ -24,8 +27,14 @@ var cam: Camera3D
 var pic: Sprite2D
 var beam: GaleAirBeam
 var muzzle: Node3D
+var strike_point: Node3D
+var strike: GaleAirStrike # Air Strike's trail, waiting to blast (or blasting)
 var fires := 0 # beams fired so far, and the hero's clip time at the last one (for the tests)
 var fired_clip := -1.0
+var strikes := 0 # Air Strikes laid so far, the clip time, origin and length of the last (for the tests)
+var strike_clip := -1.0
+var strike_from := Vector3.ZERO
+var strike_len := 0.0
 
 
 func setup(h: Hero3D, board_view: Vector2, board_px: float) -> void:
@@ -33,6 +42,7 @@ func setup(h: Hero3D, board_view: Vector2, board_px: float) -> void:
 	view = board_view
 	px = board_px
 	muzzle = hero.model.get_node_or_null(MUZZLE)
+	strike_point = hero.model.get_node_or_null(STRIKE_POINT)
 	vp = SubViewport.new()
 	vp.size = Vector2i(view * px * SHARP)
 	vp.transparent_bg = true
@@ -59,9 +69,14 @@ func setup(h: Hero3D, board_view: Vector2, board_px: float) -> void:
 	_follow()
 
 
-## True when this hero's model has the beam's clip and muzzle.
+## True when this hero's model has the beam's clip and muzzle (or Air Strike's clip and its point).
 static func fits(h: Hero3D) -> bool:
-	return h != null and h.ap.has_animation("air_beam_cast") and h.model.get_node_or_null(MUZZLE) != null
+	return h != null and ((h.ap.has_animation("air_beam_cast") and h.model.get_node_or_null(MUZZLE) != null) or can_strike(h))
+
+
+## True when this hero's model has Air Strike's clip and the point its slam lets go from.
+static func can_strike(h: Hero3D) -> bool:
+	return h != null and h.ap.has_animation("air_strike") and h.model.get_node_or_null(STRIKE_POINT) != null
 
 
 ## Lines this camera up with the hero's: the hero's viewport (BOX, feet at FEET, in its own pixels) sits at the
@@ -106,16 +121,70 @@ func fire(dir: Vector2, k: float) -> void:
 	beam.activate(muzzle.global_position, aim, length, DURATION, muzzle)
 
 
-## Ends a beam at once (the hero was knocked out, or is gone).
+## The ground-direction of a board direction `dir` (x right, y down the map), as Hero3D.face turns the model for it.
+func _aim(dir: Vector2, k: float) -> Vector3:
+	var screen := Vector2(dir.x, dir.y * k)
+	var g := Vector2(screen.x, screen.y / sin(deg_to_rad(Hero3D.PITCH)))
+	return Vector3(g.x, 0, g.y).normalized()
+
+
+## Air Strike lets go: from AirStrikePoint, toward `dir` (board axes), the trail runs to the screen edge, locked there
+## (it doesn't follow Gale after this). `width` and `delay` are the ability's (world pixels, seconds). After `delay`
+## the whole trail blasts once and calls `on_blast`; the game owns what that hits. Driven by tick() at game speed.
+func strike_at(dir: Vector2, k: float, width: float, delay: float, on_blast: Callable) -> bool:
+	stop()
+	if strike_point == null or dir == Vector2.ZERO:
+		return false
+	_follow()
+	var aim := _aim(dir, k)
+	var s: float = hero.fit_scale.x
+	var from := strike_point.global_position
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	pic.visible = true
+	var length := EDGE.length_to_edge(cam, from, aim, OVERSCAN * s)
+	if length <= 0.0:
+		_idle()
+		return false
+	strikes += 1
+	strike_clip = hero.ap.current_animation_position
+	strike_from = from
+	strike_len = length
+	strike = AIR_STRIKE.instantiate()
+	vp.add_child(strike) # the world's root: unscaled, not on the hero
+	strike.path_radius = width * hero.cam.size / Hero3D.BOX.y / hero.scale.x
+	strike.beam_radius = STRIKE_BEAM * s
+	strike.blast_triggered.connect(func(_a, _b, _r): on_blast.call(), CONNECT_ONE_SHOT)
+	strike.finished.connect(func(): strike = null; _idle())
+	if not strike.activate(from, aim, length, 0.0, delay):
+		strike.queue_free()
+		_idle()
+		return false
+	strike.set_process(false) # tick() runs its clock, so it keeps to game speed and stops on pause
+	for n in strike.find_children("*", "VisualInstance3D", true, false):
+		(n as VisualInstance3D).layers = LAYER
+	return true
+
+
+## Runs Air Strike's clock by `dt` game seconds.
+func tick(dt: float) -> void:
+	if strike and is_instance_valid(strike):
+		strike._process(dt)
+
+
+## Ends a beam or a waiting Air Strike at once (the hero was knocked out, or is gone): no blast comes after.
 func stop() -> void:
 	if beam and is_instance_valid(beam):
 		beam.finish(true)
 	beam = null
+	if strike and is_instance_valid(strike):
+		strike.cancel()
+	strike = null
 	_idle()
 
 
 func _idle() -> void:
 	beam = null
+	strike = null
 	if pic:
 		pic.visible = false
 	if vp:
@@ -123,5 +192,6 @@ func _idle() -> void:
 
 
 func _process(_dt: float) -> void:
-	if beam and is_instance_valid(beam) and hero and is_instance_valid(hero):
+	# (an Air Strike's trail is locked to the ground where it was laid, so the camera holds still while it shows)
+	if beam and is_instance_valid(beam) and not (strike and is_instance_valid(strike)) and hero and is_instance_valid(hero):
 		_follow()

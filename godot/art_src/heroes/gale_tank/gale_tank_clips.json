@@ -84,6 +84,15 @@
       "loop": false,
       "release_s": null,
       "release_frame": null
+    },
+    "air_strike": {
+      "frames": 90,
+      "length_s": 1.5,
+      "loop": false,
+      "release_s": 0.6,
+      "release_frame": 36,
+      "event": "shield_ground_slam_and_beam_release",
+      "delayed_blast": "independent_runtime_delay_not_a_second_clip_event"
     }
   },
   "forward": "+Z",

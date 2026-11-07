@@ -1294,9 +1294,6 @@ func use_ability(auto := false) -> void:
 	if h == null or h.ko > 0 or h.ab.t > 0 or S.over or S.paused or h.data.spells or h.stun_t > 0:
 		return
 	var a := h.ab
-	if a.id == "stream" and stream_target(h, a) == null:
-		say("No target in reach for " + a.name + ".")
-		return
 	if a.id == "pierce" and pierce_goal() == null:
 		say("No target for " + a.name + ". Press F to set an aim point.")
 		return
@@ -1338,7 +1335,9 @@ func cast_ability(_free: bool) -> void:
 			near.sort_custom(func(p, q): return hyp(p.x - h.x, p.y - h.y) < hyp(q.x - h.x, q.y - h.y))
 			goal = near[0] if near.size() else null
 		elif a.id == "stream":
-			goal = stream_target(h, a) # Gale turns to the enemy it blasts with Air Stream
+			# Air Strike needs no target: it goes where it's aimed (the cursor, the aim point, else the lead enemy in reach)
+			at = h.pos() + strike_aim(h, a) * a.r
+			h.stream_dir = strike_aim(h, a) # locked as it casts: Gale turns to it and the slam lays the trail that way
 		if goal != null:
 			h.aim_x = goal.x
 			h.aim_y = goal.y
@@ -1434,28 +1433,33 @@ func stream_target(h: Hero, a: Ability) -> Enemy:
 	return best
 
 
-## dir: the way Gale turned as it cast (the stream still goes that way if its target is gone by the release).
+## Where Gale aims Air Strike: the cursor, else the aim point (F), else the lead enemy in reach, else straight on the way
+## it faces. It needs no target: it can always be cast and aimed.
+func strike_aim(h: Hero, a: Ability) -> Vector2:
+	var at = S.pointer if S.pointer != null else S.aim
+	if at == null:
+		var goal := stream_target(h, a)
+		at = goal.pos() if goal != null else null
+	if at != null and (at as Vector2).distance_to(h.pos()) > 1.0:
+		return ((at as Vector2) - h.pos()).normalized()
+	var face := Vector2(h.aim_x - h.x, h.aim_y - h.y)
+	return face.normalized() if face.length() > 1.0 else Vector2.RIGHT
+
+
+## Air Strike lets go (0.60s into air_strike, Gale.release): the shield slams down and lays a wind trail a.r long the
+## way it was aimed as it cast (locked). Enemies on it are pushed back at once; after a.dur the whole trail blasts
+## (strike_blast): damage and stun to every enemy on it, and a shield from what that dealt. The board's 3D effect
+## sets the blast off (its blast_triggered) when Gale is drawn live; otherwise the game's own timer does.
 func air_stream(h: Hero, a: Ability, dir := Vector2.ZERO) -> void:
-	var goal = stream_target(h, a)
-	if goal == null and dir == Vector2.ZERO:
-		return
-	var dx: float = goal.x - h.x if goal != null else dir.x
-	var dy: float = goal.y - h.y if goal != null else dir.y
-	var len := hyp(dx, dy)
-	if len == 0:
-		len = 1
-	var ux := dx / len
-	var uy := dy / len
-	var hits := S.enemies.filter(func(e):
-		if e.dead:
-			return false
-		var along: float = (e.x - h.x) * ux + (e.y - h.y) * uy
-		var off: float = absf((e.x - h.x) * uy - (e.y - h.y) * ux)
-		return along > -10 and along <= a.r and off <= a.w + e.r)
+	if dir == Vector2.ZERO:
+		dir = strike_aim(h, a)
+	var ux := dir.x
+	var uy := dir.y
 	var x1 := h.x
 	var y1 := h.y
 	var x2 := h.x + ux * a.r
 	var y2 := h.y + uy * a.r
+	var caught := _on_strike(x1, y1, ux, uy, a)
 	h.stream_at = S.time
 	h.stream_dir = Vector2(ux, uy)
 	if not h.beam_3d:
@@ -1463,25 +1467,59 @@ func air_stream(h: Hero, a: Ability, dir := Vector2.ZERO) -> void:
 		line(x1, y1, x2, y2, 0x9af0ff, a.dur, a.w * 0.7)
 	if a.downdraft:
 		zone({ line = true, x = x1, y = y1, x1 = x1, y1 = y1, x2 = x2, y2 = y2, r = a.w, t = 3.0, slow = 0.5, color = 0xd8f6ff })
-	for e in hits:
+	for e in caught:
 		push_back(e, 0.25, 140 * (1 + sb("knock")), h)
 		ring(e.x, e.y, e.r + 6, 0xd8f6ff, a.dur)
-	later(a.dur, func():
-		var dealt := 0.0
-		for e in hits:
-			if e.dead:
-				continue
-			var before: float = e.hp
-			damage(e, ab_dmg(h, a))
-			dealt += before - maxf(0.0, e.hp)
-			if not e.dead:
-				e.stun_t = maxf(e.stun_t, a.stun * (0.5 if e.boss else 1.0))
-			ring(e.x, e.y, e.r + 10, 0x9af0ff, 0.35, true)
-		if not h.beam_3d:
-			line(x1, y1, x2, y2, 0xffffff, 0.15, a.w)
-		do_shake(0.006, 160)
-		if S.hero.ko <= 0:
-			give_shield(S.hero, dealt * a.mult, 6.0))
+	var st := { x1 = x1, y1 = y1, ux = ux, uy = uy, caught = caught, done = false, run = S, a = a }
+	h.strike = st
+	# the board's effect sets it off on its own blast; this timer is the fallback (no live model, or the effect couldn't
+	# show), a little later so the effect's blast wins when there is one. It only ever goes off once (st.done).
+	later(a.dur + (1.0 if h.beam_3d else 0.0), func(): strike_blast(h, st))
+
+
+## Enemies on Air Strike's trail from (x1, y1) along (ux, uy).
+func _on_strike(x1: float, y1: float, ux: float, uy: float, a: Ability) -> Array:
+	return S.enemies.filter(func(e):
+		if e.dead:
+			return false
+		var along: float = (e.x - x1) * ux + (e.y - y1) * uy
+		var off: float = absf((e.x - x1) * uy - (e.y - y1) * ux)
+		return along > -10 and along <= a.r and off <= a.w + e.r)
+
+
+## Air Strike's whole trail blasts, once: every enemy on it now, or caught by the slam, takes the damage and the stun;
+## Gale gains a shield from what it dealt. st: the strike from air_stream (null or done: nothing happens).
+func strike_blast(h: Hero, st) -> void:
+	if st == null or st.done or st.run != S or S.over:
+		return
+	st.done = true
+	var a: Ability = st.a
+	var hits: Array = st.caught.duplicate()
+	for e in _on_strike(st.x1, st.y1, st.ux, st.uy, a):
+		if not hits.has(e):
+			hits.append(e)
+	var dealt := 0.0
+	for e in hits:
+		if e.dead:
+			continue
+		var before: float = e.hp
+		damage(e, ab_dmg(h, a))
+		dealt += before - maxf(0.0, e.hp)
+		if not e.dead:
+			e.stun_t = maxf(e.stun_t, a.stun * (0.5 if e.boss else 1.0))
+		ring(e.x, e.y, e.r + 10, 0x9af0ff, 0.35, true)
+	if not h.beam_3d:
+		line(st.x1, st.y1, st.x1 + st.ux * a.r, st.y1 + st.uy * a.r, 0xffffff, 0.15, a.w)
+	do_shake(0.006, 160)
+	if S.hero.ko <= 0:
+		give_shield(S.hero, dealt * a.mult, 6.0)
+
+
+## Drops a pending Air Strike blast (the effect was cancelled: the hero's model is gone, the run is over).
+func cancel_strike(h: Hero) -> void:
+	if h and h.strike != null:
+		h.strike.done = true
+		h.strike = null
 
 
 func end_shield(h: Hero) -> void:

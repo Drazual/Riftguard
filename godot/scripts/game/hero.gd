@@ -142,6 +142,7 @@ var aim_y := 0.0
 var atk_at := -99.0
 var stream_at := -99.0 # when Air Stream last let go (for the board's beam), and the way it went
 var stream_dir := Vector2.ZERO
+var strike = null # Air Strike's trail waiting to blast (Game.air_stream / strike_blast)
 var beam_3d := false # the board draws Air Stream's beam from the live model (so the game skips its painted lines)
 var ab_at := -99.0 # when the hero last started casting its ability (for the board's cast animation)
 var burst_at := -99.0 # when its Bulwark Shield last burst
