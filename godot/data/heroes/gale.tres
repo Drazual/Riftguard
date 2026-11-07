@@ -21,7 +21,7 @@ desc = "Spins, dealing {f0(a.dmg)} damage within {f0(a.r)} and throwing enemies 
 [sub_resource type="Resource" id="Resource_stream"]
 script = ExtResource("1_ab")
 id = "stream"
-name = "Air Stream"
+name = "Air Strike"
 cd = 14.0
 dmg = 60.0
 r = 340.0
@@ -29,8 +29,8 @@ stun = 1.6
 dur = 0.8
 mult = 0.25
 w = 22.0
-release = 0.4
-desc = "Shoots a beam of wind {f0(a.r)} long at the lead enemy within that reach (it needs one to cast). After {f1(a.dur)}s every enemy it caught is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
+release = 0.6
+desc = "Slams a wind trail {f0(a.r)} long the way you aim (no target needed). After {f1(a.dur)}s it blasts along the trail: every enemy on it is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
 
 [sub_resource type="Resource" id="Resource_m1"]
 script = ExtResource("2_up")

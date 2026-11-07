@@ -731,10 +731,12 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 	# the Vanguard turns to the enemy it brings its Shield Slam down on, Gale to the one it blasts with Air Stream
 	# (their ability casts, see Game.cast_ability)
 	# (Gale holds still on its target through the whole air_beam_cast, so the shield stays on the beam)
-	var slamming := h.ab.id in ["slam", "stream"] and S.time - h.ab_at < (1.3 if h.beam_3d else 1.1)
+	var slamming := h.ab.id in ["slam", "stream"] and S.time - h.ab_at < (1.5 if h.beam_3d else 1.1)
 	# face the target while shooting, else the way it's walking (on screen, so the tilt counts)
 	var v := Vector2.ZERO
-	if firing or slamming or (h.aim_live and not moving):
+	if slamming and h.ab.id == "stream" and h.stream_dir != Vector2.ZERO:
+		v = Vector2(h.stream_dir.x, h.stream_dir.y * K) # Air Strike: the way it was aimed as it cast
+	elif firing or slamming or (h.aim_live and not moving):
 		v = Vector2(h.aim_x - h.x, (h.aim_y - h.y) * K)
 	elif moving:
 		v = Vector2(mx, my * K)
@@ -808,16 +810,24 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		st.beamed = false
 	st.ab_at = h.ab_at
 	st.burst_at = h.burst_at
-	# Air Stream: the beam leaves the shield once, as air_beam_cast crosses its release (0.40 s in, by the clip's own
-	# time, so it lines up with the pose whatever the speed), aimed where Gale turned to and locked there. If the clip
-	# didn't play (cast on the move), it goes when the game lets the stream go instead.
-	if beam_layer and is_instance_valid(beam_layer) and not st.get("beamed", true):
-		var rel := float(hero_3d.cfg.get("release", {}).get("air_beam_cast", 0.4))
-		var crossed := hero_3d.ap.current_animation == "air_beam_cast" and hero_3d.ap.current_animation_position >= rel
-		if crossed or h.stream_at != st.get("stream_at", h.stream_at):
-			st.beamed = true
-			var aim := Vector2(h.aim_x - h.x, h.aim_y - h.y)
-			beam_layer.fire(aim.normalized() if aim != Vector2.ZERO and crossed else h.stream_dir, K)
+	# Air Strike: the shield slams down once, as air_strike crosses its release (0.60 s in, by the clip's own time, so it
+	# lines up with the pose whatever the speed), the trail laid the way it was aimed as it cast and locked there; it
+	# blasts after the ability's delay and that sets off the game's hit (Game.strike_blast). The older Air Stream beam
+	# (air_beam_cast) works the same way. If the clip didn't play (cast on the move), it goes when the game lets go.
+	if beam_layer and is_instance_valid(beam_layer):
+		beam_layer.tick(dt * speed)
+		if not st.get("beamed", true):
+			var clip := _ability_clip(h)
+			var rel := float(hero_3d.cfg.get("release", {}).get(clip, 0.4))
+			var crossed := hero_3d.ap.current_animation == clip and hero_3d.ap.current_animation_position >= rel
+			if crossed or h.stream_at != st.get("stream_at", h.stream_at):
+				st.beamed = true
+				if clip == "air_strike":
+					var a: Ability = h.ab
+					beam_layer.strike_at(h.stream_dir, K, a.w, a.dur, func(): game.strike_blast(h, h.strike))
+				else:
+					var aim := Vector2(h.aim_x - h.x, h.aim_y - h.y)
+					beam_layer.fire(aim.normalized() if aim != Vector2.ZERO and crossed else h.stream_dir, K)
 	st.stream_at = h.stream_at
 	_sync_hero_gun(S, h, s, firing, dt, speed)
 
@@ -826,16 +836,21 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 const ABILITY_CLIP := { slam = "shield_slam", bulwark = "bulwark", whirl = "shield_slam", stream = "bash" }
 
 
-## This hero's cast clip: Air Stream plays air_beam_cast on a model that has it (the beam fires from its shield).
+## This hero's cast clip: Air Strike plays air_strike on a model that has it (the slam lays the trail), else the older
+## air_beam_cast (a beam from the shield).
 func _ability_clip(h: Hero) -> String:
 	if h.ab.id == "stream" and h.beam_3d:
-		return "air_beam_cast"
+		return "air_strike" if BeamLayer.can_strike(hero_3d) else "air_beam_cast"
 	return ABILITY_CLIP.get(h.ab.id, "")
 
 
-## Ends the beam in flight; `free` also removes the layer (the hero model is gone).
+## Ends the beam in flight, and an Air Strike's trail waiting to blast (cancelled: its signal never comes). A knocked
+## out Gale's strike still lands on the game's own timer, as abilities always have; `free` (the hero is gone) also
+## calls the hit off and removes the layer.
 func _drop_beam(free: bool) -> void:
 	if beam_layer and is_instance_valid(beam_layer):
+		if free and beam_layer.strike and is_instance_valid(beam_layer.strike) and game and game.S and game.S.hero:
+			game.cancel_strike(game.S.hero)
 		beam_layer.stop()
 		if free:
 			beam_layer.queue_free()

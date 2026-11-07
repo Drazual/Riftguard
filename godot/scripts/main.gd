@@ -19,7 +19,7 @@ func _ready() -> void:
 	ui.setup(game, board)
 	add_child(ui)
 	board.bind(game)
-	ui.menus.show_menu()
+	ui.menus.show_start()
 
 
 func _process(delta: float) -> void:

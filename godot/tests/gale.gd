@@ -1,7 +1,7 @@
 ## Gale's live 3D sword-and-shield model in a real run (needs a display for the model):
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/gale.tscn -- <out dir>
 ## Checks the clips (its posed stance, run, sword slash and shield brace), the sword hit landing 0.3s into the swing, Whirlwind
-## landing 0.5s into its shield_slam clip and Air Stream's beam 0.40s into its air_beam_cast, and armor as points.
+## landing 0.5s into its shield_slam clip, Air Strike's slam 0.60s into air_strike (trail, blast, cancel), and armor.
 extends Node
 
 var out := "user://gale"
@@ -115,59 +115,104 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check(h.shield > 0 and hp1 - e.hp >= 40, "Whirlwind lands at 0.5s (shield %.0f, hit %.0f)" % [h.shield, hp1 - e.hp])
 	await _wait(1.0)
-	# Air Stream: air_beam_cast, letting go 0.40s in: the beam leaves the shield once, aimed and reaching the screen edge
+	# Air Strike: air_strike, slamming down 0.60s in: the trail is laid once from AirStrikePoint the way it was aimed,
+	# to the screen edge, and locked; after the delay the whole trail blasts once (blast_triggered sets off the hit)
 	h.ab = Ability.from_data(DB.heroes.gale.alt)
-	_check(is_equal_approx(h.ab.release, 0.4), "Air Stream releases at 0.40s")
+	_check(h.ab.name == "Air Strike" and is_equal_approx(h.ab.release, 0.6), "Air Strike releases at 0.60s")
 	var b: Board = main.board
-	_check(b.beam_layer != null and h.beam_3d, "Gale has the beam layer")
-	# it needs a target in reach: none, and it doesn't cast
+	_check(b.beam_layer != null and h.beam_3d and BeamLayer.can_strike(m), "Gale has the strike layer")
+	_check(b._ability_clip(h) == "air_strike", "Air Strike plays the air_strike clip")
+	# it needs no target: far from every enemy, aimed at the cursor, it still casts that way
 	var at0 := Vector2(h.x, h.y)
-	h.x = clampf(e.x + (600 if e.x < 480 else -600), 20, 940)
+	h.x = clampf(e.x + (380 if e.x < 480 else -380), 60, 900)
+	h.y = clampf(e.y + 250, 60, 460)
 	h.tx = null
+	await _wait(0.3)
+	var lone := e.pos().distance_to(h.pos())
+	var side := -1.0 if h.x > 480 else 1.0
+	S.pointer = h.pos() + Vector2(120 * side, 0)
 	h.ab.t = 0
 	var ab0 := h.ab_at
 	g.use_ability()
-	_check(h.ab_at == ab0 and h.ab.t <= 0, "no enemy in reach: Air Stream doesn't cast")
-	h.x = at0.x
-	h.y = at0.y
-	await _wait(0.2)
-	h.ab.t = 0
-	var cast0 := S.time
-	g.use_ability()
+	_check(h.ab_at != ab0 and h.ab.t > 0, "casts with no enemy in reach (%.0f away)" % lone)
+	_check(h.stream_dir.distance_to(Vector2(side, 0)) < 0.01, "aimed at the cursor (%s)" % h.stream_dir)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(m.ap.current_animation == "air_beam_cast", "Air Stream plays air_beam_cast (%s)" % m.ap.current_animation)
-	# (by the clip's own time: under a slow renderer the clip runs ahead of the game's capped steps, so it fires on
-	# the first frame at or past 0.40s)
-	var fires0: int = b.beam_layer.fires
+	_check(m.ap.current_animation == "air_strike", "Air Strike plays air_strike (%s)" % m.ap.current_animation)
+	# (by the clip's own time: under a slow renderer the clip runs ahead of the game's capped steps, so it lays the
+	# trail on the first frame at or past 0.60s)
+	var n0: int = b.beam_layer.strikes
 	var prev := 0.0
 	var step := 0.0
 	for i in 600:
-		if b.beam_layer.fires > fires0:
+		if b.beam_layer.strikes > n0:
 			break
 		step = maxf(step, m.ap.current_animation_position - prev)
 		prev = m.ap.current_animation_position
 		await get_tree().process_frame
-	var at: float = b.beam_layer.fired_clip
-	_check(b.beam_layer.fires == fires0 + 1 and at >= 0.4 and at < 0.4 + maxf(step, 0.05) + 0.01,
-		"beam fires once, at the clip's 0.40s release (%.2fs, frames %.2fs apart)" % [at, step])
-	_check(b.beam_layer.beam != null, "the beam is on")
-	var bm: GaleAirBeam = b.beam_layer.beam
-	var mz: Node3D = b.beam_layer.muzzle
-	_check(bm != null and bm.global_position.distance_to(mz.global_position) < 0.01, "beam starts at the shield's BashPoint")
-	var aim0 := bm.global_basis.z if bm else Vector3.ZERO
-	# its far end lands on the board's edge (camera_edge with the board camera), past the screen
-	var tip := bm.global_position + bm.global_basis.z * bm.length_m if bm else Vector3.ZERO
+	var at: float = b.beam_layer.strike_clip
+	_check(b.beam_layer.strikes == n0 + 1 and at >= 0.6 and at < 0.6 + maxf(step, 0.05) + 0.01,
+		"the slam lets go once, at the clip's 0.60s release (%.2fs, frames %.2fs apart)" % [at, step])
+	var fx: GaleAirStrike = b.beam_layer.strike
+	_check(fx != null, "the trail is laid")
+	var sp: Node3D = b.beam_layer.strike_point
+	_check(fx != null and b.beam_layer.strike_from.distance_to(sp.global_position) < 0.05, "it leaves from AirStrikePoint")
+	var aim0 := fx.global_basis.z if fx else Vector3.ZERO
+	var pos0 := fx.global_position if fx else Vector3.ZERO
+	var tip := b.beam_layer.strike_from + aim0 * b.beam_layer.strike_len
 	var on := b.beam_layer.cam.unproject_position(tip) / Vector2(b.beam_layer.vp.size)
 	_check(on.x <= 0.01 or on.x >= 0.99 or on.y <= 0.01 or on.y >= 0.99, "reaches the screen edge (%.2f, %.2f)" % [on.x, on.y])
-	await _board_shot("4_stream")
-	await get_tree().process_frame
-	await get_tree().process_frame
-	_check(bm != null and is_instance_valid(bm) and bm.global_basis.z.dot(aim0) > 0.9999 and bm.global_position.distance_to(mz.global_position) < 0.01,
-		"aim stays locked while it follows the shield")
-	await _board_shot("4b_stream")
-	await _wait(0.6)
-	_check(b.beam_layer.beam == null and not is_instance_valid(bm), "beam fades and frees itself")
+	_check(absf(aim0.y) < 0.001, "aim is flat on the ground")
+	await _board_shot("4_strike")
+	# Gale walks off: the trail stays where it was laid, aimed the same way
+	g.move_hero(h.x, h.y - 90)
+	await _wait(0.2)
+	_check(fx != null and is_instance_valid(fx) and fx.global_basis.z.dot(aim0) > 0.9999 and fx.global_position.distance_to(pos0) < 0.001,
+		"the trail stays locked as Gale moves")
+	await _board_shot("4b_trail")
+	var blasts0: int = fx.blast_count if fx else 0
+	var t_go := S.time
+	while is_instance_valid(fx) and fx.blast_count == blasts0 and S.time < t_go + 3:
+		await get_tree().process_frame
+	_check(is_instance_valid(fx) and fx.blast_count == 1, "the whole trail blasts once, after the delay")
+	await _board_shot("4c_blast")
+	await _wait(1.6)
+	_check(not is_instance_valid(fx) and b.beam_layer.strike == null, "the effect clears itself")
+	# the blast's hit: an enemy on the trail takes the damage, once (the signal and the game's fallback timer agree)
+	h.x = at0.x
+	h.y = at0.y
+	h.hold = false
+	await _wait(0.3)
+	S.pointer = e.pos()
+	h.ab.t = 0
+	var hp2 := e.hp
+	h.strike = null
+	g.use_ability()
+	while not h.strike or not h.strike.done:
+		await get_tree().process_frame
+		if S.time > h.ab_at + 4:
+			break
+	var dealt := hp2 - e.hp
+	_check(h.strike != null and h.strike.done and dealt >= 50, "the blast hits the enemy on the trail (%.0f)" % dealt)
+	var hp3 := e.hp
+	g.strike_blast(h, h.strike) # (the game's fallback timer, coming after the effect's own blast)
+	_check(is_equal_approx(e.hp, hp3), "it hits only once")
+	await _wait(1.5)
+	# cancel(): a waiting trail's blast never comes
+	await _wait(1.0)
+	h.ab.t = 0
+	g.use_ability()
+	var n1: int = b.beam_layer.strikes
+	while b.beam_layer.strikes == n1 and S.time < h.ab_at + 3:
+		await get_tree().process_frame
+	var fx2: GaleAirStrike = b.beam_layer.strike
+	var fired := [0]
+	var had := fx2 != null and fx2.blast_count == 0
+	if fx2:
+		fx2.blast_triggered.connect(func(_a, _b, _c): fired[0] += 1)
+	b.beam_layer.stop()
+	await _wait(1.0)
+	_check(had and fired[0] == 0 and not is_instance_valid(fx2), "cancel() stops the pending blast")
 	# holding position (H) away from the fight: braced behind the shield
 	h.x = e.x - 250
 	h.tx = null

@@ -14,7 +14,8 @@
 		"bash": 0.35,
 		"bulwark": 0.35,
 		"bulwark_burst": 0.2,
-		"air_beam_cast": 0.4
+		"air_beam_cast": 0.4,
+		"air_strike": 0.6
 	},
 	"poses": {
 		"run": {
