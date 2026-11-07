@@ -6,18 +6,20 @@ hero = sys.argv[2] if len(sys.argv) > 2 else "tank"
 cfg = json.load(open(p))
 R = lambda v: round(v, 1)
 
-def run(n=12, length=0.6):
+def run(n=12, length=0.6, inward=-18.0):
+    # inward: each thigh's turn about the forward axis (negative brings the legs together, so the feet land close
+    # under the body instead of in a wide waddle); the feet turn back so their soles stay flat
     keys = []
     for i in range(n):
         f = 2 * math.pi * i / n
         b = {}
-        for side, ph in (("Left", f), ("Right", f + math.pi)):
+        for side, ph, sg in (("Left", f, 1), ("Right", f + math.pi, -1)):
             thigh = -40 * math.sin(ph) - 6
             knee = 18 + 75 * max(0.0, math.cos(ph)) ** 1.5
             foot = -0.6 * (thigh + knee) + (15 * max(0.0, -math.cos(ph)) if True else 0)
-            b[side + "UpLeg"] = [R(thigh), 0, 0]
+            b[side + "UpLeg"] = [R(thigh), 0, R(sg * inward)]
             b[side + "Leg"] = [R(knee), 0, 0]
-            b[side + "Foot"] = [R(foot), 0, 0]
+            b[side + "Foot"] = [R(foot), 0, R(-sg * inward)]
         s = math.sin(f)
         b["RightArm"] = [R(-38 * s - 8), 0, 14]
         b["RightForeArm"] = [R(-70 - 20 * s), 0, 0]

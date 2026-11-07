@@ -2301,6 +2301,12 @@ func cast_runes(x: float, y: float) -> void:
 		return
 	if S.time < h.cast_t:
 		return
+	# the Wizard's range is how far it can cast
+	var reach := hero_range(h)
+	if hyp(x - h.x, y - h.y) > reach:
+		say("Out of casting range: move closer to cast there.")
+		ring(h.x, h.y, reach, 0x7fb2ff, 0.4)
+		return
 	var mana: float = r.mana * h.spell_cost
 	if r.spell.delivery == "wall" and h.wall_charges < 1:
 		say("No wall charges left: next one in %ds." % ceili(wall_recharge_time(h) - h.wall_t))
@@ -3107,7 +3113,8 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 			h.aim_x = aimed[0].x
 			h.aim_y = aimed[0].y
 			h.aim_live = true
-	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0:
+	# (a spell caster's range is how far it can cast: it never auto-attacks)
+	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0 and not h.data.spells:
 		var inr := in_range(h.x, h.y, hero_range(h)).filter(in_view)
 		if h.cls == "sniper":
 			sort_by_aim(h.target, h.x, h.y, inr)

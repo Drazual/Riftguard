@@ -19,6 +19,7 @@ const FEET := Vector2(64, 112) # where the hero's feet land in the viewport, in 
 ## stretched by STRIDE for longer steps, and its pace is capped at MAX_PACE times normal; past that the feet glide.
 ## A hero.json can set its own "stride" and "max_pace" (a short-stepping clip wants a bigger stride and a lower cap).
 const STRIDE := 1.15
+const NARROW := 0.0 # degrees each thigh turns in during a walk or run (see _narrow)
 const MAX_PACE := 2.2
 
 var vp: SubViewport
@@ -88,6 +89,13 @@ func setup(dir: String, height: float = 26.0) -> void:
 			h.visible = false
 	ap = model.find_child("AnimationPlayer", true, false)
 	skel = model.find_child("Skeleton3D", true, false)
+	# the clips below are reshaped in place (stretched strides, narrower legs, locked roots...), and an imported
+	# model's clips are shared by every copy of it, so each hero gets its own copies first: a second hero (a new
+	# run, a preview) would otherwise reshape them again on top
+	for lib_name in ap.get_animation_library_list():
+		var lib: AnimationLibrary = ap.get_animation_library(lib_name).duplicate(true)
+		ap.remove_animation_library(lib_name)
+		ap.add_animation_library(lib_name, lib)
 	# clips posed from the idle stance (hero.json "poses"), named "@<pose>" in "anims"
 	for pose in cfg.get("poses", {}):
 		if not ap.has_animation_library("ext"):
@@ -106,6 +114,7 @@ func setup(dir: String, height: float = 26.0) -> void:
 		anim.loop_mode = Animation.LOOP_NONE if a == "fire" else Animation.LOOP_LINEAR
 		if (a == "walk" or a == "run") and not posed:
 			_stretch(anim, cfg.get("stride", STRIDE))
+			_narrow(anim, float(cfg.get("narrow", NARROW)))
 		# a firing clip that lowers the gun after the shot is cut where the gun is still up, so firing again and
 		# again keeps it raised (each shot restarts the clip, and it holds its last pose between shots)
 		if a == "fire" and cfg.has("fire_end"):
@@ -322,6 +331,48 @@ func _exaggerate(a: Animation, k: float) -> void:
 			if ang < 0.0001 or Vector3(d.x, d.y, d.z).length_squared() < 1e-12:
 				continue
 			a.track_set_key_value(t, i, (q0 * Quaternion(d.get_axis().normalized(), ang + minf(ang * (k - 1.0), 0.5))).normalized())
+
+
+## Brings the legs closer together in a walk or run: each thigh turns `deg` degrees in toward the other about the
+## model's forward axis, and each foot turns back as far so its sole stays flat, so the feet land close under the
+## body instead of in a wide waddle (hero.json "narrow", 0 to keep the clip's own width).
+func _narrow(a: Animation, deg: float) -> void:
+	if deg == 0.0:
+		return
+	for t in a.get_track_count():
+		if a.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+			continue
+		var bone := String(a.track_get_path(t)).get_slice(":", 1)
+		var side := "Left" if bone.contains("Left") else ("Right" if bone.contains("Right") else "")
+		var foot := bone.ends_with("Foot")
+		if side == "" or not (bone.ends_with("UpLeg") or foot):
+			continue
+		var b := skel.find_bone(bone)
+		var par := skel.get_bone_parent(b)
+		if b < 0 or par < 0:
+			continue
+		# which way is in, from the rest pose itself (so whichever way the skeleton faces): the thigh swings its
+		# foot toward the middle of the body, about the axis square to the leg and to the hips' sideways line
+		var up := skel.find_bone(bone.replace("Foot", "UpLeg")) if foot else b
+		var hip := skel.get_bone_parent(up)
+		var lower := skel.find_bone(bone.replace("UpLeg", "Leg")) if not foot else b
+		if up < 0 or hip < 0 or lower < 0:
+			continue
+		var at := skel.get_bone_global_rest(up).origin
+		var mid := skel.get_bone_global_rest(hip).origin
+		var leg := (skel.get_bone_global_rest(lower).origin - at).normalized()
+		var side_in := mid - at
+		side_in -= leg * side_in.dot(leg)
+		var axis := leg.cross(side_in)
+		if axis.length() < 1e-5:
+			continue
+		var turn := Quaternion(axis.normalized(), deg_to_rad(deg))
+		if foot:
+			turn = turn.inverse()
+		var pq := skel.get_bone_global_rest(par).basis.get_rotation_quaternion()
+		var local := pq.inverse() * turn * pq
+		for k in a.track_get_key_count(t):
+			a.track_set_key_value(t, k, (local * (a.track_get_key_value(t, k) as Quaternion)).normalized())
 
 
 ## A run made from a walk: the legs swing `stride` times further (on top of the walk's own stretch), the upper body

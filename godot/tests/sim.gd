@@ -79,7 +79,17 @@ func _cast() -> void:
 	game.ready_rune(keys[randi() % keys.size()])
 	if randf() < 0.5:
 		game.ready_rune(keys[randi() % keys.size()])
+	# the Wizard casts only within its range: at the lead enemy if it's in reach, else at the one furthest along
+	# the path that is (it holds its spot, where it builds)
+	var h: Hero = game.S.hero
+	var reach := game.hero_range(h)
 	var at := lead.pos()
+	if at.distance_to(h.pos()) > reach:
+		var near := game.S.enemies.filter(func(e): return not e.dead and e.pos().distance_to(h.pos()) <= reach)
+		if near.is_empty():
+			return
+		near.sort_custom(func(a, b): return a.d > b.d)
+		at = near[0].pos()
 	game.cast_runes(at.x, at.y)
 
 

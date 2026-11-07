@@ -6,5 +6,6 @@
 		"fire": "fire"
 	},
 	"lock_root": "mixamorig_Hips",
-	"kick": 6
+	"kick": 6,
+	"narrow": 4
 }

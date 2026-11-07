@@ -1186,7 +1186,7 @@ func render_hero() -> void:
 	elif d.category == "support":
 		rows.append(["Assisted kills", str(S.assists)])
 	if h.max_mana:
-		rows += [["Mana", "%d/%s" % [floori(h.mana), f.call(h.max_mana)]], ["Mana/s", UiText.f1(h.mana_regen)], ["Spell damage", UiText.pct(game.spell_pow(h))], ["Spell cost", UiText.pct(h.spell_cost)],
+		rows += [["Mana", "%d/%s" % [floori(h.mana), f.call(h.max_mana)]], ["Mana/s", UiText.f1(h.mana_regen)], ["Spell damage", UiText.pct(game.spell_pow(h))], ["Casting range", f.call(game.hero_range(h))], ["Spell cost", UiText.pct(h.spell_cost)],
 			["Triple runes", ", ".join(Array(S.triples).map(func(e): return DB.elements[e].name)) if S.triples.size() else "None"]]
 	else:
 		rows += [["Attacks/s", UiText.f2(1 / h.rate)], ["Range", "Whole map" if h.range >= 9999 else f.call(h.range)], ["Bounces", str(int(h.bounce))], ["Crit chance", UiText.pct(h.crit)],

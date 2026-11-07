@@ -49,6 +49,10 @@ func _cast(els: Array, at: Vector2) -> Dictionary:
 	S.hero.wall_charges = 9
 	S.runes = els
 	var n := S.walls.size()
+	# the Wizard casts only within its range: it stands beside the spot
+	S.hero.x = at.x - 60
+	S.hero.y = at.y
+	S.hero.tx = null
 	g.cast_runes(at.x, at.y)
 	return S.walls[S.walls.size() - 1] if S.walls.size() > n else {}
 
