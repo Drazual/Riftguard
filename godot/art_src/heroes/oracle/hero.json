@@ -1,0 +1,16 @@
+{
+	"model": "oracle.glb",
+	"anims": {
+		"idle": "idle_hover",
+		"walk": "hover_move"
+	},
+	"hover": {
+		"start": "hover_start",
+		"stop": "hover_stop"
+	},
+	"muzzle": "CastPoint",
+	"release": {
+		"cast": 0.45
+	},
+	"modifiers": ["oracle_orb_spin.gd"]
+}

@@ -120,6 +120,17 @@ func _ready() -> void:
 	_check(is_equal_approx(h.ab.release, 0.4), "Air Stream releases at 0.40s")
 	var b: Board = main.board
 	_check(b.beam_layer != null and h.beam_3d, "Gale has the beam layer")
+	# it needs a target in reach: none, and it doesn't cast
+	var at0 := Vector2(h.x, h.y)
+	h.x = clampf(e.x + (600 if e.x < 480 else -600), 20, 940)
+	h.tx = null
+	h.ab.t = 0
+	var ab0 := h.ab_at
+	g.use_ability()
+	_check(h.ab_at == ab0 and h.ab.t <= 0, "no enemy in reach: Air Stream doesn't cast")
+	h.x = at0.x
+	h.y = at0.y
+	await _wait(0.2)
 	h.ab.t = 0
 	var cast0 := S.time
 	g.use_ability()

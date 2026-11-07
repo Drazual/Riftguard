@@ -40,6 +40,7 @@ var hero_sel := false
 var build := ""
 var merge_from = null
 var pending_build = null # {c, r, type}
+var pending_cast = null # {runes, x, y}: the Wizard walks into range of a spell cast out of reach, then casts it
 var paused := true
 var user_pause := false
 var over := false

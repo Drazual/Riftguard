@@ -105,6 +105,7 @@ var spell_cost := 1.0
 var freeze_bonus := 0.0
 var push_bonus := 1.0
 var wall_bonus := 1.0
+var wall_blast := 0.0 # Volatile Walls: a destroyed wall explodes for this share of its max HP
 # Wizard wall charges: how many are ready, seconds banked toward the next, and the recharge-time multiplier
 var wall_charges := 0
 var wall_t := 0.0
