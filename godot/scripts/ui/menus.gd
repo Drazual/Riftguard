@@ -21,6 +21,7 @@ var ui: Ui
 var game: Game
 var sb_open := { main = true, pick = false, more = false }
 var music_screen: Control = null
+var hub := false # a Heroes or Towers screen opened from its building in the home base (Back returns there)
 
 
 func _init(u: Ui) -> void:
@@ -82,11 +83,72 @@ func queue_tip(id: String) -> void:
 	first_tip.call_deferred(id)
 
 
+# ---------- start, the home base ----------
+## The first screen: the title and a start button, which leads into the home base.
+func show_start() -> void:
+	game.S = null
+	ui.close_modal()
+	var box := ui.show_screen(show_menu)
+	Sound.start()
+	var c := Kit.vbox(18)
+	c.alignment = BoxContainer.ALIGNMENT_CENTER
+	c.custom_minimum_size = Vector2(0, ui.get_viewport_rect().size.y - 90)
+	box.add_child(c)
+	var title := Kit.rich("[center]" + Kit.c("RIFT", Kit.TECH) + Kit.c("GUARD", Kit.ARCANE) + "[/center]", 96)
+	title.add_theme_font_override("normal_font", Kit.display_bold)
+	title.add_theme_constant_override("outline_size", 0)
+	c.add_child(title)
+	c.add_child(Kit.rich("[center]Hold the rift.[/center]", 17, Kit.MUTED))
+	var col := Kit.vbox(8)
+	col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	col.custom_minimum_size = Vector2(260, 0)
+	col.add_child(Kit.go("START", go_home))
+	c.add_child(col)
+	c.add_child(Kit.rich("[center]Version %s[/center]" % ProjectSettings.get_setting("application/config/version"), 12, Kit.MUTED))
+
+
+## The hero you walk the home base as: the one you last played (if it's unlocked), else the Striker.
+func home_hero() -> String:
+	var last = Save.meta.get("loadout")
+	if last is Dictionary and DB.heroes.has(last.get("hero", "")) and Progress.hero_open(last.hero):
+		return last.hero
+	return "striker"
+
+
+## Into the home base (from the start button, or Esc out of the menu).
+func go_home() -> void:
+	game.S = null
+	hub = false
+	ui.hide_screen()
+	ui.close_modal()
+	ui.home.open(home_hero())
+
+
+## A building's door in the home base: its menu, and its Back (or Esc) returns to the base.
+func open_building(id: String) -> void:
+	hub = true
+	match id:
+		"heroes":
+			show_heroes(home_hero())
+		"towers":
+			show_towers()
+
+
+## Where a menu screen's Back goes: the home base if you came from one of its buildings, else the main menu.
+func back() -> void:
+	if hub and ui.home.visible:
+		go_home()
+	else:
+		show_menu()
+
+
 # ---------- main menu ----------
 func show_menu() -> void:
 	game.S = null
+	hub = false
 	ui.close_modal()
-	var box := ui.show_screen()
+	# Esc (or HOME BASE) goes back into the home base
+	var box := ui.show_screen(go_home)
 	Sound.start()
 	var c := Kit.vbox(14)
 	c.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -101,9 +163,10 @@ func show_menu() -> void:
 	var col := Kit.vbox(8)
 	col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.custom_minimum_size = Vector2(260, 0)
+	col.add_child(Kit.button("HOME BASE", go_home))
 	col.add_child(Kit.go("PLAY", show_map_select))
-	col.add_child(Kit.button("HEROES", func(): show_heroes()))
-	col.add_child(Kit.button("TOWERS", func(): show_towers()))
+	col.add_child(Kit.button("HEROES", func(): hub = false; show_heroes()))
+	col.add_child(Kit.button("TOWERS", func(): hub = false; show_towers()))
 	col.add_child(Kit.button("MUSIC", show_music))
 	col.add_child(Kit.button("SETTINGS", show_settings))
 	col.add_child(Kit.button("STATS LOG", show_log))
@@ -371,6 +434,7 @@ func _ability_picks(hero: String, redraw: Callable) -> Control:
 
 
 func start_run(hero: String, towers: Array) -> void:
+	ui.home.close()
 	ui.hide_screen()
 	game.start_run(hero, towers)
 	ui.refresh_run_panels()
@@ -795,8 +859,8 @@ func show_heroes(sel := "vanguard") -> void:
 	queue_tip("heroes")
 	var redraw := func(): show_heroes(sel)
 	var y := ui.screen_scroll.scroll_vertical if ui.screen.visible else 0
-	var box := ui.show_screen(show_menu)
-	head(box, "Heroes", show_menu)
+	var box := ui.show_screen(back)
+	head(box, "Heroes", back)
 	var d: HeroData = DB.heroes[sel]
 	var cols := Kit.hbox(12)
 	var roster := Kit.vbox(6)
@@ -907,8 +971,8 @@ func show_towers(sel := "arcane") -> void:
 	queue_tip("towers")
 	var redraw := func(): show_towers(sel)
 	var y := ui.screen_scroll.scroll_vertical if ui.screen.visible else 0
-	var box := ui.show_screen(show_menu)
-	head(box, "Towers", show_menu)
+	var box := ui.show_screen(back)
+	head(box, "Towers", back)
 	lead(box, "Before each run you bring your hero and %d towers. Upgrades here are permanent." % game.R.loadout_size)
 	var d: TowerData = DB.towers[sel]
 	var M := Save.meta
