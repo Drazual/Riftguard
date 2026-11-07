@@ -1,7 +1,7 @@
 ## Gale's live 3D sword-and-shield model in a real run (needs a display for the model):
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/gale.tscn -- <out dir>
 ## Checks the clips (its posed stance, run, sword slash and shield brace), the sword hit landing 0.3s into the swing, Whirlwind
-## landing 0.5s into its shield_slam clip and Air Stream 0.35s into its bash, and armor as points.
+## landing 0.5s into its shield_slam clip and Air Stream's beam 0.40s into its air_beam_cast, and armor as points.
 extends Node
 
 var out := "user://gale"
@@ -14,6 +14,12 @@ func _check(ok: bool, what: String) -> void:
 	print(("ok   " if ok else "FAIL ") + what)
 	if not ok:
 		fails += 1
+
+
+## The whole board (for the beam, which crosses it).
+func _board_shot(name: String) -> void:
+	await RenderingServer.frame_post_draw
+	main.board.viewport.get_texture().get_image().save_png(out.path_join(name + ".png"))
 
 
 func _shot(name: String) -> void:
@@ -109,15 +115,48 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check(h.shield > 0 and hp1 - e.hp >= 40, "Whirlwind lands at 0.5s (shield %.0f, hit %.0f)" % [h.shield, hp1 - e.hp])
 	await _wait(1.0)
-	# Air Stream: lands 0.35s into bash
+	# Air Stream: air_beam_cast, letting go 0.40s in: the beam leaves the shield once, aimed and reaching the screen edge
 	h.ab = Ability.from_data(DB.heroes.gale.alt)
-	_check(is_equal_approx(h.ab.release, 0.35), "Air Stream releases at 0.35s")
+	_check(is_equal_approx(h.ab.release, 0.4), "Air Stream releases at 0.40s")
+	var b: Board = main.board
+	_check(b.beam_layer != null and h.beam_3d, "Gale has the beam layer")
+	h.ab.t = 0
+	var cast0 := S.time
 	g.use_ability()
 	await get_tree().process_frame
 	await get_tree().process_frame
-	_check(m.ap.current_animation == "bash", "Air Stream plays bash (%s)" % m.ap.current_animation)
-	await _wait(0.2)
-	await _shot("4_stream")
+	_check(m.ap.current_animation == "air_beam_cast", "Air Stream plays air_beam_cast (%s)" % m.ap.current_animation)
+	# (by the clip's own time: under a slow renderer the clip runs ahead of the game's capped steps, so it fires on
+	# the first frame at or past 0.40s)
+	var fires0: int = b.beam_layer.fires
+	var prev := 0.0
+	var step := 0.0
+	for i in 600:
+		if b.beam_layer.fires > fires0:
+			break
+		step = maxf(step, m.ap.current_animation_position - prev)
+		prev = m.ap.current_animation_position
+		await get_tree().process_frame
+	var at: float = b.beam_layer.fired_clip
+	_check(b.beam_layer.fires == fires0 + 1 and at >= 0.4 and at < 0.4 + maxf(step, 0.05) + 0.01,
+		"beam fires once, at the clip's 0.40s release (%.2fs, frames %.2fs apart)" % [at, step])
+	_check(b.beam_layer.beam != null, "the beam is on")
+	var bm: GaleAirBeam = b.beam_layer.beam
+	var mz: Node3D = b.beam_layer.muzzle
+	_check(bm != null and bm.global_position.distance_to(mz.global_position) < 0.01, "beam starts at the shield's BashPoint")
+	var aim0 := bm.global_basis.z if bm else Vector3.ZERO
+	# its far end lands on the board's edge (camera_edge with the board camera), past the screen
+	var tip := bm.global_position + bm.global_basis.z * bm.length_m if bm else Vector3.ZERO
+	var on := b.beam_layer.cam.unproject_position(tip) / Vector2(b.beam_layer.vp.size)
+	_check(on.x <= 0.01 or on.x >= 0.99 or on.y <= 0.01 or on.y >= 0.99, "reaches the screen edge (%.2f, %.2f)" % [on.x, on.y])
+	await _board_shot("4_stream")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(bm != null and is_instance_valid(bm) and bm.global_basis.z.dot(aim0) > 0.9999 and bm.global_position.distance_to(mz.global_position) < 0.01,
+		"aim stays locked while it follows the shield")
+	await _board_shot("4b_stream")
+	await _wait(0.6)
+	_check(b.beam_layer.beam == null and not is_instance_valid(bm), "beam fades and frees itself")
 	# holding position (H) away from the fight: braced behind the shield
 	h.x = e.x - 250
 	h.tx = null
