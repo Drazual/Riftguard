@@ -235,15 +235,17 @@ func to_field(p: Vector2) -> Vector2:
 	return Vector2(sx, (sy - TOP) / K)
 
 
-## How big the board's picture is drawn: the largest fit, or with the unified style's integer_scale the largest
-## whole multiple of real screen pixels when the board has room for at least 1x (so its pixels stay square and even).
+## How big the board's picture is drawn: the largest fit, so it fills the space it has. With the unified style's
+## integer_scale it snaps down to a whole multiple of real screen pixels (square, even pixels) only when that costs
+## almost nothing (under 5% of its size); otherwise filling the screen wins.
 func fit_scale() -> float:
 	var vs := Vector2(ART_W * F, ART_H * F)
 	var s := minf(size.x / vs.x, size.y / vs.y)
 	if live and live.settings.integer_scale and is_inside_tree():
 		var per := _per()
-		if s * per >= 1.0:
-			s = floorf(s * per + 0.001) / per
+		var whole := floorf(s * per + 0.001)
+		if whole >= 1.0 and whole / (s * per) >= 0.95:
+			s = whole / per
 	return s
 
 
