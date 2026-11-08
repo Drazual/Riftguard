@@ -58,8 +58,11 @@ func _ready() -> void:
 		for k in 10:
 			await _shot("%02d_wave_%d" % [n + 1, k], main, S, 5)
 			print("  %02d_wave_%d turrets: " % [n + 1, k], S.towers.filter(func(t): return t.type == "frost").map(func(t):
-				var v: AnimatedSprite2D = t.get_meta("view")
-				return "%s:%d @%d,%d" % [v.animation, v.frame, v.global_position.x, v.global_position.y]))
+				var v: Node2D = t.get_meta("view")
+				# a baked turret sprite (the old look), or the live model (the unified style)
+				var clip: String = v.animation if v is AnimatedSprite2D else v.ap.current_animation
+				var f: int = v.frame if v is AnimatedSprite2D else int(v.ap.current_animation_position * 10)
+				return "%s:%d @%d,%d" % [clip, f, v.global_position.x, v.global_position.y]))
 	get_tree().quit()
 
 

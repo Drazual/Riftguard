@@ -76,6 +76,12 @@ func _ready() -> void:
 	var S := g.S
 	var b := main.board
 	S.gold = 99999
+	# level-up offers pause the game: take the first one so waves keep going and screenshots stay clear
+	g.modal.connect(func(kind, _d):
+		if kind == "level_up":
+			(func():
+				main.ui.close_modal()
+				g.pick_offer(0)).call_deferred())
 	_check(b.live != null, "the board has the shared 3D layer")
 	_check(b.live.vp.size == Vector2i(1536, 832), "it renders at the scenery's own 1536x832 (%s)" % b.live.vp.size)
 	await _frames(5)
@@ -145,9 +151,6 @@ func _ready() -> void:
 		yaw0[t] = (t.get_meta("view") as Live3D.LiveTower).yaw
 	for i in 500:
 		await get_tree().process_frame
-		if main.ui.modal_open(): # a level-up offer pauses the game: take it away so the wave keeps going
-			main.ui.close_modal()
-			S.paused = false
 		for t: Tower in S.towers:
 			var v = t.get_meta("view") if t.has_meta("view") else null
 			if not v is Live3D.LiveTower:
@@ -166,7 +169,7 @@ func _ready() -> void:
 				turned += 1
 			if lt.get_meta("fired", false):
 				fired += 1
-		if turned >= 3 and fired >= 3 and i > 200:
+		if turned >= 4 and fired >= 4:
 			break
 		if i % 50 == 0:
 			print("wave frame ", i, " turned ", turned, " fired ", fired, " enemies ", S.enemies.size())
@@ -185,8 +188,10 @@ func _ready() -> void:
 		var lt: Live3D.LiveTower = t.get_meta("view")
 		print("  %s at %s shot_at %.2f target %s yaw %.2f->%.2f fire '%s' idle '%s' has_fire %s" % [t.type, Vector2(t.x, t.y), t.shot_at, t.last_target != null,
 			yaw0[t], lt.yaw, lt.fire, lt.idle, lt.ap.has_animation(lt.fire) if lt.ap else false])
-	_check(turned >= 3, "the turrets turn to their targets (%d of %d)" % [turned, S.towers.size()])
-	_check(fired >= 3, "the towers play their fire clips as they shoot (%d)" % fired)
+	# (only the towers with enemies in reach shoot; the others have nothing to turn to)
+	var shooters := S.towers.filter(func(t): return t.shot_at > 0).size()
+	_check(shooters >= 2 and turned >= shooters, "every tower that shot turned to its target (%d of %d)" % [turned, shooters])
+	_check(shooters >= 2 and fired >= shooters, "every tower that shot played its fire clip (%d of %d)" % [fired, shooters])
 	_check(muzzle_ok, "every shot leaves the tower's own muzzle, on the tower")
 	await _shot("game_wave_full")
 	for t: Tower in S.towers:
@@ -226,5 +231,8 @@ func _ready() -> void:
 	b.restyle()
 	await _frames(10)
 	_check(b.live != null and b.hero_3d != null and b.hero_3d.rig == b.live.rig, "style on again: back in the shared world")
+	main.ui.menus.show_settings()
+	await _frames(5)
+	await _shot("game_settings")
 	print("STYLE GAME DONE, %d failed" % fails)
 	get_tree().quit(1 if fails else 0)
