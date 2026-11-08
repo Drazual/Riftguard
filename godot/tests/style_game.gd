@@ -38,17 +38,37 @@ func _crop(name: String, at: Vector2, half: Vector2, z: int) -> void:
 	img.save_png(out.path_join(name + ".png"))
 
 
-## How many of the live layer's pixels are drawn in a box around a board world point (feet), up to `tall` above it.
+## How many of the board's pixels Gale changes in a box around a board world point (feet), up to `tall` above it:
+## the board with Gale hidden, then shown.
 func _drawn(at: Vector2, tall: float) -> int:
-	await RenderingServer.frame_post_draw
-	var lv := main.board.live
-	var img := lv.vp.get_texture().get_image()
-	var k := Vector2(lv.vp.size) / Live3D.VIEW
+	var b := main.board
+	var grab := func() -> Image:
+		await RenderingServer.frame_post_draw
+		return b.viewport.get_texture().get_image()
+	b.hero_3d.visible = false
+	b.hero_3d.pic.visible = false
+	await get_tree().process_frame
+	var off: Image = await grab.call()
+	b.hero_3d.visible = true
+	b.hero_3d.pic.visible = true
+	await get_tree().process_frame
+	var on: Image = await grab.call()
+	# (the map's neon signs animate, so pixels that change with Gale hidden both times don't count)
+	b.hero_3d.visible = false
+	b.hero_3d.pic.visible = false
+	await get_tree().process_frame
+	var off2: Image = await grab.call()
+	b.hero_3d.visible = true
+	b.hero_3d.pic.visible = true
+	var k := Vector2(b.viewport.size) / Live3D.VIEW
 	var n := 0
 	for y in range(int((at.y - tall) * k.y), int(at.y * k.y) + 1):
 		for x in range(int((at.x - 14) * k.x), int((at.x + 14) * k.x) + 1):
-			if x >= 0 and y >= 0 and x < img.get_width() and y < img.get_height() and img.get_pixel(x, y).a > 0.5:
-				n += 1
+			if x >= 0 and y >= 0 and x < on.get_width() and y < on.get_height():
+				var d: Color = on.get_pixel(x, y) - off.get_pixel(x, y)
+				var noise: Color = off2.get_pixel(x, y) - off.get_pixel(x, y)
+				if absf(d.r) + absf(d.g) + absf(d.b) > 0.15 and absf(noise.r) + absf(noise.g) + absf(noise.b) < 0.05:
+					n += 1
 	return n
 
 
@@ -86,7 +106,8 @@ func _ready() -> void:
 	_check(b.live.vp.size == Vector2i(1536, 832), "it renders at the scenery's own 1536x832 (%s)" % b.live.vp.size)
 	await _frames(5)
 	var h := S.hero
-	_check(b.hero_3d != null and b.hero_3d.rig == b.live.rig and b.hero_3d.vp == null, "Gale is drawn in the shared world, with no viewport of its own")
+	_check(b.hero_3d != null and b.hero_3d.vp != null and b.hero_3d.pic.material is ShaderMaterial, "Gale keeps its own clear render, with the style's palette filter and outline")
+	_check(b.live._cuts.has(b.hero_3d.pic), "Gale's picture has a cut-out, so live towers sort with it")
 	# towers on open ground around the middle
 	var spot := Vector2(480, 300)
 	var placed := 0
@@ -135,7 +156,7 @@ func _ready() -> void:
 		await _frames(8)
 		var front := await _drawn(Vector2(cx, bld.position.y + 40), 40)
 		await _crop("game_front", Vector2(cx, bld.position.y - 40), Vector2(170, 120), 3)
-		_check(open_n > 200, "in the open Gale covers %d render pixels" % open_n)
+		_check(open_n > 200, "in the open Gale covers %d board pixels" % open_n)
 		_check(hid < open_n / 10, "behind the building Gale is hidden (%d of %d pixels show)" % [hid, open_n])
 		_check(front > open_n * 0.6, "in front of it Gale draws over it (%d of %d)" % [front, open_n])
 
@@ -202,14 +223,14 @@ func _ready() -> void:
 	print("phase beam")
 	# Gale's beam ends on the shared camera's edge (the gameplay camera and its low-res viewport)
 	if b.beam_layer:
-		_check(b.beam_layer.shared and b.beam_layer.cam == b.live.rig.cam, "Gale's beam uses the board's one camera")
+		_check(not b.beam_layer.shared, "Gale's beam follows Gale's own camera")
 		_put(h, Vector2(480, 300))
 		await _frames(5)
 		var ok := b.beam_layer.strike_at(Vector2(1, 0), Board.K, 30.0, 0.5, func(): pass)
 		await _frames(3)
 		if ok:
 			var tip := b.beam_layer.strike_from + b.beam_layer.strike.global_basis.z * b.beam_layer.strike_len
-			var on := b.live.rig.cam.unproject_position(tip) / Vector2(b.live.vp.size)
+			var on := b.beam_layer.cam.unproject_position(tip) / Vector2(b.beam_layer.cam.get_viewport().size)
 			_check(on.x >= 0.99, "Air Strike's trail reaches the right edge of the render (%.3f)" % on.x)
 			await _shot("game_strike")
 		else:
@@ -220,7 +241,7 @@ func _ready() -> void:
 	Save.settings.style3d = false
 	b.restyle()
 	await _frames(10)
-	_check(b.live == null and b.hero_3d != null and b.hero_3d.vp != null, "style off: Gale is back in its own viewport")
+	_check(b.live == null and b.hero_3d != null and b.hero_3d.pic.material == null, "style off: Gale has no filter")
 	var sprites := 0
 	for t: Tower in S.towers:
 		if t.has_meta("view") and t.get_meta("view") is AnimatedSprite2D:
@@ -230,7 +251,7 @@ func _ready() -> void:
 	Save.settings.style3d = true
 	b.restyle()
 	await _frames(10)
-	_check(b.live != null and b.hero_3d != null and b.hero_3d.rig == b.live.rig, "style on again: back in the shared world")
+	_check(b.live != null and b.hero_3d != null and b.hero_3d.pic.material is ShaderMaterial, "style on again: the filter is back on Gale")
 	main.ui.menus.show_settings()
 	await _frames(5)
 	await _shot("game_settings")

@@ -115,6 +115,16 @@ func home_hero() -> String:
 	return "striker"
 
 
+## Makes `id` the hero you play as: you walk the home base as it, and it's picked first for the next run.
+func set_home_hero(id: String) -> void:
+	var last = Save.meta.get("loadout")
+	if not last is Dictionary:
+		last = { hero = id, towers = [] }
+	last.hero = id
+	Save.meta.loadout = last
+	Save.save_meta()
+
+
 ## Into the home base (from the start button, or Esc out of the menu).
 func go_home() -> void:
 	game.S = null
@@ -132,6 +142,8 @@ func open_building(id: String) -> void:
 			show_heroes(home_hero())
 		"towers":
 			show_towers()
+		"start":
+			show_map_select()
 
 
 ## Where a menu screen's Back goes: the home base if you came from one of its buildings, else the main menu.
@@ -200,8 +212,8 @@ func reset_everything() -> void:
 
 func show_map_select() -> void:
 	queue_tip("maps")
-	var box := ui.show_screen(show_menu)
-	head(box, "Choose a map", show_menu)
+	var box := ui.show_screen(back)
+	head(box, "Choose a map", back)
 	lead(box, "More maps are under construction. Harder maps will have more waves and pay more Rift Shards.")
 	var g := GridContainer.new()
 	g.columns = 2
@@ -881,6 +893,14 @@ func show_heroes(sel := "vanguard") -> void:
 	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := Kit.vbox(8)
 	c.add_child(v)
+	if hub and ui.home.visible:
+		# opened from the home base's hero building: switch who you walk the base as (and the next run's pick)
+		if sel == home_hero():
+			v.add_child(Kit.rich(Kit.c("You're playing as %s." % d.name, Kit.GOLD), 15))
+		else:
+			var play := Kit.go("PLAY AS %s" % d.name.to_upper(), func(): set_home_hero(sel); go_home())
+			play.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+			v.add_child(play)
 	var top := Kit.hbox(12)
 	top.add_child(Portrait.make(sel, 3))
 	var tv := Kit.vbox(4)

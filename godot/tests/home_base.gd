@@ -50,7 +50,7 @@ func _ready() -> void:
 	if args.size():
 		out = args[0]
 	DirAccess.make_dir_recursive_absolute(out)
-	get_tree().create_timer(90).timeout.connect(func(): print("HOME TIMEOUT"); get_tree().quit(1))
+	get_tree().create_timer(240).timeout.connect(func(): print("HOME TIMEOUT"); get_tree().quit(1))
 	for id in Menus.FIRST_TIPS:
 		Save.meta.tips[id] = true
 	Save.meta.erase("loadout")
@@ -104,6 +104,26 @@ func _ready() -> void:
 	await _esc()
 	await _walk(home.doors.towers + Vector2(0, 70))
 	await _shot("4_base_walked")
+	# the rift gate: the map choice, and Back returns to the base
+	await _walk(home.doors.start)
+	_check(ui.screen.visible and ui.menus.hub, "the rift gate opens the map choice")
+	await _shot("4b_start_run")
+	ui.menus.back()
+	await _frames(2)
+	_check(home.live(), "Back from the map choice goes back to the base")
+	await _walk(home.doors.start + Vector2(0, 90))
+	# the hero building switches who you play as
+	await _walk(home.doors.heroes + Vector2(0, 60))
+	await _walk(home.doors.heroes)
+	ui.menus.show_heroes("vanguard")
+	await _frames(2)
+	await _shot("4c_play_as")
+	ui.menus.set_home_hero("vanguard")
+	ui.menus.go_home()
+	await _frames(3)
+	_check(home.live() and home.hero_id == "vanguard" and home.hero != null, "PLAY AS in the hero building switches your hero (%s)" % home.hero_id)
+	await _walk(home.doors.heroes + Vector2(0, 70))
+	await _shot("4d_as_vanguard")
 	# Esc in the base: the main menu; Esc there: back to the base
 	await _esc()
 	_check(ui.screen.visible and not ui.menus.hub, "Esc in the base opens the main menu")
