@@ -76,6 +76,9 @@ var shake_dur := 0.0
 var hero_spr: AnimatedSprite2D = null
 var hero_3d: Hero3D = null # heroes with a 3D model (HeroData.model_dir): drawn live over an invisible hero_spr
 var beam_layer: BeamLayer = null # Gale's Air Stream beam, over the board
+## The unified art style (StyleSettings): every live 3D model on the board drawn by one camera into one low-res layer
+## over the 2D world, with cut-outs for the sprites that stand in front. null = the old look (Save.settings.style3d).
+var live: Live3D = null
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
 var hero_flash: AnimatedSprite2D = null
@@ -136,14 +139,64 @@ func _ready() -> void:
 	gm.shader = GLOW_SHADER
 	art_glow.material = gm
 	world.add_child(art_glow)
+	restyle()
 	over = _layer("Overlay", _draw_over)
 	top = Node2D.new()
 	world.add_child(top)
-	texture = viewport.get_texture()
+	texture = null # drawn by _draw (fit_scale)
 	stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	resized.connect(queue_redraw)
 	expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+## Turns the unified 3D style on or off (Save.settings.style3d), or pushes changed style settings into it. Heroes,
+## towers and walls already on the board are rebuilt in the new look.
+func restyle() -> void:
+	var on := StyleSettings.enabled()
+	if on and live:
+		live.settings = StyleSettings.saved()
+		live.rig.settings = live.settings
+		live.apply()
+		_filter()
+		return
+	if on == (live != null):
+		return
+	if live:
+		live.queue_free()
+		live = null
+	if on:
+		if not get_viewport().size_changed.is_connected(_filter):
+			get_viewport().size_changed.connect(_filter)
+		live = Live3D.new(StyleSettings.saved())
+		world.add_child(live)
+		world.move_child(live, art_glow.get_index() + 1)
+		live.set_res(F)
+		for sp in art_sprites:
+			if is_instance_valid(sp):
+				live.cut(sp)
+	# rebuild what is drawn live: the hero, the towers' views and the walls
+	if hero_3d and is_instance_valid(hero_3d):
+		hero_3d.queue_free()
+		hero_3d = null
+	if hero_spr and is_instance_valid(hero_spr):
+		hero_spr.queue_free()
+		hero_spr = null
+	_drop_beam(true)
+	var S := _S()
+	if S:
+		for t: Tower in S.towers:
+			if t.has_meta("view"):
+				var v = t.get_meta("view")
+				if v and is_instance_valid(v):
+					v.queue_free()
+				t.remove_meta("view")
+		for w in S.walls:
+			if w is Dictionary and w.get("_v3") and is_instance_valid(w._v3):
+				w._v3.queue_free()
+				w.erase("_v3")
+	_filter()
 
 
 func _layer(n: String, fn: Callable) -> Node2D:
@@ -174,13 +227,45 @@ func _S() -> Run:
 # ---------- input ----------
 ## A point on the board control -> a point on the flat field.
 func to_field(p: Vector2) -> Vector2:
-	var vs := Vector2(ART_W * F, ART_H * F)
-	var s := minf(size.x / vs.x, size.y / vs.y)
-	var off := (size - vs * s) / 2
+	var s := fit_scale()
+	var off := fit_offset()
 	var art := _unzoom((p - off) / s)
 	var sx := art.x / (PX * F)
 	var sy := art.y / (PX * F)
 	return Vector2(sx, (sy - TOP) / K)
+
+
+## How big the board's picture is drawn: the largest fit, or with the unified style's integer_scale the largest
+## whole multiple of real screen pixels when the board has room for at least 1x (so its pixels stay square and even).
+func fit_scale() -> float:
+	var vs := Vector2(ART_W * F, ART_H * F)
+	var s := minf(size.x / vs.x, size.y / vs.y)
+	if live and live.settings.integer_scale and is_inside_tree():
+		var per := _per()
+		if s * per >= 1.0:
+			s = floorf(s * per + 0.001) / per
+	return s
+
+
+## Where the picture's top-left sits in the board control (on a whole screen pixel with integer scaling).
+func fit_offset() -> Vector2:
+	var vs := Vector2(ART_W * F, ART_H * F)
+	var off := (size - vs * fit_scale()) / 2
+	if live and live.settings.integer_scale and is_inside_tree():
+		off = (off * _per()).floor() / _per()
+	return off
+
+
+## Real screen pixels per canvas unit (the window's canvas_items stretch).
+func _per() -> float:
+	var win := get_viewport().get_visible_rect().size
+	return float(get_tree().root.size.x) / win.x if win.x > 0 else 1.0
+
+
+func _draw() -> void:
+	# drawn here rather than by TextureRect's own stretch, so the picture can sit at a whole multiple (fit_scale)
+	if viewport:
+		draw_texture_rect(viewport.get_texture(), Rect2(fit_offset(), Vector2(ART_W * F, ART_H * F) * fit_scale()), false)
 
 
 func _gui_input(ev: InputEvent) -> void:
@@ -269,9 +354,8 @@ func _zoom_input(ev: InputEvent) -> bool:
 
 ## Zooms by `f` keeping the map point under `at` (a point on the board control) where it is.
 func zoom_by(f: float, at: Vector2) -> void:
-	var vs := Vector2(ART_W * F, ART_H * F)
-	var s := minf(size.x / vs.x, size.y / vs.y)
-	var v := (at - (size - vs * s) / 2) / s # the pointer, in the view's pixels
+	var s := fit_scale()
+	var v := (at - fit_offset()) / s # the pointer, in the view's pixels
 	var before := _unzoom(v)
 	zoom = clampf(zoom * f, 1.0, ZOOM_MAX)
 	var after := _unzoom(v)
@@ -281,8 +365,7 @@ func zoom_by(f: float, at: Vector2) -> void:
 
 ## Moves the view by a drag of `d` board-control pixels.
 func pan_by(d: Vector2) -> void:
-	var vs := Vector2(ART_W * F, ART_H * F)
-	var s := minf(size.x / vs.x, size.y / vs.y)
+	var s := fit_scale()
 	cam -= d / s / F / zoom
 	_clamp_cam()
 
@@ -318,6 +401,8 @@ func sync(dt: float) -> void:
 	_sync_art(S, speed)
 	_reap(units)
 	_reap(low)
+	if live:
+		live.sync_cuts()
 	_reap(top)
 	flat.queue_redraw()
 	over.queue_redraw()
@@ -381,6 +466,8 @@ func _sync_towers(S: Run, speed: float) -> void:
 			s.play("idle")
 			units.add_child(s)
 			t.set_meta("view", s)
+			if live:
+				live.cut(s)
 		_seen(s)
 		# the beacon has no shots: it pulses while a wave is on
 		if t.support and S.wave_active and S.time - t.fired_at > 3:
@@ -409,6 +496,9 @@ func _sync_towers(S: Run, speed: float) -> void:
 ## target, or where a cannon's last shot went), holds that facing when it has none, and plays its fire clip as it
 ## shoots.
 func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
+	if live and Live3D.tower_dir(d) != "":
+		_sync_turret_live(S, t, d, speed)
+		return
 	var n := d.turret_muzzle.size()
 	var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
 	if s == null or not is_instance_valid(s):
@@ -422,6 +512,8 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 		s.play("idle_%d" % s.get_meta("face"))
 		units.add_child(s)
 		t.set_meta("view", s)
+		if live:
+			live.cut(s)
 	_seen(s)
 	var sc := d.turret_scale / PX
 	s.scale = Vector2(sc, sc)
@@ -504,8 +596,44 @@ func _sky_bolt(p: Dictionary, d: TowerData, lift0: float) -> void:
 	n.modulate.a = 1.0
 
 
+## A turret tower drawn live in the shared 3D layer (the unified style): its turret turns smoothly to the exact
+## angle of its target, its fire clip plays as it shoots, and its shots leave the model's own Muzzle.
+func _sync_turret_live(S: Run, t: Tower, d: TowerData, speed: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if v == null or not is_instance_valid(v) or not v is Live3D.LiveTower:
+		if v and is_instance_valid(v):
+			v.queue_free()
+		var lt := Live3D.LiveTower.new()
+		lt.position = Vector2(t.x, SY(t.y) + FOOT)
+		units.add_child(lt)
+		lt.setup(live, Live3D.tower_dir(d), d.turret_scale / PX)
+		lt.set_meta("st", t.shot_at)
+		t.set_meta("view", lt)
+		v = lt
+	var s: Live3D.LiveTower = v
+	_seen(s)
+	s.position = Vector2(t.x, SY(t.y) + FOOT)
+	s.set_speed(speed)
+	var e = t.last_target
+	var aim = null
+	if e != null and not e.dead and S.enemies.has(e):
+		aim = Vector2(e.x, e.y)
+	elif not t.beam and t.hit_at != null:
+		aim = t.hit_at
+	if aim != null and t.stun_t <= 0:
+		s.aim(Vector2(aim.x - t.x, SY(aim.y) - SY(t.y)))
+	if t.shot_at != s.get_meta("st"):
+		s.set_meta("st", t.shot_at)
+		s.shoot()
+	if t.beam:
+		_laser_beam(S, t, d)
+
+
 ## Where a turret tower's beam starts on the board: its muzzle in the facing it shows.
 func turret_muzzle_at(t: Tower, d: TowerData) -> Vector2:
+	var lv = t.get_meta("view") if t.has_meta("view") else null
+	if lv is Live3D.LiveTower and is_instance_valid(lv):
+		return lv.muzzle_at()
 	var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
 	var face: int = s.get_meta("face") if s and is_instance_valid(s) else 0
 	var sc := d.turret_scale / PX
@@ -703,7 +831,10 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 			hero_3d = Hero3D.new()
 			hero_3d.scale = Vector2(1 / PX, 1 / PX)
 			units.add_child(hero_3d)
-			hero_3d.setup(h.data.model_dir)
+			if live:
+				hero_3d.setup(h.data.model_dir, 26.0, live.rig, Live3D.PER)
+			else:
+				hero_3d.setup(h.data.model_dir)
 			hero_3d.face(PI / 2, true)
 			# Gale's Air Stream: a beam from the shield to the screen edge, drawn over the board (see BeamLayer)
 			if BeamLayer.fits(hero_3d):
@@ -782,6 +913,7 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 		# the live model turns to the exact angle (of the target while shooting), not just the 8 facings
 		hero_3d.visible = true
 		hero_3d.position = s.position
+		hero_3d.place_now()
 		if v != Vector2.ZERO:
 			hero_3d.face(v.angle())
 		if want == "walk":
@@ -1428,8 +1560,9 @@ func _sync_wall_3d(S: Run, w: Dictionary, a: String, speed: float) -> void:
 		view.position = Vector2(w.x, SY(w.y))
 		units.add_child(view)
 		# the turn that puts the model's front (+Z) toward the enemies, through the camera's tilt like Hero3D.face
-		var g := Vector2(dir.x, dir.y * K / sin(deg_to_rad(Hero3D.PITCH)))
-		view.setup(WALL_MODELS[a], atan2(g.x, g.y))
+		var pitch := StyleRig.PITCH if live else Hero3D.PITCH
+		var g := Vector2(dir.x, dir.y * K / sin(deg_to_rad(pitch)))
+		view.setup(WALL_MODELS[a], atan2(g.x, g.y), live)
 		w._v3 = view
 		w._hp_seen = w.hp
 		wall_views.append({ view = view, w = w, run = S })
@@ -2180,8 +2313,17 @@ func _set_res(f: int) -> void:
 	bg.size = Vector2(ART_W * F, ART_H * F)
 	world.scale = Vector2(PX * F, PX * F)
 	ground.scale = Vector2(1 / PX, 1 / PX)
-	# the hi-res board is scaled to the screen smoothly; the pixel-art boards stay crisp
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if F > 1 else CanvasItem.TEXTURE_FILTER_NEAREST
+	if live:
+		live.set_res(F)
+	_filter()
+
+
+## The hi-res board is scaled to the screen smoothly and the pixel-art boards stay crisp; at a whole multiple
+## (fit_scale with the unified style) every board is crisp.
+func _filter() -> void:
+	var whole := live != null and live.settings.integer_scale and is_inside_tree() and is_equal_approx(fmod(fit_scale() * _per(), 1.0), 0.0)
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if F > 1 and not whole else CanvasItem.TEXTURE_FILTER_NEAREST
+	queue_redraw()
 
 
 func _clear_art() -> void:
@@ -2254,6 +2396,8 @@ func _build_art(m: MapInfo) -> void:
 		sp.offset = Vector2(0, tl.y - key)
 		units.add_child(sp)
 		art_sprites.append(sp)
+		if live:
+			live.cut(sp)
 
 
 ## A build pad's diamond on the ground (field coordinates, drawn on the flat layer).
@@ -2333,3 +2477,5 @@ func _sync_enemies(S: Run) -> void:
 		_seen(n)
 		n.position = P(e.x, e.y)
 		n.queue_redraw()
+		if live:
+			live.cut(n, e.r + 1.25, body_lift(e))

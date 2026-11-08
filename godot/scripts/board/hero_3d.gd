@@ -22,8 +22,15 @@ const STRIDE := 1.15
 const NARROW := 0.0 # degrees each thigh turns in during a walk or run (see _narrow)
 const MAX_PACE := 2.2
 
-var vp: SubViewport
+var vp: SubViewport # its own viewport and camera (null when drawn in a shared StyleRig)
 var cam: Camera3D
+## Drawn in the board's one shared 3D world (StyleRig, the unified style) instead of its own viewport: the model
+## stands on `anchor` there, turned with the shared camera, and this node's position (times art_per_unit) is the
+## art pixel its feet stand on.
+var rig: StyleRig = null
+var anchor: Node3D = null
+var art_per_unit := 1.0
+var pitch := PITCH # the camera's look-down angle, for facings (the shared camera's is the scenery's 30)
 var model: Node3D
 var ap: AnimationPlayer
 var skel: Skeleton3D
@@ -56,9 +63,17 @@ var ankle := 0.0 # how high the ankles sit when standing, so longer strides can 
 
 
 ## dir: the hero's source folder (with hero.json). tall: the hero's height on the board, in pixels.
-func setup(dir: String, height: float = 26.0) -> void:
+## shared: draw it in that StyleRig's world (the unified style) instead of its own viewport; per_unit: art pixels
+## per unit of this node's position.
+func setup(dir: String, height: float = 26.0, shared: StyleRig = null, per_unit := 1.0) -> void:
 	tall = height
 	cfg = JSON.parse_string(FileAccess.get_file_as_string(dir.path_join("hero.json")))
+	if shared:
+		rig = shared
+		art_per_unit = per_unit
+		pitch = StyleRig.PITCH
+		_setup_model(dir)
+		return
 	vp = SubViewport.new()
 	vp.size = Vector2i(BOX * Q)
 	vp.transparent_bg = true
@@ -82,8 +97,15 @@ func setup(dir: String, height: float = 26.0) -> void:
 	cam.far = 60.0
 	vp.add_child(cam)
 	cam.current = true
+	_setup_model(dir)
+
+
+func _setup_model(dir: String) -> void:
 	model = (load(dir.path_join(cfg.model)) as PackedScene).instantiate()
-	vp.add_child(model)
+	if rig:
+		anchor = rig.add_model(model, 0.42, true)
+	else:
+		vp.add_child(model)
 	for n in cfg.get("hide", []):
 		var h := model.find_child(n, true, false)
 		if h:
@@ -154,13 +176,19 @@ func setup(dir: String, height: float = 26.0) -> void:
 		anims.walkfire = "ext/walkfire"
 	if cfg.has("held"):
 		held = (load(dir.path_join(cfg.held.scene)) as PackedScene).instantiate()
-		vp.add_child(held)
+		(anchor if rig else vp).add_child(held)
 	muzzle = (held if held else model).find_child(cfg.get("muzzle", "Muzzle"), true, false)
 	# cosmetic SkeletonModifier3D scripts the model ships with (hero.json "modifiers"), run after its clips under the
 	# Skeleton3D: the Oracle's orb crystal keeps spinning across every clip change
 	for path in cfg.get("modifiers", []):
 		var mod: Node = (load(dir.path_join(path)) as Script).new()
 		skel.add_child(mod)
+	if rig:
+		# the shared rig styles it (its own materials when the style's stylize is off), and draws it
+		if held:
+			rig.add_styled(held)
+		play("idle")
+		return
 	_paint(model)
 	if held:
 		_paint(held)
@@ -204,6 +232,24 @@ static func clean_light(parent: Node) -> void:
 	fill.rotation_degrees = Vector3(-25, 60, 0)
 	fill.light_energy = 0.35
 	parent.add_child(fill)
+
+
+## In the shared world: stands the model where this node is now (the board calls it after moving the hero, so the
+## model doesn't trail a frame behind the 2D board).
+func place_now() -> void:
+	if anchor:
+		anchor.visible = is_visible_in_tree()
+		rig.place_art(anchor, position * art_per_unit)
+
+
+func _exit_tree() -> void:
+	if anchor and is_instance_valid(anchor) and is_queued_for_deletion():
+		anchor.queue_free()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and anchor and is_instance_valid(anchor):
+		anchor.queue_free()
 
 
 func _lights() -> void:
@@ -635,7 +681,7 @@ func aim() -> void:
 func face(screen_angle: float, instant: bool = false) -> void:
 	# on the ground (x right, y toward the camera), through this camera's own tilt so it matches on screen
 	want_screen = screen_angle
-	var g := Vector2(cos(screen_angle), sin(screen_angle) / sin(deg_to_rad(PITCH)))
+	var g := Vector2(cos(screen_angle), sin(screen_angle) / sin(deg_to_rad(pitch)))
 	want_yaw = atan2(g.x, g.y)
 	if instant:
 		yaw = want_yaw
@@ -644,6 +690,7 @@ func face(screen_angle: float, instant: bool = false) -> void:
 func _process(dt: float) -> void:
 	if model == null:
 		return
+	place_now()
 	yaw = lerp_angle(yaw, want_yaw, 1.0 - exp(-dt * 16.0))
 	if state == "cast" and cast_rel > 0.0:
 		if ap.current_animation_position >= cast_rel:
@@ -729,7 +776,9 @@ func _cast_body() -> void:
 ## at `want_screen` as drawn on screen. That counts the barrel's own tilt up or down (the clip's), which turning
 ## the ground facing alone leaves off by up to ~35 degrees. Of the turns that line it up, the smallest.
 func _barrel_turn(d: Vector3) -> float:
-	var p := deg_to_rad(PITCH)
+	var p := deg_to_rad(pitch)
+	if anchor:
+		d = anchor.global_basis.inverse() * d # into the turned frame the facings work in
 	var best := 0.0
 	var score := INF
 	for i in range(-48, 49):
@@ -814,7 +863,16 @@ func move(px_per_s: float, game_speed: float, backwards: bool, aiming: bool = fa
 func tip() -> Vector2:
 	if muzzle == null:
 		return Vector2(0, -tall * 0.6)
+	if rig:
+		return (rig.world_to_art(muzzle_at()) / art_per_unit - position) / scale.x
 	return cam.unproject_position(muzzle_at()) / Q - FEET
+
+
+## Where a 3D point shows, in this node's parent's units (the board's world): the gun tip is position + tip() * scale.
+func to_parent(w: Vector3) -> Vector2:
+	if rig:
+		return rig.world_to_art(w) / art_per_unit
+	return position + (cam.unproject_position(w) / Q - FEET) * scale
 
 
 ## The gun tip in the 3D world, from the skeleton's current pose. A weapon on a BoneAttachment3D (as in a .glb)
@@ -847,6 +905,8 @@ func _stride_speed(clip: String) -> float:
 	if foot < 0 or hip < 0 or a.length <= 0:
 		return 1.0
 	var fwd := Vector3(sin(model.rotation.y), 0, cos(model.rotation.y))
+	if anchor:
+		fwd = anchor.global_basis * fwd
 	var lo := INF
 	var hi := -INF
 	for i in 40:

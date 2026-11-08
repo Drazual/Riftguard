@@ -35,6 +35,9 @@ var strikes := 0 # Air Strikes laid so far, the clip time, origin and length of 
 var strike_clip := -1.0
 var strike_from := Vector3.ZERO
 var strike_len := 0.0
+## The unified style: the hero is drawn in the board's one shared 3D world (Hero3D.rig), so the beam is drawn there
+## too, by the board's one camera (no viewport or camera of its own here).
+var shared := false
 
 
 func setup(h: Hero3D, board_view: Vector2, board_px: float) -> void:
@@ -43,6 +46,10 @@ func setup(h: Hero3D, board_view: Vector2, board_px: float) -> void:
 	px = board_px
 	muzzle = hero.model.get_node_or_null(MUZZLE)
 	strike_point = hero.model.get_node_or_null(STRIKE_POINT)
+	if hero.rig:
+		shared = true
+		cam = hero.rig.cam
+		return
 	vp = SubViewport.new()
 	vp.size = Vector2i(view * px * SHARP)
 	vp.transparent_bg = true
@@ -82,6 +89,8 @@ static func can_strike(h: Hero3D) -> bool:
 ## Lines this camera up with the hero's: the hero's viewport (BOX, feet at FEET, in its own pixels) sits at the
 ## hero's spot on the board, so the board's centre is that many units over from the hero camera's centre.
 func _follow() -> void:
+	if shared:
+		return
 	var upp := hero.cam.size / Hero3D.BOX.y # units per hero pixel
 	var unit := upp / hero.scale.x # units per world pixel (the hero is drawn at 1 / PX on the board)
 	cam.size = view.y * unit
@@ -100,32 +109,43 @@ func fire(dir: Vector2, k: float) -> void:
 	fires += 1
 	fired_clip = hero.ap.current_animation_position
 	_follow()
-	# the same turn Hero3D.face gives the model for this direction on screen
-	var screen := Vector2(dir.x, dir.y * k)
-	var g := Vector2(screen.x, screen.y / sin(deg_to_rad(Hero3D.PITCH)))
-	var aim := Vector3(g.x, 0, g.y).normalized()
+	var aim := _aim(dir, k)
 	var s: float = hero.fit_scale.x
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	pic.visible = true
+	_show()
 	var length := EDGE.length_to_edge(cam, muzzle.global_position, aim, OVERSCAN * s)
 	if length <= 0.0:
 		# starting off screen: no beam to see (the hit still lands, Game.air_stream owns it)
 		_idle()
 		return
 	beam = AIR_BEAM.instantiate()
-	vp.add_child(beam) # the world's root: unscaled, not on the bone
-	for n in beam.find_children("*", "MeshInstance3D", true, false):
-		(n as MeshInstance3D).layers = LAYER
+	_root().add_child(beam) # the world's root: unscaled, not on the bone
+	if not shared:
+		for n in beam.find_children("*", "MeshInstance3D", true, false):
+			(n as MeshInstance3D).layers = LAYER
 	beam.radius_m = RADIUS * s
 	beam.finished.connect(_idle)
 	beam.activate(muzzle.global_position, aim, length, DURATION, muzzle)
 
 
-## The ground-direction of a board direction `dir` (x right, y down the map), as Hero3D.face turns the model for it.
+## The ground-direction of a board direction `dir` (x right, y down the map), as Hero3D.face turns the model for it
+## (in the shared world, through the turned frame the hero stands in).
 func _aim(dir: Vector2, k: float) -> Vector3:
 	var screen := Vector2(dir.x, dir.y * k)
-	var g := Vector2(screen.x, screen.y / sin(deg_to_rad(Hero3D.PITCH)))
-	return Vector3(g.x, 0, g.y).normalized()
+	var g := Vector2(screen.x, screen.y / sin(deg_to_rad(hero.pitch)))
+	var a := Vector3(g.x, 0, g.y).normalized()
+	return (hero.anchor.global_basis * a).normalized() if shared else a
+
+
+## The 3D node the beam and the strike are added to.
+func _root() -> Node:
+	return hero.rig if shared else vp
+
+
+func _show() -> void:
+	if shared:
+		return
+	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	pic.visible = true
 
 
 ## Air Strike lets go: from AirStrikePoint, toward `dir` (board axes), the trail runs to the screen edge, locked there
@@ -139,8 +159,7 @@ func strike_at(dir: Vector2, k: float, width: float, delay: float, on_blast: Cal
 	var aim := _aim(dir, k)
 	var s: float = hero.fit_scale.x
 	var from := strike_point.global_position
-	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	pic.visible = true
+	_show()
 	var length := EDGE.length_to_edge(cam, from, aim, OVERSCAN * s)
 	if length <= 0.0:
 		_idle()
@@ -150,8 +169,9 @@ func strike_at(dir: Vector2, k: float, width: float, delay: float, on_blast: Cal
 	strike_from = from
 	strike_len = length
 	strike = AIR_STRIKE.instantiate()
-	vp.add_child(strike) # the world's root: unscaled, not on the hero
-	strike.path_radius = width * hero.cam.size / Hero3D.BOX.y / hero.scale.x
+	_root().add_child(strike) # the world's root: unscaled, not on the hero
+	# the ability's width, from world units to metres (the shared world: art pixels per unit times metres per pixel)
+	strike.path_radius = width * (hero.art_per_unit * StyleRig.UNIT if shared else hero.cam.size / Hero3D.BOX.y / hero.scale.x)
 	strike.beam_radius = STRIKE_BEAM * s
 	strike.blast_triggered.connect(func(_a, _b, _r): on_blast.call(), CONNECT_ONE_SHOT)
 	strike.finished.connect(func(): strike = null; _idle())
@@ -160,8 +180,9 @@ func strike_at(dir: Vector2, k: float, width: float, delay: float, on_blast: Cal
 		_idle()
 		return false
 	strike.set_process(false) # tick() runs its clock, so it keeps to game speed and stops on pause
-	for n in strike.find_children("*", "VisualInstance3D", true, false):
-		(n as VisualInstance3D).layers = LAYER
+	if not shared:
+		for n in strike.find_children("*", "VisualInstance3D", true, false):
+			(n as VisualInstance3D).layers = LAYER
 	return true
 
 
