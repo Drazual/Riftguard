@@ -19,6 +19,8 @@ const BIG := 0.8 # the two buildings are drawn bigger than on their map, as the 
 const BUILDINGS := [
 	{ id = "heroes", tex = "bld_hotel_11.png", at = Vector2(190, 200), sign = "HEROES", col = Color(1.0, 0.45, 0.8) },
 	{ id = "towers", tex = "bld_techshop_00.png", at = Vector2(580, 200), sign = "TOWERS", col = Color(0.35, 0.95, 1.0) },
+	# the rift gate: walk in to choose a map and start a run (Ocean Drive's portal, at its own size)
+	{ id = "start", tex = "portal_68.png", at = Vector2(384, 176), sign = "START RUN", col = Color(1.0, 0.82, 0.35), k = 0.5 },
 ]
 ## Decoration around the plaza, from the maps' prop sheets and sprites: [file, feet position].
 const DECOR := [
@@ -78,8 +80,9 @@ func _init() -> void:
 	for d in DECOR:
 		_sprite(d[0], d[1])
 	for b in BUILDINGS:
-		var s := _sprite(b.tex, b.at, BIG)
-		var sz: Vector2 = s.texture.get_size() * BIG
+		var k: float = b.get("k", BIG)
+		var s := _sprite(b.tex, b.at, k)
+		var sz: Vector2 = s.texture.get_size() * k
 		# the footprint: the lower part of the sprite's diamond, so the hero can walk up to the door
 		blocks.append(Rect2(b.at.x - sz.x * 0.42, b.at.y - sz.y * 0.36, sz.x * 0.84, sz.y * 0.34))
 		doors[b.id] = b.at + Vector2(0, 16)
@@ -104,7 +107,7 @@ func _init() -> void:
 	view.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(view)
 	hint = Label.new()
-	hint.text = "WASD or click to walk   ·   walk into a building to open it   ·   Esc for the menu"
+	hint.text = "WASD or click to walk   ·   walk into a building to open it   ·   the rift gate starts a run   ·   Esc for the menu"
 	hint.add_theme_font_override("font", Kit.display)
 	hint.add_theme_font_size_override("font_size", 14)
 	hint.add_theme_color_override("font_color", Kit.TEXT)

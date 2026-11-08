@@ -122,13 +122,14 @@ static func tower_dir(d: TowerData) -> String:
 ## Gives a 2D sprite in the board's depth-sorted layer a cut-out, so the 3D models behind it are hidden by it.
 ## Sprite2D and AnimatedSprite2D use their own picture (uncentred, as the board draws them). Anything else is a
 ## disc: radius r around a point `lift` world units over its feet (an enemy's body).
-func cut(n: Node2D, r := 0.0, lift := 0.0) -> void:
+## feet: the node whose position is its ground line (a sprite nested under a hero's node), else the sprite's own.
+func cut(n: Node2D, r := 0.0, lift := 0.0, feet: Node2D = null) -> void:
 	if _cuts.has(n):
 		var c: Dictionary = _cuts[n]
 		c.r = r
 		c.lift = lift
 		return
-	_cuts[n] = { mi = rig.add_cutout("Cut_" + String(n.name)), r = r, lift = lift, key = Vector4.INF }
+	_cuts[n] = { mi = rig.add_cutout("Cut_" + String(n.name)), r = r, lift = lift, key = Vector4.INF, feet = feet }
 
 
 ## Moves every cut-out to its sprite (call once a frame, after the board has placed them).
@@ -155,9 +156,13 @@ func sync_cuts() -> void:
 			off = a.offset
 		var r: Rect2
 		var region := Rect2(0, 0, 1, 1)
+		# the sprite in the board world's units (it can sit under a scaled parent, like a hero's picture)
+		var xf: Transform2D = (get_parent() as Node2D).get_global_transform().affine_inverse() * n.get_global_transform()
+		var feet: Node2D = c.feet if c.feet and is_instance_valid(c.feet) else n
+		var foot_y: float = feet.position.y if feet != n else xf.origin.y
 		if tex:
 			var sz := tex.get_size()
-			r = Rect2(n.position + off * n.scale, sz * n.scale)
+			r = Rect2(xf * off, sz * xf.get_scale())
 			if tex is AtlasTexture:
 				var at: AtlasTexture = tex
 				var full := at.atlas.get_size()
@@ -166,12 +171,12 @@ func sync_cuts() -> void:
 		else:
 			var rr: float = c.r
 			r = Rect2(n.position + Vector2(-rr, -c.lift - rr), Vector2(rr, rr) * 2)
-		var key := Vector4(r.position.x, r.position.y, r.size.x + n.position.y, r.size.y)
+		var key := Vector4(r.position.x, r.position.y, r.size.x + foot_y, r.size.y)
 		if key == c.key and tex == c.get("tex"):
 			continue
 		c.key = key
 		c.tex = tex
-		rig.set_cutout(mi, Rect2(r.position * PER, r.size * PER), n.position.y * PER, tex, region)
+		rig.set_cutout(mi, Rect2(r.position * PER, r.size * PER), foot_y * PER, tex, region)
 
 
 # ---------- towers ----------

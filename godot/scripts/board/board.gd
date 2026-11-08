@@ -159,6 +159,7 @@ func restyle() -> void:
 		live.settings = StyleSettings.saved()
 		live.rig.settings = live.settings
 		live.apply()
+		_hero_filter()
 		_filter()
 		return
 	if on == (live != null):
@@ -197,6 +198,28 @@ func restyle() -> void:
 				w._v3.queue_free()
 				w.erase("_v3")
 	_filter()
+
+
+const HERO_FILTER := preload("res://scripts/style/hero_filter.gdshader")
+## The unified style on a hero: its own clear picture, with the palette filter and outline (HERO_FILTER), and a
+## cut-out so live 3D towers and walls in front of or behind it sort with it. Off: the plain picture.
+func _hero_filter() -> void:
+	if hero_3d == null or not is_instance_valid(hero_3d) or hero_3d.pic == null:
+		return
+	if live == null:
+		hero_3d.pic.material = null
+		return
+	var m := hero_3d.pic.material as ShaderMaterial
+	if m == null:
+		m = ShaderMaterial.new()
+		m.shader = HERO_FILTER
+		hero_3d.pic.material = m
+	var st := live.settings
+	m.set_shader_parameter("strength", st.palette_strength if st.stylize else 0.0)
+	m.set_shader_parameter("keep_accents", st.keep_accents)
+	m.set_shader_parameter("outline", st.outline)
+	m.set_shader_parameter("outline_color", st.outline_color)
+	live.cut(hero_3d.pic, 0.0, 0.0, hero_3d)
 
 
 func _layer(n: String, fn: Callable) -> Node2D:
@@ -833,10 +856,9 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 			hero_3d = Hero3D.new()
 			hero_3d.scale = Vector2(1 / PX, 1 / PX)
 			units.add_child(hero_3d)
-			if live:
-				hero_3d.setup(h.data.model_dir, 26.0, live.rig, Live3D.PER)
-			else:
-				hero_3d.setup(h.data.model_dir)
+			# heroes keep their own clear, smooth render; the unified style lays a palette filter and outline on it
+			hero_3d.setup(h.data.model_dir)
+			_hero_filter()
 			hero_3d.face(PI / 2, true)
 			# Gale's Air Stream: a beam from the shield to the screen edge, drawn over the board (see BeamLayer)
 			if BeamLayer.fits(hero_3d):
