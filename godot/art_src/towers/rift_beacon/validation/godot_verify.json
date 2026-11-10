@@ -1,0 +1,229 @@
+{
+  "anims": {
+    "buff_pulse": {
+      "length": 1.0,
+      "loop": 0,
+      "tracks": [
+        "Turret/aura_center/PulseRing:3",
+        "Turret/beam_top/BeamFlare:3",
+        "Turret/Glow/CoreFlash:3",
+        "Turret/Rotor/Crystal:3"
+      ]
+    },
+    "idle": {
+      "length": 4.0,
+      "loop": 1,
+      "tracks": [
+        "Turret/Glow/CoreGlow:3",
+        "Turret/Rotor:2",
+        "Turret/Rotor/InnerPivot:2"
+      ]
+    },
+    "spawn": {
+      "length": 1.20000004768372,
+      "loop": 0,
+      "tracks": [
+        "Turret/Glow/CoreGlow:3",
+        "Turret/Rotor:2",
+        "Turret/Rotor:3",
+        "Turret/Rotor/InnerPivot:2"
+      ]
+    }
+  },
+  "body_aabb": [
+    "(-0.950567, -0.547793, -0.689258)",
+    "(0.947524, 1.598614, 0.688461)"
+  ],
+  "buff_end": {
+    "crystal": 1.0,
+    "flash": 0.000999987125396729,
+    "pulse": 0.000999987125396729
+  },
+  "idle_samples": [
+    {
+      "coreglow_scale": 1.0,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(0.0, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, 0.0, 0.0)",
+      "t": 0.0
+    },
+    {
+      "coreglow_scale": 1.06001627445221,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(90.0, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, 45.0, 0.0)",
+      "t": 0.5
+    },
+    {
+      "coreglow_scale": 1.11974453926086,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(-180.0, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, 90.00001, 0.0)",
+      "t": 1.0
+    },
+    {
+      "coreglow_scale": 1.05998361110687,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(-90.0, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, 135.0, 0.0)",
+      "t": 1.5
+    },
+    {
+      "coreglow_scale": 1.00025534629822,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(0.00001, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, -180.0, 0.0)",
+      "t": 2.0
+    },
+    {
+      "coreglow_scale": 1.11974453926086,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(-180.0, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, -90.00001, 0.0)",
+      "t": 3.0
+    },
+    {
+      "coreglow_scale": 1.00005161762238,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(-1.800004, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, -0.900002, 0.0)",
+      "t": 3.99
+    },
+    {
+      "coreglow_scale": 1.0,
+      "inner_axis_x_global": "(1.0, 0.0, 0.0)",
+      "inner_center": "(-0.001644, -0.000007, -0.002387)",
+      "inner_euler_deg": "(0.0, 0.0, 0.0)",
+      "outer_center": "(-0.000416, 0.05076, -0.000372)",
+      "rotor_axis_up": "(0.0, 1.0, 0.0)",
+      "rotor_euler_deg": "(0.0, 0.0, 0.0)",
+      "t": 4.0
+    }
+  ],
+  "materials": {
+    "Base": {
+      "albedo_tex": true,
+      "emission": true,
+      "emission_tex": true,
+      "energy": 2.0,
+      "name": "RiftBeacon_Mat",
+      "transparency": 0,
+      "tris": 21999
+    },
+    "BeamFlare": {
+      "albedo_tex": false,
+      "emission": true,
+      "emission_tex": false,
+      "energy": 4.0,
+      "name": "FX_BeamFlare",
+      "transparency": 4,
+      "tris": 24
+    },
+    "CoreFlash": {
+      "albedo_tex": false,
+      "emission": true,
+      "emission_tex": false,
+      "energy": 2.5,
+      "name": "FX_CoreFlash",
+      "transparency": 4,
+      "tris": 80
+    },
+    "CoreGlow": {
+      "albedo_tex": false,
+      "emission": true,
+      "emission_tex": false,
+      "energy": 1.20000004768372,
+      "name": "FX_CoreGlow",
+      "transparency": 4,
+      "tris": 80
+    },
+    "Crystal": {
+      "albedo_tex": true,
+      "emission": true,
+      "emission_tex": true,
+      "energy": 2.0,
+      "name": "RiftBeacon_Mat",
+      "transparency": 0,
+      "tris": 700
+    },
+    "InnerRing": {
+      "albedo_tex": true,
+      "emission": true,
+      "emission_tex": true,
+      "energy": 2.0,
+      "name": "RiftBeacon_Mat",
+      "transparency": 0,
+      "tris": 3976
+    },
+    "OuterRing": {
+      "albedo_tex": true,
+      "emission": true,
+      "emission_tex": true,
+      "energy": 2.0,
+      "name": "RiftBeacon_Mat",
+      "transparency": 0,
+      "tris": 8071
+    },
+    "PulseRing": {
+      "albedo_tex": false,
+      "emission": true,
+      "emission_tex": false,
+      "energy": 3.0,
+      "name": "FX_PulseRing",
+      "transparency": 4,
+      "tris": 128
+    }
+  },
+  "spawn": {
+    "inner_deg_end": "(0.0, 0.0, 0.0)",
+    "rotor_deg_end": "(0.0, 0.0, 0.0)",
+    "rotor_scale_end": 1.0,
+    "rotor_scale_start": 0.0199999809265137
+  },
+  "tree": [
+    "Turret Node3D pos=(0.0, 0.0, 0.0)",
+    "Turret/aura_center Node3D pos=(0.0, 0.03, 0.0)",
+    "Turret/aura_center/PulseRing MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "Turret/Base MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "Turret/beam_top Node3D pos=(0.0, 1.881613, 0.0)",
+    "Turret/beam_top/BeamFlare MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "Turret/BuffPoint Node3D pos=(0.0, 1.881613, 0.0)",
+    "Turret/Glow Node3D pos=(0.0, 1.745161, 0.0)",
+    "Turret/Glow/CoreFlash MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "Turret/Glow/CoreGlow MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "Turret/Rotor Node3D pos=(0.0, 1.0344, 0.0)",
+    "Turret/Rotor/Crystal MeshInstance3D pos=(0.0, 0.710761, 0.0)",
+    "Turret/Rotor/InnerPivot Node3D pos=(0.0, 0.0, 0.0)",
+    "Turret/Rotor/InnerPivot/InnerRing MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "Turret/Rotor/OuterRing MeshInstance3D pos=(0.0, 0.0, 0.0)",
+    "AnimationPlayer AnimationPlayer pos="
+  ],
+  "two_player": {
+    "beam_scale": "(0.708333, 1.0, 0.708333)",
+    "crystal_scale": "(1.009971, 1.009971, 1.009971)",
+    "pulse_ring_scale": "(1.113333, 1.0, 1.113333)",
+    "rotor_deg_after": 90.0000076293945
+  },
+  "wrapper_ok": true
+}

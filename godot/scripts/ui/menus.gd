@@ -1478,7 +1478,6 @@ func show_settings() -> void:
 			ui.render_inspector()
 			ui.render_hero()
 			ui.render_enemy_codex()))
-	_style_settings(box)
 	var row := Kit.flow(8)
 	row.add_child(Kit.go("RESUME" if in_run else "DONE", close_settings))
 	if in_run:

@@ -87,7 +87,7 @@ func _ready() -> void:
 	get_tree().create_timer(150).timeout.connect(func(): print("TIMEOUT"); get_tree().quit(1))
 	for id in Menus.FIRST_TIPS:
 		Save.meta.tips[id] = true
-	Save.settings.style3d = true
+	Save.settings.style3d_test = true
 	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	add_child(main)
 	main.ui.menus.new_run("canal")
@@ -241,7 +241,7 @@ func _ready() -> void:
 
 	print("phase switch")
 	# the Settings switch: the old look, then the new one again
-	Save.settings.style3d = false
+	Save.settings.style3d_test = false
 	b.restyle()
 	await _frames(10)
 	_check(b.live == null and b.hero_3d != null and b.hero_3d.vp != null and b.hero_3d.pic.material == null, "style off: Gale is back in his own viewport, unfiltered")
@@ -251,7 +251,7 @@ func _ready() -> void:
 			sprites += 1
 	_check(sprites == S.towers.size(), "style off: the towers are their baked sprites again (%d)" % sprites)
 	await _shot("game_old_look")
-	Save.settings.style3d = true
+	Save.settings.style3d_test = true
 	b.restyle()
 	await _frames(10)
 	_check(b.live != null and b.hero_3d != null and b.hero_3d.rig == b.live.rig, "style on again: Gale is back in the shared pixel world")

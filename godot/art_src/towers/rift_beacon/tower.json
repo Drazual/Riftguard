@@ -1,0 +1,15 @@
+{
+	"model": "rift_beacon.glb",
+	"anims": { "idle": "idle", "fire": "buff_pulse" },
+	"muzzle": "BuffPoint",
+	"idle_frames": 16,
+	"idle_time": 4.0,
+	"dirs": 1,
+	"fire_frames": 10,
+	"fire_time": 1.0,
+	"size": 160,
+	"wide": 60,
+	"foot": [80, 150],
+	"out": "rift_beacon_3d",
+	"shot_frame": 0
+}

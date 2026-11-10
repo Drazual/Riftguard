@@ -77,7 +77,7 @@ var hero_spr: AnimatedSprite2D = null
 var hero_3d: Hero3D = null # heroes with a 3D model (HeroData.model_dir): drawn live over an invisible hero_spr
 var beam_layer: BeamLayer = null # Gale's Air Stream beam, over the board
 ## The unified art style (StyleSettings): every live 3D model on the board drawn by one camera into one low-res layer
-## over the 2D world, with cut-outs for the sprites that stand in front. null = the old look (Save.settings.style3d).
+## over the 2D world, with cut-outs for the sprites that stand in front. null = the old look (StyleSettings.enabled).
 var live: Live3D = null
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
@@ -151,7 +151,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
 
-## Turns the unified 3D style on or off (Save.settings.style3d), or pushes changed style settings into it. Heroes,
+## Turns the unified 3D style on or off (StyleSettings.enabled), or pushes changed style settings into it. Heroes,
 ## towers and walls already on the board are rebuilt in the new look.
 func restyle() -> void:
 	var on := StyleSettings.enabled()
@@ -477,6 +477,9 @@ func _sync_towers(S: Run, speed: float) -> void:
 		if d.turret != null:
 			_sync_turret(S, t, d, speed)
 			continue
+		if t.type == "beacon" and Beacon3D.available():
+			_sync_beacon(S, t, speed)
+			continue
 		var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
 		if s == null or not is_instance_valid(s):
 			s = AnimatedSprite2D.new()
@@ -515,6 +518,38 @@ func _sync_towers(S: Run, speed: float) -> void:
 				_burst(t.type, Vector2(t.x, SY(t.y) + FOOT - 4), "fx")
 		if t.beam:
 			_laser_beam(S, t, d)
+
+
+## The Rift Beacon, live from its 3D model in its own smooth render (Beacon3D): it spins up when placed, keeps its
+## idle spin, flashes buff_pulse every time its aura ticks, and its ground ring is the size of its buff range.
+func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if v == null or not is_instance_valid(v) or not v is Beacon3D:
+		if v and is_instance_valid(v):
+			v.queue_free()
+		var b := Beacon3D.new()
+		b.scale = Vector2(1 / PX, 1 / PX)
+		b.position = Vector2(t.x, SY(t.y) + FOOT)
+		units.add_child(b)
+		b.setup(low, game.t_range(t))
+		b.set_meta("st", t.shot_at)
+		t.set_meta("view", b)
+		v = b
+	var b: Beacon3D = v
+	_seen(b)
+	# the aura ticks while a wave is on (the game's own beacon pulse, every 3s)
+	if t.support and S.wave_active and S.time - t.fired_at > 3:
+		t.shot_at = S.time
+		t.fired_at = S.time
+		t.hit_at = t.pos()
+	b.position = Vector2(t.x, SY(t.y) + FOOT)
+	b.ring_at = Vector2(t.x, SY(t.y))
+	b.set_radius(game.t_range(t))
+	b.set_speed(speed)
+	b.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
+	if t.shot_at != b.get_meta("st"):
+		b.set_meta("st", t.shot_at)
+		b.pulse()
 
 
 ## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target (a beam's
@@ -802,6 +837,7 @@ func _laser_beam(S: Run, t: Tower, d: TowerData) -> void:
 # Shooting on the move keeps the legs walking: the hero faces the target and the walk plays backwards when
 # it is backing away, so the feet never slide.
 func _sync_hero(S: Run, dt: float, speed: float) -> void:
+	_sync_grade()
 	var h: Hero = S.hero if S else null
 	var live3d := h != null and h.data.model_dir != "" # drawn live from its 3D model: no sprite sheet at all
 	if h == null or h.ko > 0 or S.over or (h.data.frames == null and not live3d):
@@ -861,6 +897,8 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 				hero_3d.setup(h.data.model_dir, 26.0, live.rig, Live3D.PER)
 			else:
 				hero_3d.setup(h.data.model_dir)
+				if blend():
+					MapLight.light(hero_3d.vp, blend())
 			_hero_filter()
 			hero_3d.face(PI / 2, true)
 			# Gale's Air Stream: a beam from the shield to the screen edge, drawn over the board (see BeamLayer)
@@ -1590,6 +1628,8 @@ func _sync_wall_3d(S: Run, w: Dictionary, a: String, speed: float) -> void:
 		var pitch := StyleRig.PITCH if live else Hero3D.PITCH
 		var g := Vector2(dir.x, dir.y * K / sin(deg_to_rad(pitch)))
 		view.setup(WALL_MODELS[a], atan2(g.x, g.y), live)
+		if blend() and view.vp:
+			MapLight.light(view.vp, blend())
 		w._v3 = view
 		w._hp_seen = w.hp
 		wall_views.append({ view = view, w = w, run = S })
@@ -1671,7 +1711,52 @@ func _rrect(n: CanvasItem, r: Rect2, rad: float, col: Color, fill := true, w := 
 
 
 func _shadow(n: CanvasItem, x: float, y: float, w: float) -> void:
+	if blend():
+		# the map's painted shadow colour, soft-edged (a wide faint ring around a tighter core)
+		_ellipse(n, Vector2(x, y), w * 1.15, w * 0.52, shadow_col(0.35))
+		_ellipse(n, Vector2(x, y), w * 0.85, w * 0.38, shadow_col(0.55))
+		return
 	_ellipse(n, Vector2(x, y), w, w * 0.45, hx(0x101223, 0.6))
+
+
+## A contact shadow's colour: the map's painted shadow colour with blending on (MapLight), else near-black.
+func shadow_col(a: float) -> Color:
+	var p := blend()
+	if p:
+		var c: Color = p.shadow_color
+		return Color(c, a * p.shadow_alpha / 0.5)
+	return hx(0x101223, a)
+
+
+var _blend := {}
+var _blend_map = null
+var grade: ColorRect
+## The map's light profile (MapLight) while blending is on, else {} (falsy).
+func blend() -> Dictionary:
+	var S := _S()
+	if not MapLight.enabled() or S == null or S.map == null:
+		return {}
+	if _blend_map != S.map:
+		_blend_map = S.map
+		_blend = MapLight.profile(S.map.art if "art" in S.map and S.map.art is Dictionary else {})
+	return _blend
+
+
+## Keeps the board grade (MapLight's third pass) over the world, between the units and the overlays.
+func _sync_grade() -> void:
+	var p := blend()
+	if p.is_empty():
+		if grade:
+			grade.queue_free()
+			grade = null
+		return
+	if grade == null:
+		grade = MapLight.grade_rect(Vector2(W, VH), p)
+		world.add_child(grade)
+		world.move_child(grade, art_glow.get_index() + 1)
+	elif grade.get_meta("map", null) != _blend_map:
+		MapLight.set_grade(grade, p)
+	grade.set_meta("map", _blend_map)
 
 
 # ---------- the ground plane (world coordinates, squashed by K) ----------
@@ -1756,8 +1841,8 @@ func _draw_flat() -> void:
 			# a 3D-rendered turret: a tight contact shadow right under its base, so it sits on the ground
 			var f := td.turret_scale / 0.38
 			var c := Vector2(t.x, t.y + (FOOT - 4 * f) / K)
-			_ellipse(g, c, 32 * f, 15 * f / K, hx(0x101223, 0.3))
-			_ellipse(g, c, 24 * f, 10 * f / K, hx(0x101223, 0.45))
+			_ellipse(g, c, 32 * f, 15 * f / K, shadow_col(0.3))
+			_ellipse(g, c, 24 * f, 10 * f / K, shadow_col(0.45))
 		else:
 			_shadow(g, t.x, t.y + FOOT / K, 42)
 		if is_sprite_tower(t) and t == S.sel:

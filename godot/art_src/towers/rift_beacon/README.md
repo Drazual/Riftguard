@@ -1,0 +1,13 @@
+# Rift Beacon: delivery
+- `rift_beacon.glb` + `rift_beacon.glb.import`: drop both into `godot/art_src/towers/rift_beacon/`.
+- `tower.json`: modelled on the shrine's; check it against the loader.
+- `fx/`: optional wrapper scene, aura ring shader and helper script.
+- `CLAUDE_NOTES.md`: paste-ready wiring notes for Claude.
+- `previews/`:
+  - Contact sheet, idle spin GIF, buff_pulse GIF and idle frame strip.
+  - Part-split colours: grey = Base, orange = Rotor/outer ring, blue = inner ring, pink = crystal.
+  - Emission mask check.
+- `validation/`: Godot 4.7.2 headless verify output plus the test scripts.
+- `source/`:
+  - Blender build scripts (stages 1–5) and the emission map.
+  - The full .blend is in `rift_beacon_source.zip`.

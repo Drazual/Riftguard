@@ -80,7 +80,8 @@ func save() -> void:
 	Save.save_settings()
 
 
-## The unified 3D style is on (Save.settings.style3d, on by default). Off is the old look: each hero in its own
-## small viewport with studio light, and the towers' baked sprites.
+## The unified 3D style is on. It is off in the game (the pixel filter blurred the models): each hero is drawn in its
+## own smooth viewport with studio light, and the towers use their baked sprites. The code stays for the style test
+## scenes, which switch it on with Save.settings.style3d_test; the old style3d setting is ignored.
 static func enabled() -> bool:
-	return bool(Save.settings.get("style3d", true))
+	return bool(Save.settings.get("style3d_test", false))
