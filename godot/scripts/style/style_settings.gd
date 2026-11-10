@@ -6,9 +6,14 @@ extends Resource
 ## Save.settings.style3d (see enabled) is the old-look switch: off puts each hero back in its own smooth viewport
 ## and the towers back on their baked sprites.
 
-## The low-res render's size, as a multiple of the board's base 768x416. 2 = one render pixel per pixel of the
-## 2x scenery art (Ocean Drive's density). Lower is chunkier; the result is upscaled with nearest-neighbour.
-@export_range(0.5, 4.0, 0.25) var res_scale := 2.0
+## Render size, as a multiple of the board's base 768x416. 4 (the default) is two samples per scenery pixel, which
+## is what the painted buildings already have in their edges: the 3D is drawn finer, then filtered down onto the
+## board. 2 is one render pixel per scenery pixel. 1 is chunkier. The Settings menu's pixel-size option still
+## switches these; smooth_edges is what makes 4 match the buildings instead of just being a bigger pixel grid.
+@export_range(0.5, 4.0, 0.25) var res_scale := 4.0
+## Antialiased edges and a linear composite onto the board, the way the painted scenery is soft at its pixel
+## edges. Off (with res_scale 2 or 1) is the hard nearest-pixel look.
+@export var smooth_edges := true
 ## Upscale to the window by whole multiples when the window is big enough (black bars), instead of stretching.
 @export var integer_scale := true
 ## Turn the stylized model material on (off = the models' own materials, as the game draws them today).
@@ -19,7 +24,7 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var keep_accents := 0.8
 ## Light bands: where the lit side starts (N.L) and how soft the step is.
 @export_range(-1.0, 1.0, 0.01) var band_edge := 0.05
-@export_range(0.0, 0.5, 0.01) var band_soft := 0.06
+@export_range(0.0, 0.5, 0.01) var band_soft := 0.22
 ## Specular highlight: how strong and how tight (a single hard spot, not PBR sheen).
 @export_range(0.0, 2.0, 0.01) var highlight := 0.3
 @export_range(0.0, 1.0, 0.01) var highlight_size := 0.25
@@ -60,7 +65,7 @@ extends Resource
 @export var pixel_snap := true
 
 ## The knobs the Settings menu shows and saves (Save.settings.style), over these defaults.
-const SAVED := ["res_scale", "palette_strength", "shadow_strength", "contact_shadow", "glow", "outline", "rim", "lift", "stylize"]
+const SAVED := ["res_scale", "smooth_edges", "palette_strength", "shadow_strength", "contact_shadow", "glow", "outline", "rim", "lift", "stylize"]
 
 
 ## The player's saved style (Save.settings.style), over the defaults.

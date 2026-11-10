@@ -98,7 +98,8 @@ void light() {
 	vec3 h = normalize(LIGHT + VIEW);
 	float s = pow(max(dot(NORMAL, h), 0.0), mix(160.0, 12.0, highlight_size));
 	SPECULAR_LIGHT += LIGHT_COLOR * step(0.5, s) * highlight * lit;
-	// a hard rim on the silhouette (lit side included), so a dark body still has an edge on a dark road
+	// a soft rim on the silhouette, the same kind of painted edge the buildings have, so a dark body still
+	// separates from a dark road without a hard pixel ring
 	float r = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
-	DIFFUSE_LIGHT += rim_color.rgb * step(0.48, r) * rim * 0.28;
+	DIFFUSE_LIGHT += rim_color.rgb * smoothstep(0.2, 0.72, r) * rim * 0.42;
 }

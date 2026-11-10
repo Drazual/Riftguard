@@ -2,9 +2,10 @@ class_name Live3D
 extends Node2D
 ## The board's one shared live 3D layer (the unified art style, StyleSettings / StyleRig): every live 3D model on the
 ## board (heroes, towers that have a model, wizard walls, Gale's beam and Air Strike) is drawn by ONE orthographic
-## camera at the scenery's own angle into ONE low-resolution, transparent SubViewport, lit by one key light with the
+## camera at the scenery's own angle into ONE transparent SubViewport, lit by one key light with the
 ## palette's shadows, and that picture is laid over the board's 2D world (between the depth-sorted units and the
-## overlays), pixel for pixel with the scenery at res_scale 2. It is a child of the board's world, so zoom, pan and
+## overlays). By default it is drawn at twice the scenery's pixel density and filtered down (smooth_edges), so the
+## models pick up the same soft edges the painted buildings already have. It is a child of the board's world, so zoom, pan and
 ## shake move it with everything else.
 ##
 ## Depth: the 2D sprites under it (buildings, props, enemies, towers without a model) get "cut-outs": upright planes
@@ -39,7 +40,6 @@ func _init(s: StyleSettings) -> void:
 	vp = SubViewport.new()
 	vp.own_world_3d = true
 	vp.transparent_bg = true
-	vp.msaa_3d = Viewport.MSAA_DISABLED # the pixel finish comes from the low-res grid
 	vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	add_child(vp)
 	rig = StyleRig.new(settings, true)
@@ -47,7 +47,7 @@ func _init(s: StyleSettings) -> void:
 	pic = Sprite2D.new()
 	pic.centered = false
 	pic.texture = vp.get_texture()
-	pic.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_finish()
 	var m := ShaderMaterial.new()
 	var sh := Shader.new()
 	sh.code = COMPOSITE
@@ -58,13 +58,21 @@ func _init(s: StyleSettings) -> void:
 
 
 ## The render's size: res_scale x the board's base 768x416, matched to the board's own art resolution (F = 1 maps
-## are drawn at 768x416, so the render is halved there to stay one render pixel per board pixel).
+## are drawn at 768x416, so the render is halved there). res_scale 4 is two samples per scenery pixel.
 func _size() -> void:
 	var want := Vector2i((StyleRig.BASE * settings.res_scale * f / 2.0).round())
 	want = want.max(Vector2i(64, 32))
 	if vp.size != want:
 		vp.size = want
 	pic.scale = VIEW / Vector2(vp.size)
+	_finish()
+
+
+## Smooth edges: the 3D picture is antialiased and filtered down onto the board, like the painted building art.
+## Off: one hard texel per render pixel.
+func _finish() -> void:
+	vp.msaa_3d = Viewport.MSAA_4X if settings.smooth_edges else Viewport.MSAA_DISABLED
+	pic.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if settings.smooth_edges else CanvasItem.TEXTURE_FILTER_NEAREST
 
 
 func set_res(board_f: int) -> void:

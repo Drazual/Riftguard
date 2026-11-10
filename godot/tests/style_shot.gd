@@ -73,6 +73,10 @@ func _ready() -> void:
 	t = (load("res://scenes/style_test.tscn") as PackedScene).instantiate()
 	add_child(t)
 	w = t.world
+	# this scene checks the scenery-pixel grid; the game's default is the smoother 2x sample
+	t.settings.res_scale = 2.0
+	t.settings.smooth_edges = false
+	w.apply()
 	await _frames(30)
 	print("vp ", w.vp.size, " scale ", w.scale_px, " view ", w.view.position, " ", w.view.size)
 	_check(w.vp.size == Vector2i(1536, 832) and is_equal_approx(w.scale_px, 1.0), "renders 1536x832, shown at a whole 1x on a 1600x900 window")

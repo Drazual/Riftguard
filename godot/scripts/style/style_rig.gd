@@ -287,7 +287,9 @@ func _outline_params(toon: ShaderMaterial) -> void:
 	var edge: ShaderMaterial = toon.next_pass
 	var ink: ShaderMaterial = edge.next_pass
 	var px := px_m()
-	var rim_px := 1.0 if settings.rim > 0.02 else 0.0
+	# the extra cyan hull pixel is the hard sticker. With smooth edges the fresnel rim in the toon light
+	# draws that edge instead, antialiased like the buildings' painted outlines.
+	var rim_px := 1.0 if settings.rim > 0.02 and not settings.smooth_edges else 0.0
 	var outer := settings.outline + rim_px
 	edge.set_shader_parameter("width", outer * px)
 	edge.set_shader_parameter("behind", 0.7 if outer > 0.0 else 1000.0)

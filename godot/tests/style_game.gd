@@ -104,7 +104,7 @@ func _ready() -> void:
 				main.ui.close_modal()
 				g.pick_offer(0)).call_deferred())
 	_check(b.live != null, "the board has the shared 3D layer")
-	_check(b.live.vp.size == Vector2i(1536, 832), "it renders at the scenery's own 1536x832 (%s)" % b.live.vp.size)
+	_check(b.live.vp.size == Vector2i(3072, 1664) and b.live.settings.smooth_edges, "the 3D layer supersamples the 1536x832 scenery and filters down (%s)" % b.live.vp.size)
 	await _frames(5)
 	var h := S.hero
 	_check(b.hero_3d != null and b.hero_3d.vp == null and b.hero_3d.rig == b.live.rig, "Gale is drawn in the shared pixel world, not his own viewport")

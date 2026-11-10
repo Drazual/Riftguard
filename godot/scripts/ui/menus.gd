@@ -1510,8 +1510,10 @@ func _style_settings(box: Control) -> void:
 		Save.save_settings()
 		knobs.visible = on
 		ui.board.restyle()))
-	knobs.add_child(_select("Pixel size", ["Chunky (half resolution)", "Sharp (the scenery's own pixels)"], 0 if style.res_scale < 2.0 else 1, func(i):
-		style.res_scale = 1.0 if i == 0 else 2.0
+	var pixel_at := 2 if style.smooth_edges else (0 if style.res_scale < 2.0 else 1)
+	knobs.add_child(_select("Pixel size", ["Chunky (half resolution)", "Scenery pixels", "Smooth (like the buildings)"], pixel_at, func(i):
+		style.smooth_edges = i == 2
+		style.res_scale = 4.0 if i == 2 else (1.0 if i == 0 else 2.0)
 		changed.call()))
 	knobs.add_child(_check("Stylized materials (off: the models' own)", style.stylize, func(on):
 		style.stylize = on
