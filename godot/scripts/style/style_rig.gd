@@ -239,6 +239,7 @@ func apply() -> void:
 		elif s.stylize:
 			for m in toons_of(r):
 				_toon_params(m)
+				_apply_overrides(r, m)
 				_outline_params(m)
 
 
@@ -268,6 +269,16 @@ func _toon_params(m: ShaderMaterial) -> void:
 	m.set_shader_parameter("normal_detail", s.normal_detail)
 	m.set_shader_parameter("simplify", s.simplify)
 	m.set_shader_parameter("exposure", 1.0)
+
+
+## A styled root can carry "style_overrides" (hero.json): shader uniforms that replace the global StyleSettings
+## on that model only. Gale's painted atlas sets lift 0 and simplify 1 so the plates are not flattened.
+func _apply_overrides(root: Node, m: ShaderMaterial) -> void:
+	var o: Variant = root.get_meta("style_overrides", {})
+	if not o is Dictionary:
+		return
+	for k in o:
+		m.set_shader_parameter(k, o[k])
 
 
 ## Two hulls on a toon material: a bright rim pixel outside a dark ink pixel (settings.outline / settings.rim).
@@ -312,6 +323,7 @@ func style_node(root: Node) -> void:
 			var src := orig[i] as Material if orig[i] else mi.mesh.surface_get_material(i)
 			var toon := _toon_from(src)
 			if toon:
+				_apply_overrides(root, toon)
 				var clip: float = root.get_meta("clip_below", -1000.0)
 				toon.set_shader_parameter("clip_below", clip)
 				toon.next_pass.set_shader_parameter("clip_below", clip)

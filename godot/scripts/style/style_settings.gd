@@ -36,8 +36,9 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var shadow_strength := 0.45
 ## Soft contact shadow blob under each model's feet.
 @export_range(0.0, 1.0, 0.01) var contact_shadow := 0.5
-## Near-black albedo (Gale's charcoal armor) is raised to this luminance before the palette tint, so a dark
-## model stays a dark shape instead of a hole. 0 = the texture's own blacks. Bright accents above this are left.
+## Near-black albedo is raised to this luminance before the palette tint, so a dark Meshy atlas stays a shape
+## instead of a hole. 0 = the texture's own blacks. A hero.json "style_overrides" can set a different lift
+## on that hero only (Gale's painted atlas uses 0).
 @export_range(0.0, 0.6, 0.01) var lift := 0.34
 ## Rim: a hard cyan edge on the silhouette, plus one extra render pixel of that colour outside the ink outline,
 ## so the same model reads on navy roads and on peach stone.

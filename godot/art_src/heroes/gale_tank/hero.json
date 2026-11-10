@@ -1,5 +1,9 @@
 {
 	"model": "gale_tank.glb",
+	"style_overrides": {
+		"lift": 0.0,
+		"simplify": 1.0
+	},
 	"anims": {
 		"idle": "@stance",
 		"walk": "@run",

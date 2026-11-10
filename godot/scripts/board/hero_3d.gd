@@ -102,6 +102,9 @@ func setup(dir: String, height: float = 26.0, shared: StyleRig = null, per_unit 
 
 func _setup_model(dir: String) -> void:
 	model = (load(dir.path_join(cfg.model)) as PackedScene).instantiate()
+	# per-hero toon knobs (hero.json "style_overrides"), read by StyleRig. Empty for heroes that use the globals.
+	if cfg.get("style_overrides") is Dictionary:
+		model.set_meta("style_overrides", cfg.style_overrides)
 	if rig:
 		anchor = rig.add_model(model, 0.42, true)
 	else:
@@ -186,6 +189,8 @@ func _setup_model(dir: String) -> void:
 	if rig:
 		# the shared rig styles it (its own materials when the style's stylize is off), and draws it
 		if held:
+			if model.has_meta("style_overrides"):
+				held.set_meta("style_overrides", model.get_meta("style_overrides"))
 			rig.add_styled(held)
 		play("idle")
 		return
