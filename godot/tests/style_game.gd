@@ -38,28 +38,29 @@ func _crop(name: String, at: Vector2, half: Vector2, z: int) -> void:
 	img.save_png(out.path_join(name + ".png"))
 
 
-## How many of the board's pixels Gale changes in a box around a board world point (feet), up to `tall` above it:
-## the board with Gale hidden, then shown.
+## How many of the board's pixels Gale changes in a box around a board world point (feet), up to `tall` above it.
+## Gale is parked off the map for the empty shots: the board turns his node back on every frame, and in the shared
+## world that is what shows the model, so hiding the node does not take him out of the picture.
 func _drawn(at: Vector2, tall: float) -> int:
 	var b := main.board
+	var h := main.game.S.hero
+	var back := Vector2(h.x, h.y)
 	var grab := func() -> Image:
 		await RenderingServer.frame_post_draw
 		return b.viewport.get_texture().get_image()
-	b.hero_3d.visible = false
-	b.hero_3d.pic.visible = false
-	await get_tree().process_frame
+	_put(h, Vector2(-800, -800))
+	await _frames(2)
 	var off: Image = await grab.call()
-	b.hero_3d.visible = true
-	b.hero_3d.pic.visible = true
-	await get_tree().process_frame
+	_put(h, at)
+	await _frames(2)
 	var on: Image = await grab.call()
-	# (the map's neon signs animate, so pixels that change with Gale hidden both times don't count)
-	b.hero_3d.visible = false
-	b.hero_3d.pic.visible = false
-	await get_tree().process_frame
+	# (the map's neon signs animate, so pixels that change with Gale gone both times don't count)
+	_put(h, Vector2(-800, -800))
+	await _frames(2)
 	var off2: Image = await grab.call()
-	b.hero_3d.visible = true
-	b.hero_3d.pic.visible = true
+	h.x = back.x
+	h.y = back.y
+	h.tx = null
 	var k := Vector2(b.viewport.size) / Live3D.VIEW
 	var n := 0
 	for y in range(int((at.y - tall) * k.y), int(at.y * k.y) + 1):
@@ -106,8 +107,10 @@ func _ready() -> void:
 	_check(b.live.vp.size == Vector2i(1536, 832), "it renders at the scenery's own 1536x832 (%s)" % b.live.vp.size)
 	await _frames(5)
 	var h := S.hero
-	_check(b.hero_3d != null and b.hero_3d.vp != null and b.hero_3d.pic.material is ShaderMaterial, "Gale keeps its own clear render, with the style's palette filter and outline")
-	_check(b.live._cuts.has(b.hero_3d.pic), "Gale's picture has a cut-out, so live towers sort with it")
+	_check(b.hero_3d != null and b.hero_3d.vp == null and b.hero_3d.rig == b.live.rig, "Gale is drawn in the shared pixel world, not his own viewport")
+	var aimed := b.to_field(b.size * 0.5)
+	_check(b.get_viewport() != b.live.vp and aimed.x > 50.0 and aimed.x < Board.W - 50.0, "mouse aim uses the board view, not the 3D viewport (%s)" % aimed)
+	_check(not b.live._cuts.has(b.hero_3d), "Gale has no sprite cut-out; he depth-sorts in the 3D world")
 	# towers on open ground around the middle
 	var spot := Vector2(480, 300)
 	var placed := 0
@@ -223,7 +226,7 @@ func _ready() -> void:
 	print("phase beam")
 	# Gale's beam ends on the shared camera's edge (the gameplay camera and its low-res viewport)
 	if b.beam_layer:
-		_check(not b.beam_layer.shared, "Gale's beam follows Gale's own camera")
+		_check(b.beam_layer.shared and b.beam_layer.cam == b.live.rig.cam, "Gale's beam uses the shared gameplay camera")
 		_put(h, Vector2(480, 300))
 		await _frames(5)
 		var ok := b.beam_layer.strike_at(Vector2(1, 0), Board.K, 30.0, 0.5, func(): pass)
@@ -241,7 +244,7 @@ func _ready() -> void:
 	Save.settings.style3d = false
 	b.restyle()
 	await _frames(10)
-	_check(b.live == null and b.hero_3d != null and b.hero_3d.pic.material == null, "style off: Gale has no filter")
+	_check(b.live == null and b.hero_3d != null and b.hero_3d.vp != null and b.hero_3d.pic.material == null, "style off: Gale is back in his own viewport, unfiltered")
 	var sprites := 0
 	for t: Tower in S.towers:
 		if t.has_meta("view") and t.get_meta("view") is AnimatedSprite2D:
@@ -251,7 +254,7 @@ func _ready() -> void:
 	Save.settings.style3d = true
 	b.restyle()
 	await _frames(10)
-	_check(b.live != null and b.hero_3d != null and b.hero_3d.pic.material is ShaderMaterial, "style on again: the filter is back on Gale")
+	_check(b.live != null and b.hero_3d != null and b.hero_3d.rig == b.live.rig, "style on again: Gale is back in the shared pixel world")
 	main.ui.menus.show_settings()
 	await _frames(5)
 	await _shot("game_settings")
