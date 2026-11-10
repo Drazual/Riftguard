@@ -54,6 +54,18 @@ func _ready() -> void:
 			(func():
 				main.ui.close_modal()
 				g.pick_offer(0)).call_deferred())
+	# placing it: the ghost under the pointer is the live model, not the old sprite
+	var cells: Array = g.build_cells()
+	var hc: Vector2i = cells[cells.size() / 2]
+	S.build = "beacon"
+	S.hover = hc
+	await _frames(20)
+	_check(b.beacon_ghost != null and b.beacon_ghost.visible and (b.ghost == null or not b.ghost.visible), "the placement ghost is the live model")
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png(out.path_join("0_placing.png"))
+	S.build = ""
+	await _frames(2)
+	_check(not b.beacon_ghost.visible, "the ghost goes away when not placing")
 	var spot := Vector2(560, 290)
 	var placed := {}
 	for type in ["beacon", "arcane", "mortar"]:
@@ -71,19 +83,19 @@ func _ready() -> void:
 	var t: Tower = placed.get("beacon")
 	_check(t != null, "a Rift Beacon was placed")
 	var v = t.get_meta("view") if t and t.has_meta("view") else null
-	_check(v is Beacon3D, "it is drawn live from its 3D model (%s)" % [v.get_class() if v else "-"])
-	if not v is Beacon3D:
+	_check(v is Board.BEACON_VIEW, "it is drawn live from its 3D model (%s)" % [v.get_class() if v else "-"])
+	if not v is Board.BEACON_VIEW:
 		print("BEACON DONE fails=%d" % fails)
 		get_tree().quit(1)
 		return
-	var bv: Beacon3D = v
+	var bv = v
 	var ap: AnimationPlayer = bv.vis.anim
 	_check(ap.current_animation == "spawn", "it spins up when placed (%s)" % ap.current_animation)
 	await _crop("1_spawn", Vector2(t.x, Board.SY(t.y)), Vector2(70, 60), 6)
 	await _frames(90)
 	_check(ap.current_animation == "idle", "then it idles (%s)" % ap.current_animation)
 	_check(is_equal_approx(bv.radius, g.t_range(t)), "its ground ring has the buff range (%.0f = %.0f)" % [bv.radius, g.t_range(t)])
-	var px := bv.ring_vp.size
+	var px: Vector2i = bv.ring_vp.size
 	_check(absf(px.x - (g.t_range(t) * Board.PX * 2 + 12)) < 2 and absf(float(px.y) / px.x - Board.K) < 0.02, "the ring lies at the ground's tilt, like the range rings (%s)" % px)
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(out.path_join("2_board.png"))

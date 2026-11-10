@@ -477,7 +477,7 @@ func _sync_towers(S: Run, speed: float) -> void:
 		if d.turret != null:
 			_sync_turret(S, t, d, speed)
 			continue
-		if t.type == "beacon" and Beacon3D.available():
+		if t.type == "beacon" and BEACON_VIEW.available():
 			_sync_beacon(S, t, speed)
 			continue
 		var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
@@ -522,12 +522,15 @@ func _sync_towers(S: Run, speed: float) -> void:
 
 ## The Rift Beacon, live from its 3D model in its own smooth render (Beacon3D): it spins up when placed, keeps its
 ## idle spin, flashes buff_pulse every time its aura ticks, and its ground ring is the size of its buff range.
+## (preloaded, so the board doesn't depend on the editor's class list having picked up the new script)
+const BEACON_VIEW := preload("res://scripts/board/beacon_3d.gd")
+var beacon_ghost: Node2D = null
 func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 	var v = t.get_meta("view") if t.has_meta("view") else null
-	if v == null or not is_instance_valid(v) or not v is Beacon3D:
+	if v == null or not is_instance_valid(v) or not v is BEACON_VIEW:
 		if v and is_instance_valid(v):
 			v.queue_free()
-		var b := Beacon3D.new()
+		var b = BEACON_VIEW.new()
 		b.scale = Vector2(1 / PX, 1 / PX)
 		b.position = Vector2(t.x, SY(t.y) + FOOT)
 		units.add_child(b)
@@ -535,7 +538,7 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 		b.set_meta("st", t.shot_at)
 		t.set_meta("view", b)
 		v = b
-	var b: Beacon3D = v
+	var b = v
 	_seen(b)
 	# the aura ticks while a wave is on (the game's own beacon pulse, every 3s)
 	if t.support and S.wave_active and S.time - t.fired_at > 3:
@@ -705,9 +708,24 @@ func turret_muzzle_at(t: Tower, d: TowerData) -> Vector2:
 ## hero has to walk there first), red where it can't.
 func _sync_ghost(S: Run) -> void:
 	var show := false
+	var show_beacon := false
 	if S != null and S.hero != null and S.map != null and game.free_build() and S.build != "" and S.hover != null and S.hero.ko <= 0:
 		var hv: Vector2i = S.hover
 		var fr := _frames_of(S.build)
+		if S.build == "beacon" and BEACON_VIEW.available() and game.tower_at(hv.x, hv.y) == null:
+			# the Rift Beacon's ghost is its live model, with its aura ring showing the buff range where it would go
+			if beacon_ghost == null or not is_instance_valid(beacon_ghost):
+				beacon_ghost = BEACON_VIEW.new()
+				beacon_ghost.scale = Vector2(1 / PX, 1 / PX)
+				units.add_child(beacon_ghost)
+				beacon_ghost.setup(low, DB.towers.beacon.range)
+			var bp := game.cell_pos(hv.x, hv.y)
+			var bok := game.build_problem(hv.x, hv.y, S.build) == ""
+			beacon_ghost.position = Vector2(bp.x, SY(bp.y) + FOOT)
+			beacon_ghost.ring_at = Vector2(bp.x, SY(bp.y))
+			beacon_ghost.modulate = Color(1, 0.35, 0.4, 0.6) if not bok else (Color(0.55, 1, 0.65, 0.75) if game.in_build_range(hv.x, hv.y) else Color(1, 0.85, 0.45, 0.7))
+			show_beacon = true
+			fr = null
 		if fr != null and game.tower_at(hv.x, hv.y) == null:
 			if ghost == null:
 				ghost = AnimatedSprite2D.new()
@@ -736,6 +754,8 @@ func _sync_ghost(S: Run) -> void:
 			show = true
 	if ghost != null:
 		ghost.visible = show
+	if beacon_ghost != null and is_instance_valid(beacon_ghost):
+		beacon_ghost.visible = show_beacon
 
 
 ## Piercing Shot's path while it's aimed: a band as wide as what it hits (Game.pierce_line: an enemy is hit when its
