@@ -1,0 +1,24 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://art_src/towers/rift_beacon/fx/rift_beacon_visual.gd" id="1"]
+[ext_resource type="PackedScene" path="res://art_src/towers/rift_beacon/rift_beacon.glb" id="2"]
+[ext_resource type="Shader" path="res://art_src/towers/rift_beacon/fx/aura_ring.gdshader" id="3"]
+
+[sub_resource type="ShaderMaterial" id="mat_aura"]
+render_priority = -1
+shader = ExtResource("3")
+
+[sub_resource type="PlaneMesh" id="plane_aura"]
+resource_local_to_scene = true
+size = Vector2(6, 6)
+
+[node name="RiftBeacon" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Model" parent="." instance=ExtResource("2")]
+
+[node name="AuraRing" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0)
+cast_shadow = 0
+mesh = SubResource("plane_aura")
+material_override = SubResource("mat_aura")
