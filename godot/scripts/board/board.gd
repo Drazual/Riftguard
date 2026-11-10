@@ -477,6 +477,9 @@ func _sync_towers(S: Run, speed: float) -> void:
 		if d.turret != null:
 			_sync_turret(S, t, d, speed)
 			continue
+		if t.type == "beacon" and Beacon3D.available():
+			_sync_beacon(S, t, speed)
+			continue
 		var s: AnimatedSprite2D = t.get_meta("view") if t.has_meta("view") else null
 		if s == null or not is_instance_valid(s):
 			s = AnimatedSprite2D.new()
@@ -515,6 +518,38 @@ func _sync_towers(S: Run, speed: float) -> void:
 				_burst(t.type, Vector2(t.x, SY(t.y) + FOOT - 4), "fx")
 		if t.beam:
 			_laser_beam(S, t, d)
+
+
+## The Rift Beacon, live from its 3D model in its own smooth render (Beacon3D): it spins up when placed, keeps its
+## idle spin, flashes buff_pulse every time its aura ticks, and its ground ring is the size of its buff range.
+func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if v == null or not is_instance_valid(v) or not v is Beacon3D:
+		if v and is_instance_valid(v):
+			v.queue_free()
+		var b := Beacon3D.new()
+		b.scale = Vector2(1 / PX, 1 / PX)
+		b.position = Vector2(t.x, SY(t.y) + FOOT)
+		units.add_child(b)
+		b.setup(low, game.t_range(t))
+		b.set_meta("st", t.shot_at)
+		t.set_meta("view", b)
+		v = b
+	var b: Beacon3D = v
+	_seen(b)
+	# the aura ticks while a wave is on (the game's own beacon pulse, every 3s)
+	if t.support and S.wave_active and S.time - t.fired_at > 3:
+		t.shot_at = S.time
+		t.fired_at = S.time
+		t.hit_at = t.pos()
+	b.position = Vector2(t.x, SY(t.y) + FOOT)
+	b.ring_at = Vector2(t.x, SY(t.y))
+	b.set_radius(game.t_range(t))
+	b.set_speed(speed)
+	b.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
+	if t.shot_at != b.get_meta("st"):
+		b.set_meta("st", t.shot_at)
+		b.pulse()
 
 
 ## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target (a beam's
