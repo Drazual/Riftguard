@@ -77,7 +77,7 @@ var hero_spr: AnimatedSprite2D = null
 var hero_3d: Hero3D = null # heroes with a 3D model (HeroData.model_dir): drawn live over an invisible hero_spr
 var beam_layer: BeamLayer = null # Gale's Air Stream beam, over the board
 ## The unified art style (StyleSettings): every live 3D model on the board drawn by one camera into one low-res layer
-## over the 2D world, with cut-outs for the sprites that stand in front. null = the old look (Save.settings.style3d).
+## over the 2D world, with cut-outs for the sprites that stand in front. null = the old look (StyleSettings.enabled).
 var live: Live3D = null
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
@@ -151,7 +151,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
 
-## Turns the unified 3D style on or off (Save.settings.style3d), or pushes changed style settings into it. Heroes,
+## Turns the unified 3D style on or off (StyleSettings.enabled), or pushes changed style settings into it. Heroes,
 ## towers and walls already on the board are rebuilt in the new look.
 func restyle() -> void:
 	var on := StyleSettings.enabled()
