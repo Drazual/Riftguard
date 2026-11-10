@@ -221,5 +221,15 @@ func _ready() -> void:
 		var thorn_dmg := hpt - held_e.hp - (h.attacks - n1) * g.hero_dmg()
 		_check(thorn_dmg > 0.4 * h.armor * 0.7, "a held enemy takes thorns (%.0f in 1s)" % thorn_dmg)
 	_check(absf(100.0 / (100 + 100) - 0.5) < 0.001, "100 armor halves damage")
+	# a boss's roar throws the hero back: Hold lets go, so the tank isn't pinned where it landed
+	if not h.hold:
+		g.toggle_hold()
+	var ty := load("res://data/enemies/tyrant.tres") as EnemyData
+	var boss := _enemy("tyrant", 0.5)
+	boss.x = h.x - 60
+	boss.y = h.y
+	var hx := h.x
+	g.boss_power(boss, ty)
+	_check(not h.hold and h.x > hx + 50, "a boss knockback takes the tank off Hold (moved %.0f)" % (h.x - hx))
 	print("TANK DONE fails=%d" % fails)
 	get_tree().quit(1 if fails else 0)

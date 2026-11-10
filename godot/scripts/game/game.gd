@@ -2799,6 +2799,7 @@ func boss_power(e: Enemy, p: EnemyData) -> void:
 			curse_tower(t, p)
 			ring(t.x, t.y, 26, 0xff2e4d, 0.4, true))
 	var h := S.hero
+	var thrown_free := false
 	var hits_hero: bool = (p.power_hero_stun > 0 or p.power_hero_curse != "none") and h.ko <= 0 \
 		and (p.power_hero_reach <= 0 or hyp(h.x - e.x, h.y - e.y) <= p.power_hero_reach)
 	if hits_hero:
@@ -2825,8 +2826,14 @@ func boss_power(e: Enemy, p: EnemyData) -> void:
 			h.x = clampf(h.x + dx / d * 120, 10, W - 10)
 			h.y = clampf(h.y + dy / d * 120, 10, H - 10)
 			h.tx = null
+			# thrown off its spot: Hold would pin the hero where it landed, so it lets go
+			if h.hold:
+				h.hold = false
+				refresh("build_bar")
+				refresh("hero")
+				thrown_free = true
 	if targets.size() or p.power_roar or hits_hero:
-		say(p.name + ": " + p.power_name + "!")
+		say(p.name + ": " + p.power_name + "!" + (" Your hero was knocked off Hold." if thrown_free else ""))
 
 
 func curse_tower(t: Tower, p: EnemyData) -> void:
