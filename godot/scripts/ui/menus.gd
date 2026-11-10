@@ -1532,6 +1532,12 @@ func _style_settings(box: Control) -> void:
 	knobs.add_child(_slider("Outline", style.outline / 2.0, func(x):
 		style.outline = roundf(x * 4.0) / 2.0
 		changed.call()))
+	knobs.add_child(_slider("Rim light", style.rim / 2.0, func(x):
+		style.rim = x * 2.0
+		changed.call()))
+	knobs.add_child(_slider("Shadow lift", style.lift / 0.6, func(x):
+		style.lift = x * 0.6
+		changed.call()))
 	box.add_child(knobs)
 
 

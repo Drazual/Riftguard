@@ -239,7 +239,7 @@ func apply() -> void:
 		elif s.stylize:
 			for m in toons_of(r):
 				_toon_params(m)
-				_outline_params(m.next_pass)
+				_outline_params(m)
 
 
 ## The toon materials on a styled model.
@@ -264,16 +264,27 @@ func _toon_params(m: ShaderMaterial) -> void:
 	m.set_shader_parameter("highlight_size", s.highlight_size)
 	m.set_shader_parameter("rim_color", s.rim_color)
 	m.set_shader_parameter("rim", s.rim)
+	m.set_shader_parameter("lift", s.lift)
 	m.set_shader_parameter("normal_detail", s.normal_detail)
 	m.set_shader_parameter("simplify", s.simplify)
 	m.set_shader_parameter("exposure", 1.0)
 
 
-## The outline hull: settings.outline whole render pixels wide (0 hides it by sinking it fully behind the model).
-func _outline_params(m: ShaderMaterial) -> void:
-	m.set_shader_parameter("width", settings.outline * px_m())
-	m.set_shader_parameter("behind", 0.25 if settings.outline > 0.0 else 1000.0)
-	m.set_shader_parameter("color", settings.outline_color)
+## Two hulls on a toon material: a bright rim pixel outside a dark ink pixel (settings.outline / settings.rim).
+## Either width of 0 sinks that hull fully behind the model so it disappears.
+func _outline_params(toon: ShaderMaterial) -> void:
+	var edge: ShaderMaterial = toon.next_pass
+	var ink: ShaderMaterial = edge.next_pass
+	var px := px_m()
+	var rim_px := 1.0 if settings.rim > 0.02 else 0.0
+	var outer := settings.outline + rim_px
+	edge.set_shader_parameter("width", outer * px)
+	edge.set_shader_parameter("behind", 0.7 if outer > 0.0 else 1000.0)
+	# stay under the glow threshold so the rim is a hard pixel, not a bloom smear
+	edge.set_shader_parameter("color", settings.rim_color * minf(settings.rim, 1.0) * 0.85)
+	ink.set_shader_parameter("width", settings.outline * px)
+	ink.set_shader_parameter("behind", 0.4 if settings.outline > 0.0 else 1000.0)
+	ink.set_shader_parameter("color", settings.outline_color)
 
 
 ## Swaps a model's plain opaque materials for the shared toon material (settings.stylize), or back to the ones it
@@ -301,8 +312,10 @@ func style_node(root: Node) -> void:
 			var src := orig[i] as Material if orig[i] else mi.mesh.surface_get_material(i)
 			var toon := _toon_from(src)
 			if toon:
-				toon.set_shader_parameter("clip_below", root.get_meta("clip_below", -1000.0))
-				toon.next_pass.set_shader_parameter("clip_below", root.get_meta("clip_below", -1000.0))
+				var clip: float = root.get_meta("clip_below", -1000.0)
+				toon.set_shader_parameter("clip_below", clip)
+				toon.next_pass.set_shader_parameter("clip_below", clip)
+				toon.next_pass.next_pass.set_shader_parameter("clip_below", clip)
 				mi.set_surface_override_material(i, toon)
 
 
@@ -333,8 +346,12 @@ func _toon_from(src: Material) -> ShaderMaterial:
 	m.set_shader_parameter("uv_scale", Vector2(b.uv1_scale.x, b.uv1_scale.y))
 	m.set_shader_parameter("uv_offset", Vector2(b.uv1_offset.x, b.uv1_offset.y))
 	_toon_params(m)
-	var o := ShaderMaterial.new()
-	o.shader = OUTLINE
-	_outline_params(o)
-	m.next_pass = o
+	# bright outer pixel, then the dark ink on top of its inner part (see _outline_params)
+	var edge := ShaderMaterial.new()
+	edge.shader = OUTLINE
+	var ink := ShaderMaterial.new()
+	ink.shader = OUTLINE
+	edge.next_pass = ink
+	m.next_pass = edge
+	_outline_params(m)
 	return m

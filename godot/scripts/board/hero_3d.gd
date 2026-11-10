@@ -1,11 +1,11 @@
 class_name Hero3D
 extends Node2D
-## A hero drawn live from its 3D model instead of a sprite sheet. The model is rendered every frame into a small
-## transparent viewport by an orthographic camera at the board's 3/4 angle, and the picture is drawn on the board.
-## So the hero turns smoothly to any angle, aims exactly at its target, and blends between idle, walk and fire.
-## It reads the same hero.json as tools/render_hero.gd (model, animation files, held weapon, root lock), from the
-## folder in HeroData.model_dir. Clean look: the model's own materials under neutral white studio light, no outline
-## and no colour filter (clean_light), the same as the 3D towers.
+## A hero drawn live from its 3D model instead of a sprite sheet. In the unified style it stands in the board's
+## shared pixel camera (StyleRig, the same one as the towers). With that style off — and for menu portraits — the
+## model is rendered into its own small viewport by an orthographic camera and drawn as a sprite. Either way it
+## turns to any angle, aims at its target, and blends between idle, walk and fire. It reads the same hero.json as
+## tools/render_hero.gd (model, animation files, held weapon, root lock), from the folder in HeroData.model_dir.
+## The own-viewport path uses the model's materials under neutral white studio light (clean_light).
 ## Spell casters (the Wizard) also play any of the model's one-shot clips by name with cast(): its hero.json
 ## "release" times say when in each clip the spell leaves, and the wind-up before it is sped up to "windup" seconds,
 ## since the spell itself lands the moment it is cast.

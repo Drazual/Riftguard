@@ -1,8 +1,9 @@
 shader_type spatial;
-// Shared stylized material for live 3D models (StyleWorld.stylize): the model's own albedo, normal and emission
+// Shared stylized material for live 3D models (StyleRig.stylize): the model's own albedo, normal and emission
 // textures, with banded light, one hard highlight, a rim, ambient shadows in the palette's navy/purple, and an
 // adjustable pull of the colours toward the palette ramp. Saturated accents (neon trim) keep their hue.
-render_mode cull_back, depth_draw_opaque, shadows_disabled; // models cast shadows but don't self-shadow (acne at this size)
+// cull_disabled: several hero meshes (Gale's shield) are authored double-sided.
+render_mode cull_disabled, depth_draw_opaque, shadows_disabled; // models cast shadows but don't self-shadow (acne at this size)
 
 uniform vec4 albedo_color : source_color = vec4(1.0);
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
@@ -30,8 +31,10 @@ uniform float band_edge = 0.05;
 uniform float band_soft = 0.06;
 uniform float highlight = 0.35;
 uniform float highlight_size = 0.25;
-uniform vec4 rim_color : source_color = vec4(1.0, 0.45, 0.85, 1.0);
-uniform float rim = 0.35;
+uniform vec4 rim_color : source_color = vec4(0.4, 0.95, 1.0, 1.0);
+uniform float rim = 1.1;
+// black pixels are raised to this luminance (0 = the texture's own blacks). Bright pixels above it are unchanged.
+uniform float lift = 0.38;
 uniform float exposure = 1.0;
 // nothing under this world height is drawn (a wall sinking into the ground); far below by default
 uniform float clip_below = -1000.0;
@@ -57,10 +60,15 @@ void fragment() {
 		c *= texture(albedo_tex, uv, simplify);
 	}
 	vec3 col = c.rgb;
+	float l = dot(col, vec3(0.299, 0.587, 0.114));
+	// raise near-black armor to a readable navy before the palette tint; keep the pixel's own hue when it has one
+	float l2 = mix(lift, l, smoothstep(0.0, max(lift, 0.001), l));
+	vec3 hue = l > 0.004 ? col / l : pal_mid.rgb / max(dot(pal_mid.rgb, vec3(0.299, 0.587, 0.114)), 0.001);
+	col = hue * l2;
 	float mx = max(col.r, max(col.g, col.b));
 	float mn = min(col.r, min(col.g, col.b));
 	float sat = mx > 0.001 ? (mx - mn) / mx : 0.0;
-	float l = dot(col, vec3(0.299, 0.587, 0.114));
+	l = dot(col, vec3(0.299, 0.587, 0.114));
 	// the palette pull: greys and dull colours take the ramp's hue for their brightness (navy/purple darks, peach/cream
 	// lights) at their own brightness, so values and silhouettes stay as modelled; neon accents keep their own hue
 	vec3 pal = ramp(clamp(l, 0.0, 1.0));
@@ -90,7 +98,7 @@ void light() {
 	vec3 h = normalize(LIGHT + VIEW);
 	float s = pow(max(dot(NORMAL, h), 0.0), mix(160.0, 12.0, highlight_size));
 	SPECULAR_LIGHT += LIGHT_COLOR * step(0.5, s) * highlight * lit;
-	// rim on the side turned away from the key, so a dark model still has an edge against a dark road
-	float r = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0) * (1.0 - lit);
-	DIFFUSE_LIGHT += rim_color.rgb * step(0.45, r) * rim;
+	// a hard rim on the silhouette (lit side included), so a dark body still has an edge on a dark road
+	float r = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.2);
+	DIFFUSE_LIGHT += rim_color.rgb * step(0.48, r) * rim * 0.28;
 }

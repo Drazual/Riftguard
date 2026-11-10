@@ -201,8 +201,8 @@ func restyle() -> void:
 
 
 const HERO_FILTER := preload("res://scripts/style/hero_filter.gdshader")
-## The unified style on a hero: its own clear picture, with the palette filter and outline (HERO_FILTER), and a
-## cut-out so live 3D towers and walls in front of or behind it sort with it. Off: the plain picture.
+## Heroes in the shared pixel world have no picture of their own (the rig draws them). This only remains for a hero
+## that still has a private viewport while the style layer is up: palette filter, outline, and a cut-out.
 func _hero_filter() -> void:
 	if hero_3d == null or not is_instance_valid(hero_3d) or hero_3d.pic == null:
 		return
@@ -856,8 +856,11 @@ func _sync_hero(S: Run, dt: float, speed: float) -> void:
 			hero_3d = Hero3D.new()
 			hero_3d.scale = Vector2(1 / PX, 1 / PX)
 			units.add_child(hero_3d)
-			# heroes keep their own clear, smooth render; the unified style lays a palette filter and outline on it
-			hero_3d.setup(h.data.model_dir)
+			# unified style: the hero stands in the board's one pixel camera with the towers. Off: his own smooth viewport.
+			if live:
+				hero_3d.setup(h.data.model_dir, 26.0, live.rig, Live3D.PER)
+			else:
+				hero_3d.setup(h.data.model_dir)
 			_hero_filter()
 			hero_3d.face(PI / 2, true)
 			# Gale's Air Stream: a beam from the shield to the screen edge, drawn over the board (see BeamLayer)
