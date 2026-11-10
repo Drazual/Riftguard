@@ -211,7 +211,7 @@ texts = {
 "path:laser:sink": "The beam can build up more heat.",
 "path:mortar:blast": "Explosions get bigger.",
 "path:mortar:napalm": "Blasts set enemies on fire.",
-"path:mortar:payload": "Kills drop extra gold.",
+"path:mortar:payload": "Blasts ignore armor.",
 "path:mortar:reload": "Fires faster.",
 "path:mortar:shock": "Blasts slow enemies.",
 "path:plasma:auto": "Fires faster.",
