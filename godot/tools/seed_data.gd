@@ -351,14 +351,13 @@ func heroes() -> Array:
 func perks() -> Array:
 	var ability := ["seismic", "after", "daze", "core", "nfocus", "wide", "surge", "extend", "apround", "steady", "barrier", "adren", "redline", "payload"]
 	var kinds := { "blade": "damage", "caliber": "damage", "headhunter": "damage", "crit": "crit", "critdmg": "crit", "clock": "speed", "chamber": "speed", "study": "xp", "momentum": "speed",
-		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "arch": "cost", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "armorpen": "armorpen",
+		"plate": "hp", "fort": "hp", "reboot": "hp", "mend": "heal", "siphon": "heal", "engineer": "cost", "alchemy": "cost", "signal": "range", "reach": "range", "armorpen": "armorpen",
 		"arcpow": "damage", "manapool": "mana", "manaflow": "mana", "thrift": "mana", "reachsp": "range", "rime": "control", "zephyr": "control", "masonry": "wall", "bounces": "bounce" }
 	var list := [
 		{ id = "blade", pool = "offensive", name = "Plasma Blade", m = 0.2, desc = "+{pct(m)} hero damage.", effect = "h.dmg *= 1 + m" },
 		{ id = "plate", pool = "defensive", name = "Rune Plating", m = 50.0, desc = "+{round(m)} max HP and a full heal.", effect = "h.max_hp += round(m)\nh.hp = h.max_hp" },
 		{ id = "mend", pool = "defensive", name = "Nanite Mend", m = 3.0, desc = "+{f1(m)} HP regen per second.", effect = "h.regen += m" },
 		{ id = "reboot", pool = "defensive", name = "Quick Reboot", m = 0.15, desc = "Respawn {pct(min(0.7, m))} faster and +{pct(m)} max HP.", effect = "h.respawn = max(2, h.respawn * (1 - min(0.7, m)))\nh.max_hp = round(h.max_hp * (1 + m))\nh.hp = min(h.max_hp, h.hp + h.max_hp * m)" },
-		{ id = "arch", pool = "support", name = "Architect", m = 0.07, desc = "New towers cost {pct(min(0.5, m))} less to build.", effect = "h.cost_mul *= 1 - min(0.5, m)" },
 		{ id = "engineer", pool = "support", name = "Engineer", m = 0.08, desc = "Tower upgrades (level-ups) cost {pct(min(0.5, m))} less.", effect = "h.lvl_mul *= 1 - min(0.5, m)" },
 		{ id = "bounty", pool = "offensive", gold = true, name = "Bounty Sigil", m = 0.8, desc = "Enemies your hero kills drop +{max(1, round(m))} gold.", effect = "h.bounty += max(1, round(m))" },
 		{ id = "tithe", pool = "defensive", also_pools = ["support"], gold = true, name = "War Tithe", m = 0.3, desc = "Every enemy killed by your towers or your hero drops +{max(1, round(m))} gold.", effect = "h.tithe += max(1, round(m))" },

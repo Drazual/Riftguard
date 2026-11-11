@@ -24,6 +24,8 @@ extends Resource
 @export var gold := false
 ## Raises the hero's own attack damage: tank heroes only get it once they hit hard (Gale in Bruiser Form).
 @export var hero_damage := false
+## Only offered once Gale is in Bruiser Form (before that it holds every enemy anyway).
+@export var bruiser_only := false
 ## Attack speed upgrade (never offered to the Wizard).
 @export var attack_speed := false
 ## Wizard: only when the run's spells can freeze, wall or push.

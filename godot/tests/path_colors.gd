@@ -309,6 +309,9 @@ func _write_merge() -> void:
 	var dir := "res://art_src/towers/merges/arcane_tesla"
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
 	var glb := dir.path_join("railgun.glb")
+	# the real Railgun delivery lives here now: test against it, never write over it (or delete it after)
+	if FileAccess.file_exists(glb):
+		return
 	_temps.append(glb)
 	_temps.append(dir.path_join("railgun_accent_mask.png"))
 	_temps.append(dir.path_join("railgun_accent_mask_b.png"))

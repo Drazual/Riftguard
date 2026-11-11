@@ -1,0 +1,33 @@
+{
+	"model": "railgun.glb",
+	"yaw": "Turret",
+	"pitch": "Turret/Gun",
+	"anims": {
+		"idle": "idle",
+		"fire": "fire",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "railgun_accent_mask.png",
+	"accent_mask_b": "railgun_accent_mask_b.png",
+	"recipe_color": "#8AFFFF",
+	"parents": [
+		"arcane",
+		"tesla"
+	],
+	"aim": 0.0,
+	"dirs": 16,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 8,
+	"fire_time": 0.6,
+	"shot_time": 0.22,
+	"size": 160,
+	"wide": 70,
+	"foot": [
+		80,
+		140
+	],
+	"out": "railgun_3d"
+}

@@ -30,7 +30,7 @@ dur = 0.8
 mult = 0.25
 w = 22.0
 release = 0.6
-desc = "Slams a wind trail {f0(a.r)} long the way you aim (no target needed). After {f1(a.dur)}s it blasts along the trail: every enemy on it is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
+desc = "Hold Q to see its exact trail and who it will catch, and let go to fire it that way (no target needed). It slams a wind trail {f0(a.r)} long. After {f1(a.dur)}s it blasts along the trail: every enemy on it is stunned for {f1(a.stun)}s and takes {f0(a.dmg)} damage, and you gain a shield worth {pct(a.mult)} of the damage dealt."
 
 [sub_resource type="Resource" id="Resource_m1"]
 script = ExtResource("2_up")
