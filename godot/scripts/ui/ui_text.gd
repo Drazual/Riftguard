@@ -179,7 +179,7 @@ static func build_tip(g: Game, k: String) -> String:
 		s += Kit.c("Signature: %s. %s" % [d.signature_name, DB.tx("sig:" + k, d.signature_desc)], Kit.PINK) + "\n"
 	var names := []
 	for p in g.tower_paths(k):
-		names.append(p.name)
+		names.append(Kit.c("■", PathColors.of_path(p)) + " " + p.name)
 	s += Kit.c("Paths: %s. Pick up to %d of them (%d with the Oracle) as it levels to %d." % [", ".join(names), DB.rules.path_limit, DB.rules.path_limit + 1, DB.rules.max_level], Kit.MUTED)
 	return s
 
@@ -191,7 +191,7 @@ static func tower_tip(g: Game, t: Tower) -> String:
 	for id in t.order:
 		for u in opts:
 			if u.id == id:
-				ups.append("%s %d/%d" % [u.name, t.ups_of(id), g.path_max()])
+				ups.append("%s %s %d/%d" % [Kit.c("■", PathColors.for_path(t, id)), u.name, t.ups_of(id), g.path_max()])
 	var kind := " · Super" if t.is_super else (" · Hybrid" if t.hybrid else "")
 	var s := Kit.b(g.tower_name(t)) + "  " + Kit.c("Lv %d/%d%s" % [t.lvl, DB.rules.max_level, kind], Kit.GOLD) + "\n"
 	if t == S.drained:

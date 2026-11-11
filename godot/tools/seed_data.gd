@@ -687,7 +687,7 @@ func recipes() -> RecipeList:
 		["laser+tesla", "Arc Lance", 0xb0a8ff, "Chain lightning that heats up on its main target."],
 		["mortar+plasma", "Bombard", 0xd8f0b0, "Long-range shells with huge explosions. Wrecks crowds."],
 		["mortar+tesla", "Thunder Battery", 0xd8e8ff, "Long-range blasts that throw chain lightning outward."],
-		["arcane+frost+plasma+tesla", "Rift Singularity", 0xffffff, "Holds the power of all four towers: fast bolts, explosions, deep slows and chain lightning in every shot."],
+		["arcane+frost+plasma+tesla", "Rift Singularity", 0xb07cff, "Holds the power of all four towers: fast bolts, explosions, deep slows and chain lightning in every shot."],
 		["arcane+frost+plasma", "Prism Reactor", 0xffa8f0, "Rapid exploding ice bolts that shred and slow whole groups."],
 		["arcane+frost+tesla", "Aurora Lance", 0xa8e8ff, "Piercing frozen lightning that slows everything it jumps through."],
 		["arcane+plasma+tesla", "Nova Battery", 0xffe08a, "Heavy bolts that explode and throw lightning across the field."],

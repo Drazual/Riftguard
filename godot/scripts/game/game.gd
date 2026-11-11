@@ -4629,6 +4629,7 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.fusions = pick_fusions(tags, key + ",".join(a.order) + ",".join(b.order), [])
 		m.dmg = maxf(a.dmg, b.dmg) * 1.5
 		m.rate = minf(a.rate, b.rate)
+	_store_parent_colors(m, a, b)
 	m.up_start = hybrid_up_start(m.parents, m.is_super)
 	for k in Tower.TRAITS:
 		m.set(k, maxf(float(a.get(k)), float(b.get(k))))
@@ -4692,6 +4693,23 @@ func try_merge(a: Tower, b: Tower) -> void:
 
 func rec_has_boon(key: String) -> bool:
 	return DB.recipes.has(key) and DB.recipes[key].boon_effect != ""
+
+
+## The accent colours a merge model paints with. A hybrid stores its two base towers in recipe-key order
+## (mask A is the earlier id). A super stores the two hybrids (the one the merge started from, then the other)
+## and keeps that first hybrid's colours for when it reuses the hybrid's model.
+func _store_parent_colors(m: Tower, a: Tower, b: Tower) -> void:
+	if a.hybrid:
+		m.parent_colors = [PathColors.for_tower(a), PathColors.for_tower(b)]
+		m.model_colors = a.parent_colors.duplicate(true)
+	else:
+		var keys := [a.type, b.type]
+		keys.sort()
+		var pair := []
+		for k in keys:
+			pair.append(PathColors.for_tower(a if a.type == k else b))
+		m.parent_colors = pair
+		m.model_colors = pair
 
 
 # ---------- the end of a run ----------

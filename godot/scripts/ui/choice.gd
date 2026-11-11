@@ -51,6 +51,25 @@ func _ignore(n: Node) -> void:
 		_ignore(ch)
 
 
+## Path cards set meta "swatch" so the hover tip shows the same colour chip as the button.
+func _make_custom_tooltip(for_text: String) -> Object:
+	if not has_meta("swatch"):
+		return null
+	var box := PanelContainer.new()
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	box.add_child(row)
+	var chip := ColorRect.new()
+	chip.custom_minimum_size = Vector2(16, 16)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.color = get_meta("swatch")
+	row.add_child(chip)
+	var lab := Label.new()
+	lab.text = for_text
+	row.add_child(lab)
+	return box
+
+
 func _gui_input(ev: InputEvent) -> void:
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT and not disabled:
 		accept_event()

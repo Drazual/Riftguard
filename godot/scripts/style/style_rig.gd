@@ -317,6 +317,10 @@ func style_node(root: Node) -> void:
 				toon.next_pass.set_shader_parameter("clip_below", clip)
 				toon.next_pass.next_pass.set_shader_parameter("clip_below", clip)
 				mi.set_surface_override_material(i, toon)
+	if on and root.has_meta("accents"):
+		var spec: Dictionary = root.get_meta("accents")
+		for mat in toons_of(root):
+			_accent_params(mat, spec)
 
 
 func _toon_from(src: Material) -> ShaderMaterial:
@@ -355,3 +359,41 @@ func _toon_from(src: Material) -> ShaderMaterial:
 	m.next_pass = edge
 	_outline_params(m)
 	return m
+
+
+## Tints a styled model's accent zones. mask_a / cols_a are parent A (or the tower's own 3 path colours);
+## mask_b / cols_b are parent B on a merge. body_strength 0 and a null mask leave the material as stylize made it.
+## Kept on the root so turning stylize off and on again puts the same colours back.
+func set_accents(root: Node, mask_a: Texture2D, cols_a: Array[Color], mask_b: Texture2D, cols_b: Array[Color], body: Color, strength: float) -> void:
+	var spec := {
+		use = mask_a != null,
+		use_b = mask_b != null,
+		mask = mask_a,
+		mask_b = mask_b,
+		c1 = cols_a[0], c2 = cols_a[1], c3 = cols_a[2],
+		b1 = cols_b[0], b2 = cols_b[1], b3 = cols_b[2],
+		body = body,
+		strength = strength,
+	}
+	root.set_meta("accents", spec)
+	if not bool(root.get_meta("styled", false)):
+		return
+	for mat in toons_of(root):
+		_accent_params(mat, spec)
+
+
+func _accent_params(m: ShaderMaterial, spec: Dictionary) -> void:
+	m.set_shader_parameter("use_accent", spec.use)
+	m.set_shader_parameter("use_accent_b", spec.use_b)
+	if spec.mask:
+		m.set_shader_parameter("accent_mask", spec.mask)
+	if spec.mask_b:
+		m.set_shader_parameter("accent_mask_b", spec.mask_b)
+	m.set_shader_parameter("accent1", spec.c1)
+	m.set_shader_parameter("accent2", spec.c2)
+	m.set_shader_parameter("accent3", spec.c3)
+	m.set_shader_parameter("accent1b", spec.b1)
+	m.set_shader_parameter("accent2b", spec.b2)
+	m.set_shader_parameter("accent3b", spec.b3)
+	m.set_shader_parameter("body_tint", spec.body)
+	m.set_shader_parameter("body_tint_strength", spec.strength)

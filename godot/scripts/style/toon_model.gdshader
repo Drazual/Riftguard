@@ -2,6 +2,11 @@ shader_type spatial;
 // Shared stylized material for live 3D models (StyleRig.stylize): the model's own albedo, normal and emission
 // textures, with banded light, one hard highlight, a rim, ambient shadows in the palette's navy/purple, and an
 // adjustable pull of the colours toward the palette ramp. Saturated accents (neon trim) keep their hue.
+//
+// Optional accent masks (StyleRig.set_accents, docs/merge-art.md). With use_accent off and body_tint_strength 0
+// the colour path below is unchanged. Mask RGB: R = zone 1 trim, G = zone 2 glow (also emission), B = zone 3 detail.
+// A second mask (accent_mask_b) is the other parent's zones on a merge. Zone colours keep the pixel's shading;
+// lighting, lift and the outline pass are untouched.
 // cull_disabled: several hero meshes (Gale's shield) are authored double-sided.
 render_mode cull_disabled, depth_draw_opaque, shadows_disabled; // models cast shadows but don't self-shadow (acne at this size)
 
@@ -38,7 +43,37 @@ uniform float lift = 0.38;
 uniform float exposure = 1.0;
 // nothing under this world height is drawn (a wall sinking into the ground); far below by default
 uniform float clip_below = -1000.0;
+// Path-colour zones. Off (and body_tint_strength 0) unless StyleRig.set_accents bound a mask or a merge tint.
+uniform sampler2D accent_mask : filter_linear, repeat_enable;
+uniform bool use_accent = false;
+uniform vec4 accent1 : source_color = vec4(1.0);
+uniform vec4 accent2 : source_color = vec4(1.0);
+uniform vec4 accent3 : source_color = vec4(1.0);
+uniform sampler2D accent_mask_b : filter_linear, repeat_enable;
+uniform bool use_accent_b = false;
+uniform vec4 accent1b : source_color = vec4(1.0);
+uniform vec4 accent2b : source_color = vec4(1.0);
+uniform vec4 accent3b : source_color = vec4(1.0);
+uniform vec4 body_tint : source_color = vec4(1.0);
+uniform float body_tint_strength = 0.0;
+uniform float accent_glow = 1.6;
 varying float world_y;
+
+const vec3 LUMA = vec3(0.299, 0.587, 0.114);
+
+// Recolour masked texels toward the zone colours, keeping a shade of the texel so the toon light still models it.
+// Zone 2 (green) also adds emission. cover 0 leaves the pixel alone.
+void apply_zone(vec3 mask, vec3 a1, vec3 a2, vec3 a3, inout vec3 col, inout vec3 glow) {
+	float cover = clamp(max(mask.r, max(mask.g, mask.b)), 0.0, 1.0);
+	if (cover <= 0.0) {
+		return;
+	}
+	float w = max(mask.r + mask.g + mask.b, 0.001);
+	vec3 tint = (mask.r * a1 + mask.g * a2 + mask.b * a3) / w;
+	float shade = clamp(dot(col, LUMA) / 0.55, 0.35, 1.25);
+	col = mix(col, tint * shade, cover);
+	glow += a2 * mask.g * accent_glow * shade;
+}
 
 vec3 ramp(float l) {
 	if (l < 0.33) return mix(pal_dark.rgb, pal_mid.rgb, l / 0.33);
@@ -60,6 +95,17 @@ void fragment() {
 		c *= texture(albedo_tex, uv, simplify);
 	}
 	vec3 col = c.rgb;
+	vec3 accent_emis = vec3(0.0);
+	if (body_tint_strength > 0.001) {
+		float shade = max(dot(col, LUMA), 0.28);
+		col = mix(col, body_tint.rgb * shade, body_tint_strength);
+	}
+	if (use_accent) {
+		apply_zone(texture(accent_mask, uv).rgb, accent1.rgb, accent2.rgb, accent3.rgb, col, accent_emis);
+	}
+	if (use_accent_b) {
+		apply_zone(texture(accent_mask_b, uv).rgb, accent1b.rgb, accent2b.rgb, accent3b.rgb, col, accent_emis);
+	}
 	float l = dot(col, vec3(0.299, 0.587, 0.114));
 	// raise near-black armor to a readable navy before the palette tint; keep the pixel's own hue when it has one
 	float l2 = mix(lift, l, smoothstep(0.0, max(lift, 0.001), l));
@@ -87,6 +133,9 @@ void fragment() {
 		e *= texture(emission_tex, uv).rgb;
 	}
 	EMISSION = e;
+	if (use_accent || use_accent_b) {
+		EMISSION += accent_emis;
+	}
 	ROUGHNESS = 1.0;
 	SPECULAR = 0.0;
 }

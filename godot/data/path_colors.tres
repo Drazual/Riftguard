@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="PathColors" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/path_colors.gd" id="1_colors"]
+
+[resource]
+script = ExtResource("1_colors")
+power = Color(1, 0.2901961, 0.2901961, 1)
+speed = Color(1, 0.84705883, 0.2901961, 1)
+burst = Color(1, 0.5411765, 0.18039216, 1)
+burn = Color(1, 0.3529412, 0.12156863, 1)
+slow = Color(0.43137255, 0.78431374, 1, 1)
+chain = Color(0.23529412, 0.9411765, 1, 1)
+precision = Color(0.9019608, 0.84705883, 1, 1)
+arcane = Color(1, 0.30980393, 0.7529412, 1)
+multi = Color(0.42352942, 0.9411765, 0.47843137, 1)

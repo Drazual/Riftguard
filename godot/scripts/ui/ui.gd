@@ -988,7 +988,18 @@ func render_inspector() -> void:
 		var open := state == "open" and t.lvl < R.max_level
 		var ch := Choice.new(Kit.GOLD if state == "maxed" else Kit.LINE)
 		ch.pad = 9
-		ch.add(Kit.rich(Kit.c(o.name, Kit.GOLD if state == "maxed" else Kit.TECH) + "  " + Kit.c("%d/%d" % [n, game.path_max()], Kit.MUTED), 14))
+		var swatch := PathColors.for_path(t, o.id)
+		var head := Kit.hbox(8)
+		var chip := ColorRect.new()
+		chip.color = swatch
+		chip.custom_minimum_size = Vector2(14, 14)
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		chip.set_meta("path_swatch", o.id)
+		head.add_child(chip)
+		head.add_child(Kit.rich(Kit.c(o.name, Kit.GOLD if state == "maxed" else Kit.TECH) + "  " + Kit.c("%d/%d" % [n, game.path_max()], Kit.MUTED), 14))
+		ch.add(head)
+		ch.tooltip_text = "%s · %s · #%s" % [o.name, PathColors.tag_of(t, o), swatch.to_html(false)]
+		ch.set_meta("swatch", swatch)
 		ch.add("Maxed." if state == "maxed" else game.path_desc(o), 12)
 		if open and not DB.is_simple():
 			ch.add(Kit.c(UiText.preview_level(game, t, o), Kit.OK), 12)

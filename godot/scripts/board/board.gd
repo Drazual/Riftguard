@@ -418,6 +418,7 @@ func sync(dt: float) -> void:
 	if S and not S.paused and not S.over:
 		speed = S.speed
 	_sync_towers(S, speed)
+	_sync_merges(S, speed)
 	_sync_ghost(S)
 	_sync_hero(S, dt, speed)
 	_sync_hero_shots(S, dt, speed)
@@ -685,8 +686,79 @@ func _sync_turret_live(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	if t.shot_at != s.get_meta("st"):
 		s.set_meta("st", t.shot_at)
 		s.shoot()
+	s.set_path_colors(PathColors.for_tower(t))
 	if t.beam:
 		_laser_beam(S, t, d)
+
+
+## Hybrids and supers with a GLB under art_src/towers/merges draw through the same live turret path.
+## No file, or the unified 3D style off: the placeholder plinth stays.
+func _sync_merges(S: Run, speed: float) -> void:
+	if S == null:
+		return
+	for t: Tower in S.towers:
+		if not t.hybrid:
+			continue
+		if live == null:
+			_clear_merge_view(t)
+			continue
+		var spec := MergeArt.resolve(t)
+		if spec.is_empty():
+			_clear_merge_view(t)
+			continue
+		_sync_merge_live(S, t, spec, speed)
+
+
+func _clear_merge_view(t: Tower) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if v is Live3D.LiveTower and is_instance_valid(v):
+		v.queue_free()
+		t.remove_meta("view")
+	if t.has_meta("merge_reuse"):
+		t.remove_meta("merge_reuse")
+
+
+func _merge_model(t: Tower) -> bool:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	return v is Live3D.LiveTower and is_instance_valid(v)
+
+
+func _sync_merge_live(S: Run, t: Tower, spec: Dictionary, speed: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if v == null or not is_instance_valid(v) or not v is Live3D.LiveTower or str(v.get_meta("glb", "")) != str(spec.glb):
+		if v and is_instance_valid(v):
+			v.queue_free()
+		var lt := Live3D.LiveTower.new()
+		lt.position = Vector2(t.x, SY(t.y) + FOOT)
+		lt.set_meta("glb", spec.glb)
+		units.add_child(lt)
+		# tower.json "wide" is the same pixel measure as a base turret; 0.5 is TowerData.turret_scale's default
+		var wide := float(spec.cfg.get("wide", 52.0)) * 0.5 / PX
+		if not lt.setup_merge(live, str(spec.glb), spec.cfg, wide, float(spec.scale)):
+			lt.queue_free()
+			if t.has_meta("view"):
+				t.remove_meta("view")
+			return
+		lt.set_meta("st", t.shot_at)
+		t.set_meta("view", lt)
+		v = lt
+	var s: Live3D.LiveTower = v
+	_seen(s)
+	s.position = Vector2(t.x, SY(t.y) + FOOT)
+	s.set_speed(speed)
+	t.set_meta("merge_reuse", spec.reuse)
+	s.set_merge_look(spec.colors, spec.body)
+	var e = t.last_target
+	var aim = null
+	if e != null and not e.dead and S.enemies.has(e):
+		aim = Vector2(e.x, e.y)
+	elif t.hit_at != null:
+		aim = t.hit_at
+	if aim != null and t.stun_t <= 0:
+		s.aim(Vector2(aim.x - t.x, SY(aim.y) - SY(t.y)))
+	if t.shot_at != s.get_meta("st"):
+		s.set_meta("st", t.shot_at)
+		s.shoot()
 
 
 ## Where a turret tower's beam starts on the board: its muzzle in the facing it shows.
@@ -1845,7 +1917,7 @@ func _draw_flat() -> void:
 			_ellipse(g, c, 24 * f, 10 * f / K, shadow_col(0.45))
 		else:
 			_shadow(g, t.x, t.y + FOOT / K, 42)
-		if is_sprite_tower(t) and t == S.sel:
+		if t == S.sel and (is_sprite_tower(t) or _merge_model(t)):
 			_ellipse(g, Vector2(t.x, t.y + 4), 46, 34, t.color, false, 2)
 		if game.overclocked(t):
 			_rrect(g, Rect2(t.x - 19, t.y - 19, 38, 38), 6, hx(0xb07cff, 0.9), false, 1)
@@ -1996,9 +2068,10 @@ func _draw_over() -> void:
 	var hc: Color = h.data.color
 	for t: Tower in S.towers:
 		var art := is_sprite_tower(t)
+		var merge_live := _merge_model(t)
 		var tp := P(t.x, t.y)
-		if not art:
-			# plinth: top face plus a darker front face
+		if not art and not merge_live:
+			# plinth: top face plus a darker front face (hybrids with no GLB, and supers reusing nothing)
 			_rrect(o, Rect2(tp.x - 16, tp.y - 8, 32, 18), 5, hx(0x0a0d18))
 			_rrect(o, Rect2(tp.x - 16, tp.y - 14, 32, 18), 5, hx(0x141a2e))
 			_rrect(o, Rect2(tp.x - 16, tp.y - 14, 32, 24), 5, ca(t.color, 1.0 if t == S.sel else 0.6), false, 2)
@@ -2007,24 +2080,27 @@ func _draw_over() -> void:
 		var cy := tp.y - 12
 		var cp := Vector2(tp.x, cy)
 		if t.is_super:
-			# a pulsing core with its base towers' colours in orbit, and a ring that fills as its next power charges
+			# a pulsing core with its base towers' colours in orbit, and a ring that fills as its next power charges.
+			# A live model replaces the core. Orbiting dots stay when that model is a reused hybrid (or there is no model).
 			var pulse := 0.5 + 0.5 * sin(S.time * 5)
 			var k := 1 - maxf(0, t.sp_t) / maxf(0.01, game.R.super_cooldown)
-			_circle(o, cp, 13 + 3 * pulse, ca(t.color, 0.3))
-			_circle(o, cp, 8, t.color)
-			_circle(o, cp, 3 + pulse, Color(1, 1, 1, 0.9))
+			if not merge_live:
+				_circle(o, cp, 13 + 3 * pulse, ca(t.color, 0.3))
+				_circle(o, cp, 8, t.color)
+				_circle(o, cp, 3 + pulse, Color(1, 1, 1, 0.9))
 			_arc(o, cp, 15, -PI / 2, -PI / 2 + TAU * k, hx(0xf2c14e, 0.9), 2)
-			for i in t.parents.size():
-				var an := S.time * 2.2 + i * TAU / t.parents.size()
-				var pc: Color = DB.towers[t.parents[i]].color
-				_circle(o, cp + Vector2(cos(an) * 20, sin(an) * 9), 2.5, pc)
+			if not merge_live or bool(t.get_meta("merge_reuse", false)):
+				for i in t.parents.size():
+					var an := S.time * 2.2 + i * TAU / t.parents.size()
+					var pc: Color = DB.towers[t.parents[i]].color
+					_circle(o, cp + Vector2(cos(an) * 20, sin(an) * 9), 2.5, pc)
 			if t.ascend_t > 0:
 				_ring(o, cp, 22 + 2 * pulse, hx(0xffd36e, 0.8), 1.5)
-		elif t.hybrid:
+		elif t.hybrid and not merge_live:
 			_circle(o, cp, 7, t.color)
 			_ring(o, cp, 11, ca(t.color, 0.7), 2)
 		if t.stun_t > 0:
-			if not art:
+			if not art and not merge_live:
 				_rrect(o, Rect2(tp.x - 16, tp.y - 14, 32, 24), 5, Color(0, 0, 0, 0.45))
 			var a0 := S.time * 6
 			_arc(o, tp + Vector2(0, -14), 20, a0, a0 + 1.4, Color(1, 1, 1, 0.8), 2)
