@@ -1,6 +1,6 @@
 # Merge models and path colours
 
-Live 3D towers pick up path colours through an accent mask. Hybrids and super towers can swap the placeholder plinth for a GLB in the same live turret path as the base towers (aim, idle, fire). Both follow the unified 3D style switch: they draw only while `StyleSettings.enabled()` is on (`Save.settings.style3d_test`). With that off, base towers stay on their baked sprites and merges stay on the plinth. Turning stylized materials off (`StyleSettings.stylize`) puts the model's own materials back, accents included, and turning them on restores the colours.
+Live 3D towers pick up path colours through an accent mask. Hybrids and super towers swap the placeholder plinth for a GLB from `art_src/towers/merges` whenever one is there. With the unified 3D style off (the default), a merge GLB draws in its own smooth render (`scripts/board/merge_3d.gd`, `Merge3D`, like the Rift Beacon and the heroes): the turret turns smoothly to any angle, `spawn` plays when it is built, then `idle` loops, and `fire` plays on each shot. Its body material is swapped for a recolour shader that follows the delivery's reference logic (the parents' masks over the atlas, a light 20% recipe tint on the plain body, glow zones replacing the baked emission). With the style test on (`Save.settings.style3d_test`), merges and base towers draw through the shared low-res layer instead (`Live3D`, `StyleRig`'s toon shader, `MergeArt.BODY`).
 
 ## Path colours
 

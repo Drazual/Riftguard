@@ -702,19 +702,19 @@ func _sync_merges(S: Run, speed: float) -> void:
 	for t: Tower in S.towers:
 		if not t.hybrid:
 			continue
-		if live == null:
-			_clear_merge_view(t)
-			continue
 		var spec := MergeArt.resolve(t)
 		if spec.is_empty():
 			_clear_merge_view(t)
 			continue
-		_sync_merge_live(S, t, spec, speed)
+		if live == null:
+			_sync_merge_smooth(S, t, spec, speed)
+		else:
+			_sync_merge_live(S, t, spec, speed)
 
 
 func _clear_merge_view(t: Tower) -> void:
 	var v = t.get_meta("view") if t.has_meta("view") else null
-	if v is Live3D.LiveTower and is_instance_valid(v):
+	if (v is Live3D.LiveTower or v is MERGE_VIEW) and is_instance_valid(v):
 		v.queue_free()
 		t.remove_meta("view")
 	if t.has_meta("merge_reuse"):
@@ -723,7 +723,51 @@ func _clear_merge_view(t: Tower) -> void:
 
 func _merge_model(t: Tower) -> bool:
 	var v = t.get_meta("view") if t.has_meta("view") else null
-	return v is Live3D.LiveTower and is_instance_valid(v)
+	return (v is Live3D.LiveTower or v is MERGE_VIEW) and is_instance_valid(v)
+
+
+## A merge GLB in its own smooth render (Merge3D), the default look (the shared Live3D layer is the style test's).
+## (preloaded, like the beacon's view, so the board doesn't depend on the editor's class list)
+const MERGE_VIEW := preload("res://scripts/board/merge_3d.gd")
+func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	var want := "%s@%s" % [spec.glb, spec.scale]
+	if v == null or not is_instance_valid(v) or not v is MERGE_VIEW or str(v.get_meta("glb", "")) != want:
+		if v and is_instance_valid(v):
+			v.queue_free()
+		var m = MERGE_VIEW.new()
+		m.scale = Vector2(1 / PX, 1 / PX)
+		m.position = Vector2(t.x, SY(t.y) + FOOT)
+		if not m.setup(spec):
+			m.free()
+			if t.has_meta("view"):
+				t.remove_meta("view")
+			return
+		m.set_meta("glb", want)
+		m.set_meta("st", t.shot_at)
+		units.add_child(m)
+		if blend():
+			MapLight.light(m.vp, blend())
+		t.set_meta("view", m)
+		v = m
+	var s = v
+	_seen(s)
+	s.position = Vector2(t.x, SY(t.y) + FOOT)
+	s.set_speed(speed)
+	s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
+	t.set_meta("merge_reuse", spec.reuse)
+	s.set_look(spec.colors, spec.body)
+	var e = t.last_target
+	var aim = null
+	if e != null and not e.dead and S.enemies.has(e):
+		aim = Vector2(e.x, e.y)
+	elif t.hit_at != null:
+		aim = t.hit_at
+	if aim != null and t.stun_t <= 0:
+		s.aim(Vector2(aim.x - t.x, SY(aim.y) - SY(t.y)))
+	if t.shot_at != s.get_meta("st"):
+		s.set_meta("st", t.shot_at)
+		s.shoot()
 
 
 func _sync_merge_live(S: Run, t: Tower, spec: Dictionary, speed: float) -> void:
