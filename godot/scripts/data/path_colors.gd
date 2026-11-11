@@ -2,7 +2,7 @@
 ## Edit the colours in res://data/path_colors.tres. A path's own `color` (alpha above 0) replaces its tag.
 ##
 ## for_tower() returns 3 colours in the order the paths were invested (Tower.order). Fewer than 3 paths
-## are padded with the tower's own colour. The 4th path (Oracle) still has a swatch; the mask only has 3 zones.
+## are padded with the tower's own colour. A tower uses 3 paths, one per mask zone.
 ## Two chosen paths with the same tag are shifted lighter or darker by that path's index in the tower's list,
 ## so they stay distinct. The shift is SHADE[index]: index 0 darkest, index 4 lightest.
 @tool

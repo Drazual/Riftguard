@@ -909,6 +909,28 @@ func _pierce_band(g: Node2D, S: Run, h: Hero) -> void:
 		_ring(g, e.pos(), e.r + 4, hx(0xff5d6c, 0.95), 2)
 
 
+## Air Strike being aimed by hand: the exact trail it lays (its reach and width, toward the cursor) and a ring on
+## every enemy it would catch.
+func _strike_band(g: Node2D, S: Run, h: Hero) -> void:
+	var a := h.ab
+	var from := h.pos()
+	var u: Vector2 = S.pointer - from
+	if u.length() < 1:
+		return
+	u = u.normalized()
+	var n := Vector2(-u.y, u.x) * a.w
+	var to := from + u * a.r
+	var wind := hx(0x9af0ff)
+	g.draw_colored_polygon(PackedVector2Array([from + n, to + n, to - n, from - n]), ca(wind, 0.28))
+	for side in [n, -n]:
+		_line(g, from + side, to + side, Color(0.08, 0.04, 0.14, 0.6), 4)
+		_line(g, from + side, to + side, wind, 2)
+	_line(g, from + n, from - n, wind, 2)
+	_line(g, to + n, to - n, wind, 2)
+	for e: Enemy in game.strike_line(h, a, S.pointer):
+		_ring(g, e.pos(), e.r + 4, hx(0xff5d6c, 0.95), 2)
+
+
 ## The grid square a tower standing at p fills on a free-build map: the snap grid square its foot is in (the same
 ## squares Game.snap_cell picks from), a hair inside the grid lines.
 func _snap_square(p: Vector2) -> Rect2:
@@ -2007,7 +2029,10 @@ func _draw_flat() -> void:
 	# Piercing Shot being aimed: its exact path (the full width that hits, out to the edge of the map) and a ring on
 	# every enemy it would hit
 	if S.pierce_aiming and h.ko <= 0 and S.pointer != null:
-		_pierce_band(g, S, h)
+		if h.ab.id == "stream":
+			_strike_band(g, S, h)
+		else:
+			_pierce_band(g, S, h)
 	if S.aim != null:
 		var a: Vector2 = S.aim
 		var gold := hx(0xffd36e, 0.95)

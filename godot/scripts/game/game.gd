@@ -18,7 +18,6 @@ const ALL_BLOCK := 999
 const SLOT_KEYS := ["q", "w", "e", "r"]
 const SHOT_SPEED := 800.0
 const ATK_FPS := 24.0
-const ORACLE_RANKS := [0, 2, 3, 4]
 const BOSS_CORES := { knight = 1, warden = 2, tyrant = 5 }
 const BIG_BOSS := { tyrant = true }
 const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", "knock", "crit", "boss", "aura", "spell", "mana", "shield", "bruiser"]
@@ -346,11 +345,16 @@ func tower_cost(type: String) -> int:
 
 
 func path_max() -> int:
-	return 3 if S.hero and S.hero.cls == "oracle" else R.path_max
+	return R.path_max
+
+
+## The point that unlocks a path's mastery: its last point, or the 3rd with the Oracle (the 4th still adds its rank).
+func mastery_at() -> int:
+	return 3 if S and S.hero and S.hero.cls == "oracle" else R.path_max
 
 
 func path_limit() -> int:
-	return R.path_limit + (1 if S.hero.cls == "oracle" else 0) + S.path_bonus
+	return R.path_limit + S.path_bonus
 
 
 func level_cost(t: Tower, opt) -> int:
@@ -361,7 +365,7 @@ func level_cost(t: Tower, opt) -> int:
 	if t.hybrid:
 		base = t.up_start * (1 + 0.3 * n) * R.hybrid_level_price
 	else:
-		base = t.base_cost * (R.oracle_level_cost_mult if path_max() == 3 else R.level_cost_mult) * (n + 1) * DB.towers[t.type].level_price
+		base = t.base_cost * R.level_cost_mult * (n + 1) * DB.towers[t.type].level_price
 	return int(round(base * R.level_cost_extra * S.hero.lvl_mul * (1 - 0.025 * rank(Save.meta.tower_global, "cost")) * map_price()))
 
 
@@ -1433,10 +1437,11 @@ func stream_target(h: Hero, a: Ability) -> Enemy:
 	return best
 
 
-## Where Gale aims Air Strike: the cursor, else the aim point (F), else the lead enemy in reach, else straight on the way
-## it faces. It needs no target: it can always be cast and aimed.
+## Where Gale aims Air Strike: where it was just aimed by hand (held Q / its button), else the cursor, else the aim
+## point (F), else the lead enemy in reach, else straight on the way it faces. It needs no target: it can always be
+## cast and aimed.
 func strike_aim(h: Hero, a: Ability) -> Vector2:
-	var at = S.pointer if S.pointer != null else S.aim
+	var at = S.pierce_at if S.pierce_at != null else (S.pointer if S.pointer != null else S.aim)
 	if at == null:
 		var goal := stream_target(h, a)
 		at = goal.pos() if goal != null else null
@@ -1475,6 +1480,15 @@ func air_stream(h: Hero, a: Ability, dir := Vector2.ZERO) -> void:
 	# the board's effect sets it off on its own blast; this timer is the fallback (no live model, or the effect couldn't
 	# show), a little later so the effect's blast wins when there is one. It only ever goes off once (st.done).
 	later(a.dur + (1.0 if h.beam_3d else 0.0), func(): strike_blast(h, st))
+
+
+## Enemies Air Strike would catch if it were cast toward goal now (the held-aim preview).
+func strike_line(h: Hero, a: Ability, goal: Vector2) -> Array:
+	var u := goal - h.pos()
+	if u.length() < 1:
+		return []
+	u = u.normalized()
+	return _on_strike(h.x, h.y, u.x, u.y, a)
 
 
 ## Enemies on Air Strike's trail from (x1, y1) along (ux, uy).
@@ -1758,11 +1772,17 @@ func lead_enemy() -> Enemy:
 	return best
 
 
-## Piercing Shot is aimed by hand: holding Q (or clicking its button) shows its exact path to the cursor, and letting
-## go of Q (or clicking the map) fires it there. Returns false when the hero has no Piercing Shot.
+## Abilities aimed by hand (locked fire): the Sniper's Piercing Shot and Gale's Air Strike.
+func held_aim(h: Hero) -> bool:
+	return h != null and (h.ab.id == "pierce" or h.ab.id == "stream")
+
+
+## Piercing Shot and Air Strike are aimed by hand: holding Q (or clicking its button) shows the exact path to the
+## cursor and who it will hit, and letting go of Q (or clicking the map) fires it there. Returns false when the
+## hero has neither.
 func pierce_aim_start(click := false) -> bool:
 	var h := S.hero if S else null
-	if h == null or h.ab.id != "pierce":
+	if not held_aim(h):
 		return false
 	if h.ko > 0 or h.ab.t > 0 or S.over or S.paused or h.stun_t > 0:
 		use_ability() # says why it can't fire
@@ -1770,12 +1790,12 @@ func pierce_aim_start(click := false) -> bool:
 	S.pierce_aiming = true
 	S.pierce_click = click
 	if click:
-		say("Aim Piercing Shot: click the map to fire. Esc cancels.")
+		say("Aim %s: click the map to fire. Esc cancels." % h.ab.name)
 	refresh("build_bar")
 	return true
 
 
-## Fires the Piercing Shot being aimed at (x, y) (the cursor when Q is let go), or at the usual goal off the map.
+## Fires the Piercing Shot or Air Strike being aimed at (x, y) (the cursor when Q is let go), or at the usual goal off the map.
 func pierce_aim_fire(at = null) -> void:
 	if not S.pierce_aiming:
 		return
@@ -3689,8 +3709,11 @@ func dev_ok() -> bool:
 
 
 ## Gold upgrades only show up from R.gold_from_wave on, so an early one can't snowball the whole run.
-## Tank heroes don't get hero damage upgrades, except Gale once it is in Bruiser Form.
+## Tank heroes don't get hero damage upgrades, except Gale once it is in Bruiser Form. Bruiser-only upgrades
+## (Gale holding more enemies) wait for Bruiser Form too.
 func dmg_ok(p: UpgradeData) -> bool:
+	if p.bruiser_only and not S.hero.bruiser:
+		return false
 	return not p.hero_damage or S.hero.data.category != "defensive" or S.hero.bruiser
 
 
@@ -3745,7 +3768,7 @@ func roll_perks() -> Array:
 			and (p.kind != "bounce" or not maxed or (p.id != "bounces" and h.bounce < BOUNCE_MAX))
 	var fits := func(p: UpgradeData) -> bool: return allowed.call(p) and (p.id != "critdmg" or h.crit > 0)
 	var ab_ok := func(p: UpgradeData) -> bool: return p.ability == "" or p.ability == h.ab.id
-	# The third slot can be a tower upgrade (cheaper towers and level-ups, range, merges) for any hero, more often the more
+	# The third slot can be a tower upgrade (cheaper level-ups, range, merges) for any hero, more often the more
 	# of them you already took, so a run leans toward the hero or the towers depending on what it gets.
 	var towers_taken := S.picks.filter(func(x): return x.perk.pool == "tower").size()
 	var tower_chance := minf(R.tower_slot_max, R.tower_slot_base + R.tower_slot_lean * towers_taken)
@@ -4373,12 +4396,11 @@ func apply_level(t: Tower, o: Dictionary) -> Dictionary:
 	var pts := t.ups_of(o.id) + 1
 	t.ups[o.id] = pts
 	var mx := path_max()
-	# Oracle points are bigger: they apply ranks in steps of 2/1/1, so 3 points reach the same rank 4.
-	var target: int = ORACLE_RANKS[pts] if mx == 3 else pts
+	var target := pts
 	for r in range(int(t.rk.get(o.id, 0)) + 1, target + 1):
 		_rank_up(t, o, r)
 	t.rk[o.id] = target
-	var mastered: bool = pts == mx and o.path != null and o.path.mastery_effect != ""
+	var mastered: bool = pts == mastery_at() and o.path != null and o.path.mastery_effect != ""
 	if mastered:
 		Fx.run(o.path.mastery_effect, { t = t })
 	if t.lvl == R.max_level:
@@ -4818,7 +4840,7 @@ func cancel_placing() -> bool:
 	if S.pierce_aiming:
 		S.pierce_aiming = false
 		S.pierce_click = false
-		say("Piercing Shot put away.")
+		say("%s put away." % S.hero.ab.name)
 		refresh("build_bar")
 		return true
 	if S.strike_ready:

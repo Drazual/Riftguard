@@ -932,7 +932,7 @@ func render_inspector() -> void:
 		if game.free_build():
 			where = "Left-click open ground to build: anywhere off the road, clear of other towers and inside the city's edge. The tower shows green where it fits and red where it doesn't."
 		v.add_child(Kit.muted(where + " If it's out of reach, your hero walks over and builds it. Right-click or press R to cancel."))
-		v.add_child(Kit.muted(("Towers level up to %d. Each level adds a point to one of 5 paths. A tower uses 3 paths of 4 points (with the Oracle, 4 paths of 3 bigger points). A path's last point unlocks its mastery, and at level %d the tower ascends into a form named after its paths. "
+		v.add_child(Kit.muted(("Towers level up to %d. Each level adds a point to one of 5 paths. A tower uses 3 paths of 4 points. A path's last point unlocks its mastery (with the Oracle, its 3rd point), and at level %d the tower ascends into a form named after its paths. "
 			+ "Two different level %d towers merge into a hybrid (merging costs %d gold), and two level %d hybrids merge into a super tower (%s gold) with signature powers.") % [DB.rules.max_level, DB.rules.max_level, DB.rules.max_level,
 			DB.rules.merge_cost, DB.rules.max_level, _thousands(DB.rules.super_cost)], 14))
 		return
@@ -1004,7 +1004,7 @@ func render_inspector() -> void:
 		if open and not DB.is_simple():
 			ch.add(Kit.c(UiText.preview_level(game, t, o), Kit.OK), 12)
 		if o.path and o.path.mastery_name != "":
-			var mn: String = ("★ Mastered: " if n >= game.path_max() else "Mastery at %d: " % game.path_max()) + o.path.mastery_name + ". " + DB.tx("mastery:" + t.type + ":" + o.id, o.path.mastery_desc)
+			var mn: String = ("★ Mastered: " if n >= game.mastery_at() else "Mastery at %d: " % game.mastery_at()) + o.path.mastery_name + ". " + DB.tx("mastery:" + t.type + ":" + o.id, o.path.mastery_desc)
 			ch.add(Kit.c(mn, Kit.ARCANE), 11)
 		if open:
 			var price := Kit.rich(Kit.c(("%d gold" % lc) if lc else "Free", Kit.GOLD), 12)
@@ -1385,7 +1385,7 @@ func _key(ev: InputEventKey) -> void:
 		if (not S.paused or S.user_pause) and not S.over and not game.cancel_placing():
 			game.sell_selected()
 	elif k == KEY_Q:
-		# Piercing Shot: hold Q to see its path, let go to fire; anything else fires on the press
+		# Piercing Shot and Air Strike: hold Q to see the path, let go to fire; anything else fires on the press
 		if not ev.echo and not game.pierce_aim_start():
 			game.use_ability()
 	elif k == KEY_H:

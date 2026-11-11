@@ -18,7 +18,7 @@ Live 3D towers pick up path colours through an accent mask. Hybrids and super to
 | arcane | `#FF4FC0` magenta |
 | multi | `#6CF07A` green |
 
-`PathColors.for_tower(tower)` returns three colours in the order paths were invested (`Tower.order`). Slots past the paths bought so far are the tower's own colour. A fourth path (the Oracle) still has a UI swatch; the mask only has three zones.
+`PathColors.for_tower(tower)` returns three colours in the order paths were invested (`Tower.order`). Slots past the paths bought so far are the tower's own colour.
 
 When two or more **chosen** paths share a tag, each is shifted by its index in the tower's path list (0–4), not by the order they were bought:
 

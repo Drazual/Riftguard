@@ -180,7 +180,7 @@ static func build_tip(g: Game, k: String) -> String:
 	var names := []
 	for p in g.tower_paths(k):
 		names.append(Kit.c("■", PathColors.of_path(p)) + " " + p.name)
-	s += Kit.c("Paths: %s. Pick up to %d of them (%d with the Oracle) as it levels to %d." % [", ".join(names), DB.rules.path_limit, DB.rules.path_limit + 1, DB.rules.max_level], Kit.MUTED)
+	s += Kit.c("Paths: %s. Pick up to %d of them as it levels to %d." % [", ".join(names), DB.rules.path_limit, DB.rules.max_level], Kit.MUTED)
 	return s
 
 

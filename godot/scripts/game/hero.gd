@@ -27,6 +27,7 @@ var base_rate := 0.6
 var cd := 0.0
 var range := 100.0
 var block := 1
+var block_add := 0 # Gale's Hold the Line: extra enemies held in Bruiser Form
 var regen := 2.0
 var armor := 0.0 # armor points: armor / (armor + 100) less damage (100 = half), never all of it
 var speed := 140.0
@@ -211,8 +212,10 @@ func bruiser_form() -> void:
 		return
 	bruiser = true
 	dmg *= 2.0
+	# the base doubles too, so upgrades worth "+X% of base damage" grow with the form
+	base_dmg *= 2.0
 	rate /= 1.25
-	block = DB.rules.bruiser_block
+	block = DB.rules.bruiser_block + block_add
 	max_hp = roundf(max_hp * 1.2)
 	hp = max_hp
 	armor += 20
