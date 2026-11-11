@@ -853,9 +853,9 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		if big:
 			d *= 3
 		if not art and t.beam:
-			line(t.x, t.y, target.x, target.y, Color.WHITE if t.stacks >= t.ramp_max else t.color, 0.22, 2 + t.stacks * 0.2)
+			line(t.x, t.y, target.x, target.y, Color.WHITE if t.stacks >= t.ramp_max else t.color, 0.22, 2 + t.stacks * 0.2, { tw = t })
 		elif not art and not t.lob:
-			line(t.x, t.y, target.x, target.y, t.color, 0.12, 3 if t.hybrid else 2)
+			line(t.x, t.y, target.x, target.y, t.color, 0.12, 3 if t.hybrid else 2, { tw = t })
 		# Everything the shot does happens when it lands: sprite towers fire a projectile and the hit waits for it.
 		var land := func(): _land(t, target, d, splash, big, frz, over, oc, aslow, art)
 		if art and not t.beam and not t.lob and not (target is Dictionary):

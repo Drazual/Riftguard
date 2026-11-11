@@ -156,8 +156,10 @@ func setup(spec: Dictionary) -> bool:
 	return true
 
 
-## A node by tower.json path (from the model root), else the first of these names anywhere in it.
+## A node by tower.json path (from the model root), else the first of these names anywhere in it. "-": none.
 func _node(path: String, names: Array) -> Node3D:
+	if path == "-":
+		return null # tower.json says this tower has no such node (a tower that doesn't aim)
 	if path != "":
 		var n := model.get_node_or_null(NodePath(path))
 		if n == null:

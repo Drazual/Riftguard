@@ -1,0 +1,22 @@
+{
+	"model": "cryo_coil.glb",
+	"yaw": "-",
+	"pitch": "-",
+	"anims": { "idle": "idle", "fire": "fire", "spawn": "spawn" },
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "cryo_coil_accent_mask.png",
+	"accent_mask_b": "cryo_coil_accent_mask_b.png",
+	"recipe_color": "#9AF0FF",
+	"parents": ["frost", "tesla"],
+	"dirs": 1,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 8,
+	"fire_time": 0.6,
+	"shot_time": 0.2,
+	"size": 160,
+	"wide": 62,
+	"foot": [80, 140],
+	"out": "cryo_coil_3d"
+}

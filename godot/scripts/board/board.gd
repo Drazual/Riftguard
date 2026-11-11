@@ -458,10 +458,23 @@ func is_sprite_tower(t: Tower) -> bool:
 
 
 func muzzle_lift(t: Tower) -> float:
+	var mm = merge_muzzle(t)
+	if mm != null:
+		return SY(t.y) - (mm as Vector2).y
 	var d: TowerData = DB.towers.get(t.type)
 	if d == null or d.frames == null:
 		return 14.0
 	return (d.foot_y - d.muzzle_y) / PX - FOOT
+
+
+## Where a hybrid or super drawn from its own GLB (Merge3D) shows its Muzzle on the board, or null.
+func merge_muzzle(t) -> Variant:
+	if not (t is Tower) or not t.hybrid or not t.has_meta("view"):
+		return null
+	var v = t.get_meta("view")
+	if v is MERGE_VIEW and is_instance_valid(v) and v.muzzle != null:
+		return v.position + v.muzzle_at() * v.scale
+	return null
 
 
 func body_lift(e) -> float:
@@ -2292,7 +2305,10 @@ func _draw_over() -> void:
 			_circle(o, p, f.r * 0.4, Color(1, 1, 1, 0.9))
 		elif f.k == "line":
 			var l1: float = f.l1 if f.get("l1") != null else 12.0
-			_line(o, Vector2(f.x1, SY(f.y1) - l1), Vector2(f.x2, SY(f.y2) - 12), ca(fc, a), f.w)
+			# a merge tower's shot leaves from its model's Muzzle
+			var lf = merge_muzzle(f.get("tw"))
+			var from: Vector2 = lf if lf != null else Vector2(f.x1, SY(f.y1) - l1)
+			_line(o, from, Vector2(f.x2, SY(f.y2) - 12), ca(fc, a), f.w)
 		elif f.k == "num":
 			# a crit: the damage number pops up over the enemy and floats away
 			var q := 1 - a
