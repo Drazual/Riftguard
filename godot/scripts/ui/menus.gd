@@ -1033,7 +1033,7 @@ func show_towers(sel := "arcane") -> void:
 		var who: String = DB.heroes[ps.hero].name if DB.heroes.has(ps.hero) else "Other heroes"
 		v.add_child(Kit.rich(Kit.b(who) + "  " + Kit.c(", ".join(ps.paths.map(func(p): return p.name)), Kit.MUTED), 14))
 	for p: TowerPath in (_all_hero_paths(d) if d.hero_paths.size() else d.paths):
-		v.add_child(Kit.rich(Kit.b(p.name) + "  " + Kit.c(DB.tx("path:" + sel + ":" + p.id, p.desc), Kit.MUTED) + "\n" + Kit.c("Mastery: %s. %s" % [p.mastery_name, DB.tx("mastery:" + sel + ":" + p.id, p.mastery_desc)], Kit.ARCANE), 14))
+		v.add_child(Kit.rich(Kit.c("■ ", PathColors.of_path(p)) + Kit.b(p.name) + "  " + Kit.c(DB.tx("path:" + sel + ":" + p.id, p.desc), Kit.MUTED) + "\n" + Kit.c("Mastery: %s. %s" % [p.mastery_name, DB.tx("mastery:" + sel + ":" + p.id, p.mastery_desc)], Kit.ARCANE), 14))
 	# the Hero Shrine has no Signature, merges or named forms
 	if not d.hero_buff:
 		section(v, "Boss Core upgrade", null, Kit.PINK)

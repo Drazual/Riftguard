@@ -221,6 +221,7 @@ desc = "Long-range blasts that throw chain lightning outward."
 script = ExtResource("1_qr0rf")
 key = "arcane+frost+plasma+tesla"
 name = "Rift Singularity"
+color = Color(0.6901961, 0.4862745, 1, 1)
 desc = "Holds the power of all four towers: fast bolts, explosions, deep slows and chain lightning in every shot."
 
 [sub_resource type="Resource" id="Resource_ayfo3"]

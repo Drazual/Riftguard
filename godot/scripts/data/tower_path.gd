@@ -7,8 +7,11 @@ extends Resource
 
 @export var id := ""
 @export var name := ""
-## Merge tag: decides which fusion effects a hybrid made from this tower can learn.
+## Merge tag: decides which fusion effects a hybrid made from this tower can learn, and its accent colour
+## (see PathColors) unless `color` is set.
 @export_enum("power", "arcane", "precision", "speed", "burst", "burn", "slow", "chain", "multi") var tag := "power"
+## Accent colour for this path. Alpha 0 uses the shared tag colour in res://data/path_colors.tres.
+@export var color := Color(0, 0, 0, 0)
 ## Words used to name the ascended form: adjective, noun, title ("Runic Glyph of Runes").
 @export var adjective := ""
 @export var noun := ""

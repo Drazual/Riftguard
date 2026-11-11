@@ -26,6 +26,13 @@ var hybrid := false
 var is_super := false
 var perfected := false
 var parents: PackedStringArray = []
+## Path colours of the two towers this one was merged from, stored at merge time.
+## Each entry is the 3 colours from PathColors.for_tower of that parent.
+## On a hybrid they follow the sorted recipe key (mask A, then mask B). On a super they are the two hybrids,
+## the one the merge started from first.
+var parent_colors: Array = []
+## Colours to put on a reused hybrid model (the first hybrid's parent_colors). Empty on a base tower.
+var model_colors: Array = []
 var tags: PackedStringArray = []
 var fusions: Array = [] # FusionData
 var up_start := 0
@@ -151,6 +158,7 @@ var spent := 0
 var base_cost := 0
 var ups := {}
 var rk := {}
+## Path ids in the order they were first invested. PathColors.for_tower follows this.
 var order: Array = []
 var free_ups := 0
 var dmg_wave := 0.0
