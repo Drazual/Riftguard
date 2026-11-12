@@ -726,6 +726,7 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 		else:
 			_sync_merge_live(S, t, spec, speed)
 	_sync_lance_sparks(S, speed, dt)
+	_sync_ion(S, speed, dt)
 	# beams of towers that are gone (sold, merged on) or of a finished run fade out
 	for t in lance_beams.keys():
 		if S.over or not S.towers.has(t) or not t.lance or t.get_meta("lance_f", -1) != frame_no:
@@ -828,6 +829,51 @@ func _sync_lance_sparks(S: Run, speed: float, dt: float) -> void:
 		lance_sparks.burst(at, to, f.heat)
 	if lance_sparks != null and is_instance_valid(lance_sparks):
 		lance_sparks.tick(dt * speed)
+
+
+## Ion Storm's shells, blasts and outward lightning (the game's "ion_shell" and "ion_blast" fx), all drawn by one
+## shared IonStormFX (its tower.json "fx") on top, stepped in game time so a pause or speed-up holds it in step.
+var ion_fx: Node2D = null
+var _ion_scene := {} # folder -> PackedScene (or null)
+func _ion_fx_for(t: Tower) -> Node2D:
+	if ion_fx != null and is_instance_valid(ion_fx):
+		return ion_fx
+	var spec := MergeArt.resolve(t)
+	if spec.is_empty():
+		return null
+	var dir := str(spec.glb).get_base_dir()
+	if not _ion_scene.has(dir):
+		var p := dir.path_join(str(spec.cfg.get("fx", "")))
+		_ion_scene[dir] = load(p) if spec.cfg.has("fx") and ResourceLoader.exists(p) else null
+	if _ion_scene[dir] == null:
+		return null
+	ion_fx = _ion_scene[dir].instantiate()
+	top.add_child(ion_fx)
+	return ion_fx
+
+
+func _sync_ion(S: Run, speed: float, dt: float) -> void:
+	for f: Dictionary in S.fx:
+		if (f.k != "ion_shell" and f.k != "ion_blast") or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		var fx := _ion_fx_for(tw)
+		if fx == null:
+			continue
+		var at := Vector2(f.x, SY(f.y))
+		if f.k == "ion_shell":
+			var mz = merge_muzzle(tw)
+			fx.launch(mz if mz != null else Vector2(tw.x, SY(tw.y) - 40), at, f.flight, Callable(), f.pw)
+		else:
+			fx.blast(at, f.r, f.pw)
+			var to: Array[Vector2] = []
+			for o in f.to:
+				to.append(Vector2(o.x, SY(o.y) - body_lift(o)))
+			if to.size():
+				fx.fork(at, to, f.pw)
+	if ion_fx != null and is_instance_valid(ion_fx):
+		ion_fx.tick(dt * speed)
 
 
 func _clear_merge_view(t: Tower) -> void:

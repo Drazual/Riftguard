@@ -1,0 +1,35 @@
+{
+	"model": "ion_storm.glb",
+	"yaw": "-",
+	"pitch": "-",
+	"anims": {
+		"idle": "idle",
+		"fire": "fire",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "ion_storm_accent_mask.png",
+	"accent_mask_b": "ion_storm_accent_mask_b.png",
+	"recipe_color": "#FFD36E",
+	"parents": [
+		"plasma",
+		"tesla"
+	],
+	"dirs": 16,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 10,
+	"fire_time": 1.0,
+	"shot_time": 0.55,
+	"shot_up": true,
+	"shell_flight": 0.6,
+	"fx": "fx/ion_storm_fx.tscn",
+	"size": 160,
+	"wide": 56,
+	"foot": [
+		80,
+		140
+	],
+	"out": "ion_storm_3d"
+}
