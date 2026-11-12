@@ -105,6 +105,14 @@ var hex_nova := 0.0
 var hypo := 0.0
 var cold_snap := 0.0
 var beam := false
+## Prism Lance (arcane+laser): a held beam that charges first, then ticks every rate, heating up on one target.
+var lance := false
+var lance_state := "" # "" (idle), "charge" (warming up, the first tick waits), "on" (the beam is held)
+var lance_wait := 0.0 # charge time left (game time: the clip plays at game speed, whatever speeds the tower up)
+## Arcane sparks: after each tick's hit, up to spark_n enemies within spark_r of the target take spark_pct of it.
+var spark_n := 0.0
+var spark_r := 0.0
+var spark_pct := 0.0
 var retain := false
 var melt := false
 var lob := false

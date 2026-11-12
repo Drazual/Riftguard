@@ -88,6 +88,9 @@ var mask_a: Texture2D
 var mask_b: Texture2D
 var _upp := 0.0 # model metres per board pixel
 var _sig := ""
+var beam := false # tower.json "beam": a held beam (Prism Lance): charge, then fire loops until the beam stops
+var charge := ""
+var tilt_aim := 0.0 # the Gun's rest pitch (tower.json "aim"); a beam tilts from it toward the target
 var driven := false # stepped by the board in game time (tick), not by the engine's clock
 
 
@@ -145,6 +148,7 @@ func setup(spec: Dictionary) -> bool:
 	mask_b = MergeArt.load_mask(glb, "_accent_mask_b.png", model, "accent_mask_b")
 	if pitch_node and cfg.has("aim"):
 		pitch_node.rotation.x = float(cfg.aim)
+		tilt_aim = float(cfg.aim)
 	_arm_clips()
 	var pic := Sprite2D.new()
 	pic.name = "Pic"
@@ -255,8 +259,17 @@ func _arm_clips() -> void:
 					anim.remove_track(ti)
 	if idle != "":
 		ap.get_animation(idle).loop_mode = Animation.LOOP_LINEAR
+	beam = bool(cfg.get("beam", false))
+	charge = str(anims.get("charge", "charge")) if beam else ""
+	if charge != "" and not ap.has_animation(charge):
+		charge = ""
+	if beam and fire != "":
+		ap.get_animation(fire).loop_mode = Animation.LOOP_LINEAR
 	ap.animation_finished.connect(func(n: StringName):
-		if String(n) != idle and idle != "":
+		# a beam's charge runs straight into its held fire loop (queue() isn't relied on: finished fires anyway)
+		if beam and String(n) == charge and fire != "":
+			ap.play(fire)
+		elif String(n) != idle and idle != "":
 			ap.play(idle))
 	var spawn := str(anims.get("spawn", "spawn"))
 	if ap.has_animation(spawn):
@@ -308,9 +321,42 @@ func aim(screen: Vector2) -> void:
 
 
 func shoot() -> void:
+	if beam:
+		return # a beam's ticks leave the clip alone (beam_on / beam_off drive it)
 	if ap and fire != "":
 		ap.stop()
 		ap.play(fire)
+
+
+## The beam warms up: the charge clip plays (once per lock; ticks and retargets don't restart it).
+func beam_on() -> void:
+	if ap == null or not beam:
+		return
+	var cur := String(ap.current_animation)
+	if cur == charge or cur == fire:
+		return
+	if charge != "":
+		ap.play(charge)
+	elif fire != "":
+		ap.play(fire)
+
+
+## The beam drops: back to idle with a short cross-fade (fire's first frame is lit, not the idle pose).
+func beam_off() -> void:
+	if ap == null or not beam:
+		return
+	var cur := String(ap.current_animation)
+	if (cur == charge or cur == fire) and idle != "":
+		ap.play(idle, 0.15)
+	ap.speed_scale = 1.0
+
+
+## A beam tilts its Gun a little with the target's distance (board pixels): up for far, down for near.
+func tilt(dist: float) -> void:
+	if pitch_node == null or not beam:
+		return
+	var want := tilt_aim + clampf((dist - 110.0) / 400.0, -0.12, 0.16) * -1.0
+	pitch_node.rotation.x = lerpf(pitch_node.rotation.x, want, 0.2)
 
 
 func set_speed(s: float) -> void:

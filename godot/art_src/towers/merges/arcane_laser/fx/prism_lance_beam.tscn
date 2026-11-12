@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://art_src/towers/merges/arcane_laser/fx/prism_lance_beam.gd" id="1_beam"]
+
+[node name="PrismLanceBeam" type="Node2D"]
+script = ExtResource("1_beam")

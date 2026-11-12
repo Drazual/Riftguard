@@ -296,7 +296,7 @@ texts = {
 "recipe:anvil+tesla": "Lightning that hits stopped enemies harder.",
 "recipe:arcane+beacon": "Fast bolts, and buffs nearby towers.",
 "recipe:arcane+frost": "Fast ice shards that slow enemies.",
-"recipe:arcane+laser": "Fast bolts that heat up on one enemy.",
+"recipe:arcane+laser": "A beam that heats up on one enemy, with sparks that jump to others.",
 "recipe:arcane+mortar": "Long-range bolts that explode.",
 "recipe:arcane+plasma": "Fast bolts that explode on impact.",
 "recipe:arcane+tesla": "Heavy bolts that jump to more enemies.",

@@ -54,6 +54,8 @@ static func traits(g: Game, t: Tower) -> Array:
 	if t.zero: out.append("Constantly slows every enemy in range by %s." % pct(t.zero))
 	if t.beam: out.append("Beam heat: +%s damage per tick on the same target, up to %d ticks (+%s).%s%s" % [pct(t.ramp), int(t.ramp_max), pct(t.ramp * t.ramp_max),
 		" Double damage at full heat." if t.melt else "", " Keeps half its heat when switching." if t.retain else ""])
+	if t.lance and t.spark_n: out.append("Arcane sparks: each tick, %d nearby enemies (one more at half heat%s) take %s of its damage." % [int(t.spark_n),
+		(", +%d from Prism Split" % int(round(t.prism))) if t.prism else "", pct(t.spark_pct)])
 	if t.lob: out.append("Lobs shells up to %s away; they land a moment later.%s%s%s" % [f0(g.t_range(t)), (" A second shell follows for %s." % pct(t.salvo)) if t.salvo else "",
 		" Leaves burning ground." if t.firestorm else "", " Every 4th shell stuns." if t.quake_stun else ""])
 	if t.hypo: out.append("Hits add chill stacks; at %d stacks the enemy freezes for 0.8s (bosses 0.3s)%s" % [int(t.hypo), " and the freeze bursts to enemies within 70." if t.cold_snap else "."])
