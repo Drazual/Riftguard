@@ -1,6 +1,6 @@
 ## Checks this round's hero balance changes in a real run (headless):
 ## the Striker's Rift Nova grows with its hero damage, Armor Piercing lets its shots through armor, Piercing Shot
-## starts at 2.5x, and the Sniper's Radiation Field upgrade leaves a field after Orbital Strike that hurts and
+## starts at 2.0x, and the Sniper's Radiation Field upgrade leaves a field after Orbital Strike that hurts and
 ## slows for 4s. godot --headless --path godot res://tests/hero_abilities.tscn
 extends Node
 
@@ -61,9 +61,9 @@ func _ready() -> void:
 	_check(absf((hp - e.hp) - 100 * (1 - a1)) < 0.5, "a 100 hit deals %.0f" % (hp - e.hp))
 	m.queue_free()
 	await get_tree().process_frame
-	# Sniper: Piercing Shot 2.5x
+	# Sniper: Piercing Shot 2.0x
 	m = await _run("sniper", false)
-	_check(m.game.S.hero.ab.id == "pierce" and is_equal_approx(m.game.S.hero.ab.mult, 2.5), "Piercing Shot %.1fx" % m.game.S.hero.ab.mult)
+	_check(m.game.S.hero.ab.id == "pierce" and is_equal_approx(m.game.S.hero.ab.mult, 2.0), "Piercing Shot %.1fx" % m.game.S.hero.ab.mult)
 	m.queue_free()
 	await get_tree().process_frame
 	# Sniper with Orbital Strike: Radiation Field
