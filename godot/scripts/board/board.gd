@@ -721,8 +721,113 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 			continue
 		if live == null:
 			_sync_merge_smooth(S, t, spec, speed, dt)
+			if bool(spec.cfg.get("beam", false)):
+				_sync_lance(S, t, spec, speed, dt)
 		else:
 			_sync_merge_live(S, t, spec, speed)
+	_sync_lance_sparks(S, speed, dt)
+	# beams of towers that are gone (sold, merged on) or of a finished run fade out
+	for t in lance_beams.keys():
+		if S.over or not S.towers.has(t) or not t.lance or t.get_meta("lance_f", -1) != frame_no:
+			_lance_off(t)
+
+
+## Prism Lance's held beam and its look (art from its folder's tower.json: beam_fx, spark_fx, heat_script). The game
+## owns the beam's state (Tower.lance_state: charge, then on) and its heat; this draws it from the model's Muzzle to
+## the target's chest, plays charge then the fire loop on the model, and heats the model and the clip up with it.
+var lance_beams := {} # Tower -> its PrismLanceBeam
+var lance_sparks: Node2D = null # one shared PrismLanceSparks for every lance's sparks
+var _lance_art := {} # folder -> {beam: PackedScene, sparks: PackedScene, heat: Script}
+func _lance_art_of(spec: Dictionary) -> Dictionary:
+	var dir := str(spec.glb).get_base_dir()
+	if not _lance_art.has(dir):
+		var cfg: Dictionary = spec.cfg
+		var a := {}
+		for k in [["beam", "beam_fx"], ["sparks", "spark_fx"], ["heat", "heat_script"]]:
+			var p := dir.path_join(str(cfg.get(k[1], "")))
+			a[k[0]] = load(p) if cfg.has(k[1]) and ResourceLoader.exists(p) else null
+		_lance_art[dir] = a
+	return _lance_art[dir]
+
+
+func _sync_lance(S: Run, t: Tower, spec: Dictionary, speed: float, dt: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if not (v is MERGE_VIEW) or not is_instance_valid(v):
+		_lance_off(t)
+		return
+	t.set_meta("lance_f", frame_no)
+	var art := _lance_art_of(spec)
+	var heat := game.lance_heat(t)
+	if art.heat:
+		art.heat.apply(v.model, heat)
+	var e = t.last_target
+	var alive: bool = e != null and not e.dead and S.enemies.has(e)
+	var bm = lance_beams.get(t)
+	if t.stun_t > 0 or t.lance_state == "" or (not alive and (bm == null or t.lance_state != "on")):
+		_lance_off(t)
+		return
+	v.beam_on()
+	if t.lance_state != "on":
+		return # still charging: the beam starts when the charge clip is done
+	v.ap.speed_scale = art.heat.clip_speed(heat) if art.heat else 1.0
+	var from: Vector2 = merge_muzzle(t) if merge_muzzle(t) != null else Vector2(t.x, SY(t.y) - 20)
+	# the target just died: the beam holds on the spot until the next tick picks a new one
+	var to: Vector2 = Vector2(e.x, SY(e.y) - body_lift(e)) if alive else bm.to
+	if alive:
+		v.tilt(Vector2(e.x - t.x, e.y - t.y).length())
+	if bm == null or not is_instance_valid(bm):
+		if art.beam == null:
+			return
+		bm = art.beam.instantiate()
+		top.add_child(bm)
+		lance_beams[t] = bm
+		t.set_meta("lance_beam", bm)
+		bm.start(from, to)
+		bm.set_meta("e", e)
+	elif bm.get_meta("e") != e:
+		bm.retarget(to)
+		bm.set_meta("e", e)
+	bm.set_ends(from, to)
+	bm.heat = heat
+	bm.tick(dt * speed)
+
+
+## The beam fades out and the model goes back to idle (stun, no target, sold, merged, the run's end).
+func _lance_off(t: Tower) -> void:
+	var bm = lance_beams.get(t)
+	if bm != null and is_instance_valid(bm):
+		bm.stop(true)
+		bm.driven = false # nothing ticks it from here: it fades and frees itself on the engine's clock
+	lance_beams.erase(t)
+	if t.has_meta("lance_beam"):
+		t.remove_meta("lance_beam")
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if v is MERGE_VIEW and is_instance_valid(v):
+		v.beam_off()
+
+
+## Every lance tick's sparks (the game's "sparks" fx): they burst off the impact and fly to the enemies they hit.
+func _sync_lance_sparks(S: Run, speed: float, dt: float) -> void:
+	for f: Dictionary in S.fx:
+		if f.k != "sparks" or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		var spec := MergeArt.resolve(tw)
+		var art := _lance_art_of(spec) if not spec.is_empty() else {}
+		if art.get("sparks") == null:
+			continue
+		if lance_sparks == null or not is_instance_valid(lance_sparks):
+			lance_sparks = art.sparks.instantiate()
+			top.add_child(lance_sparks)
+		var e = f.e
+		var at := Vector2(f.x, SY(f.y) - (body_lift(e) if e is Enemy else 12.0))
+		var to: Array[Vector2] = []
+		for o in f.to:
+			to.append(Vector2(o.x, SY(o.y) - body_lift(o)))
+		lance_sparks.burst(at, to, f.heat)
+	if lance_sparks != null and is_instance_valid(lance_sparks):
+		lance_sparks.tick(dt * speed)
 
 
 func _clear_merge_view(t: Tower) -> void:

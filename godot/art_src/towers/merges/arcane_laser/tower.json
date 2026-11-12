@@ -1,0 +1,39 @@
+{
+	"model": "prism_lance.glb",
+	"yaw": "Turret",
+	"pitch": "Turret/Gun",
+	"anims": {
+		"idle": "idle",
+		"charge": "charge",
+		"fire": "fire",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "prism_lance_accent_mask.png",
+	"accent_mask_b": "prism_lance_accent_mask_b.png",
+	"recipe_color": "#FF6FA0",
+	"parents": [
+		"arcane",
+		"laser"
+	],
+	"aim": 0.12,
+	"dirs": 16,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"beam": true,
+	"charge_time": 0.3,
+	"fire_time": 0.8,
+	"fire_loop": true,
+	"shot_time": 0.0,
+	"beam_fx": "fx/prism_lance_beam.tscn",
+	"spark_fx": "fx/prism_lance_sparks.tscn",
+	"heat_script": "fx/prism_lance_heat.gd",
+	"size": 160,
+	"wide": 46,
+	"foot": [
+		80,
+		140
+	],
+	"out": "prism_lance_3d"
+}

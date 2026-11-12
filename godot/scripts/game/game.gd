@@ -522,6 +522,13 @@ func fire_lead(t: Tower) -> float:
 	return d.fire_frame / ATK_FPS
 
 
+## Prism Lance: how long the beam warms up from idle before its first tick (its model's charge clip), and its sparks.
+const LANCE_CHARGE := 0.3
+const LANCE_SPARKS := 2
+const LANCE_SPARK_R := 90.0
+const LANCE_SPARK_PCT := 0.35
+
+
 ## A merge tower drawn from its own model fires at the shot moment of its fire clip (tower.json "shot_time"), so a
 ## charge-up shows before the shot leaves (the Bombard's plasma charge). 0 for everything else.
 func merge_lead(t: Tower) -> float:
@@ -873,7 +880,7 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 					line(t.x, t.y, target.x, target.y, t.color, 0.12, 3, { tw = t })
 					land.call())
 			continue
-		if not art and t.beam:
+		if not art and t.beam and not t.lance:
 			line(t.x, t.y, target.x, target.y, Color.WHITE if t.stacks >= t.ramp_max else t.color, 0.22, 2 + t.stacks * 0.2, { tw = t })
 		elif not art and not t.lob:
 			line(t.x, t.y, target.x, target.y, t.color, 0.12, 3 if t.hybrid else 2, { tw = t })
@@ -892,6 +899,29 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 			line(t.x, t.y, extra.x, extra.y, 0xff6fd8, 0.15, 3)
 
 
+## Prism Lance's arcane sparks off one beam tick: up to spark_n enemies (one more at half heat, and Prism Split's
+## extra targets on top) within spark_r of the target, nearest first, each take spark_pct of the tick's damage at
+## once. The board draws them flying there (an fx "sparks" entry).
+func lance_sparks(t: Tower, target, d: float, hits: Array, aslow: float) -> void:
+	var heat := lance_heat(t)
+	var n := int(t.spark_n) + (1 if heat >= 0.5 else 0) + int(round(t.prism))
+	if n <= 0 or t.spark_pct <= 0:
+		return
+	var near := in_range(target.x, target.y, t.spark_r).filter(func(o): return o != target and not hits.has(o))
+	near.sort_custom(func(p, q): return hyp(p.x - target.x, p.y - target.y) < hyp(q.x - target.x, q.y - target.y))
+	near = near.slice(0, n)
+	if near.is_empty():
+		return
+	for o in near:
+		apply_hit(t, o, d * t.spark_pct, false, aslow)
+	fx_add({ k = "sparks", tw = t, x = target.x, y = target.y, e = target, to = near.duplicate(), heat = heat, t = 0.3, quiet = true })
+
+
+## How hot Prism Lance's beam is, 0..1 (its heat stacks over the most it can hold).
+func lance_heat(t: Tower) -> float:
+	return clampf(t.stacks / maxf(1.0, t.ramp_max), 0.0, 1.0)
+
+
 ## A shot landing. target is an Enemy, or a Dictionary {x, y, d, dead, fake} for a mortar shell's landing spot.
 func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float, art: bool) -> void:
 	var h := S.hero
@@ -905,7 +935,9 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 		apply_hit(t, e, d, frz, aslow)
 		if over:
 			e.stun_t = maxf(e.stun_t, 0.5)
-	if t.prism:
+	if t.lance and not fake:
+		lance_sparks(t, target, d, hits, aslow)
+	elif t.prism:
 		var n := 0
 		for o in in_range(target.x, target.y, 90):
 			if hits.has(o):
@@ -3634,6 +3666,7 @@ func _towers_step(h: Hero, dt: float) -> void:
 			t.curse_t -= dt
 		if t.stun_t > 0:
 			t.stun_t -= dt
+			t.lance_state = ""
 			continue
 		if t.support or t.hero_buff:
 			continue
@@ -3656,6 +3689,30 @@ func _towers_step(h: Hero, dt: float) -> void:
 			spd *= 1 - t.curse_rate
 		if t.pact and S.enemies.any(func(e): return e.blocked and hyp(e.x - t.x, e.y - t.y) <= t_range(t)):
 			spd *= 2
+		if t.lance:
+			# the beam drops when nothing is in range: heat bleeds off, and the next lock warms up again
+			var any := not in_range(t.x, t.y, t_range(t)).is_empty()
+			if t.lance_state != "" and not any:
+				t.lance_state = ""
+			if t.lance_state == "":
+				t.stacks = maxf(0.0, t.stacks - dt * 5.0)
+				if not any:
+					continue
+				# acquiring from idle: the charge plays and the first tick waits for it (no charge on a retarget)
+				var first := in_range(t.x, t.y, t_range(t))
+				sort_targets(t, first)
+				t.lance_state = "charge"
+				t.lance_wait = LANCE_CHARGE
+				if t.last_target != first[0]:
+					t.stacks = floorf(t.stacks / 2) if t.retain else 0.0
+				t.last_target = first[0]
+				continue
+			if t.lance_state == "charge":
+				t.lance_wait -= dt
+				if t.lance_wait > 0:
+					continue
+				t.lance_state = "on"
+				t.cd = 0.0
 		t.cd -= dt * spd
 		if t.cd > 0:
 			continue
@@ -4692,6 +4749,15 @@ func try_merge(a: Tower, b: Tower) -> void:
 	m.hex_nova = maxf(a.hex_nova, b.hex_nova)
 	if m.parents.has("anvil"):
 		m.crush = maxf(m.crush, 0.5)
+	# Prism Lance keeps the laser's beam: a steady beam that heats up on one enemy, with arcane sparks off each tick
+	if not m.is_super and m.type == "arcane+laser":
+		m.beam = true
+		m.lance = true
+		m.ramp = 0.08 # the laser's heat: +8% a tick on one enemy (Arcane's bolt heat doesn't carry onto a beam)
+		m.ramp_max = 10.0
+		m.spark_n = LANCE_SPARKS
+		m.spark_r = LANCE_SPARK_R
+		m.spark_pct = LANCE_SPARK_PCT
 	# a hybrid fires normal shots, so the Razor Disc's cutting lives on as pierce
 	if m.parents.has("disc"):
 		m.pierce = maxf(m.pierce, 3)

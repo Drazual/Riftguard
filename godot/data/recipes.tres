@@ -124,7 +124,7 @@ script = ExtResource("1_qr0rf")
 key = "arcane+laser"
 name = "Prism Lance"
 color = Color(1, 0.43529412, 0.627451, 1)
-desc = "Rapid bolts that heat up and hit harder the longer they stay on one enemy."
+desc = "Holds a beam that heats up the longer it stays on one enemy. Every tick, arcane sparks leap to nearby enemies for 35% of the beam's damage."
 
 [sub_resource type="Resource" id="Resource_cebf4"]
 script = ExtResource("1_qr0rf")
