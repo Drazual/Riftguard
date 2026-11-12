@@ -88,6 +88,7 @@ var mask_a: Texture2D
 var mask_b: Texture2D
 var _upp := 0.0 # model metres per board pixel
 var _sig := ""
+var driven := false # stepped by the board in game time (tick), not by the engine's clock
 
 
 ## spec: MergeArt.resolve(t). False when the model does not load (the board keeps the plinth).
@@ -116,7 +117,7 @@ func setup(spec: Dictionary) -> bool:
 		for z in [full.position.z, full.end.z]:
 			reach = maxf(reach, Vector2(x, z).length())
 	var k := s / _upp # board pixels per model metre
-	var h := full.end.y
+	var h := full.end.y * 1.2 # headroom over the top for effects that reach past the mesh (bolts, charge rings, recoil)
 	box = Vector2(ceilf(2 * reach * k + 10), ceilf((h * cos(p) + 2 * reach * sin(p)) * k + 10))
 	foot = Vector2(box.x / 2, box.y - reach * sin(p) * k - 5)
 	vp = SubViewport.new()
@@ -313,8 +314,21 @@ func shoot() -> void:
 
 
 func set_speed(s: float) -> void:
-	if ap:
+	if ap and not driven:
 		ap.speed_scale = s
+
+
+## The board steps the model in game time (dt already scaled by the game's speed, 0 while paused), so the fire
+## clip's shot moment lines up with the game's held shot (Game.merge_lead) even when frames run slow.
+func tick(game_dt: float) -> void:
+	if not driven:
+		driven = true
+		if ap:
+			ap.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+			ap.speed_scale = 1.0
+	if ap and game_dt > 0:
+		ap.advance(game_dt)
+	_turn(game_dt)
 
 
 ## Where the muzzle shows, in this node's units (board pixels from the tower's base), for shots and flashes.
@@ -325,8 +339,12 @@ func muzzle_at() -> Vector2:
 
 
 func _process(dt: float) -> void:
-	if yaw_node == null:
+	if not driven:
+		_turn(dt * (ap.speed_scale if ap else 1.0))
+
+
+func _turn(dt: float) -> void:
+	if yaw_node == null or dt <= 0:
 		return
-	var sp := ap.speed_scale if ap else 1.0
-	yaw = lerp_angle(yaw, want_yaw, 1.0 - exp(-10.0 * dt * maxf(sp, 0.01)))
+	yaw = lerp_angle(yaw, want_yaw, 1.0 - exp(-10.0 * dt))
 	yaw_node.rotation.y = yaw

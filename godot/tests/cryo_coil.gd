@@ -169,9 +169,14 @@ func _ready() -> void:
 			fired = true
 			break
 	_check(fired, "fire plays when the Cryo Coil shoots in a wave")
-	var shot_line := S.fx.filter(func(f): return f.k == "line" and f.get("tw") == rail)
-	_check(shot_line.size() > 0, "its shot line is tagged with the tower, so the board starts it at the Muzzle")
-	await get_tree().create_timer(0.2).timeout
+	# the shot leaves at the fire clip's shot moment (tower.json shot_time 0.2 s), from the Muzzle
+	var seen_line := false
+	for i in 40:
+		await get_tree().process_frame
+		if S.fx.any(func(f): return f.k == "line" and f.get("tw") == rail):
+			seen_line = true
+			break
+	_check(seen_line, "its shot line is tagged with the tower, so the board starts it at the Muzzle")
 	await _crop("5_firing", at, Vector2(110, 90), 3)
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(out.path_join("6_board.png"))

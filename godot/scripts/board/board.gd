@@ -418,7 +418,7 @@ func sync(dt: float) -> void:
 	if S and not S.paused and not S.over:
 		speed = S.speed
 	_sync_towers(S, speed)
-	_sync_merges(S, speed)
+	_sync_merges(S, speed, dt)
 	_sync_ghost(S)
 	_sync_hero(S, dt, speed)
 	_sync_hero_shots(S, dt, speed)
@@ -709,7 +709,7 @@ func _sync_turret_live(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 
 ## Hybrids and supers with a GLB under art_src/towers/merges draw through the same live turret path.
 ## No file, or the unified 3D style off: the placeholder plinth stays.
-func _sync_merges(S: Run, speed: float) -> void:
+func _sync_merges(S: Run, speed: float, dt: float) -> void:
 	if S == null:
 		return
 	for t: Tower in S.towers:
@@ -720,7 +720,7 @@ func _sync_merges(S: Run, speed: float) -> void:
 			_clear_merge_view(t)
 			continue
 		if live == null:
-			_sync_merge_smooth(S, t, spec, speed)
+			_sync_merge_smooth(S, t, spec, speed, dt)
 		else:
 			_sync_merge_live(S, t, spec, speed)
 
@@ -742,7 +742,7 @@ func _merge_model(t: Tower) -> bool:
 ## A merge GLB in its own smooth render (Merge3D), the default look (the shared Live3D layer is the style test's).
 ## (preloaded, like the beacon's view, so the board doesn't depend on the editor's class list)
 const MERGE_VIEW := preload("res://scripts/board/merge_3d.gd")
-func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float) -> void:
+func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float, dt: float) -> void:
 	var v = t.get_meta("view") if t.has_meta("view") else null
 	var want := "%s@%s" % [spec.glb, spec.scale]
 	if v == null or not is_instance_valid(v) or not v is MERGE_VIEW or str(v.get_meta("glb", "")) != want:
@@ -781,6 +781,7 @@ func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float) -> voi
 	if t.shot_at != s.get_meta("st"):
 		s.set_meta("st", t.shot_at)
 		s.shoot()
+	s.tick(dt * speed)
 
 
 func _sync_merge_live(S: Run, t: Tower, spec: Dictionary, speed: float) -> void:

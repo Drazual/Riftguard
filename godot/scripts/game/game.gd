@@ -522,6 +522,17 @@ func fire_lead(t: Tower) -> float:
 	return d.fire_frame / ATK_FPS
 
 
+## A merge tower drawn from its own model fires at the shot moment of its fire clip (tower.json "shot_time"), so a
+## charge-up shows before the shot leaves (the Bombard's plasma charge). 0 for everything else.
+func merge_lead(t: Tower) -> float:
+	if not t.hybrid:
+		return 0.0
+	var spec := MergeArt.resolve(t)
+	if spec.is_empty():
+		return 0.0
+	return maxf(0.0, float((spec.cfg as Dictionary).get("shot_time", 0.0)))
+
+
 func overclocked(t: Tower) -> bool:
 	return S.overclock_t > 0 and S.overclock_at.distance_to(t.pos()) <= S.hero.ab.r
 
@@ -852,12 +863,20 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		var splash := t.splash * (2 if big else 1)
 		if big:
 			d *= 3
+		# Everything the shot does happens when it lands: sprite towers fire a projectile and the hit waits for it.
+		var land := func(): _land(t, target, d, splash, big, frz, over, oc, aslow, art)
+		var lead := merge_lead(t) if not art and not t.beam and not t.lob else 0.0
+		if lead > 0:
+			# a merge model charges first: the shot leaves, and lands, at its fire clip's shot moment
+			later(lead, func():
+				if S.towers.has(t):
+					line(t.x, t.y, target.x, target.y, t.color, 0.12, 3, { tw = t })
+					land.call())
+			continue
 		if not art and t.beam:
 			line(t.x, t.y, target.x, target.y, Color.WHITE if t.stacks >= t.ramp_max else t.color, 0.22, 2 + t.stacks * 0.2, { tw = t })
 		elif not art and not t.lob:
 			line(t.x, t.y, target.x, target.y, t.color, 0.12, 3 if t.hybrid else 2, { tw = t })
-		# Everything the shot does happens when it lands: sprite towers fire a projectile and the hit waits for it.
-		var land := func(): _land(t, target, d, splash, big, frz, over, oc, aslow, art)
 		if art and not t.beam and not t.lob and not (target is Dictionary):
 			launch_shot(t.type, t.pos(), target, fire_lead(t), land, t)
 		else:
