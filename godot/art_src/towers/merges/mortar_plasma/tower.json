@@ -1,0 +1,33 @@
+{
+	"model": "bombard.glb",
+	"yaw": "Turret",
+	"pitch": "Turret/Gun",
+	"anims": {
+		"idle": "idle",
+		"fire": "fire",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "bombard_accent_mask.png",
+	"accent_mask_b": "bombard_accent_mask_b.png",
+	"recipe_color": "#D8F0B0",
+	"parents": [
+		"mortar",
+		"plasma"
+	],
+	"aim": -1.0858,
+	"dirs": 16,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 12,
+	"fire_time": 1.0,
+	"shot_time": 0.55,
+	"size": 160,
+	"wide": 54,
+	"foot": [
+		80,
+		140
+	],
+	"out": "bombard_3d"
+}
