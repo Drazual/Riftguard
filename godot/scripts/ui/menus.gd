@@ -1489,6 +1489,10 @@ func show_settings() -> void:
 			ui.close_modal()
 			new_run(id)))
 		row.add_child(Kit.button("MAIN MENU", confirm_quit))
+		# for testing: each press adds 1000 gold to the run
+		row.add_child(Kit.button("+1000 GOLD", func():
+			game.S.gold += 1000
+			ui.toast("+1000 gold (%d now)." % int(game.S.gold))))
 	row.add_child(Kit.button("QUIT GAME", func(): ui.get_tree().quit()))
 	box.add_child(row)
 	ui.settings_open = true
