@@ -127,7 +127,8 @@ func _ready() -> void:
 	var m: Merge3D = v
 	_check(m.yaw_node == null and m.pitch_node == null, "no yaw or pitch: it never turns")
 	_check(m.muzzle != null and m.muzzle.name == "Muzzle", "muzzle is the barrel's Muzzle")
-	_check(is_equal_approx(g.merge_lead(ion), 0.55), "the game holds the shot 0.55 s into fire")
+	var kc := g.merge_clip_k(ion)
+	_check(is_equal_approx(g.merge_lead(ion), 0.55 * kc), "the game holds the shot to the clip's shot moment (%.2f s; clip x%.2f for a %.2f s rate)" % [g.merge_lead(ion), 1.0 / kc, ion.rate])
 	_check(is_equal_approx(g.ion_flight(ion), 0.6), "the shell flies 0.6 s (tower.json shell_flight)")
 	var at := Vector2(ion.x, Board.SY(ion.y))
 	await get_tree().create_timer(1.6).timeout
@@ -182,7 +183,7 @@ func _ready() -> void:
 			await _crop("3_blast_forks", Vector2(sh.x, Board.SY(sh.y)), Vector2(170, 130), 2)
 		if blast_t >= 0 and el > blast_t + 0.4:
 			break
-	_check(shell_t >= 0.5 and shell_t <= 0.7, "the shell leaves at the shot moment (%.2f s after fire)" % shell_t)
+	_check(shell_t >= 0.55 * kc - 0.05 and shell_t <= 0.55 * kc + 0.15, "the shell leaves at the shot moment (%.2f s after fire)" % shell_t)
 	_check(blast_t - shell_t >= 0.55 and blast_t - shell_t <= 0.75, "it lands 0.6 s later (%.2f s)" % (blast_t - shell_t))
 	_check(no_line, "no instant shot line")
 	# a set-up blast: a clump on the road, more enemies further out

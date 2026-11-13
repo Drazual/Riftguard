@@ -126,7 +126,7 @@ func zone(z: Dictionary) -> Dictionary:
 		z.T = z.t
 	if _fire_ctx:
 		z.fire = true
-	for k in ["dps", "slow", "brk", "end_freeze", "vuln"]:
+	for k in ["dps", "slow", "brk", "end_freeze", "vuln", "end_dmg"]:
 		if not z.has(k):
 			z[k] = 0.0
 	S.zones.append(z)
@@ -537,7 +537,22 @@ func merge_lead(t: Tower) -> float:
 	var spec := MergeArt.resolve(t)
 	if spec.is_empty():
 		return 0.0
-	return maxf(0.0, float((spec.cfg as Dictionary).get("shot_time", 0.0)))
+	return maxf(0.0, float((spec.cfg as Dictionary).get("shot_time", 0.0))) * merge_clip_k(t)
+
+
+## A merge that shoots more often than its fire clip is long (an upgraded Rime Cannon fires every 0.44 s; its clip is
+## 0.85 s) plays the clip faster, by 1/k, so each charge finishes before the next one starts. Its shot moment moves
+## up with it (merge_lead). 1 when the clip fits.
+func merge_clip_k(t: Tower) -> float:
+	if not t.hybrid:
+		return 1.0
+	var spec := MergeArt.resolve(t)
+	if spec.is_empty():
+		return 1.0
+	var ft := float((spec.cfg as Dictionary).get("fire_time", 0.0))
+	if ft <= 0:
+		return 1.0
+	return clampf(0.92 * t.rate * S.mod_tower_rate / ft, 0.25, 1.0)
 
 
 func overclocked(t: Tower) -> bool:
@@ -880,6 +895,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 					return
 				if t.radial_chain and target is Enemy:
 					ion_shell(t, target, d, splash, big, frz, over, oc, aslow)
+				elif t.cryo and target is Enemy:
+					cryo_ball(t, target, d, splash, big, frz, over, oc, aslow)
 				else:
 					line(t.x, t.y, target.x, target.y, t.color, 0.12, 3, { tw = t })
 					land.call())
@@ -949,6 +966,41 @@ func ion_shell(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool
 		do_shake(0.004, 110))
 
 
+## Rime Cannon: at its fire clip's shot moment the ice-plasma ball leaves the crown at shell_speed (tower.json, board
+## px/s), lands on where the target will be (led like the mortar's shells), bursts (splash, and the slow on every hit),
+## and leaves a frozen patch that slows and hurts whatever walks on it, then shatters for a last burst of shards.
+## The board draws it from the "cryo_ball" and "cryo_burst" fx; the game owns the timing and the damage.
+const CRYO_SPEED := 650.0
+const CRYO_PATCH_T := 1.6
+const CRYO_PATCH_R := 0.9 # of the splash
+const CRYO_PATCH_DPS := 0.2 # of the shot, per second
+const CRYO_SHATTER := 0.25 # of the shot, when the patch ends
+func cryo_cfg(t: Tower, key: String, def: float) -> float:
+	var spec := MergeArt.resolve(t)
+	return float((spec.cfg as Dictionary).get(key, def)) if not spec.is_empty() else def
+
+
+func cryo_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
+	var speed := maxf(100.0, cryo_cfg(t, "shell_speed", CRYO_SPEED))
+	# board px: the ground is squashed by K and the ball leaves the crown, about 30 px up
+	var px := func(p: Vector2) -> float: return Vector2(p.x - t.x, (p.y - t.y) * 0.75 + 30.0).length()
+	var flight := maxf(0.08, px.call(e.pos()) / speed)
+	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * flight
+	var p := pos_at(minf(S.map.path_len, e.d + lead))
+	flight = maxf(0.08, px.call(p) / speed)
+	t.hit_at = p
+	var pw := ion_power(d)
+	fx_add({ k = "cryo_ball", tw = t, x = p.x, y = p.y, flight = flight, pw = pw, t = flight + 0.05, quiet = true })
+	later(flight, func():
+		if not S.towers.has(t):
+			return
+		_land(t, { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }, d, splash, big, frz, over, oc, aslow, false)
+		var pt := cryo_cfg(t, "patch_time", CRYO_PATCH_T)
+		var z := zone({ x = p.x, y = p.y, r = splash * CRYO_PATCH_R, t = pt, dps = d * CRYO_PATCH_DPS, slow = t.slow,
+			end_dmg = d * CRYO_SHATTER, vuln = t.brittle, color = col(0xe0e6ff), src = t, quiet = true })
+		fx_add({ k = "cryo_burst", tw = t, x = p.x, y = p.y, r = splash, pw = pw, zone = z, t = 0.4, quiet = true }))
+
+
 ## Ion Storm's lightning: forks straight out from the blast to the nearest enemies it missed (no hop-to-hop and no
 ## falloff), out to the splash plus the chain's reach (145 px unupgraded), each for chain_mul of the shot (all of it with Tesla's Overcharge or chain_keep), with chain_blast and
 ## the Static Shock stun on each like a normal chain.
@@ -983,7 +1035,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	var h := S.hero
 	var fake: bool = target is Dictionary
 	var hits: Array = in_range(target.x, target.y, splash) if splash else ([] if fake else [target])
-	if splash and not t.radial_chain:
+	if splash and not t.radial_chain and not t.cryo:
 		ring(target.x, target.y, splash, t.color, 0.25, big)
 	if splash and S.sig.get("plasma", false) and t.base_types().has("plasma"):
 		zone({ x = target.x, y = target.y, r = splash * 0.7, t = 2.0, dps = d * 0.25, color = col(0xff8a3d), src = t })
@@ -3211,6 +3263,10 @@ func update(dt: float) -> void:
 		if z.end_freeze and z.t <= 0:
 			for e in in_range(z.x, z.y, z.r):
 				freeze_enemy(e, z.end_freeze, h)
+		if z.end_dmg and z.t <= 0:
+			# the Rime Cannon's ice patch shatters: a last burst of shards on whatever is still on it
+			for e in in_range(z.x, z.y, z.r):
+				damage(e, z.end_dmg, z.get("src"), 1)
 	if S.walls.size():
 		update_walls(dt)
 	S.zones = S.zones.filter(func(z): return z.t > 0)
@@ -4809,6 +4865,9 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.crush = maxf(m.crush, 0.5)
 	# Prism Lance keeps the laser's beam: a steady beam that heats up on one enemy, with arcane sparks off each tick
 	# Ion Storm fires a shell straight up that falls on the target, and its blast forks lightning outward
+	# Rime Cannon fires an ice-plasma ball that bursts and leaves a frozen patch of ice spikes
+	if not m.is_super and m.type == "frost+plasma":
+		m.cryo = true
 	if not m.is_super and m.type == "plasma+tesla":
 		m.radial_chain = true
 	if not m.is_super and m.type == "arcane+laser":

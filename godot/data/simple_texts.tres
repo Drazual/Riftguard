@@ -307,7 +307,7 @@ texts = {
 "recipe:beacon+tesla": "Lightning, and buffs nearby towers.",
 "recipe:frost+laser": "Slowing shots that heat up on one enemy.",
 "recipe:frost+mortar": "Long-range blasts that slow groups.",
-"recipe:frost+plasma": "Steam blasts that hurt and slow groups.",
+"recipe:frost+plasma": "Ice-plasma balls that burst and leave slowing, spiky ice.",
 "recipe:frost+tesla": "Lightning that slows every enemy it hits.",
 "recipe:laser+mortar": "Long-range blasts that grow on one target.",
 "recipe:laser+plasma": "Exploding shots that heat up on one enemy.",

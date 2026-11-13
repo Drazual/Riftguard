@@ -36,9 +36,9 @@ boon_effect = "h.boon_rail = 4"
 [sub_resource type="Resource" id="Resource_g3ece"]
 script = ExtResource("1_qr0rf")
 key = "frost+plasma"
-name = "Steam Engine"
+name = "Rime Cannon"
 color = Color(0.8784314, 0.9019608, 1, 1)
-desc = "Blasts scalding steam that splashes and slows every enemy caught in the cloud."
+desc = "Fires a charged ice-plasma ball that explodes on impact and leaves a frozen patch of ice spikes that slows and damages everything on it."
 boon_name = "Steam Vent"
 boon_desc = "Enemies within 80 of your hero take 15 damage per second and are slowed 15%."
 boon_effect = "h.boon_vent = 15"
