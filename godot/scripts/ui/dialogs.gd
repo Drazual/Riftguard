@@ -272,6 +272,14 @@ func end(data: Dictionary) -> void:
 			var extra: String = " · triple rune open" if m.get("triple", false) else (" · unlocked " + m.perks if m.get("perks", "") != "" else "")
 			tags.add_child(Kit.tag(Kit.c("%s: mastery %d → %d%s" % [m.name, m.a, m.b, extra], col)))
 		box.add_child(tags)
+	for k in data.get("new_maps", []):
+		var c := Kit.card(10)
+		var v := Kit.vbox(4)
+		c.add_child(v)
+		v.add_child(Kit.rich(_path("New map unlocked", Kit.ARCANE), 12))
+		v.add_child(Kit.rich(Kit.b(DB.maps[k].scene.map_name), 16))
+		v.add_child(Kit.muted("Pick it from Choose a map on your next run."))
+		box.add_child(c)
 	for s in data.new_songs:
 		var c := Kit.card(10)
 		var v := Kit.vbox(4)

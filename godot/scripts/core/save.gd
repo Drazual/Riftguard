@@ -146,7 +146,7 @@ func map_won(id: String) -> bool:
 
 
 ## Only this many maps (from the start of DB.map_order) are playable. The rest show as under construction.
-const OPEN_MAPS := 1
+const OPEN_MAPS := 2
 
 
 func map_built(id: String) -> bool:
