@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://art_src/towers/merges/arcane_frost/fx/rimeshard_fx.gd" id="1_fx"]
+
+[node name="RimeshardFX" type="Node2D"]
+script = ExtResource("1_fx")

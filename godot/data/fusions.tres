@@ -149,6 +149,14 @@ desc = "Lightning and hits slow enemies by {round(6 * r * m)}% for 1.5s."
 effect = "t.slow = min(0.85, max(t.slow, 0.06 * m * (t.ups_of('static') + 1)))
 t.slow_dur = max(t.slow_dur, 1.5)"
 
+[sub_resource type="Resource" id="Resource_splnt"]
+script = ExtResource("1_7buld")
+id = "splinter"
+name = "Splintering Volley"
+tags = PackedStringArray("multi", "slow")
+desc = "Each volley throws {min(3, r)} more ice shard(s), up to 6 (the volley's damage grows with it)."
+effect = "t.multi = min(5, t.multi + 1)"
+
 [resource]
 script = ExtResource("2_h8auc")
-items = Array[ExtResource("1_7buld")]([SubResource("Resource_s2oxb"), SubResource("Resource_iqf2q"), SubResource("Resource_fk50v"), SubResource("Resource_qe7m0"), SubResource("Resource_b7pi1"), SubResource("Resource_btoww"), SubResource("Resource_ykihb"), SubResource("Resource_qccgf"), SubResource("Resource_lq7vt"), SubResource("Resource_0lw7c"), SubResource("Resource_ciig6"), SubResource("Resource_gvvav"), SubResource("Resource_ws6dd"), SubResource("Resource_dhufe"), SubResource("Resource_arkmu"), SubResource("Resource_d8wc0"), SubResource("Resource_gwtvf"), SubResource("Resource_xscut")])
+items = Array[ExtResource("1_7buld")]([SubResource("Resource_s2oxb"), SubResource("Resource_iqf2q"), SubResource("Resource_fk50v"), SubResource("Resource_qe7m0"), SubResource("Resource_b7pi1"), SubResource("Resource_btoww"), SubResource("Resource_ykihb"), SubResource("Resource_qccgf"), SubResource("Resource_lq7vt"), SubResource("Resource_0lw7c"), SubResource("Resource_ciig6"), SubResource("Resource_gvvav"), SubResource("Resource_ws6dd"), SubResource("Resource_dhufe"), SubResource("Resource_arkmu"), SubResource("Resource_d8wc0"), SubResource("Resource_gwtvf"), SubResource("Resource_xscut"), SubResource("Resource_splnt")])

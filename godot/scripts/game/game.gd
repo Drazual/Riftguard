@@ -897,6 +897,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 					ion_shell(t, target, d, splash, big, frz, over, oc, aslow)
 				elif t.cryo and target is Enemy:
 					cryo_ball(t, target, d, splash, big, frz, over, oc, aslow)
+				elif t.rime and target is Enemy:
+					rime_shard(t, target, d, d / maxf(0.01, mult), splash, big, frz, over, oc, aslow)
 				else:
 					line(t.x, t.y, target.x, target.y, t.color, 0.12, 3, { tw = t })
 					land.call())
@@ -964,6 +966,92 @@ func ion_shell(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool
 			return
 		_land(t, { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }, d, splash, big, frz, over, oc, aslow, false)
 		do_shake(0.004, 110))
+
+
+## Rimeshard: each volley throws 1 + multi ice shards (3 to start, up to 6 with Splintering Volley) from the crystal
+## tip at shard_speed (tower.json, board px/s), one per target; with fewer enemies than shards the spare ones double up
+## on the front-most (2 at most each). The volley's total is d x (1.65 + 0.2 per shard past 3), split evenly. Every
+## shard slows (apply_hit) and adds a rime stack; at rime_max the enemy freezes for freeze_time (bosses 0.3x), then
+## shatters for 1.2 x d and throws 3 arcane splinters (0.25 x d and +1 rime each) at the nearest enemies within 90.
+## Stacks clear rime_decay s after the last one. The board draws it from the "rime_shard" and "rime_shatter" fx and
+## each enemy's rime; the game owns the timing and the damage.
+const RIME_SPEED := 1100.0
+const RIME_MAX := 5
+const RIME_DECAY := 3.0
+const RIME_FREEZE := 0.6
+const RIME_SHATTER := 1.2
+const RIME_SPLINTERS := 3
+const RIME_SPLINTER_R := 90.0
+const RIME_SPLINTER := 0.25
+const RIME_SPLINTER_SPEED := 520.0 # RimeshardFX.SPLINTER_SPEED
+func rime_cfg(t: Tower, key: String, def: float) -> float:
+	var spec := MergeArt.resolve(t)
+	return float((spec.cfg as Dictionary).get(key, def)) if not spec.is_empty() else def
+
+
+## Each shard's share of the shot: the volley's total, d x (1.65 + 0.2 per shard past 3), split evenly.
+func rime_share(shards: int) -> float:
+	return (1.65 + 0.2 * (shards - 3)) / maxf(1, shards)
+
+
+## Who a volley's shards go to: one each, front-most first, then spares double up on the front-most (2 at most).
+func rime_volley(targets: Array, shards: int) -> Array:
+	var out := targets.slice(0, shards)
+	var i := 0
+	while out.size() < shards and i < targets.size():
+		out.append(targets[i])
+		i += 1
+	return out
+
+
+func rime_shard(t: Tower, e: Enemy, d: float, full: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
+	var speed := maxf(100.0, rime_cfg(t, "shard_speed", RIME_SPEED))
+	var flight := maxf(0.04, Vector2(e.x - t.x, (e.y - t.y) * 0.75 + 40.0).length() / speed)
+	fx_add({ k = "rime_shard", tw = t, e = e, flight = flight, pw = clampf(full / 42.0, 0.75, 1.5), t = flight + 0.05, quiet = true })
+	later(flight, func():
+		if e.dead:
+			return
+		_land(t, e, d, splash, big, frz, over, oc, aslow, false)
+		if not e.dead:
+			add_rime(t, e, full))
+
+
+## One rime stack on e from t (a shard or a splinter); the rime_max'th freezes it.
+func add_rime(t: Tower, e: Enemy, full: float) -> void:
+	if e.dead or e.rime_frz > 0:
+		return
+	e.rime += 1
+	e.rime_t = 0.0
+	e.rime_src = t
+	e.rime_full = full
+	if e.rime >= int(rime_cfg(t, "rime_max", RIME_MAX)):
+		var dur := rime_cfg(t, "freeze_time", RIME_FREEZE) * (0.3 if e.boss else 1.0)
+		e.rime_frz = dur
+		e.stun_t = maxf(e.stun_t, dur)
+
+
+## The freeze ends: the ice shatters on e for 1.2 x the shot, and arcane splinters hop to the nearest enemies.
+func rime_shatter(e: Enemy) -> void:
+	var t = e.rime_src
+	var full := e.rime_full
+	e.rime = 0
+	e.rime_t = 0.0
+	e.rime_frz = 0.0
+	if not (t is Tower) or not S.towers.has(t):
+		return
+	var near := in_range(e.x, e.y, RIME_SPLINTER_R).filter(func(o): return o != e and o.rime_frz <= 0)
+	near.sort_custom(func(p, q): return hyp(p.x - e.x, p.y - e.y) < hyp(q.x - e.x, q.y - e.y))
+	near = near.slice(0, RIME_SPLINTERS)
+	fx_add({ k = "rime_shatter", tw = t, x = e.x, y = e.y, e = e, to = near.duplicate(), pw = clampf(full / 42.0, 0.75, 1.5), t = 0.45, quiet = true })
+	apply_hit(t, e, full * RIME_SHATTER)
+	for o in near:
+		var flight := maxf(0.05, hyp(o.x - e.x, (o.y - e.y) * 0.75) / RIME_SPLINTER_SPEED)
+		later(flight, func():
+			if o.dead or o.rime_frz > 0 or not S.towers.has(t):
+				return
+			apply_hit(t, o, full * RIME_SPLINTER)
+			if not o.dead:
+				add_rime(t, o, full))
 
 
 ## Rime Cannon: at its fire clip's shot moment the ice-plasma ball leaves the crown at shell_speed (tower.json, board
@@ -3671,6 +3759,16 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			damage(e, e.max * e.fire_pct * dt, null, 1)
 			if e.dead:
 				continue
+		if e.rime_frz > 0:
+			e.rime_frz -= dt
+			if e.rime_frz <= 0:
+				rime_shatter(e)
+				if e.dead:
+					continue
+		elif e.rime > 0:
+			e.rime_t += dt
+			if e.rime_t >= (rime_cfg(e.rime_src, "rime_decay", RIME_DECAY) if e.rime_src is Tower else RIME_DECAY):
+				e.rime = 0
 		if S.overclock_t > 0 and h.time_warp and e.pos().distance_to(S.overclock_at) <= h.ab.r:
 			slow_enemy(e, h.time_warp, 0.3)
 		if e.pull_t > 0 and not e.pushback_immune:
@@ -3860,6 +3958,12 @@ func _towers_step(h: Hero, dt: float) -> void:
 					lob_shell(t, e, 1.0)
 					if t.salvo:
 						later(0.35, func(): if not e.dead: lob_shell(t, e, t.salvo))
+			continue
+		if targets.size() and t.rime:
+			t.cd = t.rate * S.mod_tower_rate
+			var vol := rime_volley(targets, 1 + int(t.multi))
+			fire(t, vol, rime_share(1 + int(t.multi)))
+			shot_effects(t, t.dmg * S.mod_tower_dmg)
 			continue
 		if targets.size():
 			if t.tempo:
@@ -4757,7 +4861,7 @@ static func hash_str(s: String) -> int:
 func pick_fusions(tags: Array, seed: String, exclude: Array) -> Array:
 	var scored := []
 	for f in DB.fusions:
-		if exclude.has(f.id):
+		if exclude.has(f.id) or f.id == "splinter": # Splintering Volley is Rimeshard's own (added in try_merge)
 			continue
 		var s := 0
 		for k in f.tags:
@@ -4839,6 +4943,11 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.name = label
 		m.desc = rec.desc + " Fused from %s and %s, so its paths come from what they used." % [tower_name(a), tower_name(b)]
 		m.fusions = pick_fusions(tags, key + ",".join(a.order) + ",".join(b.order), [])
+		if key == "arcane+frost":
+			# Rimeshard always offers Splintering Volley (its own path: the volley grows)
+			var sv := fusion_by_id("splinter")
+			if sv and not m.fusions.has(sv):
+				m.fusions = m.fusions.slice(0, 4) + [sv]
 		m.dmg = maxf(a.dmg, b.dmg) * 1.5
 		m.rate = minf(a.rate, b.rate)
 	_store_parent_colors(m, a, b)
@@ -4866,6 +4975,10 @@ func try_merge(a: Tower, b: Tower) -> void:
 	# Prism Lance keeps the laser's beam: a steady beam that heats up on one enemy, with arcane sparks off each tick
 	# Ion Storm fires a shell straight up that falls on the target, and its blast forks lightning outward
 	# Rime Cannon fires an ice-plasma ball that bursts and leaves a frozen patch of ice spikes
+	# Rimeshard throws a volley of ice shards (3 to start) that stack rime, freeze at 5 and shatter
+	if not m.is_super and m.type == "arcane+frost":
+		m.rime = true
+		m.multi = maxf(m.multi, 2.0)
 	if not m.is_super and m.type == "frost+plasma":
 		m.cryo = true
 	if not m.is_super and m.type == "plasma+tesla":

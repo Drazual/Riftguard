@@ -1,0 +1,39 @@
+{
+	"model": "rimeshard.glb",
+	"yaw": "-",
+	"pitch": "-",
+	"anims": {
+		"idle": "idle",
+		"fire": "fire",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "rimeshard_accent_mask.png",
+	"accent_mask_b": "rimeshard_accent_mask_b.png",
+	"recipe_color": "#C9B8FF",
+	"parents": [
+		"arcane",
+		"frost"
+	],
+	"dirs": 1,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 8,
+	"fire_time": 0.45,
+	"shot_time": 0.18,
+	"shard_speed": 1100,
+	"spin_node": "Crystal",
+	"heat_node": "HeatGlow",
+	"fx": "fx/rimeshard_fx.tscn",
+	"size": 160,
+	"wide": 49,
+	"foot": [
+		80,
+		140
+	],
+	"out": "rimeshard_3d",
+	"rime_max": 5,
+	"rime_decay": 3.0,
+	"freeze_time": 0.6
+}
