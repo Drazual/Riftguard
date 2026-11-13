@@ -2926,11 +2926,14 @@ func _build_art(m: MapInfo) -> void:
 	(art_glow.material as ShaderMaterial).set_shader_parameter("period", period)
 	art_glow.visible = true
 	var shared := _art_material({ period = period })
+	# a layout can borrow another map's sprites ("spr": a folder), and a sprite's tex can be a full res:// path
+	var spr_dir: String = L.get("spr", m.art_dir + "spr/")
 	var i := 0
 	for it: Dictionary in L.sprites:
 		i += 1
 		var sp := Sprite2D.new()
-		sp.texture = load(m.art_dir + "spr/" + it.tex)
+		var tex: String = it.tex
+		sp.texture = load(tex if tex.begins_with("res://") else spr_dir + tex)
 		sp.centered = false
 		sp.scale = Vector2(u, u)
 		var tl := Vector2(it.tl[0], it.tl[1])
