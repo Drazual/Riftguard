@@ -4545,7 +4545,7 @@ func build_problem(c: int, r: int, type: String) -> String:
 			2:
 				return "Something is in the way."
 			3:
-				return "That's the edge of the city. Build inside it."
+				return "That's the edge of the map. Build inside it."
 		for t: Tower in S.towers:
 			if Vector2(t.x, t.y).distance_to(p) < TOWER_GAP:
 				return "Too close to another tower."
