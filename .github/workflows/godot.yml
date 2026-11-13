@@ -50,6 +50,14 @@ jobs:
           mkdir -p godot/build
           godot --headless --path godot --export-release "Windows" build/Riftguard.exe
           test -s godot/build/Riftguard.exe
+      # The same preset as a pack, run headless with --merge-selftest: every merge model must load and take path
+      # colours from the exported files (not the plinth), or the build stops here.
+      - name: Merge model selftest (exported pack)
+        run: |
+          godot --headless --path godot --export-pack "Windows" build/selftest.pck
+          timeout 600 godot --headless --main-pack godot/build/selftest.pck -- --merge-selftest 2>&1 | tee selftest.log
+          grep -q "MERGE SELFTEST DONE fails=0" selftest.log
+          rm godot/build/selftest.pck
       - uses: actions/upload-artifact@v4
         with:
           name: riftguard-exe

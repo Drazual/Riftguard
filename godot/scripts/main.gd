@@ -20,6 +20,11 @@ func _ready() -> void:
 	add_child(ui)
 	board.bind(game)
 	ui.menus.show_start()
+	if MergeSelftest.wanted():
+		var st := MergeSelftest.new()
+		st.name = "MergeSelftest"
+		st.main = self
+		add_child(st)
 
 
 func _process(delta: float) -> void:
