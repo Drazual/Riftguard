@@ -5112,9 +5112,11 @@ func end_run(won: bool, quit := false) -> void:
 				triple = w[1] < R.triple_at and now >= R.triple_at })
 	var best = M.best.get(S.map_id)
 	var locked_songs := Sound.songs.filter(func(x): return not Sound.song_open(x))
+	var locked_maps := Array(DB.map_order).filter(func(k): return not Save.map_unlocked(k))
 	if best == null or cleared > best.wave or (won and not best.won):
 		M.best[S.map_id] = { wave = cleared, won = won or (best != null and best.won) }
 	var new_songs := locked_songs.filter(func(x): return Sound.song_open(x))
+	var new_maps := locked_maps.filter(func(k): return Save.map_unlocked(k))
 	if new_songs.size() and Save.settings.get("playlist") is Array:
 		for x in new_songs:
 			Save.settings.playlist.append(x.id)
@@ -5132,7 +5134,7 @@ func end_run(won: bool, quit := false) -> void:
 		towers = S.towers.map(func(t): return { name = tower_name(t) + " L" + str(t.lvl), dmg = int(round(t.dmg_total)), kills = t.kills }) })
 	M.runs = M.runs.slice(-25)
 	Save.save_meta()
-	modal.emit("end", { won = won, quit = quit, shards = shards, cores = S.cores, mastery = mastery, new_songs = new_songs, cleared = cleared })
+	modal.emit("end", { won = won, quit = quit, shards = shards, cores = S.cores, mastery = mastery, new_songs = new_songs, new_maps = new_maps, cleared = cleared })
 
 
 func _sum(xs: Array) -> float:
