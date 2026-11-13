@@ -726,6 +726,8 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 		else:
 			_sync_merge_live(S, t, spec, speed)
 	_sync_lance_sparks(S, speed, dt)
+	_sync_ion(S, speed, dt)
+	_sync_cryo(S, speed, dt)
 	# beams of towers that are gone (sold, merged on) or of a finished run fade out
 	for t in lance_beams.keys():
 		if S.over or not S.towers.has(t) or not t.lance or t.get_meta("lance_f", -1) != frame_no:
@@ -830,6 +832,92 @@ func _sync_lance_sparks(S: Run, speed: float, dt: float) -> void:
 		lance_sparks.tick(dt * speed)
 
 
+## Ion Storm's shells, blasts and outward lightning (the game's "ion_shell" and "ion_blast" fx), all drawn by one
+## shared IonStormFX (its tower.json "fx") on top, stepped in game time so a pause or speed-up holds it in step.
+var ion_fx: Node2D = null
+func _ion_fx_for(t: Tower) -> Node2D:
+	if ion_fx == null or not is_instance_valid(ion_fx):
+		ion_fx = _merge_fx_for(t)
+	return ion_fx
+
+
+func _sync_ion(S: Run, speed: float, dt: float) -> void:
+	for f: Dictionary in S.fx:
+		if (f.k != "ion_shell" and f.k != "ion_blast") or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		var fx := _ion_fx_for(tw)
+		if fx == null:
+			continue
+		var at := Vector2(f.x, SY(f.y))
+		if f.k == "ion_shell":
+			var mz = merge_muzzle(tw)
+			fx.launch(mz if mz != null else Vector2(tw.x, SY(tw.y) - 40), at, f.flight, Callable(), f.pw)
+		else:
+			fx.blast(at, f.r, f.pw)
+			var to: Array[Vector2] = []
+			for o in f.to:
+				to.append(Vector2(o.x, SY(o.y) - body_lift(o)))
+			if to.size():
+				fx.fork(at, to, f.pw)
+	if ion_fx != null and is_instance_valid(ion_fx):
+		ion_fx.tick(dt * speed)
+
+
+## Rime Cannon's ice-plasma balls, bursts and frozen patches (the game's "cryo_ball" and "cryo_burst" fx), drawn
+## by one shared CryoCannonFX (its tower.json "fx") on top, in game time. A patch whose zone goes early (a reset)
+## shatters at once.
+var cryo_fx: Node2D = null
+var cryo_patches := {} # patch id -> its zone Dictionary
+func _sync_cryo(S: Run, speed: float, dt: float) -> void:
+	for f: Dictionary in S.fx:
+		if (f.k != "cryo_ball" and f.k != "cryo_burst") or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		if cryo_fx == null or not is_instance_valid(cryo_fx):
+			cryo_fx = _merge_fx_for(tw)
+			cryo_patches.clear()
+		if cryo_fx == null:
+			continue
+		var at := Vector2(f.x, SY(f.y))
+		if f.k == "cryo_ball":
+			var mz = merge_muzzle(tw)
+			cryo_fx.shoot(mz if mz != null else Vector2(tw.x, SY(tw.y) - 30), at, f.flight, Callable(), f.pw)
+		else:
+			cryo_fx.burst(at, f.r, f.pw)
+			var z: Dictionary = f.zone
+			cryo_patches[cryo_fx.patch(at, z.r, z.t, f.pw)] = z
+	if cryo_fx == null or not is_instance_valid(cryo_fx):
+		return
+	for id in cryo_patches.keys():
+		var z: Dictionary = cryo_patches[id]
+		if z.t <= 0:
+			cryo_patches.erase(id) # ran its time: the FX shatters it on its own clock
+		elif S == null or not S.zones.has(z):
+			cryo_fx.shatter(id)
+			cryo_patches.erase(id)
+	cryo_fx.tick(dt * speed)
+
+
+## A merge's shared 2D board FX scene (tower.json "fx", next to its GLB), added to top.
+var _merge_fx_scene := {} # folder -> PackedScene (or null)
+func _merge_fx_for(t: Tower) -> Node2D:
+	var spec := MergeArt.resolve(t)
+	if spec.is_empty():
+		return null
+	var dir := str(spec.glb).get_base_dir()
+	if not _merge_fx_scene.has(dir):
+		var p := dir.path_join(str(spec.cfg.get("fx", "")))
+		_merge_fx_scene[dir] = load(p) if spec.cfg.has("fx") and ResourceLoader.exists(p) else null
+	if _merge_fx_scene[dir] == null:
+		return null
+	var n: Node2D = _merge_fx_scene[dir].instantiate()
+	top.add_child(n)
+	return n
+
+
 func _clear_merge_view(t: Tower) -> void:
 	var v = t.get_meta("view") if t.has_meta("view") else null
 	if (v is Live3D.LiveTower or v is MERGE_VIEW) and is_instance_valid(v):
@@ -885,7 +973,7 @@ func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float, dt: fl
 		s.aim(Vector2(aim.x - t.x, SY(aim.y) - SY(t.y)))
 	if t.shot_at != s.get_meta("st"):
 		s.set_meta("st", t.shot_at)
-		s.shoot()
+		s.shoot(1.0 / game.merge_clip_k(t))
 	s.tick(dt * speed)
 
 

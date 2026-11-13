@@ -126,7 +126,7 @@ func zone(z: Dictionary) -> Dictionary:
 		z.T = z.t
 	if _fire_ctx:
 		z.fire = true
-	for k in ["dps", "slow", "brk", "end_freeze", "vuln"]:
+	for k in ["dps", "slow", "brk", "end_freeze", "vuln", "end_dmg"]:
 		if not z.has(k):
 			z[k] = 0.0
 	S.zones.append(z)
@@ -537,7 +537,22 @@ func merge_lead(t: Tower) -> float:
 	var spec := MergeArt.resolve(t)
 	if spec.is_empty():
 		return 0.0
-	return maxf(0.0, float((spec.cfg as Dictionary).get("shot_time", 0.0)))
+	return maxf(0.0, float((spec.cfg as Dictionary).get("shot_time", 0.0))) * merge_clip_k(t)
+
+
+## A merge that shoots more often than its fire clip is long (an upgraded Rime Cannon fires every 0.44 s; its clip is
+## 0.85 s) plays the clip faster, by 1/k, so each charge finishes before the next one starts. Its shot moment moves
+## up with it (merge_lead). 1 when the clip fits.
+func merge_clip_k(t: Tower) -> float:
+	if not t.hybrid:
+		return 1.0
+	var spec := MergeArt.resolve(t)
+	if spec.is_empty():
+		return 1.0
+	var ft := float((spec.cfg as Dictionary).get("fire_time", 0.0))
+	if ft <= 0:
+		return 1.0
+	return clampf(0.92 * t.rate * S.mod_tower_rate / ft, 0.25, 1.0)
 
 
 func overclocked(t: Tower) -> bool:
@@ -876,7 +891,13 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		if lead > 0:
 			# a merge model charges first: the shot leaves, and lands, at its fire clip's shot moment
 			later(lead, func():
-				if S.towers.has(t):
+				if not S.towers.has(t):
+					return
+				if t.radial_chain and target is Enemy:
+					ion_shell(t, target, d, splash, big, frz, over, oc, aslow)
+				elif t.cryo and target is Enemy:
+					cryo_ball(t, target, d, splash, big, frz, over, oc, aslow)
+				else:
 					line(t.x, t.y, target.x, target.y, t.color, 0.12, 3, { tw = t })
 					land.call())
 			continue
@@ -917,6 +938,93 @@ func lance_sparks(t: Tower, target, d: float, hits: Array, aslow: float) -> void
 	fx_add({ k = "sparks", tw = t, x = target.x, y = target.y, e = target, to = near.duplicate(), heat = heat, t = 0.3, quiet = true })
 
 
+## Ion Storm: at its fire clip's shot moment a shell leaves the barrel straight up, then falls on where the target
+## will be (led along the path like the mortar's shells) and blasts there, throwing lightning outward. The board
+## draws it from the "ion_shell" and "ion_blast" fx; the game owns the timing and the damage.
+const ION_FLIGHT := 0.6
+const ION_FORK_TRAVEL := 0.06 # a fork's bolt reaches its enemy this long after the blast (IonStormFX.FORK_TRAVEL)
+const ION_FORK_STAGGER := 0.02 # and each next fork a little later
+func ion_flight(t: Tower) -> float:
+	var spec := MergeArt.resolve(t)
+	return maxf(0.2, float((spec.cfg as Dictionary).get("shell_flight", ION_FLIGHT))) if not spec.is_empty() else ION_FLIGHT
+
+
+func ion_power(d: float) -> float:
+	return clampf(d / 72.0, 0.75, 1.5)
+
+
+func ion_shell(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
+	var T := ion_flight(t)
+	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * T
+	var p := pos_at(minf(S.map.path_len, e.d + lead))
+	t.hit_at = p
+	fx_add({ k = "ion_shell", tw = t, x = p.x, y = p.y, flight = T, pw = ion_power(d), t = T + 0.05, quiet = true })
+	later(T, func():
+		if not S.towers.has(t):
+			return
+		_land(t, { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }, d, splash, big, frz, over, oc, aslow, false)
+		do_shake(0.004, 110))
+
+
+## Rime Cannon: at its fire clip's shot moment the ice-plasma ball leaves the crown at shell_speed (tower.json, board
+## px/s), lands on where the target will be (led like the mortar's shells), bursts (splash, and the slow on every hit),
+## and leaves a frozen patch that slows and hurts whatever walks on it, then shatters for a last burst of shards.
+## The board draws it from the "cryo_ball" and "cryo_burst" fx; the game owns the timing and the damage.
+const CRYO_SPEED := 650.0
+const CRYO_PATCH_T := 1.6
+const CRYO_PATCH_R := 0.9 # of the splash
+const CRYO_PATCH_DPS := 0.2 # of the shot, per second
+const CRYO_SHATTER := 0.25 # of the shot, when the patch ends
+func cryo_cfg(t: Tower, key: String, def: float) -> float:
+	var spec := MergeArt.resolve(t)
+	return float((spec.cfg as Dictionary).get(key, def)) if not spec.is_empty() else def
+
+
+func cryo_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
+	var speed := maxf(100.0, cryo_cfg(t, "shell_speed", CRYO_SPEED))
+	# board px: the ground is squashed by K and the ball leaves the crown, about 30 px up
+	var px := func(p: Vector2) -> float: return Vector2(p.x - t.x, (p.y - t.y) * 0.75 + 30.0).length()
+	var flight := maxf(0.08, px.call(e.pos()) / speed)
+	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * flight
+	var p := pos_at(minf(S.map.path_len, e.d + lead))
+	flight = maxf(0.08, px.call(p) / speed)
+	t.hit_at = p
+	var pw := ion_power(d)
+	fx_add({ k = "cryo_ball", tw = t, x = p.x, y = p.y, flight = flight, pw = pw, t = flight + 0.05, quiet = true })
+	later(flight, func():
+		if not S.towers.has(t):
+			return
+		_land(t, { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }, d, splash, big, frz, over, oc, aslow, false)
+		var pt := cryo_cfg(t, "patch_time", CRYO_PATCH_T)
+		var z := zone({ x = p.x, y = p.y, r = splash * CRYO_PATCH_R, t = pt, dps = d * CRYO_PATCH_DPS, slow = t.slow,
+			end_dmg = d * CRYO_SHATTER, vuln = t.brittle, color = col(0xe0e6ff), src = t, quiet = true })
+		fx_add({ k = "cryo_burst", tw = t, x = p.x, y = p.y, r = splash, pw = pw, zone = z, t = 0.4, quiet = true }))
+
+
+## Ion Storm's lightning: forks straight out from the blast to the nearest enemies it missed (no hop-to-hop and no
+## falloff), out to the splash plus the chain's reach (145 px unupgraded), each for chain_mul of the shot (all of it with Tesla's Overcharge or chain_keep), with chain_blast and
+## the Static Shock stun on each like a normal chain.
+func ion_forks(t: Tower, at, d: float, splash: float, hits: Array, n: int, aslow: float) -> void:
+	var keep: bool = (S.sig.get("tesla", false) and t.base_types().has("tesla")) or t.chain_keep
+	var hd := d * (1.0 if keep else t.chain_mul)
+	var near := in_range(at.x, at.y, splash + t.chain_reach).filter(func(o): return not hits.has(o))
+	near.sort_custom(func(p, q): return hyp(p.x - at.x, p.y - at.y) < hyp(q.x - at.x, q.y - at.y))
+	near = near.slice(0, n)
+	fx_add({ k = "ion_blast", tw = t, x = at.x, y = at.y, r = splash, to = near.duplicate(), pw = ion_power(d), t = 0.5, quiet = true })
+	for i in near.size():
+		var o: Enemy = near[i]
+		later(ION_FORK_TRAVEL + ION_FORK_STAGGER * i, func():
+			if o.dead:
+				return
+			apply_hit(t, o, hd, false, aslow)
+			if t.chain_blast:
+				for q in in_range(o.x, o.y, 40):
+					if q != o:
+						damage(q, hd * t.chain_blast, t)
+			if t.stun and randf() < t.stun:
+				o.stun_t = maxf(o.stun_t, 0.6))
+
+
 ## How hot Prism Lance's beam is, 0..1 (its heat stacks over the most it can hold).
 func lance_heat(t: Tower) -> float:
 	return clampf(t.stacks / maxf(1.0, t.ramp_max), 0.0, 1.0)
@@ -927,7 +1035,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	var h := S.hero
 	var fake: bool = target is Dictionary
 	var hits: Array = in_range(target.x, target.y, splash) if splash else ([] if fake else [target])
-	if splash:
+	if splash and not t.radial_chain and not t.cryo:
 		ring(target.x, target.y, splash, t.color, 0.25, big)
 	if splash and S.sig.get("plasma", false) and t.base_types().has("plasma"):
 		zone({ x = target.x, y = target.y, r = splash * 0.7, t = 2.0, dps = d * 0.25, color = col(0xff8a3d), src = t })
@@ -948,7 +1056,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 			line(target.x, target.y, o.x, o.y, t.color, 0.12, 1)
 			apply_hit(t, o, d * 0.4, false, aslow)
 	if t.pierce:
-		var behind := S.enemies.filter(func(e): return not e.dead and e != target and e.d < target.d and e.d > target.d - 140)
+		var behind := S.enemies.filter(func(e): return not e.dead and (fake or e != target) and e.d < target.d and e.d > target.d - 140)
 		behind.sort_custom(by_d_desc)
 		for o in behind.slice(0, int(round(t.pierce))):
 			apply_hit(t, o, d * 0.6, false, aslow)
@@ -960,7 +1068,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	if t.echo and not fake:
 		S.echoes.append({ t = t, target = target, d = d * t.echo, at = S.time + 0.25, aslow = aslow })
 	if t.cluster:
-		var near := in_range(target.x, target.y, 90).filter(func(e): return e != target)
+		var near := in_range(target.x, target.y, 90).filter(func(e): return fake or e != target)
 		near.shuffle()
 		var cr := (t.splash if t.splash else 30.0) * 0.6
 		for n in near.slice(0, int(t.cluster)):
@@ -968,7 +1076,9 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 			for e in in_range(n.x, n.y, cr):
 				apply_hit(t, e, d * 0.5, false, aslow)
 	var chain_n := int(t.chain) + (1 if oc and h.ab.chrono else 0)
-	if chain_n:
+	if t.radial_chain:
+		ion_forks(t, target, d, splash, hits, chain_n, aslow)
+	elif chain_n:
 		var keep: bool = (S.sig.get("tesla", false) and t.base_types().has("tesla")) or t.chain_keep
 		var hit := {}
 		for e in hits:
@@ -3153,6 +3263,10 @@ func update(dt: float) -> void:
 		if z.end_freeze and z.t <= 0:
 			for e in in_range(z.x, z.y, z.r):
 				freeze_enemy(e, z.end_freeze, h)
+		if z.end_dmg and z.t <= 0:
+			# the Rime Cannon's ice patch shatters: a last burst of shards on whatever is still on it
+			for e in in_range(z.x, z.y, z.r):
+				damage(e, z.end_dmg, z.get("src"), 1)
 	if S.walls.size():
 		update_walls(dt)
 	S.zones = S.zones.filter(func(z): return z.t > 0)
@@ -4750,6 +4864,12 @@ func try_merge(a: Tower, b: Tower) -> void:
 	if m.parents.has("anvil"):
 		m.crush = maxf(m.crush, 0.5)
 	# Prism Lance keeps the laser's beam: a steady beam that heats up on one enemy, with arcane sparks off each tick
+	# Ion Storm fires a shell straight up that falls on the target, and its blast forks lightning outward
+	# Rime Cannon fires an ice-plasma ball that bursts and leaves a frozen patch of ice spikes
+	if not m.is_super and m.type == "frost+plasma":
+		m.cryo = true
+	if not m.is_super and m.type == "plasma+tesla":
+		m.radial_chain = true
 	if not m.is_super and m.type == "arcane+laser":
 		m.beam = true
 		m.lance = true

@@ -320,12 +320,13 @@ func aim(screen: Vector2) -> void:
 	want_yaw = atan2(g.x, g.y)
 
 
-func shoot() -> void:
+## speed > 1 plays the fire clip faster, for a tower that shoots more often than the clip is long (Game.merge_clip_k).
+func shoot(speed := 1.0) -> void:
 	if beam:
 		return # a beam's ticks leave the clip alone (beam_on / beam_off drive it)
 	if ap and fire != "":
 		ap.stop()
-		ap.play(fire)
+		ap.play(fire, -1, maxf(1.0, speed))
 
 
 ## The beam warms up: the charge clip plays (once per lock; ticks and retargets don't restart it).

@@ -1,0 +1,36 @@
+{
+	"model": "cryo_cannon.glb",
+	"yaw": "Turret",
+	"pitch": "Turret/Gun",
+	"anims": {
+		"idle": "idle",
+		"fire": "fire",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "cryo_cannon_accent_mask.png",
+	"accent_mask_b": "cryo_cannon_accent_mask_b.png",
+	"recipe_color": "#E0E6FF",
+	"parents": [
+		"frost",
+		"plasma"
+	],
+	"aim": 0.06,
+	"dirs": 16,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 10,
+	"fire_time": 0.85,
+	"shot_time": 0.45,
+	"shell_speed": 650,
+	"fx": "fx/cryo_cannon_fx.tscn",
+	"size": 160,
+	"wide": 40,
+	"foot": [
+		80,
+		140
+	],
+	"out": "cryo_cannon_3d",
+	"patch_time": 1.6
+}

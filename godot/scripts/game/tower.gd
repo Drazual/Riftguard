@@ -107,6 +107,8 @@ var cold_snap := 0.0
 var beam := false
 ## Prism Lance (arcane+laser): a held beam that charges first, then ticks every rate, heating up on one target.
 var lance := false
+var cryo := false # Rime Cannon: an ice-plasma ball that bursts and leaves a frozen patch
+var radial_chain := false # Ion Storm: its blast throws lightning outward to the nearest enemies it missed
 var lance_state := "" # "" (idle), "charge" (warming up, the first tick waits), "on" (the beam is held)
 var lance_wait := 0.0 # charge time left (game time: the clip plays at game speed, whatever speeds the tower up)
 ## Arcane sparks: after each tick's hit, up to spark_n enemies within spark_r of the target take spark_pct of it.
