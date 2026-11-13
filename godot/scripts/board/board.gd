@@ -723,11 +723,14 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 			_sync_merge_smooth(S, t, spec, speed, dt)
 			if bool(spec.cfg.get("beam", false)):
 				_sync_lance(S, t, spec, speed, dt)
+			if t.rime:
+				_rime_heat(t, spec, dt * speed)
 		else:
 			_sync_merge_live(S, t, spec, speed)
 	_sync_lance_sparks(S, speed, dt)
 	_sync_ion(S, speed, dt)
 	_sync_cryo(S, speed, dt)
+	_sync_rime(S, speed, dt)
 	# beams of towers that are gone (sold, merged on) or of a finished run fade out
 	for t in lance_beams.keys():
 		if S.over or not S.towers.has(t) or not t.lance or t.get_meta("lance_f", -1) != frame_no:
@@ -899,6 +902,72 @@ func _sync_cryo(S: Run, speed: float, dt: float) -> void:
 			cryo_fx.shatter(id)
 			cryo_patches.erase(id)
 	cryo_fx.tick(dt * speed)
+
+
+## Rimeshard's shards, rime on enemies, their ice blocks and shatters (the game's "rime_shard" and "rime_shatter" fx
+## and each enemy's rime stacks), drawn by one shared RimeshardFX on top, in game time.
+var rime_fx: Node2D = null
+func _sync_rime(S: Run, speed: float, dt: float) -> void:
+	if S == null:
+		return
+	for f: Dictionary in S.fx:
+		if (f.k != "rime_shard" and f.k != "rime_shatter") or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		if rime_fx == null or not is_instance_valid(rime_fx):
+			rime_fx = _merge_fx_for(tw)
+		if rime_fx == null:
+			continue
+		var e: Enemy = f.e
+		if f.k == "rime_shard":
+			var mz = merge_muzzle(tw)
+			rime_fx.shoot(mz if mz != null else Vector2(tw.x, SY(tw.y) - 40), Vector2(e.x, SY(e.y) - body_lift(e)), f.flight, Callable(), f.pw)
+		else:
+			var to: Array = []
+			for o in f.to:
+				to.append(Vector2(o.x, SY(o.y) - body_lift(o)))
+			rime_fx.shatter(Vector2(f.x, SY(f.y)), e.r * 0.9, f.pw, to, Callable(), e.get_instance_id())
+	if rime_fx == null or not is_instance_valid(rime_fx):
+		return
+	for e: Enemy in S.enemies:
+		if e.dead or (e.rime <= 0 and e.rime_frz <= 0):
+			if e.has_meta("rime_frz"):
+				e.remove_meta("rime_frz")
+			continue
+		var at := Vector2(e.x, SY(e.y))
+		var id := e.get_instance_id()
+		if e.rime_frz > 0:
+			if not e.has_meta("rime_frz"):
+				e.set_meta("rime_frz", true)
+				rime_fx.freeze(id, at, e.rime_frz, e.r * 0.9)
+			rime_fx.rime(id, at, 5, e.r * 0.9)
+		else:
+			if e.has_meta("rime_frz"):
+				e.remove_meta("rime_frz")
+			rime_fx.rime(id, at, e.rime, e.r * 0.9)
+	rime_fx.tick(dt * speed)
+
+
+## The glow at Rimeshard's crystal tip (tower.json "heat_node", not keyed by any clip) builds up under sustained fire
+## and fades when it stops.
+func _rime_heat(t: Tower, spec: Dictionary, gdt: float) -> void:
+	var v = t.get_meta("view") if t.has_meta("view") else null
+	if not (v is MERGE_VIEW) or not is_instance_valid(v) or v.model == null:
+		return
+	var n: Node3D = v.get_meta("heat_n") if v.has_meta("heat_n") else null
+	if n == null:
+		n = v.model.find_child(str(spec.cfg.get("heat_node", "HeatGlow")), true, false)
+		if n == null:
+			return
+		v.set_meta("heat_n", n)
+	var heat: float = v.get_meta("heat", 0.0)
+	if t.shot_at != v.get_meta("heat_st", -1.0):
+		v.set_meta("heat_st", t.shot_at)
+		heat = minf(1.0, heat + 0.2)
+	heat = maxf(0.0, heat - gdt * 0.35)
+	v.set_meta("heat", heat)
+	n.scale = Vector3.ONE * lerpf(0.001, 1.0, heat)
 
 
 ## A merge's shared 2D board FX scene (tower.json "fx", next to its GLB), added to top.

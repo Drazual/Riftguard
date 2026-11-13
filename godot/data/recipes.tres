@@ -8,7 +8,7 @@ script = ExtResource("1_qr0rf")
 key = "arcane+frost"
 name = "Rimeshard"
 color = Color(0.7882353, 0.72156864, 1, 1)
-desc = "Fires rapid ice shards that slow every enemy they hit. Arcane speed with Frost control."
+desc = "Throws volleys of ice shards at up to 3 enemies. Each hit slows and adds rime; 5 rime freezes an enemy, then it shatters and splinters into its neighbours."
 boon_name = "Frostbitten Strikes"
 boon_desc = "Your hero’s attacks slow enemies by 30%."
 boon_effect = "h.boon_slow = 0.3"

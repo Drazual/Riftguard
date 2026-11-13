@@ -56,6 +56,7 @@ static func traits(g: Game, t: Tower) -> Array:
 		" Double damage at full heat." if t.melt else "", " Keeps half its heat when switching." if t.retain else ""])
 	if t.lance and t.spark_n: out.append("Arcane sparks: each tick, %d nearby enemies (one more at half heat%s) take %s of its damage." % [int(t.spark_n),
 		(", +%d from Prism Split" % int(round(t.prism))) if t.prism else "", pct(t.spark_pct)])
+	if t.rime: out.append("Volleys of %d ice shards, %s of the shot each. 5 rime freezes an enemy for 0.6s, then it shatters for %s and splinters into 3 nearby enemies." % [1 + int(t.multi), pct(g.rime_share(1 + int(t.multi))), pct(1.2)])
 	if t.cryo: out.append("Each burst leaves a frozen patch for 1.6s that slows by %s and deals %s of the shot per second, then shatters for %s." % [pct(t.slow), pct(0.2), pct(0.25)])
 	if t.radial_chain and t.chain: out.append("Each blast throws lightning out to the %d nearest enemies it missed, for %s of the shot." % [int(t.chain), pct(t.chain_mul)])
 	if t.lob: out.append("Lobs shells up to %s away; they land a moment later.%s%s%s" % [f0(g.t_range(t)), (" A second shell follows for %s." % pct(t.salvo)) if t.salvo else "",
