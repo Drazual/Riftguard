@@ -596,7 +596,7 @@ func seg_dist(px: float, py: float, z: Dictionary) -> float:
 
 # ---------- combat ----------
 ## Armor: % damage taken off, capped. Brittle enemies have none; Shieldbearers add to it; Sunder and Armor Break cut it.
-## pen: the share of the armor the hit ignores (the hero's Armor Piercing).
+## pen: the share of the armor the hit ignores (the hero's armor penetration, Hero.pen_cut).
 func armor_of(e: Enemy, src, pen := 0.0) -> float:
 	if e.brittle_t > 0:
 		return 0.0
@@ -3597,7 +3597,7 @@ func _hero_hit(h: Hero, HX: Dictionary, t: Enemy, dmg: float, crit: bool) -> voi
 	var ex: bool = h.execute and not t.boss and (t.hp - dmg) / t.max <= h.execute
 	if ex:
 		dmg = t.hp + 1
-	damage(t, dmg, null, 1 if ex else 0, crit and not ex, h.armor_pen)
+	damage(t, dmg, null, 1 if ex else 0, crit and not ex, h.pen_cut())
 	if h.knock and not t.dead:
 		# Gale: every hit shoves the enemy back a little (bosses barely move)
 		push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)

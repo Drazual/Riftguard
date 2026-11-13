@@ -216,9 +216,9 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "armorpen"
 name = "Armor Piercing"
-desc = "Your hero's shots ignore {pct(m)} of enemy armor (stacks, up to 75%)."
-effect = "h.armor_pen = min(0.75, h.armor_pen + m)"
-m = 0.2
+desc = "+{round(m)} armor penetration: 100 makes your hero's shots ignore half of enemy armor, and each point after that does a little less (it never ignores all of it)."
+effect = "h.armor_pen += m"
+m = 35.0
 pool = "striker"
 also_pools = PackedStringArray()
 kind = "armorpen"
