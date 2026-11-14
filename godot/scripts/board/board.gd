@@ -64,6 +64,9 @@ var over: Node2D # upright overlay: bars, rings, cores
 var top: Node2D # shots, beams, bursts
 var spell_frames: SpriteFrames = preload("res://art/fx/spells.tres")
 var ground_for = null
+## The one-768-grid pixel look (StyleSettings.pixel_grid_on): every map at 1x, whole multiples only, no smoothing.
+var pixel := false
+const PIXEL_TRIM := 1.08 # how much taller than the board's space the pixel grid may draw (the rest is clipped)
 var ground_anim: Array[Texture2D] = []
 var ground_anim_t := 0.0
 var ground_blend := ShaderMaterial.new()
@@ -155,6 +158,11 @@ func _ready() -> void:
 ## towers and walls already on the board are rebuilt in the new look.
 func restyle() -> void:
 	var on := StyleSettings.enabled()
+	if StyleSettings.pixel_grid_on() != pixel:
+		pixel = StyleSettings.pixel_grid_on()
+		clip_contents = pixel
+		ground_for = null # the map is rebuilt at its pixel-grid resolution on the next frame
+		zoom = 1.0
 	if on and live:
 		live.settings = StyleSettings.saved()
 		live.rig.settings = live.settings
@@ -267,8 +275,12 @@ func fit_scale() -> float:
 	if live and live.settings.integer_scale and is_inside_tree():
 		var per := _per()
 		var whole := floorf(s * per + 0.001)
-		if whole >= 1.0 and whole / (s * per) >= 0.95:
+		# the pixel grid always takes the whole multiple (a frame round the board beats uneven, smeared pixels)
+		if whole >= 1.0 and (pixel or whole / (s * per) >= 0.95):
 			s = whole / per
+		# one step bigger when it only trims a sliver of the map's top and bottom edge (3x on a 1440p screen)
+		if pixel and (whole + 1) * vs.x <= size.x * per + 0.5 and (whole + 1) * vs.y <= size.y * per * PIXEL_TRIM:
+			s = (whole + 1) / per
 	return s
 
 
@@ -345,7 +357,10 @@ func _notification(what: int) -> void:
 ## The view's transform: the map scaled by `zoom` about `cam`, which sits in the middle of the view.
 func _view() -> Transform2D:
 	var mid := Vector2(ART_W, ART_H) * F / 2.0
-	return Transform2D(0, Vector2(zoom, zoom), 0, mid - cam * F * zoom)
+	var o := mid - cam * F * zoom
+	if pixel:
+		o = o.round() # whole board pixels, so the grid never shifts by part of a pixel
+	return Transform2D(0, Vector2(zoom, zoom), 0, o)
 
 
 ## A point in the view's pixels -> the same point on the unzoomed map, in viewport pixels.
@@ -383,6 +398,8 @@ func zoom_by(f: float, at: Vector2) -> void:
 	var v := (at - fit_offset()) / s # the pointer, in the view's pixels
 	var before := _unzoom(v)
 	zoom = clampf(zoom * f, 1.0, ZOOM_MAX)
+	if pixel:
+		zoom = 2.0 if f > 1.0 else 1.0 # whole multiples only: 1x or 2x
 	var after := _unzoom(v)
 	cam += (before - after) / F
 	_clamp_cam()
@@ -411,7 +428,8 @@ func sync(dt: float) -> void:
 	if shake_t > 0:
 		shake_t -= dt
 		var a := shake_amt * ART_W * F * (shake_t / shake_dur if shake_dur > 0 else 0.0)
-		viewport.canvas_transform = _view().translated(Vector2(randf_range(-a, a), randf_range(-a, a)))
+		var jolt := Vector2(randf_range(-a, a), randf_range(-a, a))
+		viewport.canvas_transform = _view().translated(jolt.round() if pixel else jolt)
 	else:
 		viewport.canvas_transform = _view()
 	var speed := 0.0
@@ -2881,7 +2899,7 @@ func _set_res(f: int) -> void:
 ## (fit_scale with the unified style) every board is crisp.
 func _filter() -> void:
 	var whole := live != null and live.settings.integer_scale and is_inside_tree() and is_equal_approx(fmod(fit_scale() * _per(), 1.0), 0.0)
-	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if F > 1 and not whole else CanvasItem.TEXTURE_FILTER_NEAREST
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR if F > 1 and not whole and not pixel else CanvasItem.TEXTURE_FILTER_NEAREST
 	queue_redraw()
 
 
@@ -2908,13 +2926,17 @@ func _art_material(params: Dictionary) -> ShaderMaterial:
 ## Layout positions are in art pixels at the map's art_scale; the world is that divided by PX * F.
 func _build_art(m: MapInfo) -> void:
 	var L := m.art
-	_set_res(int(L.get("art_scale", 2)))
-	var u := 1.0 / (PX * F) # world units per art pixel
+	var a := int(L.get("art_scale", 2))
+	# the pixel grid draws a 2x map from its 1x bake (px1/, tools/pixel_art/bake_pixel.py) on the 768 board
+	var px1 := pixel and a > 1 and ResourceLoader.exists(m.art_dir + "px1/" + str(L.ground))
+	_set_res(1 if px1 else a)
+	var dir1 := m.art_dir + ("px1/" if px1 else "")
+	var u := 1.0 / (PX * a) # world units per art pixel
 	var period: float = L.get("period", 4.0)
 	ground_anim.clear()
 	ground.material = null
-	ground.texture = load(m.art_dir + L.ground)
-	ground.scale = Vector2(u, u) * (float(ART_W * F) / ground.texture.get_width())
+	ground.texture = load(dir1 + L.ground)
+	ground.scale = Vector2(u, u) * (float(ART_W * a) / ground.texture.get_width())
 	# optional animated ground: frames the same size as `ground`, eased like a backdrop's (frames_span, frames_period)
 	for f: String in L.get("ground_frames", []):
 		var t = load(m.art_dir + f)
@@ -2927,15 +2949,15 @@ func _build_art(m: MapInfo) -> void:
 		ground_anim.clear()
 	var gl := Sprite2D.new()
 	gl.centered = false
-	gl.texture = load(m.art_dir + L.glints)
-	gl.scale = Vector2(u, u) * (float(ART_W * F) / gl.texture.get_width())
+	gl.texture = load((dir1 if ResourceLoader.exists(dir1 + str(L.glints)) else m.art_dir) + L.glints)
+	gl.scale = Vector2(u, u) * (float(ART_W * a) / gl.texture.get_width())
 	var glm := ShaderMaterial.new()
 	glm.shader = GLINT_SHADER
 	glm.set_shader_parameter("period", period)
 	gl.material = glm
 	art_flat.add_child(gl)
 	art_glow.texture = load(m.art_dir + L.glow)
-	art_glow.scale = Vector2(u, u) * (float(ART_W * F) / art_glow.texture.get_width())
+	art_glow.scale = Vector2(u, u) * (float(ART_W * a) / art_glow.texture.get_width())
 	(art_glow.material as ShaderMaterial).set_shader_parameter("period", period)
 	art_glow.visible = true
 	var shared := _art_material({ period = period })
@@ -2946,10 +2968,16 @@ func _build_art(m: MapInfo) -> void:
 		i += 1
 		var sp := Sprite2D.new()
 		var tex: String = it.tex
-		sp.texture = load(tex if tex.begins_with("res://") else spr_dir + tex)
-		sp.centered = false
-		sp.scale = Vector2(u, u)
 		var tl := Vector2(it.tl[0], it.tl[1])
+		var k := 1.0 # art pixels per texture pixel (a for a 1x bake, which starts at floor(tl / a))
+		if px1 and not tex.begins_with("res://") and ResourceLoader.exists(dir1 + "spr/" + tex):
+			sp.texture = load(dir1 + "spr/" + tex)
+			k = a
+			tl = (tl / a).floor() * a
+		else:
+			sp.texture = load(tex if tex.begins_with("res://") else spr_dir + tex)
+		sp.centered = false
+		sp.scale = Vector2(u, u) * k
 		match it.kind:
 			"pad":
 				sp.position = tl * u
@@ -2960,12 +2988,12 @@ func _build_art(m: MapInfo) -> void:
 				sp.material = _art_material({ period = period, sway = 0.022, sway_phase = fmod(i * 0.37, 1.0) })
 			"portal":
 				var rr: Array = it.get("ring_r", [70.0, 66.67])
-				sp.material = _art_material({ period = period, ring = Vector2(it.ring[0], it.ring[1]) - tl, ring_r = Vector2(rr[0], rr[1]) })
+				sp.material = _art_material({ period = period, ring = (Vector2(it.ring[0], it.ring[1]) - tl) / k, ring_r = Vector2(rr[0], rr[1]) / k })
 			_:
 				sp.material = shared
 		var key: float = it.key
 		sp.position = Vector2(tl.x, key) * u
-		sp.offset = Vector2(0, tl.y - key)
+		sp.offset = Vector2(0, tl.y - key) / k
 		units.add_child(sp)
 		art_sprites.append(sp)
 		if live:

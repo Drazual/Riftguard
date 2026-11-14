@@ -88,6 +88,7 @@ func _ready() -> void:
 	for id in Menus.FIRST_TIPS:
 		Save.meta.tips[id] = true
 	Save.settings.style3d_test = true
+	Save.settings.pixel_grid = false # the pixel art test is its own look (tests/pixel_grid.tscn)
 	main = (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	add_child(main)
 	main.ui.menus.new_run("canal")
