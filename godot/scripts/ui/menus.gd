@@ -1457,6 +1457,11 @@ func show_settings() -> void:
 		st.fullscreen = on
 		Save.save_settings()
 		Main.apply_window()))
+	box.add_child(_check("Pixel art test (one 768 pixel grid, crisp, live 3D)", StyleSettings.pixel_grid_on(), func(on):
+		st.pixel_grid = on
+		Save.save_settings()
+		ui.board.restyle()
+		ui.toast("Pixel art test " + ("on." if on else "off."))))
 	box.add_child(_check("Move the hero with WASD / arrow keys", game.key_move, func(on):
 		game.key_move = on
 		st.keys = on

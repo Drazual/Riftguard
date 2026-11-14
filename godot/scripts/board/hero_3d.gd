@@ -104,6 +104,7 @@ func _setup_model(dir: String) -> void:
 	model = (load(dir.path_join(cfg.model)) as PackedScene).instantiate()
 	if rig:
 		anchor = rig.add_model(model, 0.42, true)
+		anchor.scale = Vector3.ONE * rig.settings.model_scale
 	else:
 		vp.add_child(model)
 	for n in cfg.get("hide", []):

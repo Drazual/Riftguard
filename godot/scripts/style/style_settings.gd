@@ -57,6 +57,17 @@ extends Resource
 @export_range(0.2, 2.0, 0.01) var exposure := 1.08
 ## Snap moving models to the render's pixel grid along the ground, so they don't shimmer between pixels.
 @export var pixel_snap := true
+## Heroes and towers drawn this many times their size (the 768 grid needs bigger, bolder models to read).
+@export_range(0.5, 2.0, 0.05) var model_scale := 1.0
+## Use a model's flat-colour albedo (<model dir>/px/<texture>_flat.png, tools/pixel_art) where one exists.
+@export var flat_textures := false
+## Snap every 3D pixel to the shared palette (data/pixel_palette.png), so models and maps use the same colours.
+@export var quantize := false
+## Render the 3D layer this many times the grid and average each grid pixel's block (live_3d.gd's composite).
+@export_range(1, 4) var supersample := 1
+## The one-768-grid pixel look (Save.settings.pixel_grid): every map at 768x416, never smoothed, whole-multiple
+## scaling and zoom only, bigger flat-colour models, palette-locked 3D.
+@export var pixel_grid := false
 
 ## The knobs the Settings menu shows and saves (Save.settings.style), over these defaults.
 const SAVED := ["res_scale", "palette_strength", "shadow_strength", "contact_shadow", "glow", "outline", "rim", "lift", "stylize"]
@@ -65,11 +76,39 @@ const SAVED := ["res_scale", "palette_strength", "shadow_strength", "contact_sha
 ## The player's saved style (Save.settings.style), over the defaults.
 static func saved() -> StyleSettings:
 	var s := StyleSettings.new()
+	if pixel_grid_on():
+		return pixel()
 	var d: Dictionary = Save.settings.get("style", {})
 	for k in SAVED:
 		if d.has(k):
 			s.set(k, d[k])
 	return s
+
+
+## The one-768-grid pixel look's settings. res_scale 2 on a 1x board is one render pixel per board pixel (768x416).
+static func pixel() -> StyleSettings:
+	var s := StyleSettings.new()
+	s.pixel_grid = true
+	s.res_scale = 2.0
+	s.integer_scale = true
+	s.simplify = 0.0 # the flat textures are already simple; reading blurrier mips only smears them
+	s.normal_detail = 0.0
+	s.model_scale = 1.35
+	s.flat_textures = true
+	s.quantize = true
+	s.supersample = 2
+	s.palette_strength = 0.2
+	s.lift = 0.16 # keep dark heroes dark (a lifted charcoal turns into a bright purple once palette-snapped)
+	s.exposure = 0.94 # pale towers stop blowing out to pure white
+	s.highlight = 0.12
+	s.rim = 0.9
+	s.glow = 0.45
+	return s
+
+
+## The pixel art test (Settings): one 768 grid for every map, sprites and live 3D alike.
+static func pixel_grid_on() -> bool:
+	return bool(Save.settings.get("pixel_grid", false))
 
 
 func save() -> void:
@@ -84,4 +123,4 @@ func save() -> void:
 ## own smooth viewport with studio light, and the towers use their baked sprites. The code stays for the style test
 ## scenes, which switch it on with Save.settings.style3d_test; the old style3d setting is ignored.
 static func enabled() -> bool:
-	return bool(Save.settings.get("style3d_test", false))
+	return bool(Save.settings.get("style3d_test", false)) or pixel_grid_on()
