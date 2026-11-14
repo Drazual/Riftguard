@@ -61,10 +61,16 @@ extends Resource
 @export_range(0.5, 2.0, 0.05) var model_scale := 1.0
 ## Use a model's flat-colour albedo (<model dir>/px/<texture>_flat.png, tools/pixel_art) where one exists.
 @export var flat_textures := false
+## ...towers included. Off keeps the towers' own atlases, which read better than the automatic flats at 2x detail.
+@export var flat_towers := true
 ## Snap every 3D pixel to the shared palette (data/pixel_palette.png), so models and maps use the same colours.
 @export var quantize := false
 ## Render the 3D layer this many times the grid and average each grid pixel's block (live_3d.gd's composite).
 @export_range(1, 4) var supersample := 1
+## Pixel grid: board pixels per map pixel. 1 = everything on the 768 grid (chunky); 2 = maps stay 768 pixel art,
+## drawn 2x2, and heroes, towers, enemies and effects get the finer 1536 pixels so you can see what they are.
+## 0 = auto: the map's whole-multiple scale on this screen, so units get one screen pixel each (Board.pixel_detail).
+@export_range(0, 4) var detail := 1
 ## The one-768-grid pixel look (Save.settings.pixel_grid): every map at 768x416, never smoothed, whole-multiple
 ## scaling and zoom only, bigger flat-colour models, palette-locked 3D.
 @export var pixel_grid := false
@@ -95,11 +101,13 @@ static func pixel() -> StyleSettings:
 	s.normal_detail = 0.0
 	s.model_scale = 1.35
 	s.flat_textures = true
-	s.quantize = true
-	s.supersample = 2
+	s.quantize = false # at 2x detail the palette snap turned pale cyan and pink trim to white
+	s.detail = 0 # clear: units on the screen's own pixels (2x finer than the map on 1080p, 3x on 1440p), crisp
+	s.supersample = 1
+	s.flat_towers = false
 	s.palette_strength = 0.2
 	s.lift = 0.16 # keep dark heroes dark (a lifted charcoal turns into a bright purple once palette-snapped)
-	s.exposure = 0.94 # pale towers stop blowing out to pure white
+	s.exposure = 0.9 # pale towers stop blowing out to pure white
 	s.highlight = 0.12
 	s.rim = 0.9
 	s.glow = 0.45
