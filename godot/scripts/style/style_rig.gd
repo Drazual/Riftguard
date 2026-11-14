@@ -87,9 +87,10 @@ static func ground_mesh(margin := 1.0) -> PlaneMesh:
 
 
 ## World metres across one render pixel.
+## Metres per pixel of the grid (a supersampled render has settings.supersample render pixels to each).
 func px_m() -> float:
 	var vp := get_viewport()
-	return UNIT * ART.y / (vp.size.y if vp else ART.y)
+	return UNIT * ART.y / (float(vp.size.y) / settings.supersample if vp else ART.y)
 
 
 ## Adds a live model (any Node3D whose origin is at its feet) to the world, styled and with a contact shadow blob.
@@ -334,7 +335,7 @@ func _toon_from(src: Material) -> ShaderMaterial:
 	m.shader = TOON
 	m.set_shader_parameter("albedo_color", b.albedo_color)
 	if b.albedo_texture:
-		m.set_shader_parameter("albedo_tex", b.albedo_texture)
+		m.set_shader_parameter("albedo_tex", _flat(b.albedo_texture) if settings.flat_textures else b.albedo_texture)
 		m.set_shader_parameter("use_albedo_tex", true)
 	if b.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
 		m.set_shader_parameter("alpha_scissor", b.alpha_scissor_threshold)
@@ -359,6 +360,15 @@ func _toon_from(src: Material) -> ShaderMaterial:
 	m.next_pass = edge
 	_outline_params(m)
 	return m
+
+
+## A texture's flat-colour repaint for the pixel grid (<its folder>/px/<name>_flat.png, tools/pixel_art), or itself.
+static func _flat(t: Texture2D) -> Texture2D:
+	var p := t.resource_path
+	if p == "" or p.contains("::"):
+		return t
+	var f := p.get_base_dir().path_join("px").path_join(p.get_file().get_basename() + "_flat.png")
+	return load(f) if ResourceLoader.exists(f) else t
 
 
 ## Tints a styled model's accent zones. mask_a / cols_a are parent A (or the tower's own 3 path colours);

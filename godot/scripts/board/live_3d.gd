@@ -19,9 +19,45 @@ const COMPOSITE := """
 shader_type canvas_item;
 render_mode blend_premul_alpha;
 // the 3D picture's colour is already multiplied by its alpha (drawn over a clear background), and glow adds light
-// around bright parts where the alpha stays clear
+// around bright parts where the alpha stays clear. With quantize on, every solid model pixel is snapped to the
+// shared palette (the pixel grid), so models use the same colours as the maps.
+uniform bool quantize = false;
+uniform sampler2D pal : filter_nearest;
+uniform int pal_n = 0;
+// supersampling: the picture is rendered ss x the grid and each grid pixel is the average of its ss x ss block,
+// so thin parts and texture detail resolve to the pixel's true colour instead of flickering speckle
+uniform int ss = 1;
 void fragment() {
-	COLOR = texture(TEXTURE, UV);
+	vec4 c;
+	if (ss > 1) {
+		ivec2 size = textureSize(TEXTURE, 0);
+		ivec2 g = ivec2(floor(UV * vec2(size / ss)));
+		c = vec4(0.0);
+		for (int y = 0; y < ss; y++) {
+			for (int x = 0; x < ss; x++) {
+				c += texelFetch(TEXTURE, min(g * ss + ivec2(x, y), size - 1), 0);
+			}
+		}
+		c /= float(ss * ss);
+	} else {
+		c = texture(TEXTURE, UV);
+	}
+	if (quantize && pal_n > 0 && c.a > 0.5) {
+		vec3 col = c.rgb / c.a;
+		vec3 best = col;
+		float bd = 1e9;
+		for (int i = 0; i < pal_n; i++) {
+			vec3 p = texelFetch(pal, ivec2(i, 0), 0).rgb;
+			vec3 d = (p - col) * vec3(0.30, 0.59, 0.11); // weighted toward green, as the eye is
+			float dd = dot(d, d) + 0.25 * dot(p - col, p - col);
+			if (dd < bd) {
+				bd = dd;
+				best = p;
+			}
+		}
+		c = vec4(best, 1.0);
+	}
+	COLOR = c;
 }
 """
 
@@ -55,12 +91,26 @@ func _init(s: StyleSettings) -> void:
 	pic.material = m
 	add_child(pic)
 	_size()
+	_palette()
+
+
+const PALETTE := "res://data/pixel_palette.png"
+## The shared palette for the composite (settings.quantize, tools/pixel_art/bake_pixel.py).
+func _palette() -> void:
+	var m := pic.material as ShaderMaterial
+	var on := settings.quantize and ResourceLoader.exists(PALETTE)
+	m.set_shader_parameter("quantize", on)
+	m.set_shader_parameter("ss", settings.supersample)
+	if on:
+		var t: Texture2D = load(PALETTE)
+		m.set_shader_parameter("pal", t)
+		m.set_shader_parameter("pal_n", t.get_width())
 
 
 ## The render's size: res_scale x the board's base 768x416, matched to the board's own art resolution (F = 1 maps
 ## are drawn at 768x416, so the render is halved there to stay one render pixel per board pixel).
 func _size() -> void:
-	var want := Vector2i((StyleRig.BASE * settings.res_scale * f / 2.0).round())
+	var want := Vector2i((StyleRig.BASE * settings.res_scale * f / 2.0).round()) * settings.supersample
 	want = want.max(Vector2i(64, 32))
 	if vp.size != want:
 		vp.size = want
@@ -76,6 +126,7 @@ func set_res(board_f: int) -> void:
 ## Pushes the settings in (after a change in the Settings menu).
 func apply() -> void:
 	_size()
+	_palette()
 	rig.apply()
 
 
@@ -250,6 +301,7 @@ class LiveTower extends Node2D:
 		muzzle = model.find_child(str(cfg.get("muzzle", "Muzzle")), true, false)
 		ap = model.find_child("AnimationPlayer", true, false)
 		anchor = live.rig.add_model(model, 0.55, true)
+		anchor.scale = Vector3.ONE * live.settings.model_scale
 		if muzzle and cfg.has("muzzle_scale"):
 			muzzle.scale *= float(cfg.muzzle_scale)
 		var anims: Dictionary = cfg.get("anims", {})
