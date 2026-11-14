@@ -149,7 +149,6 @@ func _ready() -> void:
 	texture = null # drawn by _draw (fit_scale)
 	stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	resized.connect(queue_redraw)
-	resized.connect(_pixel_resized)
 	expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -275,35 +274,14 @@ func fit_scale() -> float:
 	var s := minf(size.x / vs.x, size.y / vs.y)
 	if live and live.settings.integer_scale and is_inside_tree():
 		var per := _per()
-		# whole multiples of the map's own pixels: on the pixel grid with 2x detail (F = 2, every map pixel drawn as
-		# 2x2) the board may also sit at a half step, so a map pixel is still a whole number of screen pixels
-		var step := 1.0 / F if pixel else 1.0
-		var whole := floorf(s * per / step + 0.001) * step
+		var whole := floorf(s * per + 0.001)
 		# the pixel grid always takes the whole multiple (a frame round the board beats uneven, smeared pixels)
-		if whole >= step and (pixel or whole / (s * per) >= 0.95):
+		if whole >= 1.0 and (pixel or whole / (s * per) >= 0.95):
 			s = whole / per
 		# one step bigger when it only trims a sliver of the map's top and bottom edge (3x on a 1440p screen)
-		if pixel and (whole + step) * vs.x <= size.x * per + 0.5 and (whole + step) * vs.y <= size.y * per * PIXEL_TRIM:
-			s = (whole + step) / per
+		if pixel and (whole + 1) * vs.x <= size.x * per + 0.5 and (whole + 1) * vs.y <= size.y * per * PIXEL_TRIM:
+			s = (whole + 1) / per
 	return s
-
-
-## The pixel grid's detail: board pixels per map pixel. StyleSettings.detail, or with detail 0 (auto) the map's own
-## whole-multiple scale on this screen, so heroes, towers and effects get one screen pixel each (2 on 1080p, 3 on
-## 1440p) while the map stays 768 pixel art.
-func pixel_detail() -> int:
-	var d: int = live.settings.detail if live else 1
-	if d > 0 or not is_inside_tree() or size.x <= 0:
-		return maxi(d, 1)
-	var per := _per()
-	var n := floorf(minf(size.x * per / ART_W, size.y * per * PIXEL_TRIM / ART_H))
-	return clampi(int(n), 1, 4)
-
-
-## A window resize can change the auto detail: the map is rebuilt at the new one on the next frame.
-func _pixel_resized() -> void:
-	if pixel and ground_for != null and not ground_for.art.is_empty() and pixel_detail() != F:
-		ground_for = null
 
 
 ## Where the picture's top-left sits in the board control (on a whole screen pixel with integer scaling).
@@ -2951,8 +2929,7 @@ func _build_art(m: MapInfo) -> void:
 	var a := int(L.get("art_scale", 2))
 	# the pixel grid draws a 2x map from its 1x bake (px1/, tools/pixel_art/bake_pixel.py) on the 768 board
 	var px1 := pixel and a > 1 and ResourceLoader.exists(m.art_dir + "px1/" + str(L.ground))
-	# the pixel grid: maps at their 768 pixels, drawn detail x over (units and effects get the finer pixels)
-	_set_res(pixel_detail() if pixel else a)
+	_set_res(1 if px1 else a)
 	var dir1 := m.art_dir + ("px1/" if px1 else "")
 	var u := 1.0 / (PX * a) # world units per art pixel
 	var period: float = L.get("period", 4.0)

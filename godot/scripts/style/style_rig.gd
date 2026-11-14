@@ -335,8 +335,7 @@ func _toon_from(src: Material) -> ShaderMaterial:
 	m.shader = TOON
 	m.set_shader_parameter("albedo_color", b.albedo_color)
 	if b.albedo_texture:
-		var flat := settings.flat_textures and (settings.flat_towers or not b.albedo_texture.resource_path.contains("/towers/"))
-		m.set_shader_parameter("albedo_tex", _flat(b.albedo_texture) if flat else b.albedo_texture)
+		m.set_shader_parameter("albedo_tex", _flat(b.albedo_texture) if settings.flat_textures else b.albedo_texture)
 		m.set_shader_parameter("use_albedo_tex", true)
 	if b.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR:
 		m.set_shader_parameter("alpha_scissor", b.alpha_scissor_threshold)
