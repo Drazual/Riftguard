@@ -30,6 +30,7 @@ var free_path := false
 var spots: Array[Vector2] = [] # where a tower on each pad stands (field units)
 var pad_centres: Array[Vector2] = [] # the middle of each pad on the ground
 var hero_at = null
+var hero_spawn = null # where the hero starts a run (layout "hero_spawn"), else beside the base
 var free_build := false # towers go anywhere the build mask allows
 var build_step := 4.0 # field units per build mask cell
 var build_w := 0
@@ -77,6 +78,8 @@ func _read_art(path: String) -> void:
 		pad_centres.append(Vector2(pad.centre[0], pad.centre[1]))
 	if art.has("hero"):
 		hero_at = Vector2(art.hero[0], art.hero[1])
+	if art.has("hero_spawn"):
+		hero_spawn = Vector2(art.hero_spawn[0], art.hero_spawn[1])
 	# "base" is just the last path point (the base is always placed there); "pixel", "iso" and "light" (a suggested
 	# MapLight profile) are notes from the art pipeline and aren't read
 	if wp.size() < 2:

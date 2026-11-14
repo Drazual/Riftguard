@@ -252,6 +252,9 @@ func start_run(hero_id: String, towers: Array) -> void:
 		if Save.tower_meta(k).get("sig", 0):
 			S.sig[k] = true
 	S.hero = Hero.make(hero_id, S.map.base)
+	if S.map.hero_spawn != null:
+		S.hero.x = S.map.hero_spawn.x
+		S.hero.y = S.map.hero_spawn.y
 	apply_hero_meta(S.hero)
 	apply_specials(S.hero)
 	S.hero.base_dmg = S.hero.dmg
