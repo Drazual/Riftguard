@@ -141,5 +141,8 @@ func _ready() -> void:
 		b.restyle()
 		await _frames(10)
 		_check(b.live == null and not b.pixel, "switched off: the shipped look is back")
+	# the game saves settings as it goes: leave the shipped look behind for the next run
+	Save.settings.pixel_grid = false
+	Save.save_settings()
 	print("PIXEL GRID DONE, %d failed" % fails)
 	get_tree().quit(1 if fails else 0)
