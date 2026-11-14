@@ -176,12 +176,17 @@ func _ready() -> void:
 	g = main.game
 	S = g.S
 	S.gold = 3000
-	spots = 0
-	for cell in [Vector2i(3, 4), Vector2i(7, 3), Vector2i(12, 4), Vector2i(17, 4), Vector2i(18, 8), Vector2i(14, 7), Vector2i(10, 10), Vector2i(6, 8)]:
-		var k: String = DB.tower_order[spots % 5]
-		if g.build_problem(cell.x, cell.y, k) == "":
-			g.place_tower(cell.x, cell.y, k)
-		spots += 1
+	# free placement: a tower on the open ground nearest each of 8 points along the road, to see them sort with the
+	# shops, palms and the gate
+	for n in 8:
+		var k: String = DB.tower_order[n % 5]
+		var at := g.pos_at(S.map.path_len * (0.06 + 0.11 * n))
+		var best := Vector2i(-1, -1)
+		for c in g.build_cells():
+			if g.build_problem(c.x, c.y, k) == "" and (best.x < 0 or g.cell_pos(c.x, c.y).distance_to(at) < g.cell_pos(best.x, best.y).distance_to(at)):
+				best = c
+		if best.x >= 0:
+			g.place_tower(best.x, best.y, k)
 	g.start_wave()
 	for i in 240:
 		await get_tree().process_frame

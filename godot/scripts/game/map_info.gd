@@ -80,6 +80,8 @@ func _read_art(path: String) -> void:
 		hero_at = Vector2(art.hero[0], art.hero[1])
 	if art.has("hero_spawn"):
 		hero_spawn = Vector2(art.hero_spawn[0], art.hero_spawn[1])
+	# "base" is just the last path point (the base is always placed there); "pixel", "iso" and "light" (a suggested
+	# MapLight profile) are notes from the art pipeline and aren't read
 	if wp.size() < 2:
 		problem = "The path needs at least 2 points."
 		return

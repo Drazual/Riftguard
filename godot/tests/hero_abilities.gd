@@ -46,19 +46,28 @@ func _ready() -> void:
 	h.dmg *= 2
 	var n1 := g.nova_dmg(h, h.ab)
 	_check(absf(n1 - 2 * n0) < 0.01, "nova %.0f -> %.0f when hero damage doubles" % [n0, n1])
-	# Armor Piercing: shots ignore 20% of armor per pick
+	# Armor penetration: points with diminishing returns (100 ignores half, 200 three quarters, never all)
 	g.start_wave()
 	g.spawn("brute", g.S.map.path_len * 0.3)
 	var e: Enemy = g.S.enemies[g.S.enemies.size() - 1]
 	e.armor = 0.5
-	var a0 := g.armor_of(e, null, h.armor_pen)
+	var a0 := g.armor_of(e, null, h.pen_cut())
 	_perk(g, "armorpen")
-	_check(h.armor_pen > 0.19, "armor_pen %.2f after Armor Piercing" % h.armor_pen)
-	var a1 := g.armor_of(e, null, h.armor_pen)
+	_check(is_equal_approx(h.armor_pen, 35.0), "armor_pen %.0f after Armor Piercing" % h.armor_pen)
+	var a1 := g.armor_of(e, null, h.pen_cut())
 	_check(a1 < a0, "armor against the hero %.2f -> %.2f" % [a0, a1])
 	var hp := e.hp
-	g.damage(e, 100, null, 0, false, h.armor_pen)
+	g.damage(e, 100, null, 0, false, h.pen_cut())
 	_check(absf((hp - e.hp) - 100 * (1 - a1)) < 0.5, "a 100 hit deals %.0f" % (hp - e.hp))
+	var pens := []
+	for p in [100.0, 200.0, 300.0, 1000.0]:
+		h.armor_pen = p
+		pens.append(h.pen_cut())
+	_check(is_equal_approx(pens[0], 0.5) and is_equal_approx(pens[1], 0.75) and is_equal_approx(pens[2], 0.875) and pens[3] < 1.0,
+		"pen 100/200/300/1000 ignores %s" % [pens])
+	for k in 10:
+		_perk(g, "armorpen")
+	_check(h.pen_cut() < 1.0, "%.0f penetration still leaves armor (%.4f ignored)" % [h.armor_pen, h.pen_cut()])
 	m.queue_free()
 	await get_tree().process_frame
 	# Sniper: Piercing Shot 2.0x

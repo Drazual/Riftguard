@@ -237,7 +237,7 @@ static func hero_stats(g: Game, h: Hero) -> Array:
 		["Momentum per kill", h.momentum, "p"], ["Free level-ups near you", h.rapid, "n"], ["Spotter", h.spotter, "p"], ["Boss damage", h.headhunter, "p"],
 		["Interest", h.interest, "p"], ["XP gain", h.xp_gain, "p"], ["Brace time", h.brace, "s"], ["Extra hits", h.pierce, "n"], ["Tower range", h.tower_range, "p"],
 		["Tower build cost", h.cost_mul, "p"], ["Level-up cost", h.lvl_mul, "p"], ["Merge cost", h.merge_mul, "p"], ["Boss stun reduction", minf(0.8, h.grounded), "p"],
-		["Execute below", h.execute, "p"], ["Armor ignored", h.armor_pen, "p"], ["Max mana", h.max_mana, "n"], ["Mana/s", h.mana_regen, "n"], ["Spell damage", h.spell, "p"], ["Spell size", h.spell_r, "p"],
+		["Execute below", h.execute, "p"], ["Armor penetration", h.armor_pen, "n"], ["Enemy armor ignored", h.pen_cut(), "p"], ["Max mana", h.max_mana, "n"], ["Mana/s", h.mana_regen, "n"], ["Spell damage", h.spell, "p"], ["Spell size", h.spell_r, "p"],
 		["Spell cost", h.spell_cost, "p"],
 		[an + " damage", a.dmg if a else 0.0, "n"], [an + " cooldown", a.cd if a else 0.0, "s"], [an + " radius", a.r if a else 0.0, "n"],
 		[an + " stun", a.stun if a else 0.0, "s"], [an + " duration", a.dur if a else 0.0, "s"], [an + " speed-up", a.power if a else 0.0, "p"], [an + " damage", a.mult if a else 0.0, "x"],

@@ -64,7 +64,7 @@ var over: Node2D # upright overlay: bars, rings, cores
 var top: Node2D # shots, beams, bursts
 var spell_frames: SpriteFrames = preload("res://art/fx/spells.tres")
 var ground_for = null
-var ground_anim: Array[ImageTexture] = []
+var ground_anim: Array[Texture2D] = []
 var ground_anim_t := 0.0
 var ground_blend := ShaderMaterial.new()
 var frame_no := 0
@@ -2641,9 +2641,12 @@ func _animate_ground(dt: float) -> void:
 	if ground_anim.size() < 2:
 		return
 	ground_anim_t += dt
+	# a hand-painted map's frames take their timing from its layout, a backdrop's from its MapScene
+	var L: Dictionary = ground_for.art
 	var sc: MapScene = ground_for.scene
-	var span := clampi(sc.backdrop_span, 2, ground_anim.size())
-	var p := (0.5 - 0.5 * cos(TAU * ground_anim_t / sc.backdrop_period)) * (span - 1)
+	var span := clampi(int(L.get("frames_span", sc.backdrop_span if sc else 2)), 2, ground_anim.size())
+	var period := float(L.get("frames_period", sc.backdrop_period if sc else 6.0))
+	var p := (0.5 - 0.5 * cos(TAU * ground_anim_t / maxf(period, 0.1))) * (span - 1)
 	var i := mini(int(p), span - 2)
 	ground.texture = ground_anim[i]
 	ground_blend.set_shader_parameter("next_frame", ground_anim[i + 1])
@@ -2912,6 +2915,16 @@ func _build_art(m: MapInfo) -> void:
 	ground.material = null
 	ground.texture = load(m.art_dir + L.ground)
 	ground.scale = Vector2(u, u) * (float(ART_W * F) / ground.texture.get_width())
+	# optional animated ground: frames the same size as `ground`, eased like a backdrop's (frames_span, frames_period)
+	for f: String in L.get("ground_frames", []):
+		var t = load(m.art_dir + f)
+		if t is Texture2D:
+			ground_anim.append(t)
+	if ground_anim.size() > 1:
+		ground.texture = ground_anim[0]
+		ground.material = ground_blend
+	else:
+		ground_anim.clear()
 	var gl := Sprite2D.new()
 	gl.centered = false
 	gl.texture = load(m.art_dir + L.glints)

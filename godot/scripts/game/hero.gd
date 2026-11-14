@@ -63,7 +63,7 @@ var deadeye := 0.0
 var shot_stun := 0.0
 var grounded := 0.0
 var execute := 0.0
-var armor_pen := 0.0 # the share of enemy armor the hero's attacks ignore (Armor Piercing)
+var armor_pen := 0.0 # armor penetration points: 100 ignores half of enemy armor, more adds less and less (pen_cut)
 var bullet_storm := 0.0
 var attacks := 0
 var unbreakable := false
@@ -190,6 +190,12 @@ static func make(id: String, base: Vector2) -> Hero:
 ## (it never reaches all of it).
 func armor_cut() -> float:
 	return armor / (armor + 100.0) if armor > 0 else 0.0
+
+
+## The share of enemy armor the hero's shots ignore: 100 penetration ignores half, 200 three quarters, 300 seven
+## eighths, and so on (each 100 points halves what is left, so it never reaches all of it).
+func pen_cut() -> float:
+	return 1.0 - pow(0.5, armor_pen / 100.0) if armor_pen > 0 else 0.0
 
 
 ## Damage a second dealt back to each enemy hitting the hero (thorns, plus Spiked Plating's share of its armor).

@@ -48,7 +48,9 @@ func _ready() -> void:
 	_check("a building is refused: " + game.build_problem(bld.x, bld.y, type), bld.x >= 0 and game.build_problem(bld.x, bld.y, type).begins_with("That's the edge"))
 	for p in [Vector2(5, 250), Vector2(955, 250), Vector2(480, 4), Vector2(480, 596)]:
 		var ec := game.cell_at(p.x, p.y + Game.FOOT_DY)
-		_check("the edge at %s is refused" % p, game.build_problem(ec.x, ec.y, type).begins_with("That's the edge"))
+		# the rim is off limits: open edge (water or the city's edge), or a shop or prop standing on it
+		var why := game.build_problem(ec.x, ec.y, type)
+		_check("the edge at %s is refused: %s" % [p, why], why.begins_with("That's the edge") or why == "Something is in the way.")
 	var obj := _first_code(m, 2, Rect2(0, 0, 960, 600)) # the portal or the arch
 	_check("the portal/arch is refused: " + game.build_problem(obj.x, obj.y, type), obj.x >= 0 and game.build_problem(obj.x, obj.y, type) == "Something is in the way.")
 	# other towers: the same spot and one just beside it are refused, one a tower's width away is fine
