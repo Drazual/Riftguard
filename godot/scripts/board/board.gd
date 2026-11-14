@@ -2908,13 +2908,16 @@ func _art_material(params: Dictionary) -> ShaderMaterial:
 ## Layout positions are in art pixels at the map's art_scale; the world is that divided by PX * F.
 func _build_art(m: MapInfo) -> void:
 	var L := m.art
-	_set_res(int(L.get("art_scale", 2)))
-	var u := 1.0 / (PX * F) # world units per art pixel
+	var a := int(L.get("art_scale", 2))
+	# a 1x pixel-art map is still drawn on the 2x board (each of its pixels as 2x2), so heroes, towers and effects
+	# keep their full detail instead of being squeezed onto the map's coarse pixels
+	_set_res(maxi(a, 2))
+	var u := 1.0 / (PX * a) # world units per art pixel
 	var period: float = L.get("period", 4.0)
 	ground_anim.clear()
 	ground.material = null
 	ground.texture = load(m.art_dir + L.ground)
-	ground.scale = Vector2(u, u) * (float(ART_W * F) / ground.texture.get_width())
+	ground.scale = Vector2(u, u) * (float(ART_W * a) / ground.texture.get_width())
 	# optional animated ground: frames the same size as `ground`, eased like a backdrop's (frames_span, frames_period)
 	for f: String in L.get("ground_frames", []):
 		var t = load(m.art_dir + f)
@@ -2928,14 +2931,14 @@ func _build_art(m: MapInfo) -> void:
 	var gl := Sprite2D.new()
 	gl.centered = false
 	gl.texture = load(m.art_dir + L.glints)
-	gl.scale = Vector2(u, u) * (float(ART_W * F) / gl.texture.get_width())
+	gl.scale = Vector2(u, u) * (float(ART_W * a) / gl.texture.get_width())
 	var glm := ShaderMaterial.new()
 	glm.shader = GLINT_SHADER
 	glm.set_shader_parameter("period", period)
 	gl.material = glm
 	art_flat.add_child(gl)
 	art_glow.texture = load(m.art_dir + L.glow)
-	art_glow.scale = Vector2(u, u) * (float(ART_W * F) / art_glow.texture.get_width())
+	art_glow.scale = Vector2(u, u) * (float(ART_W * a) / art_glow.texture.get_width())
 	(art_glow.material as ShaderMaterial).set_shader_parameter("period", period)
 	art_glow.visible = true
 	var shared := _art_material({ period = period })
