@@ -97,10 +97,13 @@ func _ready() -> void:
 	print("window %s  board %s  render %s  screen px per board px %.3f  zoom %.2f" % [get_tree().root.size, b.viewport.size, b.live.vp.size if b.live else "-", px, b.zoom])
 	if mode == "pixel":
 		_check(b.pixel and b.live != null and b.live.settings.pixel_grid, "the pixel grid is on, with the shared 3D layer")
-		_check(b.viewport.size == Vector2i(768, 416), "the board is the 768x416 grid (%s)" % b.viewport.size)
+		var det: int = b.pixel_detail()
 		var ss: int = b.live.settings.supersample
-		_check(b.live.vp.size == Vector2i(768, 416) * ss, "the 3D layer renders %dx the same grid (%s) and averages down to it" % [ss, b.live.vp.size])
-		_check(is_equal_approx(px, roundf(px)) and px >= 1.0, "the board is shown at a whole multiple (%.3f)" % px)
+		_check(b.F == det and b.viewport.size == Vector2i(768, 416) * det, "the board is the 768x416 map grid drawn %dx (%s)" % [det, b.viewport.size])
+		_check(b.live.vp.size == b.viewport.size * ss, "the 3D layer renders on the board's pixels (%s, %dx averaged)" % [b.live.vp.size, ss])
+		var map_px := px * det
+		_check(is_equal_approx(map_px, roundf(map_px)) and map_px >= 1.0, "every map pixel is a whole number of screen pixels (%.3f)" % map_px)
+		_check(is_equal_approx(px, roundf(px)) or det > 1, "and the board's own pixels too, at detail 1 (%.3f)" % px)
 		_check(b.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "and never smoothed")
 		_check(b.hero_3d != null and b.hero_3d.anchor != null and is_equal_approx(b.hero_3d.anchor.scale.x, 1.35), "Gale is drawn 1.35x his size")
 		var flat := 0
@@ -114,7 +117,7 @@ func _ready() -> void:
 			if t.has_meta("view") and t.get_meta("view") is Live3D.LiveTower:
 				lives += 1
 		_check(lives == placed.size(), "every tower is a live model (%d of %d)" % [lives, placed.size()])
-		_check(bool((b.live.pic.material as ShaderMaterial).get_shader_parameter("quantize")), "the 3D layer is snapped to the shared palette")
+		_check(bool((b.live.pic.material as ShaderMaterial).get_shader_parameter("quantize")) == b.live.settings.quantize, "the palette snap follows the setting (%s)" % b.live.settings.quantize)
 	var close := [["gale", hp + Vector2(0, -20), Vector2(70, 55)]]
 	for t: Tower in S.towers:
 		close.append([t.type, Vector2(t.x, Board.SY(t.y)) + Vector2(0, -22), Vector2(50, 45)])
