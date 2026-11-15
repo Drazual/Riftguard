@@ -233,7 +233,7 @@ static func hero_stats(g: Game, h: Hero) -> Array:
 		["Crit chance", h.crit, "p"], ["Crit damage", h.crit_dmg, "p"], ["Bounces", h.bounce, "n"], ["Bounce damage kept", h.bounce_keep, "p"], ["Range", minf(9999, h.range), "n"],
 		["Move speed", h.speed, "n"], ["Blocks", mini(h.block, Game.ALL_BLOCK - 1), "n"], ["Respawn", h.respawn, "s"], ["Build range", h.build_range, "n"],
 		["Tower aura", h.aura, "p"], ["Aura reach", h.aura_range, "n"], ["Aura slow", h.aura_slow, "p"], ["Heal per kill", h.siphon, "n"],
-		["Hero kill gold", h.bounty, "n"], ["Kill gold (all)", h.tithe, "n"], ["Thorns/s", h.thorns_dps(), "n"], ["Taunt", h.taunt, "s"],
+		["Hero kill gold", h.bounty, "n"], ["Kill gold (all)", h.tithe, "n"], ["Thorns/s", h.thorns_dps(), "n"],
 		["Momentum per kill", h.momentum, "p"], ["Free level-ups near you", h.rapid, "n"], ["Spotter", h.spotter, "p"], ["Boss damage", h.headhunter, "p"],
 		["Interest", h.interest, "p"], ["XP gain", h.xp_gain, "p"], ["Brace time", h.brace, "s"], ["Extra hits", h.pierce, "n"], ["Tower range", h.tower_range, "p"],
 		["Tower build cost", h.cost_mul, "p"], ["Level-up cost", h.lvl_mul, "p"], ["Merge cost", h.merge_mul, "p"], ["Boss stun reduction", minf(0.8, h.grounded), "p"],
@@ -350,7 +350,7 @@ static func ability_tip(g: Game, h: Hero) -> String:
 		return Kit.b("Spellcraft") + "\n" + Kit.c(ability_text(g, h), Kit.MUTED) + "\n" + Kit.c("Esc clears readied runes. Right-click or left-click empty ground to move.", Kit.MUTED)
 	var rows := []
 	match a.id:
-		"slam": rows = [["Damage", f0(a.dmg)], ["Radius", f0(a.r * (1.5 if a.magnet else 1.0))], ["Stun", f1(a.stun) + "s"]]
+		"slam": rows = [["Full hit", f0(g.slam_dmg(h, a)) + (" ×%d" % a.targets if a.targets > 1 else "")], ["Stun", f1(a.stun) + "s"], ["Shockwave", f1(a.reach * (1.5 if a.magnet else 1.0) / 40.0) + " squares"], ["Slow", pct(a.slow) + " for " + f1(a.slow_t) + "s"], ["Shield", "%s + %s per hit" % [f0(a.shield), f0(a.shield_per)]]]
 		"nova": rows = [["Damage", f0(a.dmg)], ["Radius", f0(a.r)]]
 		"overclock": rows = [["Radius", f0(a.r)], ["Towers fire faster", pct(a.power)], ["Lasts", f1(a.dur) + "s"]]
 		"bulwark": rows = [["Shield", f0(a.dmg * 5 * (1.5 if a.overflow else 1.0))], ["Burst", f0(a.dmg) + " + 60% soaked"], ["Lasts", f1(a.dur) + "s"]]
@@ -367,7 +367,6 @@ static func ability_tip(g: Game, h: Hero) -> String:
 		s += "\n" + Kit.c(m.name + ":", Kit.PINK) + " " + Kit.c(DB.tx("mod:" + m.id, m.desc), Kit.MUTED)
 	var extra := ""
 	match a.id:
-		"slam": extra = ("After the slam, enemies within 120 attack you for %ss (bosses half)." % f1(h.taunt)) if h.taunt else ""
 		"pierce": extra = "Hold Q to see exactly where it will go and who it will hit, and let go to fire at the cursor (or click this button, then click the map). Press F to set an aim point for when it fires on its own; press F on the point to clear it."
 		"strike": extra = "Point at the map and press Q: the strike lands on your cursor."
 	if extra != "":

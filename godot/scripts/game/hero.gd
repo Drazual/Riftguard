@@ -70,7 +70,6 @@ var unbreakable := false
 var unbreak_left := 1
 var unbreak_max := 1
 var tithe := 0.0
-var taunt := 0.0
 var momentum := 0.0
 var mom_stacks := 0
 var mom_t := 0.0
