@@ -1,5 +1,3 @@
-# Rift Prowler: keys every clip (idle, walk, slowed, hit, stun, frozen, knockback, attack, death) on the rigged
-# .blend from rig.py and exports the game GLB. Rotations are written about world axes (see clip()). See README.md.
 import bpy, sys, math, mathutils
 from mathutils import Matrix, Quaternion, Euler, Vector
 args=sys.argv[sys.argv.index('--')+1:]
@@ -12,8 +10,13 @@ REST={b.name: b.matrix_local.to_quaternion() for b in ao.data.bones}
 def S(x): return math.sin(2*math.pi*x)
 def C(x): return math.cos(2*math.pi*x)
 
-def world_q(e):
-    return Euler((math.radians(e[0]),math.radians(e[1]),math.radians(e[2])),'XYZ').to_quaternion()
+def world_q(e, order='XYZ'):
+    return Euler((math.radians(e[0]),math.radians(e[1]),math.radians(e[2])),order).to_quaternion()
+
+ARM_ORDER=['XYZ']
+def order_of(name):
+    # in the run the arms come in toward the body (Y) first, then swing (X), so a swung arm stays tucked in
+    return ARM_ORDER[0] if name.endswith('Arm') else 'XYZ'
 
 def clip(name, length, keys, loop=True):
     """keys: list of (t, {bone:(rx,ry,rz) world degrees}, hips_offset (x,y,z) world)"""
@@ -27,7 +30,7 @@ def clip(name, length, keys, loop=True):
             e=pose.get(pb.name,(0,0,0))
             B=REST[pb.name]
             pb.rotation_mode='QUATERNION'
-            pb.rotation_quaternion=B.inverted()@world_q(e)@B
+            pb.rotation_quaternion=B.inverted()@world_q(e,order_of(pb.name))@B
             pb.keyframe_insert("rotation_quaternion",frame=f)
             if pb.name=="Hips":
                 pb.location=B.inverted()@Vector(hip)
@@ -38,7 +41,7 @@ def clip(name, length, keys, loop=True):
         for pb in ao.pose.bones:
             if pb.name not in bones: continue
             e=pose.get(pb.name,(0,0,0)); B=REST[pb.name]
-            pb.rotation_quaternion=B.inverted()@world_q(e)@B; pb.keyframe_insert("rotation_quaternion",frame=f)
+            pb.rotation_quaternion=B.inverted()@world_q(e,order_of(pb.name))@B; pb.keyframe_insert("rotation_quaternion",frame=f)
             if pb.name=="Hips": pb.location=B.inverted()@Vector(hip); pb.keyframe_insert("location",frame=f)
     act.use_fake_user=True
     tr=ao.animation_data.nla_tracks.new(); tr.name=name
@@ -56,7 +59,7 @@ def add(a,b):
 # A-pose arms come in a little toward the body: rotate about world Y (left arm +x side: negative Y brings it down)
 def stance(crouch=1.0, arms_in=14):
     return {
-        "LeftArm":(0,-arms_in,0),"RightArm":(0,arms_in,0),
+        "LeftArm":(0,arms_in,0),"RightArm":(0,-arms_in,0),
         "LeftForeArm":(-25,0,0),"RightForeArm":(-25,0,0),
         "LeftUpLeg":(-14*crouch,0,0),"RightUpLeg":(-14*crouch,0,0),
         "LeftLeg":(26*crouch,0,0),"RightLeg":(26*crouch,0,0),
@@ -83,43 +86,49 @@ for i in range(n):
     keys.append((L*x,p,(0,0,CROUCH_DROP-0.008*S(x))))
 clip("idle",L,keys)
 
-# ---------- walk: a prowling stride, in place ----------
-def walk(L, n, lean, stride, knee_lift, arm_swing, bob, slump=0, shiver=0, tail_amp=12):
+# ---------- run: a loose, bouncy, exaggerated sprint, in place ----------
+# Legs: big forward reach, a high heel tuck on the recovery, a flat foot through stance and a toe push-off.
+# Arms: tucked in close with the elbows bent, pumping against the legs. Everything after the hips trails a little
+# behind it (forearms, hands, head, each tail segment), so nothing moves in lockstep.
+def run(L=0.52, n=26):
     ks=[]
     for i in range(n):
         x=i/n; f=2*math.pi*x
-        p=stance(1.0)
+        p={}
         for side,ph,sg in (("Left",f,1),("Right",f+math.pi,-1)):
-            thigh=-stride*math.sin(ph)-12
-            knee=24+knee_lift*max(0.0,math.cos(ph))**1.5
-            foot=-0.55*(thigh+knee)+12*max(0.0,-math.cos(ph))
-            p[side+"UpLeg"]=(thigh,0,0); p[side+"Leg"]=(knee,0,0); p[side+"Foot"]=(foot,0,0)
-            p[side+"ToeBase"]=(-10*max(0.0,-math.sin(ph)),0,0)
-            # arms swing against the legs on the same side
-            arm=(arm_swing*math.sin(ph))
-            p[side+"Arm"]=(arm, -sg*14+sg*slump*0.4, 0)
-            p[side+"ForeArm"]=(-30-0.5*abs(arm)-slump, 0, 0)
-        s=math.sin(f)
-        p["Spine"]=(lean,0,6*s); p["Spine1"]=(4+slump*0.5,0,0); p["Spine2"]=(slump*0.3,3*s,0)
-        p["Neck"]=(-lean*0.6,0,0); p["Head"]=(-lean*0.5+slump*0.6,0,-5*s)
-        p["Hips"]=(0,3*s,-7*s)
-        if shiver:
-            j=shiver*math.sin(f*7.0)
-            p["Spine2"]=(p["Spine2"][0],p["Spine2"][1]+j,0); p["Head"]=(p["Head"][0]+j,p["Head"][1],j)
-        p=add(p,tail(x,tail_amp,droop=slump*0.4))
-        ks.append((L*x,p,(0,0,CROUCH_DROP-0.02-bob*abs(math.cos(f)))))
+            thigh=-44*math.sin(ph)-14
+            knee=16+105*max(0.0,math.cos(ph-0.35))**1.3+16*max(0.0,-math.cos(ph))
+            foot=-0.55*(thigh+knee)+28*max(0.0,-math.sin(ph-0.3))
+            p[side+"UpLeg"]=(thigh,0,sg*-4)
+            p[side+"Leg"]=(knee,0,0)
+            p[side+"Foot"]=(foot,0,0)
+            p[side+"ToeBase"]=(-22*max(0.0,-math.sin(ph-0.2)),0,0)
+            # the arm on this side swings with the other leg: forward when this leg is back
+            swing=math.sin(ph)
+            lag=math.sin(ph-0.45)
+            p[side+"Shoulder"]=(0,0,sg*4*swing)
+            p[side+"Arm"]=(40*swing-8,sg*24,sg*6*swing)
+            p[side+"ForeArm"]=(-88-26*max(0.0,-lag)+10*max(0.0,lag),0,0)
+            p[side+"Hand"]=(-12-10*math.sin(ph-0.8),0,0)
+        s1=math.sin(f)
+        bounce=math.cos(2*(f-math.pi/2-0.35))
+        p["Hips"]=(0,4*s1,-11*s1)
+        p["Spine"]=(20+3*bounce,0,13*s1)
+        p["Spine1"]=(6,-2*s1,5*s1)
+        p["Spine2"]=(2+2*math.cos(2*f-1.0),0,2*s1)
+        p["Neck"]=(-12-2*bounce,0,-6*s1)
+        p["Head"]=(-14-3*math.cos(2*f-1.4),0,-7*math.sin(f-0.4))
+        for k,nme in enumerate(["Tail","Tail1","Tail2","Tail3","Tail4"]):
+            lagk=0.5+0.45*k
+            lift=(38,16,6,2,0)[k]
+            p[nme]=(lift+5*math.cos(2*f-lagk), 0, (6+4*k)*math.sin(f+math.pi-lagk))
+        ks.append((L*x,p,(0,0.0,-0.05-0.045*bounce)))
     return ks
-clip("walk",0.8,walk(0.8,16,lean=16,stride=34,knee_lift=70,arm_swing=26,bob=0.03))
+ARM_ORDER[0]="YXZ"
+clip("run",0.52,run())
+ARM_ORDER[0]="XYZ"
 
-# ---------- slowed: frost-heavy, hunched, short dragging steps, shivering ----------
-clip("slowed",1.5,walk(1.5,24,lean=26,stride=16,knee_lift=30,arm_swing=8,bob=0.012,slump=22,shiver=2.5,tail_amp=4))
-
-# ---------- hit: a sharp flinch back, then settles into the stance ----------
 base=add(stance(),tail(0,0))
-flinch=add(base,{"Spine":(-14,0,0),"Spine1":(-8,0,0),"Spine2":(-6,4,0),"Neck":(-10,0,0),"Head":(-14,0,8),
-                 "LeftArm":(-18,-10,0),"RightArm":(-18,10,0),"LeftForeArm":(-30,0,0),"RightForeArm":(-30,0,0),
-                 "Tail":(-15,0,0),"Tail1":(-10,0,0)})
-clip("hit",0.4,[(0,base,(0,0,CROUCH_DROP)),(0.07,flinch,(0,0.03,CROUCH_DROP-0.01)),(0.4,base,(0,0,CROUCH_DROP))],loop=False)
 
 # ---------- stunned: dazed, head lolling in circles, arms hanging, wobbling on bent knees ----------
 keys=[]; L=1.4; n=16
@@ -150,13 +159,20 @@ st=add(base,{"Spine":(18,0,0),"Spine1":(6,0,0),"Head":(-12,0,0),"LeftArm":(-20,-
              "LeftUpLeg":(-30,0,0),"LeftLeg":(50,0,0),"RightUpLeg":(-4,0,0),"RightLeg":(34,0,0)})
 clip("knockback",0.7,[(0,base,(0,0,CROUCH_DROP)),(0.1,kb,(0,0.04,0.02)),(0.35,st,(0,0,CROUCH_DROP-0.06)),(0.7,base,(0,0,CROUCH_DROP))],loop=False)
 
-# ---------- attack: a lunging claw swipe with the right hand ----------
-wind=add(base,{"Spine":(4,0,-25),"Spine1":(0,0,-10),"Head":(0,0,15),"RightArm":(-40,60,-30),"RightForeArm":(-80,0,0),
-               "LeftArm":(-20,-20,0),"RightUpLeg":(10,0,0),"LeftUpLeg":(-30,0,0),"LeftLeg":(40,0,0)})
-swipe=add(base,{"Spine":(22,0,25),"Spine1":(8,0,12),"Head":(-14,0,-12),"RightArm":(-70,-10,40),"RightForeArm":(-15,0,0),
-                "RightHand":(10,0,0),"LeftArm":(10,-25,0),"LeftUpLeg":(-40,0,0),"LeftLeg":(45,0,0),"RightUpLeg":(14,0,0),
-                "Tail":(0,0,-20),"Tail1":(0,0,-15)})
-clip("attack",0.6,[(0,base,(0,0,CROUCH_DROP)),(0.22,wind,(0,0.03,CROUCH_DROP-0.02)),(0.32,swipe,(0,-0.06,CROUCH_DROP-0.05)),(0.6,base,(0,0,CROUCH_DROP))],loop=False)
+# ---------- attack: a lunging two-claw combo at whatever holds it up (the hero, a wall) ----------
+ready=add(base,{"Spine":(14,0,0),"Neck":(-8,0,0),"Head":(-10,0,0),"LeftArm":(-30,-24,0),"RightArm":(-30,24,0),
+                "LeftForeArm":(-70,0,0),"RightForeArm":(-70,0,0),"LeftUpLeg":(-26,0,0),"LeftLeg":(40,0,0),"RightUpLeg":(6,0,0),"RightLeg":(30,0,0)})
+windR=add(ready,{"Spine":(-2,0,-28),"Spine1":(-4,0,-14),"Head":(4,0,20),"RightArm":(-70,70,-40),"RightForeArm":(-60,0,0),
+                 "RightHand":(-20,0,0),"LeftArm":(-50,-20,0),"Tail":(0,0,20),"Tail1":(0,0,15)})
+slashR=add(ready,{"Spine":(26,0,30),"Spine1":(8,0,14),"Neck":(-6,0,0),"Head":(-18,0,-16),"RightArm":(-80,-20,50),"RightForeArm":(-10,0,0),
+                  "RightHand":(15,0,0),"LeftArm":(-10,-30,0),"LeftUpLeg":(-44,0,0),"LeftLeg":(50,0,0),"RightUpLeg":(16,0,0),
+                  "Tail":(0,0,-25),"Tail1":(0,0,-20),"Tail2":(0,0,-10)})
+windL=add(slashR,{"Spine":(-14,0,-10),"Spine1":(-6,0,-6),"LeftArm":(-75,-70,40),"LeftForeArm":(-60,0,0),"RightArm":(-30,0,-20)})
+slashL=add(ready,{"Spine":(28,0,-32),"Spine1":(8,0,-14),"Head":(-18,0,16),"LeftArm":(-85,20,-50),"LeftForeArm":(-10,0,0),
+                  "LeftHand":(15,0,0),"RightArm":(-20,30,0),"RightForeArm":(-80,0,0),"RightUpLeg":(-40,0,0),"RightLeg":(48,0,0),
+                  "LeftUpLeg":(10,0,0),"LeftLeg":(30,0,0),"Tail":(0,0,25),"Tail1":(0,0,20),"Tail2":(0,0,10)})
+clip("attack",0.95,[(0,ready,(0,0,CROUCH_DROP-0.04)),(0.18,windR,(0,0.03,CROUCH_DROP-0.03)),(0.28,slashR,(0,-0.08,CROUCH_DROP-0.07)),
+                    (0.48,windL,(0,-0.04,CROUCH_DROP-0.05)),(0.58,slashL,(0,-0.1,CROUCH_DROP-0.08)),(0.95,ready,(0,0,CROUCH_DROP-0.04))],loop=False)
 
 # ---------- death: knees buckle, it sinks, then topples forward ----------
 kneel=add(base,{"LeftUpLeg":(-75,0,-8),"RightUpLeg":(-60,0,8),"LeftLeg":(125,0,0),"RightLeg":(120,0,0),
@@ -187,7 +203,8 @@ for sock,name in ((bs.inputs['Base Color'],'prowler_color'),(bs.inputs['Normal']
         if name!='prowler_color' and im.size[0]>512: im.scale(512,512)
         im.file_format='PNG'
         print('IMG',name,im.size[:])
-
+bpy.ops.wm.save_as_mainfile(filepath=blend.replace('.blend','_anim.blend'))
+bpy.ops.wm.save_as_mainfile(filepath=blend.replace('.blend','_anim.blend'))  # for checking the clips in Blender
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_animation_mode='ACTIONS',
     export_force_sampling=True, export_frame_step=1, export_anim_single_armature=True, export_def_bones=False,
     export_image_format='AUTO', export_yup=True, export_apply=False)
