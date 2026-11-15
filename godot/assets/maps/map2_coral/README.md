@@ -50,3 +50,9 @@ The source lives on the build box in `maps/map2_coral/src`. Run `run_all.sh` to 
 - `ground.py`: the ground and water frames.
 - `mask.py`, `glow.py`, `layout.py`.
 - `checks.py` and `sim_placement.py`: path, spots and curb checks.
+
+## Scenery borrowed from Ocean Drive
+
+The buildings, palms and props in `layout.json` now point at Ocean Drive's sprites (`res://assets/maps/map1_miami/spr/...`)
+with `"scale": 0.5`, because those are painted at 2x and this map is 1x. `tl` and `key` stay in this map's pixels.
+Still this map's own art: the ground and path, the ENTRY gate and the core. The old sprites in `spr/` are kept, unused.
