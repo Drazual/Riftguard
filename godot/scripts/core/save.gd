@@ -67,17 +67,22 @@ func _fill() -> void:
 			meta.heroes[id] = {}
 
 
-## Canal Crossing became the first stage after Sunset Outpost. A save that already beat Sunset Outpost counts
-## Canal Crossing as beaten too, so no map or mastery level locks again.
+## The first stage changed over time (Sunset Outpost, then Canal Crossing / Ocean Drive, then Rift Plaza). A save that
+## already beat an old first stage counts the newer one as beaten too, so no map or mastery level locks again.
 func _carry_first_stage() -> void:
-	if not map_won("verdant") or meta.best.has("canal"):
+	_carry_stage("verdant", "canal")
+	_carry_stage("canal", "plaza")
+
+
+func _carry_stage(old: String, new: String) -> void:
+	if not map_won(old) or meta.best.has(new):
 		return
-	meta.best["canal"] = meta.best["verdant"].duplicate()
+	meta.best[new] = meta.best[old].duplicate()
 	for kind in ["towers", "heroes"]:
 		for k in meta.wins[kind]:
 			var w = meta.wins[kind][k]
-			if w is Dictionary and w.get("verdant", false):
-				w["canal"] = true
+			if w is Dictionary and w.get(old, false):
+				w[new] = true
 
 
 func _merge(into: Dictionary, from: Dictionary) -> void:
@@ -146,7 +151,7 @@ func map_won(id: String) -> bool:
 
 
 ## Only this many maps (from the start of DB.map_order) are playable. The rest show as under construction.
-const OPEN_MAPS := 2
+const OPEN_MAPS := 3
 
 
 func map_built(id: String) -> bool:

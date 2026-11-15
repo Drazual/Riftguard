@@ -4446,6 +4446,10 @@ const HERO_SHOT_SPEED := 900.0
 ## The build cell of the grid point nearest to where a tower would stand at (x, y) on a free-build map.
 func snap_cell(x: float, y: float) -> Vector2i:
 	var st: float = S.map.build_step
+	if S.map.snap_lattice: # the diamond under the foot; the tower stands FOOT_DY above its centre
+		var ij: Vector2 = S.map.lattice_ij(Vector2(x, y + FOOT_DY))
+		var p: Vector2 = S.map.lattice_pt(roundf(ij.x), roundf(ij.y)) - Vector2(0, FOOT_DY)
+		return Vector2i(floori(p.x / st), floori(p.y / st))
 	var sx := (floorf(x / BUILD_SNAP) + 0.5) * BUILD_SNAP
 	var sy := (floorf(y / BUILD_SNAP) + 0.5) * BUILD_SNAP
 	return Vector2i(floori(sx / st), floori(sy / st))
@@ -4456,6 +4460,25 @@ func snap_cells() -> Array:
 	if S.map.has_meta("snap_cells"):
 		return S.map.get_meta("snap_cells")
 	var out := []
+	if S.map.snap_lattice:
+		var w: float = S.map.build_w * S.map.build_step
+		var h: float = S.map.build_h * S.map.build_step
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for corner in [Vector2(0, 0), Vector2(w, 0), Vector2(0, h), Vector2(w, h)]:
+			var ij: Vector2 = S.map.lattice_ij(corner)
+			lo = lo.min(ij)
+			hi = hi.max(ij)
+		for i in range(floori(lo.x) - 1, ceili(hi.x) + 2):
+			for j in range(floori(lo.y) - 1, ceili(hi.y) + 2):
+				var p: Vector2 = S.map.lattice_pt(i, j) - Vector2(0, FOOT_DY)
+				if p.x < 0 or p.y < 0 or p.x >= w or p.y >= h:
+					continue
+				var c := Vector2i(floori(p.x / S.map.build_step), floori(p.y / S.map.build_step))
+				if S.map.build_code(cell_pos(c.x, c.y)) == 0:
+					out.append(c)
+		S.map.set_meta("snap_cells", out)
+		return out
 	var y := BUILD_SNAP / 2
 	while y < S.map.build_h * S.map.build_step:
 		var x := BUILD_SNAP / 2
@@ -4482,6 +4505,10 @@ func cell_pos(c: int, r: int) -> Vector2:
 ## Every place a tower could go on this map (the pads, or the grid cells next to the path), for bots and tests.
 func build_cells() -> Array[Vector2i]:
 	var out: Array[Vector2i] = []
+	if free_build() and S.map.snap_lattice: # the diamond grid's open spots
+		for c in snap_cells():
+			out.append(c)
+		return out
 	if free_build(): # a sample of the open ground, every 20 units
 		var st: float = S.map.build_step
 		var y := 10.0

@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/data/map_scene.gd" id="1_rp"]
+
+[node name="RiftPlaza" type="Node2D"]
+script = ExtResource("1_rp")
+id = "plaza"
+map_name = "Rift Plaza"
+theme = "boardwalk"
+art_layout = "res://assets/maps/map0_plaza/layout.json"
+desc = "The first stage. A long neon road winds round a city square and spirals in to the rift portal in the middle. Towers go on the square's tiles, lined up with the road. No modifiers."
