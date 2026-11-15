@@ -51,6 +51,9 @@ const WALL_MODELS := { stonewall = "res://art_src/fx/walls/stone_wall/stone_wall
 const HERO_FEET := 43.0
 const FACE_COL := [2, 3, 4, 5, 6, 7, 0, 1] # sector (E, SE, S, ... clockwise) to facing
 const MAX_BURSTS := 60
+## How wide every tower's base shows, in board pixels: TowerData.turret_scale (and sprite_scale, and the beacon's
+## size) are set so each base measures this, half a Rift Plaza tile.
+const TOWER_BASE := 24.0
 
 var game: Game
 var viewport: SubViewport
@@ -466,7 +469,7 @@ func muzzle_lift(t: Tower) -> float:
 	var d: TowerData = DB.towers.get(t.type)
 	if d == null or d.frames == null:
 		return 14.0
-	return (d.foot_y - d.muzzle_y) / PX - FOOT
+	return (d.foot_y - d.muzzle_y) * d.sprite_scale / PX - FOOT
 
 
 ## Where a hybrid or super drawn from its own GLB (Merge3D) shows its Muzzle on the board, or null.
@@ -501,7 +504,7 @@ func _sync_towers(S: Run, speed: float) -> void:
 			s = AnimatedSprite2D.new()
 			s.sprite_frames = d.frames
 			s.centered = false
-			s.scale = Vector2(1 / PX, 1 / PX)
+			s.scale = Vector2(d.sprite_scale / PX, d.sprite_scale / PX)
 			s.set_meta("shot", null)
 			s.set_meta("st", t.shot_at)
 			s.set_meta("ht", t.fired_at)
@@ -519,7 +522,7 @@ func _sync_towers(S: Run, speed: float) -> void:
 			t.fired_at = S.time
 			t.hit_at = t.pos()
 		s.position = Vector2(t.x, SY(t.y))
-		s.offset = Vector2(-24, -d.foot_y + FOOT * PX)
+		s.offset = Vector2(-24, -d.foot_y + FOOT * PX / d.sprite_scale)
 		s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
 		s.speed_scale = speed
 		if t.shot_at != s.get_meta("st"):
@@ -1141,9 +1144,9 @@ func _sync_ghost(S: Run) -> void:
 				ghost.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 				ghost.offset = -d.turret_foot + Vector2(0, FOOT / sc)
 			else:
-				ghost.scale = Vector2(1 / PX, 1 / PX)
+				ghost.scale = Vector2(d.sprite_scale / PX, d.sprite_scale / PX)
 				ghost.texture_filter = CanvasItem.TEXTURE_FILTER_PARENT_NODE
-				ghost.offset = Vector2(-24, -d.foot_y + FOOT * PX)
+				ghost.offset = Vector2(-24, -d.foot_y + FOOT * PX / d.sprite_scale)
 			ghost.modulate = Color(1, 0.35, 0.4, 0.6) if not ok else (Color(0.55, 1, 0.65, 0.75) if game.in_build_range(hv.x, hv.y) else Color(1, 0.85, 0.45, 0.7))
 			show = true
 	if ghost != null:
@@ -2295,7 +2298,7 @@ func _draw_flat() -> void:
 		var td: TowerData = DB.towers.get(t.type)
 		if td != null and td.turret != null and is_sprite_tower(t):
 			# a 3D-rendered turret: a tight contact shadow right under its base, so it sits on the ground
-			var f := td.turret_scale / 0.38
+			var f := TOWER_BASE / 21.7 # every tower's base is the same width now, so is its shadow
 			var c := Vector2(t.x, t.y + (FOOT - 4 * f) / K)
 			_ellipse(g, c, 32 * f, 15 * f / K, shadow_col(0.3))
 			_ellipse(g, c, 24 * f, 10 * f / K, shadow_col(0.45))

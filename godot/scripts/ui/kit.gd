@@ -199,13 +199,17 @@ static func clear(n: Node) -> void:
 
 ## Shows a tooltip while the pointer is over the control. text_fn returns BBCode ("" for none).
 static func tip_on(ctl: Control, text_fn: Callable, where := "below") -> void:
+	ctl.set_meta("tip_fn", text_fn)
+	ctl.set_meta("tip_where", where)
 	ctl.mouse_entered.connect(func():
 		var t: String = text_fn.call()
 		if t != "" and Ui.me:
 			Ui.me.show_tip(t, ctl.get_global_rect(), where))
+	# a panel that rebuilds while the pointer rests on it (the build bar, as gold and cooldowns change) frees the
+	# hovered button: the tip waits a moment so the rebuilt button can take it over instead of it blinking out
 	ctl.mouse_exited.connect(func():
 		if Ui.me:
-			Ui.me.hide_tip())
+			Ui.me.hide_tip_soon())
 
 
 ## A bar that fills from the left.

@@ -191,7 +191,7 @@ func wave_choice(data: Dictionary) -> void:
 	var box := ui.open_modal(780)
 	_title(box, "Choose wave %d" % data.n)
 	_lead(box, ("A boss leads this wave. " if data.boss else "")
-		+ "Hard waves make enemies tougher for a little gold. Challenge waves also add a handicap and a goal: meet the goal to earn the reward.")
+		+ "Hard waves add one enemy buff or one handicap for extra gold. Challenge waves add both, for the same gold plus a hero upgrade or a tower buff.")
 	var g := _choices(box)
 	var line_col := { tough = Kit.HEROIC, debuff = Kit.DANGER, req = Kit.OK }
 	for i in opts.size():
