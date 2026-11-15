@@ -1,5 +1,6 @@
 {
 	"model": "tesla_coil.glb",
+	"base_yaw": 45,
 	"anims": { "idle": "idle", "fire": "attack" },
 	"idle_frames": 12,
 	"idle_time": 2.0,

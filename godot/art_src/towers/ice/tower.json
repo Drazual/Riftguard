@@ -1,5 +1,6 @@
 {
 	"model": "ice_tower.glb",
+	"base_yaw": 45,
 	"yaw": "Turret/Yaw",
 	"pitch": "Turret/Yaw/Pitch",
 	"anims": { "idle": "shimmer", "fire": "attack" },

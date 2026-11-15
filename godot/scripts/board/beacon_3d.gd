@@ -12,7 +12,8 @@ const PITCH := Hero3D.PITCH
 const Q := 2 # rendered at 2x board pixels, drawn at half size
 const BOX := Vector2(110, 110) # the tower's viewport, in board pixels
 const FOOT := Vector2(55, 96) # where the tower's base centre lands in it
-const WIDE := 23.0 # how wide the model shows, in board pixels: its base comes out at Board.TOWER_BASE like every tower's
+const WIDE := 19.5 # the model's width across its square base, in board pixels: turned 45 degrees (a diamond on the
+## iso ground, like the baked towers) its base comes out Board.TOWER_BASE wide like every tower's
 const MODEL_W := 1.9 # the model's width in metres (CLAUDE_NOTES)
 const RING_LAYER := 2 # render layer of the aura ring: only the ground camera sees it
 
@@ -58,6 +59,7 @@ func setup(ground: Node2D, range_r: float) -> void:
 	cam.current = true
 	vis = (load(SCENE) as PackedScene).instantiate()
 	vis.scale = Vector3.ONE * (WIDE * _upp / MODEL_W)
+	vis.rotation.y = PI / 4
 	vp.add_child(vis)
 	var aura := vis.get_node("AuraRing") as MeshInstance3D
 	aura.layers = RING_LAYER

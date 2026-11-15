@@ -1,5 +1,6 @@
 {
 	"model": "rift_beacon.glb",
+	"base_yaw": 45,
 	"anims": { "idle": "idle", "fire": "buff_pulse" },
 	"muzzle": "BuffPoint",
 	"idle_frames": 16,
