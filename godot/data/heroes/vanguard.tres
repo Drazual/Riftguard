@@ -9,11 +9,19 @@ script = ExtResource("1_s1qux")
 id = "slam"
 name = "Shield Slam"
 cd = 12.0
-dmg = 60.0
+dmg = 100.0
 r = 100.0
 stun = 1.5
+dur = 6.0
 release = 0.5
-desc = "Deals {f0(a.dmg)} damage and stuns enemies within {f0(a.r)} for {f1(a.stun)}s."
+desc = "Slams the {iff(a.targets > 1, str(a.targets) + ' enemies', 'enemy')} in front for {f0(a.dmg)} plus {pct(a.armor_mul)} of your armor and stuns {iff(a.targets > 1, 'them', 'it')} for {f1(a.stun)}s. The shockwave runs {f1(a.reach / 40)} squares on down the path, hitting everything for half and slowing it {pct(a.slow)} for {f1(a.slow_t)}s. You gain a {f0(a.shield)} shield, +{f0(a.shield_per)} per enemy hit, for {f0(a.dur)}s. Bosses are stunned and slowed half as long."
+targets = 1
+armor_mul = 1.0
+reach = 240.0
+slow = 0.4
+slow_t = 2.5
+shield = 60.0
+shield_per = 20.0
 
 [sub_resource type="Resource" id="Resource_bnd7b"]
 script = ExtResource("1_s1qux")

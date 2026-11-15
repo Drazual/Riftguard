@@ -2,7 +2,7 @@
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/tank.tscn -- <out dir>
 ## Checks the model's clips and loops, the punch landing 0.3s into the swing for 6 + 2% max HP on every enemy in
 ## reach (and not past it), Shield Slam
-## landing at 0.5s ahead of the hero for 60 + 4% max HP with a 1.5s stun, Bulwark Shield going up at 0.35s, soaking
+## landing at 0.5s ahead of the hero for 100 + its armor with a 1.5s stun on the enemy in front, Bulwark Shield going up at 0.35s, soaking
 ## and bursting for 45 + 60% of what it soaked, and that Phantoms are held. Saves screenshots of each pose.
 extends Node
 
@@ -134,6 +134,7 @@ func _ready() -> void:
 	# Shield Slam: 0.5s into the cast, centred ahead of the hero
 	h.ab.t = 0
 	var hp1 := e.hp
+	var hp1b := e2.hp
 	var swings := h.attacks
 	g.use_ability()
 	var cast_at := S.time
@@ -147,13 +148,19 @@ func _ready() -> void:
 		await get_tree().process_frame
 	await get_tree().process_frame
 	var bash := (h.attacks - swings) * 15.0
-	var lost := hp1 - e.hp
-	_check(e.stun_t > 1.3, "slam stuns 1.5s (%.2f left)" % e.stun_t)
-	_check(lost >= 78 - 1 and lost <= 78 + bash + 13, "slam hits for 78 (lost %.0f, %d bashes)" % [lost, h.attacks - swings])
+	# the full hit and stun land on the one enemy in front (whichever of the pair is nearer where the shield fell)
+	var hit_e := e if e.stun_t > e2.stun_t else e2
+	var lost: float = (hp1 if hit_e == e else hp1b) - hit_e.hp
+	_check(hit_e.stun_t > 1.3 and minf(e.stun_t, e2.stun_t) <= 0, "slam stuns the enemy in front 1.5s (%.2f left), not the other" % hit_e.stun_t)
+	_check(h.shield >= h.ab.shield + h.ab.shield_per - 5, "slam shields the hero (%.0f)" % h.shield)
+	var full := g.slam_dmg(h, h.ab)
+	_check(lost >= full - 1 and lost <= full + bash + 13, "slam hits for %.0f (lost %.0f, %d bashes)" % [full, lost, h.attacks - swings])
 	await _wait(0.8)
 
 	# Bulwark Shield: up at 0.35s, soaks, bursts for 45 + 60% of what it soaked
 	h.ab = Ability.from_data(DB.heroes.vanguard.alt)
+	h.shield = 0 # the slam's shield
+	h.shield_t = 0
 	_check(is_equal_approx(h.ab.release, 0.35), "bulwark releases at 0.35s")
 	g.use_ability()
 	cast_at = S.time
@@ -164,7 +171,7 @@ func _ready() -> void:
 	while S.time < cast_at + 0.35:
 		await get_tree().process_frame
 	await get_tree().process_frame
-	_check(is_equal_approx(h.shield, 225), "shield 225 (%.0f)" % h.shield)
+	_check(absf(h.shield - 225) < 3, "shield 225 (%.0f)" % h.shield) # the unstunned enemy may already have struck it
 	await _wait(1.0)
 	_check(m.ap.current_animation == "ext/brace_glow", "braced behind the shield (%s)" % m.ap.current_animation)
 	await _shot("4_bulwark_hold")

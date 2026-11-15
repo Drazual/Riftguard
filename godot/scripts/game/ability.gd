@@ -15,6 +15,14 @@ var mult := 0.0
 var w := 0.0
 var release := 0.0 # seconds into the cast animation before it takes effect
 var desc := ""
+# Shield Slam (see AbilityData)
+var targets := 1
+var armor_mul := 0.0
+var reach := 0.0
+var slow := 0.0
+var slow_t := 0.0
+var shield := 0.0
+var shield_per := 0.0
 var t := 0.0 # cooldown left
 var haste := 0.0
 # ability upgrades (ability_mods)
@@ -52,7 +60,7 @@ static func from_data(a: AbilityData) -> Ability:
 	var b := Ability.new()
 	if a == null:
 		return b
-	for k in ["id", "name", "cd", "dmg", "r", "stun", "dur", "power", "mult", "w", "release", "desc"]:
+	for k in ["id", "name", "cd", "dmg", "r", "stun", "dur", "power", "mult", "w", "release", "desc", "targets", "armor_mul", "reach", "slow", "slow_t", "shield", "shield_per"]:
 		b.set(k, a.get(k))
 	b.base_dmg = b.dmg
 	return b

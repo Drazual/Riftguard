@@ -75,17 +75,44 @@ also_pools = PackedStringArray()
 kind = "xp"
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_7ow2v"]
+[sub_resource type="Resource" id="Resource_slamwide"]
 script = ExtResource("1_ttpmk")
-id = "taunt"
-name = "Taunt"
-desc = "After Shield Slam, enemies within 120 stop and attack you for {f1(m)}s."
-effect = "h.taunt += m"
-m = 2.0
+id = "broadside"
+name = "Broad Shield"
+desc = "Shield Slam's full hit and stun land on {max(1, floor(m))} more {iff(max(1, floor(m)) > 1, 'enemies', 'enemy')} in front."
+effect = "h.ab.targets += max(1, floor(m))"
+m = 1.0
 pool = "vanguard"
 ability = "slam"
 also_pools = PackedStringArray()
-kind = "taunt"
+kind = "slam_targets"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_slamreach"]
+script = ExtResource("1_ttpmk")
+id = "faultline"
+name = "Fault Line"
+desc = "Shield Slam's shockwave runs {f1(m)} {iff(m > 1, 'squares', 'square')} farther down the path."
+effect = "h.ab.reach += 40 * m"
+m = 1.0
+pool = "vanguard"
+ability = "slam"
+also_pools = PackedStringArray()
+kind = "slam_reach"
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_slamshield"]
+script = ExtResource("1_ttpmk")
+id = "aegisslam"
+name = "Aegis Slam"
+desc = "Shield Slam's shield is {pct(m)} bigger (the base and the amount per enemy hit)."
+effect = "h.ab.shield *= 1 + m
+h.ab.shield_per *= 1 + m"
+m = 0.3
+pool = "vanguard"
+ability = "slam"
+also_pools = PackedStringArray()
+kind = "slam_shield"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_evm4r"]
@@ -140,13 +167,14 @@ heroes = PackedStringArray()
 script = ExtResource("1_ttpmk")
 id = "daze"
 name = "Concussion"
-desc = "Shield Slam stuns {f1(m)}s longer."
-effect = "h.ab.stun += m"
-m = 0.4
+desc = "Shield Slam stuns and slows {pct(m)} longer."
+effect = "h.ab.stun *= 1 + m
+h.ab.slow_t *= 1 + m"
+m = 0.25
 pool = "vanguard"
 also_pools = PackedStringArray()
 ability = "slam"
-kind = "ability"
+kind = "slam_ctrl"
 heroes = PackedStringArray()
 
 [sub_resource type="Resource" id="Resource_1q21w"]
@@ -860,4 +888,4 @@ heroes = PackedStringArray()
 
 [resource]
 script = ExtResource("2_ogedp")
-items = Array[ExtResource("1_ttpmk")]([SubResource("Resource_radfield"), SubResource("Resource_8qpy0"), SubResource("Resource_4u7rw"), SubResource("Resource_sls2k"), SubResource("Resource_lyb04"), SubResource("Resource_a5vhk"), SubResource("Resource_jql25"), SubResource("Resource_7ow2v"), SubResource("Resource_evm4r"), SubResource("Resource_m42uu"), SubResource("Resource_boi17"), SubResource("Resource_463pm"), SubResource("Resource_aff1t"), SubResource("Resource_1q21w"), SubResource("Resource_vcyug"), SubResource("Resource_nq8wt"), SubResource("Resource_1mp4t"), SubResource("Resource_bnc2x"), SubResource("Resource_660rp"), SubResource("Resource_egr0f"), SubResource("Resource_dufhs"), SubResource("Resource_kmkvr"), SubResource("Resource_n0p85"), SubResource("Resource_prtwt"), SubResource("Resource_ephru"), SubResource("Resource_fwnyi"), SubResource("Resource_5kjhc"), SubResource("Resource_28h3g"), SubResource("Resource_onjpc"), SubResource("Resource_5mddn"), SubResource("Resource_6updh"), SubResource("Resource_cfurh"), SubResource("Resource_2q40b"), SubResource("Resource_roejd"), SubResource("Resource_ohbmd"), SubResource("Resource_3ydcx"), SubResource("Resource_0ldq8"), SubResource("Resource_mwl36"), SubResource("Resource_45fu8"), SubResource("Resource_w42hl"), SubResource("Resource_b0e8l"), SubResource("Resource_nmip3"), SubResource("Resource_0o400"), SubResource("Resource_w03q5"), SubResource("Resource_bpxoq"), SubResource("Resource_qgpko"), SubResource("Resource_yi5an"), SubResource("Resource_farcast"), SubResource("Resource_vfveu"), SubResource("Resource_p6gy1"), SubResource("Resource_wallspk"), SubResource("Resource_wallcd"), SubResource("Resource_wallblast"), SubResource("Resource_7pw1r"), SubResource("Resource_vhvbt"), SubResource("Resource_4qab1"), SubResource("Resource_4c3qk"), SubResource("Resource_ffcmc"), SubResource("Resource_yhdbq"), SubResource("Resource_0i8re"), SubResource("Resource_ne3im"), SubResource("Resource_vpjev"), SubResource("Resource_gale1"), SubResource("Resource_gale2"), SubResource("Resource_gale3"), SubResource("Resource_gale4"), SubResource("Resource_gale5"), SubResource("Resource_gale6")])
+items = Array[ExtResource("1_ttpmk")]([SubResource("Resource_radfield"), SubResource("Resource_8qpy0"), SubResource("Resource_4u7rw"), SubResource("Resource_sls2k"), SubResource("Resource_lyb04"), SubResource("Resource_a5vhk"), SubResource("Resource_jql25"), SubResource("Resource_slamwide"), SubResource("Resource_slamreach"), SubResource("Resource_slamshield"), SubResource("Resource_evm4r"), SubResource("Resource_m42uu"), SubResource("Resource_boi17"), SubResource("Resource_463pm"), SubResource("Resource_aff1t"), SubResource("Resource_1q21w"), SubResource("Resource_vcyug"), SubResource("Resource_nq8wt"), SubResource("Resource_1mp4t"), SubResource("Resource_bnc2x"), SubResource("Resource_660rp"), SubResource("Resource_egr0f"), SubResource("Resource_dufhs"), SubResource("Resource_kmkvr"), SubResource("Resource_n0p85"), SubResource("Resource_prtwt"), SubResource("Resource_ephru"), SubResource("Resource_fwnyi"), SubResource("Resource_5kjhc"), SubResource("Resource_28h3g"), SubResource("Resource_onjpc"), SubResource("Resource_5mddn"), SubResource("Resource_6updh"), SubResource("Resource_cfurh"), SubResource("Resource_2q40b"), SubResource("Resource_roejd"), SubResource("Resource_ohbmd"), SubResource("Resource_3ydcx"), SubResource("Resource_0ldq8"), SubResource("Resource_mwl36"), SubResource("Resource_45fu8"), SubResource("Resource_w42hl"), SubResource("Resource_b0e8l"), SubResource("Resource_nmip3"), SubResource("Resource_0o400"), SubResource("Resource_w03q5"), SubResource("Resource_bpxoq"), SubResource("Resource_qgpko"), SubResource("Resource_yi5an"), SubResource("Resource_farcast"), SubResource("Resource_vfveu"), SubResource("Resource_p6gy1"), SubResource("Resource_wallspk"), SubResource("Resource_wallcd"), SubResource("Resource_wallblast"), SubResource("Resource_7pw1r"), SubResource("Resource_vhvbt"), SubResource("Resource_4qab1"), SubResource("Resource_4c3qk"), SubResource("Resource_ffcmc"), SubResource("Resource_yhdbq"), SubResource("Resource_0i8re"), SubResource("Resource_ne3im"), SubResource("Resource_vpjev"), SubResource("Resource_gale1"), SubResource("Resource_gale2"), SubResource("Resource_gale3"), SubResource("Resource_gale4"), SubResource("Resource_gale5"), SubResource("Resource_gale6")])

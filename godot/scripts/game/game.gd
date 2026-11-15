@@ -1880,38 +1880,110 @@ func orbital_strike(h: Hero, a: Ability) -> void:
 ## How far ahead of the Vanguard's feet its Shield Slam lands (the model's SlamPoint, 0.8 m in front of a 1.9 m hero).
 const SLAM_AHEAD := 14.0
 
-## at: where the shield hits the ground (the hero's feet if not given).
+## Shield Slam's full hit: its own damage plus a share of the hero's armor (100 armor + 100 at the start).
+func slam_dmg(h: Hero, a: Ability) -> float:
+	return a.dmg + h.armor * a.armor_mul
+
+
+## Which way along the path Shield Slam's shockwave runs from distance d: away from the hero, so it carries on
+## through the enemies coming at it (-1 toward the spawn, +1 toward the base).
+func _slam_way(h: Hero, d: float) -> float:
+	var back := pos_at(maxf(0.0, d - 12.0))
+	var on := pos_at(minf(S.map.path_len, d + 12.0))
+	return -1.0 if hyp(back.x - h.x, back.y - h.y) >= hyp(on.x - h.x, on.y - h.y) else 1.0
+
+
+## The path distance nearest to a point (where the shockwave starts when nobody was in front).
+func _path_d_near(p: Vector2) -> float:
+	var best := 0.0
+	var bd := INF
+	for sg in S.map.seg:
+		var ab: Vector2 = sg.b - sg.a
+		var l2 := ab.length_squared()
+		var k := clampf((p - sg.a).dot(ab) / l2, 0.0, 1.0) if l2 > 0 else 0.0
+		var dd := p.distance_squared_to(sg.a + ab * k)
+		if dd < bd:
+			bd = dd
+			best = sg.start + sg.len * k
+	return best
+
+
+## Stun or slow from Shield Slam: bosses get half as long.
+func _slam_t(e: Enemy, t: float) -> float:
+	return t * (0.5 if e.boss else 1.0)
+
+
+## at: where the shield hits the ground (the hero's feet if not given). The nearest enemies there (a.targets of
+## them) take the full hit and are stunned; then a shockwave runs a.reach on down the path, hitting everything else
+## for half and slowing it. The hero gains a shield: a base amount plus more for every enemy hit.
 func slam(h: Hero, a: Ability, mult: float, at = null) -> void:
 	var x: float = at.x if at != null else h.x
 	var y: float = at.y if at != null else h.y
-	var r := a.r * (1.5 if a.magnet else 1.0)
-	for e in in_range(x, y, r):
-		damage(e, ab_dmg(h, a) * mult)
-		e.stun_t = maxf(e.stun_t, a.stun * mult)
-		if a.magnet:
-			if not e.pushback_immune:
-				e.d = back_d(e, 50)
-			line(e.x, e.y, x, y, 0x9af0ff, 0.35, 2)
-	if h.taunt:
-		for e in in_range(x, y, maxf(120, r)):
-			e.taunt_t = maxf(e.taunt_t, h.taunt / 2 if e.boss else h.taunt)
-	ring(x, y, r, 0x5fe39a, 0.4, true)
-	do_shake(0.006 * mult + 0.002, 180)
+	var full := slam_dmg(h, a) * mult
+	var reach := a.reach * (1.5 if a.magnet else 1.0) * mult
+	# the full hit: the enemies nearest the shield, within the slam's reach of the hero
+	var front := in_range(h.x, h.y, a.r)
+	front.sort_custom(func(p, q): return hyp(p.x - x, p.y - y) < hyp(q.x - x, q.y - y))
+	front = front.slice(0, maxi(1, a.targets))
+	var hit := {}
+	for e in front:
+		hit[e] = true
+		damage(e, full)
+		e.stun_t = maxf(e.stun_t, _slam_t(e, a.stun * mult))
+		ring(e.x, e.y, 22, 0xffffff, 0.3, true)
+	ring(x, y, 30, 0x5fe39a, 0.4, true)
+	do_shake(0.012 if mult >= 1 else 0.007, 220)
+	# the shockwave starts at the furthest enemy it slammed (else where the shield landed) and runs away from the hero
+	var d0 := _path_d_near(Vector2(x, y))
+	if front.size():
+		d0 = front[0].d
+		var way0 := _slam_way(h, d0)
+		for e in front:
+			d0 = minf(d0, e.d) if way0 < 0 else maxf(d0, e.d)
+	var way := _slam_way(h, d0)
+	var swept := [0]
+	var steps := 8
+	for i in steps:
+		var lo := reach * i / steps
+		var hi := reach * (i + 1) / steps
+		later(0.05 * (i + 1), func():
+			if S.over:
+				return
+			var a_d := d0 + way * lo
+			var b_d := d0 + way * hi
+			var dmin := minf(a_d, b_d) - 6.0
+			var dmax := maxf(a_d, b_d) + 6.0
+			for e in S.enemies:
+				if e.dead or hit.has(e) or e.d < dmin or e.d > dmax:
+					continue
+				hit[e] = true
+				swept[0] += 1
+				damage(e, full * 0.5)
+				slow_enemy(e, a.slow, _slam_t(e, a.slow_t * mult))
+				if a.magnet and not e.pushback_immune:
+					e.d = back_d(e, 50)
+			var p := pos_at(clampf(b_d, 0.0, S.map.path_len))
+			ring(p.x, p.y, 26, 0x9af0ff, 0.35, true)
+			if i == steps - 1 and S.hero == h and h.ko <= 0:
+				give_shield(h, swept[0] * a.shield_per * mult, a.dur))
+	# the shield: the base amount plus the enemies the full hit landed on (the shockwave's are added as it ends)
+	if h.ko <= 0:
+		give_shield(h, (a.shield + front.size() * a.shield_per) * mult, a.dur)
 	if mult < 1:
 		return
 	if a.rings:
 		for i in 3:
 			later(0.18 * (i + 1), func():
-				var rr := r * (1.3 + 0.3 * i)
+				var rr := 100.0 * (1.3 + 0.3 * i)
 				for e in in_range(x, y, rr):
-					damage(e, ab_dmg(h, a) * 0.4)
+					damage(e, full * 0.4)
 					if not e.pushback_immune:
 						e.d = back_d(e, 20)
 				ring(x, y, rr, 0x9af0ff, 0.35))
 	if a.molten:
-		zone({ x = x, y = y, r = r * 0.8, t = 4.0, dps = a.dmg * 0.6, slow = 0.35, color = 0xff8a3d })
+		zone({ x = x, y = y, r = 80.0, t = 4.0, dps = a.dmg * 0.6, slow = 0.35, color = 0xff8a3d })
 	if a.echo:
-		later(1.0, func(): if S.hero.ko <= 0: slam(S.hero, a, 0.5))
+		later(1.0, func(): if S.hero == h and h.ko <= 0: slam(h, a, 0.5, Vector2(x, y)))
 
 
 func _nova_blast(a: Ability, x: float, y: float, r: float, dmg: float, depth: int) -> void:
