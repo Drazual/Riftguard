@@ -4584,7 +4584,11 @@ func cell_pos(c: int, r: int) -> Vector2:
 		return S.map.spots[c]
 	if free_build():
 		var st: float = S.map.build_step
-		return Vector2((c + 0.5) * st, (r + 0.5) * st)
+		var p := Vector2((c + 0.5) * st, (r + 0.5) * st)
+		if S.map.snap_lattice: # exactly over its diamond's centre, not just the mask cell holding it
+			var ij: Vector2 = S.map.lattice_ij(p + Vector2(0, FOOT_DY))
+			return S.map.lattice_pt(roundf(ij.x), roundf(ij.y)) - Vector2(0, FOOT_DY)
+		return p
 	return Vector2(c * C + C / 2, r * C + C / 2)
 
 

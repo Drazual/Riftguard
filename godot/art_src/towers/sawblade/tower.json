@@ -1,5 +1,6 @@
 {
 	"model": "sawblade.glb",
+	"base_yaw": 45,
 	"yaw": "Turret/Yaw",
 	"pitch": "Turret/Yaw/Pitch",
 	"anims": { "idle": "idle", "fire": "fire" },

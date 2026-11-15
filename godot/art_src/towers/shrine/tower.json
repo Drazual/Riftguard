@@ -1,5 +1,6 @@
 {
 	"model": "hero_shrine.glb",
+	"base_yaw": 45,
 	"anims": { "idle": "idle", "fire": "idle" },
 	"muzzle": "BuffPoint",
 	"idle_frames": 16,

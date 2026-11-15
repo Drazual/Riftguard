@@ -35,6 +35,8 @@ extends "res://tools/render_hero.gd"
 ##   size    frame size (96 = drawn at half size on the board, like a 48px tower frame at 2x)
 ##   wide    how wide the base renders facing the camera, in frame pixels
 ##   foot    [x, y]: where the base's bottom centre lands in a frame, in frame pixels
+##   base_yaw  optional: degrees the whole model is turned about its up axis, so a square base sits as a diamond on
+##           the iso ground (45); the turret's facings are turned back by the same amount, so aims don't change
 ##   out     the name of the files it writes
 ##   style   optional: "clean" (default), "painted" (warm key, pink rim, soft outline) or "pixel"
 ##   vibrance  optional: [saturation, contrast] the frames are punched up by after rendering (off for "clean";
@@ -62,6 +64,7 @@ var pitch_node: Node3D
 ## The nodes idle_make moves, by path, with their own transforms. A clip that doesn't key them would leave them
 ## where the animation player puts untracked values (not their rest), so every other pose puts them back.
 var made_rest := {}
+var base_yaw := 0.0 # radians the model is turned (tower.json base_yaw, in degrees)
 
 
 func _run() -> void:
@@ -92,6 +95,8 @@ func _run() -> void:
 	_stage()
 	var model: Node3D = (load(dir + cfg.model) as PackedScene).instantiate()
 	pivot.add_child(model)
+	base_yaw = deg_to_rad(float(cfg.get("base_yaw", 0.0)))
+	model.rotation.y = base_yaw
 	_toon(model)
 	yaw_node = model.get_node_or_null(cfg.get("yaw", ""))
 	pitch_node = model.get_node_or_null(cfg.get("pitch", ""))
@@ -299,7 +304,7 @@ func _pose(ap: AnimationPlayer, clip: String, t: float, yaw: float) -> void:
 		if a.find_track(NodePath(path), Animation.TYPE_SCALE_3D) < 0:
 			n.scale = n.get_meta("rest_scale")
 	if yaw_node:
-		yaw_node.rotation = Vector3(0, yaw, 0)
+		yaw_node.rotation = Vector3(0, yaw - base_yaw, 0)
 	if pitch_node:
 		pitch_node.rotation = Vector3(aim, 0, 0)
 	if muzzle_node:
