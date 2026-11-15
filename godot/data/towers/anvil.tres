@@ -113,5 +113,6 @@ form_names = {
 frames = ExtResource("1_psklc")
 sheet = ExtResource("3_0xhmw")
 foot_y = 39.0
+sprite_scale = 0.75
 muzzle_y = 22.0
 fire_frame = 3

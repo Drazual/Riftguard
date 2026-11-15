@@ -12,7 +12,7 @@ const PITCH := Hero3D.PITCH
 const Q := 2 # rendered at 2x board pixels, drawn at half size
 const BOX := Vector2(110, 110) # the tower's viewport, in board pixels
 const FOOT := Vector2(55, 96) # where the tower's base centre lands in it
-const WIDE := 50.0 # how wide the tower shows, in board pixels (about the old sprite's width)
+const WIDE := 23.0 # how wide the model shows, in board pixels: its base comes out at Board.TOWER_BASE like every tower's
 const MODEL_W := 1.9 # the model's width in metres (CLAUDE_NOTES)
 const RING_LAYER := 2 # render layer of the aura ring: only the ground camera sees it
 

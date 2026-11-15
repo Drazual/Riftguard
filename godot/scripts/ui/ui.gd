@@ -66,6 +66,8 @@ var tip: PanelContainer
 var space_at := -100000 # when Space was last pressed (msec), for the double tap that pauses
 const DOUBLE_TAP_MS := 350
 var tip_label: RichTextLabel
+var tip_token := 0 # bumped whenever the tip is shown or hidden, so a late hide_tip_soon() leaves a newer tip alone
+var tip_rect := Rect2()
 var ability_btn: Button
 var ability_fill: ColorRect
 var rune_btns := {}
@@ -568,6 +570,16 @@ func toast(msg: String) -> void:
 
 
 func show_tip(bb: String, rect: Rect2, where := "below") -> void:
+	tip_token += 1
+	# already showing for this spot (the same button, rebuilt): just refresh the words in place, with no fade-in
+	if tip.visible and tip.modulate.a > 0.99 and tip_rect.get_center().distance_to(rect.get_center()) < 24.0:
+		tip_rect = rect
+		if tip_label.text != bb:
+			tip_label.text = bb
+			tip.reset_size()
+		_place_tip(rect, where)
+		return
+	tip_rect = rect
 	tip_label.text = bb
 	# Kept see-through until it's measured and placed, so it never flashes at its old spot or size.
 	tip.modulate.a = 0
@@ -587,6 +599,11 @@ func show_tip(bb: String, rect: Rect2, where := "below") -> void:
 		if i > 0 and is_equal_approx(tip.size.y, last):
 			break
 		last = tip.size.y
+	_place_tip(rect, where)
+	tip.modulate.a = 1
+
+
+func _place_tip(rect: Rect2, where: String) -> void:
 	var ts := tip.size
 	var vs := get_viewport_rect().size
 	var x := rect.position.x + rect.size.x / 2 - ts.x / 2
@@ -594,11 +611,38 @@ func show_tip(bb: String, rect: Rect2, where := "below") -> void:
 	if y < 8:
 		y = rect.end.y + 12
 	tip.position = Vector2(clampf(x, 8, vs.x - ts.x - 8), clampf(y, 8, vs.y - ts.y - 8))
-	tip.modulate.a = 1
 
 
 func hide_tip() -> void:
+	tip_token += 1
 	tip.visible = false
+
+
+## Hides the tip after a short moment, unless something shows a tip again first.
+func hide_tip_soon() -> void:
+	var tok := tip_token
+	await get_tree().create_timer(0.15, true).timeout
+	if tok == tip_token:
+		tip.visible = false
+
+
+## After a panel rebuilds under a resting pointer, the new button under it takes the tip over.
+func _retip(box: Control) -> void:
+	await get_tree().process_frame
+	if not tip.visible or not is_instance_valid(box):
+		return
+	var mp := get_viewport().get_mouse_position()
+	var todo: Array = box.get_children()
+	while not todo.is_empty():
+		var c = todo.pop_back()
+		if not (c is Control) or not c.is_visible_in_tree():
+			continue
+		if c.has_meta("tip_fn") and c.get_global_rect().has_point(mp):
+			var t: String = (c.get_meta("tip_fn") as Callable).call()
+			if t != "":
+				show_tip(t, c.get_global_rect(), c.get_meta("tip_where"))
+			return
+		todo.append_array(c.get_children())
 
 
 # ---------- per frame ----------
@@ -705,6 +749,7 @@ func render_build_bar() -> void:
 	if S == null or S.hero == null:
 		return
 	Kit.clear(build_bar)
+	_retip(build_bar)
 	rune_btns.clear()
 	ability_btn = null
 	rune_cast = null

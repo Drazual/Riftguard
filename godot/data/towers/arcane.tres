@@ -118,4 +118,4 @@ fx_anchor_y = 0.75
 fire_frame = 1
 turret = ExtResource("4_turret")
 turret_muzzle = PackedVector2Array(64.0, 14.5, 71.2, 15.1, 78.6, 17.2, 85.2, 21.6, 88.3, 28.4, 85.2, 35.1, 78.6, 39.5, 71.2, 41.6, 64.0, 42.3, 56.8, 41.6, 49.4, 39.5, 42.8, 35.1, 39.7, 28.4, 42.8, 21.6, 49.4, 17.2, 56.8, 15.1)
-turret_scale = 0.38
+turret_scale = 0.5714

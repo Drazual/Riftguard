@@ -44,8 +44,8 @@ path_field = [bf(p) for p in PB]
 portal_tiles = {(6, 7), (8, 7), (6, 8), (7, 8), (8, 8), (6, 9), (7, 9), (8, 9)}
 HERO = (5, 6)
 
-def playfield(u, v):
-    return 1 <= u <= N - 2 and 1 <= v <= N - 2
+def playfield(u, v):  # every tile of the square is a tower spot, so towers fit on both sides of the outer road
+    return 0 <= u <= N - 1 and 0 <= v <= N - 1
 def in_diamond(u, v):
     return 0 <= u <= N - 1 and 0 <= v <= N - 1
 
@@ -180,17 +180,6 @@ used = set(road_tiles) | arch_tiles
 for u in range(-1, 4):
     for v in range(-12, 0):
         used.add((u, v))          # the entry street stays open
-# the plaza's rim (tiles 0 and N-1): planters, lamps and flower beds, mirrored round the diamond
-ring = [(u, v) for u in range(N) for v in range(N) if in_diamond(u, v) and not playfield(u, v) and (u, v) not in used]
-for i, (u, v) in enumerate(sorted(ring)):
-    pos = (u + v) % 4
-    if pos == 0:
-        flat_tile(u, v)
-    elif pos == 2:
-        stand(u, v, STAND[(u * 3 + v) % 2])
-    else:
-        stand(u, v, STAND[2 + (u + 2 * v) % 3] if (u + v) % 8 == 1 else STAND[(u + v) % 2])
-    used.add((u, v))
 # outside the diamond: 2x2 blocks of buildings (with the odd little park), then single tiles of props
 cands = [(u, v) for u in range(-12, N + 12) for v in range(-12, N + 12)
          if not in_diamond(u, v) and on_board(u, v, 70) and (u, v) not in used]
@@ -226,10 +215,6 @@ for v in (-1, -3, -5, -7):
     for u in (0, 2):
         if on_board(u, v, 10):
             stand(u, v, ('lamp', 'neon') if v % 4 == 3 else ('palm_planter_b', 'palm'))
-# a few traffic lights by the road on the plaza rim
-for (u, v) in [(0, 13), (14, 13), (14, 1)]:
-    c = tb(u, v); put(rng.choice(group('traffic_light')), 'tlight', c + [0, 3], c[1] + 3)
-
 sprites.sort(key=lambda s: s['key'])
 
 # ---------- build mask: what's under a tower's foot (12 field units below where it stands) ----------

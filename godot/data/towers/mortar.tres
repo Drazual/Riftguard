@@ -121,4 +121,4 @@ shot_turn = true
 fire_frame = 1
 turret = ExtResource("4_turret")
 turret_muzzle = PackedVector2Array(64.2, 52.0, 64.1, 52.0, 64.0, 52.0, 63.8, 52.0, 63.6, 51.9, 63.6, 51.8, 63.6, 51.7, 63.7, 51.6, 63.8, 51.5, 63.9, 51.5, 64.0, 51.5, 64.2, 51.5, 64.4, 51.6, 64.4, 51.8, 64.4, 51.9, 64.3, 51.9)
-turret_scale = 0.42
+turret_scale = 0.3529

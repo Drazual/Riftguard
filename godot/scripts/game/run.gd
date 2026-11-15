@@ -6,6 +6,7 @@ extends RefCounted
 var map: MapInfo
 var map_id := ""
 var gold := 150.0
+var tower_bonus := 0.0 # extra damage for every tower, won from Challenge waves
 var lives := 20
 var start_lives := 20
 var boss_kills := 0
