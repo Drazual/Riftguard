@@ -14,6 +14,9 @@ extends Resource
 @export var atk := 8.0
 @export var radius := 9.0
 @export var color := Color.RED
+## A folder with enemy.json and a rigged model (art_src/enemies/<name>): on the hand-painted maps with the 3D style
+## on, the enemy is drawn as that model (Enemy3D) instead of a coloured disc.
+@export_dir var model_dir := ""
 @export_range(0.0, 0.8) var armor := 0.0
 ## Immune to slows (stuns still work).
 @export var unslow := false

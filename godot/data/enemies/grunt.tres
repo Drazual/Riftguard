@@ -9,5 +9,6 @@ name = "Grunt"
 hp = 55.0
 speed = 52.0
 color = Color(1, 0.3647059, 0.42352942, 1)
+model_dir = "res://art_src/enemies/rift_prowler"
 info = "No special trait."
 counter = "Anything works."
