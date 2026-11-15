@@ -2,16 +2,47 @@ class_name Enemy3D
 extends Node2D
 ## An enemy drawn live from a rigged 3D model (EnemyData.model_dir: a folder with enemy.json and the .glb), in its own
 ## small smooth render like Hero3D, Merge3D and Wall3D (or, with the old unified-style test on, in the shared Live3D
-## layer). It faces the way it walks and plays a clip for whatever is happening to it: walk (paced to its real speed),
-## slowed, stun, frozen (Rimeshard), knockback (pushed or pulled), attack (held up by a hero or a wall), a flinch on a
-## big hit, and death, which plays out after the enemy has left the game, before the body sinks into the ground.
+## layer). It faces the way it runs and plays a clip for whatever is happening to it: run (paced to its real speed,
+## so a slow slows the clip by the same share, and frost creeps over it), stun, frozen (Rimeshard), knockback (pushed
+## or pulled), attack (held up by a hero, whom it turns to face, or a wall), and death, which plays out after the
+## enemy has left the game, before the body sinks into the ground.
 ## Pure visuals: the board's Crowd (below) makes one per enemy, moves it, and lets it go.
 
 const PITCH := Hero3D.PITCH
 const Q := 2 # rendered at 2x board pixels, drawn at half size
 const HERO_PX := 26.0 # a 1.8 m hero is 26 board pixels tall: models share that scale
-const HIT_SHARE := 0.08 # a hit taking at least this share of max HP makes it flinch
-const HIT_GAP := 0.9 # seconds between flinches, so steady tower fire doesn't stop it walking
+## Frost over the model while it's slowed or frozen: an icy crust on the surfaces that face up and out, and a pale
+## rim, laid over its own material (material_overlay). Crust grows with `frost` (0 to 1).
+const FROST := """
+shader_type spatial;
+render_mode blend_mix, depth_draw_never, cull_back, specular_schlick_ggx;
+uniform float frost : hint_range(0.0, 1.0) = 0.0;
+varying vec3 n_model;
+float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float noise(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0)), f.x), f.y);
+}
+void vertex() {
+	n_model = NORMAL;
+}
+void fragment() {
+	float n = noise(UV * 48.0) * 0.55 + noise(UV * 140.0) * 0.45;
+	float up = clamp(n_model.y * 0.6 + 0.45, 0.0, 1.0);
+	float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 2.0);
+	// the crust spreads from the up-facing parts as frost rises; crystals sparkle where the fine noise peaks
+	float crust = smoothstep(1.05 - frost * 0.9, 1.25 - frost * 0.7, n + up * 0.6);
+	float sparkle = step(0.93, noise(UV * 260.0)) * frost;
+	ALBEDO = mix(vec3(0.66, 0.86, 1.0), vec3(0.96, 0.99, 1.0), n);
+	ROUGHNESS = 0.2;
+	SPECULAR = 0.9;
+	EMISSION = vec3(0.35, 0.6, 0.85) * (rim * 0.7 + sparkle) * frost;
+	ALPHA = clamp(crust * 0.9 + rim * 0.55 * frost + sparkle, 0.0, 0.95) * min(1.0, frost * 3.0);
+}
+"""
+static var _frost_shader: Shader
 const DEATH_HOLD := 0.6 # seconds the body lies still after the death clip, before it sinks
 const SINK := 0.45 # seconds to sink into the ground
 
@@ -30,10 +61,8 @@ var yaw := 0.0
 var want_yaw := 0.0
 var state := ""
 var last := Vector2.INF
-var hp := -1.0
-var hit_t := 0.0
-var hit_cool := 0.0
-var flash := 0.0
+var frost := 0.0 # how frosted it shows (eases toward the slow)
+var frost_mat: ShaderMaterial
 var dead_t := -1.0 # time since it died, -1 while alive
 var _h := 1.5 # its height in metres
 
@@ -64,10 +93,18 @@ func setup(dir: String, r: float, shared: Live3D = null) -> void:
 	_h = float(cfg.get("height", 1.5)) * clampf(r / 9.0, 0.6, 2.5)
 	if bb.size.y > 0.01:
 		model.scale = Vector3.ONE * (_h / bb.size.y)
-	for s in ["idle", "walk", "slowed", "stun", "frozen"]:
+	for s in ["idle", "walk", "stun", "frozen"]:
 		_loop(s, Animation.LOOP_LINEAR)
-	for s in ["hit", "knockback", "attack", "death"]:
+	for s in ["knockback", "attack", "death"]:
 		_loop(s, Animation.LOOP_NONE)
+	if _frost_shader == null:
+		_frost_shader = Shader.new()
+		_frost_shader.code = FROST
+	frost_mat = ShaderMaterial.new()
+	frost_mat.shader = _frost_shader
+	for n in model.find_children("*", "MeshInstance3D", true, false):
+		(n as MeshInstance3D).material_overlay = frost_mat
+	frost_mat.set_shader_parameter("frost", 0.0)
 	var p := deg_to_rad(PITCH)
 	var upp := 1.8 * cos(p) / HERO_PX # metres per board pixel
 	top = _h * cos(p) / upp
@@ -152,8 +189,8 @@ func play(s: String, rate: float, blend := 0.12) -> void:
 
 
 ## One frame for a living enemy standing at this node's position (board world units). speed: the game's speed (0
-## while paused); dt: real seconds.
-func tick(e: Enemy, speed: float, dt: float) -> void:
+## while paused); dt: real seconds; hero: where the hero stands (board world units), or INF.
+func tick(e: Enemy, speed: float, dt: float, hero := Vector2.INF) -> void:
 	var gdt := dt * speed
 	var moved := Vector2.ZERO if last == Vector2.INF else position - last
 	last = position
@@ -162,20 +199,9 @@ func tick(e: Enemy, speed: float, dt: float) -> void:
 	# face the way it walks (not while thrown backwards, dragged, stunned or frozen)
 	if moved.length() > 0.02 and not pushed and e.stun_t <= 0 and not frozen:
 		want_yaw = _face(moved)
-	# a big hit makes it flinch and flash (not too often, and only from damage)
-	hit_cool -= gdt
-	hit_t -= gdt
-	flash = maxf(0.0, flash - gdt * 6.0)
-	if hp >= 0.0 and e.hp < hp - 0.5:
-		flash = maxf(flash, 0.6 if e.hp < hp - e.max * HIT_SHARE else 0.25)
-		if e.hp < hp - e.max * HIT_SHARE and hit_cool <= 0.0:
-			hit_cool = HIT_GAP
-			hit_t = 0.3
-			if state == "hit":
-				state = "" # restart the flinch
-	hp = e.hp
-	var slowed := e.slow_t > 0 and e.slow > 0.05
-	var pace := e.speed * ((1.0 - e.slow) if slowed else 1.0) / float(cfg.get("walk_speed", 52.0))
+	var slowed := e.slow_t > 0 and e.slow > 0.01
+	# the run keeps pace with how fast it really moves: a 40% slow plays the clip 40% slower
+	var pace := clampf(e.speed / float(cfg.get("walk_speed", 52.0)), 0.4, 2.5) * ((1.0 - e.slow) if slowed else 1.0)
 	if frozen:
 		play("frozen", speed, 0.05)
 	elif e.stun_t > 0:
@@ -183,23 +209,22 @@ func tick(e: Enemy, speed: float, dt: float) -> void:
 	elif pushed:
 		play("knockback", speed, 0.06)
 	elif e.blocked:
-		# held up by the hero or a wall: claw at it, over and over
-		play("attack", speed)
+		# held up: claw at what's in the way, over and over, facing the hero when it's the hero
+		if hero != Vector2.INF and position.distance_to(hero) < 60.0:
+			want_yaw = _face(hero - position)
+		play("attack", speed * (1.0 - e.slow if slowed else 1.0))
 		if not ap.is_playing():
 			state = ""
-			play("attack", speed)
-	elif hit_t > 0:
-		play("hit", speed, 0.05)
-	elif slowed:
-		# its own heavy, dragging walk (paced against the slow it was made for, about half speed)
-		play("slowed", speed * clampf(pace / 0.5, 0.5, 2.0))
+			play("attack", speed * (1.0 - e.slow if slowed else 1.0))
 	elif moved.length() > 0.01 or speed <= 0.0:
-		play("walk", speed * clampf(pace, 0.4, 2.5))
+		play("walk", speed * pace)
 	else:
 		play("idle", speed)
-	# a frosty tint while frozen or slowed, a white flash when hit hard
-	var tint := Color(0.72, 0.9, 1.25) if frozen else (Color(0.85, 0.95, 1.12) if slowed else Color.WHITE)
-	modulate = tint.lerp(Color(2.2, 2.2, 2.2), flash)
+	# frost creeps over it while slowed (more for a stronger slow) and covers it while frozen, with a slight icy tint
+	var want := 1.0 if frozen else (clampf(0.35 + 0.6 * e.slow, 0.0, 0.75) if slowed else 0.0)
+	frost = move_toward(frost, want, gdt * (4.0 if want > frost else 1.5))
+	frost_mat.set_shader_parameter("frost", frost)
+	modulate = Color.WHITE.lerp(Color(0.8, 0.92, 1.15), frost)
 	_turn(gdt)
 
 
@@ -214,8 +239,6 @@ func _turn(gdt: float) -> void:
 ## Starts the death; then call dying() each frame until it returns false (and free it).
 func die(speed: float) -> void:
 	dead_t = 0.0
-	flash = 0.0
-	modulate = Color.WHITE
 	state = ""
 	if anims.has("death"):
 		play("death", speed, 0.05)
@@ -251,8 +274,8 @@ class Crowd:
 		return v if v != null and is_instance_valid(v) else null
 
 	## enemies: the run's. at(e): the board point of its feet. layer: the depth-sorted node to stand them in. live:
-	## the shared layer (or null). px: board pixels per world unit. light: called with each new view's viewport (the map's lighting), may be empty.
-	func sync(enemies: Array, at: Callable, layer: Node2D, live: Live3D, speed: float, dt: float, px: float, light: Callable) -> void:
+	## the shared layer (or null). px: board pixels per world unit. hero: where the hero stands, or INF. light: called with each new view's viewport (the map's lighting), may be empty.
+	func sync(enemies: Array, at: Callable, layer: Node2D, live: Live3D, speed: float, dt: float, px: float, light: Callable, hero := Vector2.INF) -> void:
 		var seen := {}
 		for e: Enemy in enemies:
 			if e.dead or not Enemy3D.has_model(e.data):
@@ -271,7 +294,7 @@ class Crowd:
 					light.call(v.vp)
 				views[e] = v
 			v.position = at.call(e)
-			v.tick(e, speed, dt)
+			v.tick(e, speed, dt, hero)
 		# gone from the game: killed ones play their death, the rest (reached the base, a wave restart) just go
 		for e in views.keys():
 			if seen.has(e):

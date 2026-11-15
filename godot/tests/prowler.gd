@@ -1,7 +1,8 @@
 ## Grunts drawn live from the rigged Rift Prowler model, in a real run on Rift Plaza (needs a display):
 ## xvfb-run godot --path godot --rendering-driver opengl3 res://tests/prowler.tscn -- <out dir>
-## Lines up Grunts in each state (walking, slowed, stunned, frozen, knocked back, held up by the hero, hit hard) and
-## checks each plays its clip, then kills one and checks it plays its death, sinks and is freed. Saves close-ups.
+## Lines up Grunts in each state (running, slowed, stunned, frozen, knocked back, held up by the hero) and checks each
+## plays its clip (a slowed one runs that much slower, frosted over), then kills one and checks it plays its death,
+## sinks and is freed. Saves close-ups.
 extends Node
 
 var out := "user://prowler"
@@ -79,14 +80,17 @@ func _ready() -> void:
 	var hit := _grunt(L * 0.60)
 	await _wait(0.3)
 	_check(main.board.crowd.view_of(walker) != null, "a Grunt is drawn from its model")
-	_check(_clip(walker) == "walk", "walking (%s)" % _clip(walker))
+	_check(_clip(walker) == "walk", "running (%s)" % _clip(walker))
 	await _shot("0_walk", walker.pos())
 	g.slow_enemy(slowed, 0.5, 30)
 	stunned.stun_t = 30
 	frozen.rime_frz = 30
 	frozen.speed = 0
 	await _wait(0.4)
-	_check(_clip(slowed) == "slowed", "slowed (%s)" % _clip(slowed))
+	var vs := main.board.crowd.view_of(slowed)
+	var vw := main.board.crowd.view_of(walker)
+	_check(_clip(slowed) == "walk" and is_equal_approx(vs.ap.speed_scale, vw.ap.speed_scale * (1.0 - slowed.slow)), "slowed %d%%: its run is that much slower (%.2f vs %.2f)" % [int(slowed.slow * 100), vs.ap.speed_scale, vw.ap.speed_scale])
+	_check(vs.frost > 0.5 and vw.frost == 0.0, "slowed: frosted over (%.2f), the other isn't" % vs.frost)
 	_check(_clip(stunned) == "stun", "stunned (%s)" % _clip(stunned))
 	_check(_clip(frozen) == "frozen", "frozen (%s)" % _clip(frozen))
 	await _shot("1_slowed", slowed.pos())
@@ -97,17 +101,18 @@ func _ready() -> void:
 	hit.hp = hit.max * 0.8
 	await _wait(0.12)
 	_check(_clip(pushed) == "knockback", "knocked back (%s)" % _clip(pushed))
-	_check(_clip(hit) == "hit", "flinches on a big hit (%s)" % _clip(hit))
+	_check(_clip(hit) == "walk", "no flinch on a big hit (%s)" % _clip(hit))
 	await _shot("4_knockback", pushed.pos())
 	await _shot("5_hit", hit.pos())
 	await _wait(0.8)
-	_check(_clip(hit) == "walk", "then walks on (%s)" % _clip(hit))
 	# held up by the hero standing in its way: claws at it
 	S.hero.x = g.pos_at(walker.d + 14).x
 	S.hero.y = g.pos_at(walker.d + 14).y
 	S.hero.tx = null
 	await _wait(0.6)
-	_check(_clip(walker) == "attack", "attacks when held up (%s)" % _clip(walker))
+	_check(_clip(walker) == "attack", "attacks the hero holding it up (%s)" % _clip(walker))
+	var vw2 := main.board.crowd.view_of(walker)
+	_check(vw2 != null and absf(angle_difference(vw2.yaw, vw2._face(main.board.P(S.hero.x, S.hero.y) - vw2.position))) < 0.3, "and faces the hero")
 	await _shot("6_attack", walker.pos())
 	S.hero.x = -500
 	S.hero.y = -500

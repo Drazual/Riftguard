@@ -4,9 +4,7 @@
 	"walk_speed": 52,
 	"anims": {
 		"idle": "idle",
-		"walk": "walk",
-		"slowed": "slowed",
-		"hit": "hit",
+		"walk": "run",
 		"stun": "stun",
 		"frozen": "frozen",
 		"knockback": "knockback",

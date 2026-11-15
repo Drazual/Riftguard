@@ -3090,4 +3090,5 @@ func _sync_enemies(S: Run) -> void:
 			live.cut(n, e.r + 1.25, body_lift(e))
 	var lit := blend()
 	crowd.sync(S.enemies, func(e): return P(e.x, e.y), units, live, 0.0 if S.paused or S.over else S.speed,
-		get_process_delta_time(), PX, (func(vp): MapLight.light(vp, lit)) if lit else Callable())
+		get_process_delta_time(), PX, (func(vp): MapLight.light(vp, lit)) if lit else Callable(),
+		P(S.hero.x, S.hero.y) if S.hero and S.hero.ko <= 0 else Vector2.INF)

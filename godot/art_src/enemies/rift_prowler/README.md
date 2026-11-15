@@ -7,7 +7,7 @@ hand-painted maps every Grunt is drawn from this model by `scripts/board/enemy_3
 
 | File | What it is |
 |---|---|
-| `rift_prowler.glb` | The game model: about 12k triangles, a 27-bone skeleton (Mixamo-style names plus `Tail` to `Tail4`), 1024 px colour and 512 px normal/ORM textures, and the clips below. |
+| `rift_prowler.glb` | The game model: about 12k triangles, a 27-bone skeleton (Mixamo-style names plus `Tail` to `Tail4`), 1024 px colour and 512 px normal/ORM textures, and the clips below. Frost is a shader overlay in `enemy_3d.gd`, not a texture. |
 | `enemy.json` | Height on the board (`height`, metres, a hero is 1.8), the speed its walk clip was made for (`walk_speed`), and which clip plays for each state (`anims`). |
 | `rig.py`, `joints.json` | Builds the rig in Blender from the Meshy source model (`Meshy_AI_Rift_Prowler_texture.glb`, not in the repo; it's 26 MB). |
 | `anim.py` | Keys every clip and exports the GLB. |
@@ -18,14 +18,14 @@ hand-painted maps every Grunt is drawn from this model by `scripts/board/enemy_3
 | Clip | Loops | When it plays |
 |---|---|---|
 | `idle` | yes | standing still |
-| `walk` | yes | walking the path, paced to the enemy's real speed |
-| `slowed` | yes | slowed (frost and other slows): hunched, short dragging steps, shivering; plus a light blue tint |
-| `hit` | no | a hit that takes 8% of its max HP or more (at most once every 0.9 s); smaller hits just flash |
+| `run` | yes | moving along the path (enemy.json maps the game's `walk` to it). Paced to the enemy's real speed, so a 40% slow plays it 40% slower. While slowed, frost creeps over the model and it gets a slight icy tint. |
 | `stun` | yes | stunned: dazed, head lolling, wobbling |
-| `frozen` | yes (held pose) | frozen solid by Rimeshard, with an icy tint |
+| `frozen` | yes (held pose) | frozen solid by Rimeshard, fully frosted |
 | `knockback` | no | pushed back or pulled along the path |
-| `attack` | no, repeated | held up by the hero or a wall |
+| `attack` | no, repeated | held up by the hero (it turns to face them) or a wall: a lunging two-claw combo |
 | `death` | no | killed: knees buckle and it topples, lies still, then sinks into the ground |
+
+Hits don't play a clip.
 
 ## Rebuilding
 
