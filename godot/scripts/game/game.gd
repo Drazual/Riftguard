@@ -478,7 +478,7 @@ func hyp(x: float, y: float) -> float:
 
 func tower_mode_mul() -> float:
 	var ch = S.mode.get("challenge", "")
-	return R.lone_tower if ch == "lone" else R.weak_tower if ch == "weak" else 1.0
+	return (R.lone_tower if ch == "lone" else R.weak_tower if ch == "weak" else 1.0) * (1 + S.tower_bonus)
 
 
 func hero_dmg() -> float:
@@ -2776,9 +2776,16 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	return q
 
 
-## Hard: modest gold per toughness rule. Challenge: gold per point of difficulty, a free hero upgrade, and a relic
-## from 5 points. Legendary and Secret waves pay a relic and a free hero upgrade, only if the requirement is met.
-func wave_reward(n: int, kind: String, pts := 0):
+## Hard and Challenge pay the same gold. Challenge also gives a free hero upgrade or a lasting tower buff.
+## Legendary and Secret waves pay a relic and a free hero upgrade, only if the requirement is met.
+const CHALLENGE_TOWER_BUFF := 0.1 # a Challenge wave's tower reward: every tower deals this much more, for the run
+
+
+func wave_gold(n: int) -> int:
+	return 20 + 4 * n
+
+
+func wave_reward(n: int, kind: String, tower_buff := false):
 	if kind == "normal":
 		return null
 	var owned := {}
@@ -2790,15 +2797,13 @@ func wave_reward(n: int, kind: String, pts := 0):
 		var relic: UpgradeData = pick(pool) if pool.size() else R.relics.find("repair")
 		var g := (120 if kind == "secret" else 80) + 8 * n
 		return { gold = g, relic = relic, perk = true, label = "%s relic: %s (%s), +%d gold and a free hero upgrade" % [DB.rar[kind].name, relic.name, relic_desc(relic).trim_suffix("."), g] }
-	var gold := int(round((15 + 3 * n if kind == "hard" else 12 + 3 * n) * pts))
+	var gold := wave_gold(n)
 	if kind == "hard":
 		return { gold = gold, perk = false, relic = null, label = "+%d gold" % gold }
-	# every challenge wave you clear gives a free hero upgrade
-	var out := { gold = gold, perk = true, relic = null }
-	if pts >= 5:
-		out.relic = pick(R.relics.items.filter(func(x): return gold_ok(x) and (x.repeat or not owned.has(x.id)) and (not x.offensive_only or hero_cat() == "offensive")))
-	out.label = "+%d gold" % gold + (", a free hero upgrade" if out.perk else "") + (" and the %s relic (%s)" % [out.relic.name, relic_desc(out.relic).trim_suffix(".")] if out.relic else "")
-	return out
+	if tower_buff:
+		return { gold = gold, perk = false, relic = null, tower_buff = CHALLENGE_TOWER_BUFF,
+			label = "+%d gold and +%d%% damage for every tower for the rest of the run" % [gold, int(round(CHALLENGE_TOWER_BUFF * 100))] }
+	return { gold = gold, perk = true, relic = null, label = "+%d gold and a free hero upgrade" % gold }
 
 
 func relic_desc(r: UpgradeData) -> String:
@@ -2823,6 +2828,7 @@ func mode_lines(m: Dictionary) -> Array:
 
 
 var wave_opts: Array = []
+const HANDICAPS := ["lone", "weak", "benched"] # the challenges that weaken your hero or towers
 
 
 func offer_wave_choice() -> void:
@@ -2831,14 +2837,19 @@ func offer_wave_choice() -> void:
 	var req: UpgradeData = pick(R.requirements.items)
 	var tl := R.tough.items.duplicate()
 	tl.shuffle()
-	var hard_tough := tl.slice(0, 1 if randf() < 0.5 else 2)
-	var ch_tough: UpgradeData = pick(R.tough.items)
-	var ch_pts := ch_tough.pts + ch.pts + req.pts
+	# enemy buffs are the toughness rules; hero/tower handicaps are the challenges that weaken your side
+	var handicaps := R.challenges.items.filter(func(c): return c.id in HANDICAPS)
 	var ids := func(list): return list.map(func(x): return x.id)
+	var hard: Dictionary = { kind = "hard", name = "Hard", reward = wave_reward(n, "hard") }
+	if randf() < 0.5:
+		hard.tough = [tl[0].id]
+	else:
+		hard.challenge = (pick(handicaps) as UpgradeData).id
 	wave_opts = [
 		{ kind = "normal", name = "Normal", reward = null },
-		{ kind = "hard", name = "Hard", tough = ids.call(hard_tough), reward = wave_reward(n, "hard", hard_tough.size()) },
-		{ kind = "challenge", name = "Challenge: " + req.name, challenge = ch.id, tough = [ch_tough.id], req = req.id, pts = ch_pts, reward = wave_reward(n, "challenge", ch_pts) },
+		hard,
+		{ kind = "challenge", name = "Challenge", challenge = (pick(handicaps) as UpgradeData).id, tough = [tl[1].id],
+			reward = wave_reward(n, "challenge", randf() < 0.5) },
 	]
 	var roll := randf()
 	if roll < 0.03:
@@ -2942,6 +2953,9 @@ func end_wave() -> void:
 		if r.relic:
 			apply_relic(r.relic)
 			msgs.append(r.relic.name)
+		if r.get("tower_buff", 0.0) > 0:
+			S.tower_bonus += r.tower_buff
+			msgs.append("+%d%% tower damage" % int(round(r.tower_buff * 100)))
 	if S.wave >= max_wave:
 		end_run(true)
 		return

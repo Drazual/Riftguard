@@ -121,5 +121,5 @@ fire_frame = 4
 turret = ExtResource("4_turret")
 turret_muzzle = PackedVector2Array(80.0, 66.3)
 turret_foot = Vector2(80, 150)
-turret_scale = 0.38
+turret_scale = 0.4
 shot_up = true

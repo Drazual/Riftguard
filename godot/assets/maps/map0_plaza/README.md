@@ -5,8 +5,9 @@ square and spirals in to the rift portal in the middle. Same format as `map1_mia
 made by `src/gen.py` (`python3 src/gen.py .` from this folder, needs numpy and Pillow).
 
 ## Tower grid
-- The square is 15 x 15 diamond tiles (48 x 27.7 board px each). Each tile of the inner 13 x 13 that isn't road or
-  portal is one tower spot (88 of them). The road runs along tile rows, so towers line up with it.
+- The square is 15 x 15 diamond tiles (48 x 27.7 board px each). Every tile that isn't road or portal is one tower
+  spot, including the row outside the outer road, so towers fit on both sides of it. The road runs along tile rows,
+  so towers line up with it.
 - `layout.json` has a `snap` key: `origin`, `a` and `b` in field units. A tower's foot snaps to the nearest
   `origin + i*a + j*b` (`MapInfo.snap_lattice`, `Game.snap_cell`), and build mode outlines the free diamonds. Spots are
   37.9 field units apart, just over `Game.TOWER_GAP`.
@@ -17,6 +18,6 @@ made by `src/gen.py` (`python3 src/gen.py .` from this folder, needs numpy and P
 - `ground.png`: Coral Spiral's road (navy, pink neon edges, cyan dashes and arrows) and one peach diamond per tower
   spot, inside a pink curb; rose sidewalk outside. Painted at 768 x 416 and scaled 2x without smoothing.
 - `sprites`: all Ocean Drive's (`res://assets/maps/map1_miami/spr/`, nothing copied). Buildings stand on 2 x 2 tile
-  blocks outside the square, with the odd little park; flower beds, palms, lamps and signs fill the single tiles and
-  the square's rim. The portal and arch sit at the same offsets from the road as on Ocean Drive.
+  blocks outside the square, with the odd little park; flower beds, palms, lamps and signs fill the single tiles. Nothing
+  stands on the square itself, so the city is only a border. The portal and arch sit at the same offsets from the road as on Ocean Drive.
 - `glow.png`: the sprites' neon plus a faint road edge. `glints.png`: the road's edge lines with the distance along it.

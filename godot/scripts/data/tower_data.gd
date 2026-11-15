@@ -70,6 +70,8 @@ extends Resource
 @export var turret_foot := Vector2(64, 104)
 ## Turret frames are drawn at this size (0.5 = rendered at 2x for detail).
 @export var turret_scale := 0.5
+## A plain sprite tower (no turret) drawn this much bigger or smaller, so its base matches the others (Board.TOWER_BASE).
+@export var sprite_scale := 1.0
 ## The tower's own shots go straight up from the muzzle as lightning, then fall from the sky onto the target (the
 ## Tesla Coil), instead of flying across. Chain hops between enemies still fly as `frames`' shot.
 @export var shot_up := false

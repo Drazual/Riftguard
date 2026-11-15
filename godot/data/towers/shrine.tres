@@ -244,4 +244,4 @@ muzzle_y = 22.0
 turret = ExtResource("6_turret")
 turret_muzzle = PackedVector2Array(80.0, 84.2)
 turret_foot = Vector2(80, 150)
-turret_scale = 0.38
+turret_scale = 0.4444
