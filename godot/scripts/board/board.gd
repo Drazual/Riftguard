@@ -79,6 +79,7 @@ var beam_layer: BeamLayer = null # Gale's Air Stream beam, over the board
 ## The unified art style (StyleSettings): every live 3D model on the board drawn by one camera into one low-res layer
 ## over the 2D world, with cut-outs for the sprites that stand in front. null = the old look (StyleSettings.enabled).
 var live: Live3D = null
+var crowd := Enemy3D.Crowd.new() # enemies whose type has a 3D model (EnemyData.model_dir), drawn live from it
 var hero_state := {}
 var hero_bullets: Array[Dictionary] = [] # the hero's bullets in flight: { sp, a, b, t, T, crit }
 var hero_flash: AnimatedSprite2D = null
@@ -164,6 +165,7 @@ func restyle() -> void:
 		return
 	if on == (live != null):
 		return
+	crowd.clear()
 	if live:
 		live.queue_free()
 		live = null
@@ -3011,7 +3013,9 @@ func _pad_mark(g: CanvasItem, i: int, col: Color, fill: bool, w := 1.0) -> void:
 		g.draw_polyline(pts, col, w)
 
 ## An enemy's body, its status rings and health bar, around p (the middle of the body).
-func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col: Color, frost_col: Color) -> void:
+## top: how tall its 3D model shows (world units) when it has one: the model is its body, so only the rings and the
+## health bar are drawn, the bar over its head.
+func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col: Color, frost_col: Color, top := -1.0) -> void:
 	var S := _S()
 	if e.still_t > 0.5 and has_anvil:
 		var n := mini(6, 2 + int(e.still_t))
@@ -3019,9 +3023,10 @@ func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col
 			var a := i * 2.4
 			_line(o, p, p + Vector2(cos(a), sin(a)) * (e.r + 4 + e.still_t * 3), ca(anvil_col, 0.7), 1.5)
 	var al := 0.45 if e.phase else 1.0
-	_circle(o, p, e.r + 1.25, hx(0x101223, al))
-	_circle(o, p, e.r, ca(e.color, al))
-	_circle(o, p - Vector2(e.r, e.r) * 0.35, e.r * 0.35, Color(1, 1, 1, 0.15 if e.phase else 0.35))
+	if top < 0:
+		_circle(o, p, e.r + 1.25, hx(0x101223, al))
+		_circle(o, p, e.r, ca(e.color, al))
+		_circle(o, p - Vector2(e.r, e.r) * 0.35, e.r * 0.35, Color(1, 1, 1, 0.15 if e.phase else 0.35))
 	var arm := game.armor_of(e, null)
 	if arm > 0:
 		_ring(o, p, e.r, hx(0xb8c0d8, 0.85), 1 + arm * 8)
@@ -3048,8 +3053,9 @@ func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col
 		# picked in the side panel: a soft white ring that breathes
 		_ring(o, p, e.r + 10, Color(1, 1, 1, 0.55 + 0.35 * sin(S.time * 6)), 2)
 	var w := e.r * 2 + 4
-	o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w, 3), Color(0, 0, 0, 0.6))
-	o.draw_rect(Rect2(p.x - w / 2, p.y - e.r - 7, w * maxf(0, e.hp / e.max), 3), hx(0x5fe39a))
+	var bar_y := p.y - (top * 0.5 + 4 if top >= 0 else e.r + 7)
+	o.draw_rect(Rect2(p.x - w / 2, bar_y, w, 3), Color(0, 0, 0, 0.6))
+	o.draw_rect(Rect2(p.x - w / 2, bar_y, w * maxf(0, e.hp / e.max), 3), hx(0x5fe39a))
 
 
 ## On a hand-painted map each enemy is its own node in the depth-sorted layer, at its feet, so buildings
@@ -3068,11 +3074,17 @@ func _sync_enemies(S: Run) -> void:
 				var has_anvil := R.towers.any(func(t): return t.type == "anvil")
 				var anvil_col: Color = DB.towers.anvil.color if DB.towers.has("anvil") else Color.WHITE
 				var frost_col: Color = DB.towers.frost.color if DB.towers.has("frost") else Color.WHITE
-				_draw_enemy(n, e, Vector2(0, -body_lift(e)), has_anvil, anvil_col, frost_col))
+				var mv := crowd.view_of(e)
+				var top := mv.top / PX if mv else -1.0
+				_draw_enemy(n, e, Vector2(0, -(top * 0.5 if top >= 0 else body_lift(e))), has_anvil, anvil_col, frost_col, top))
 			units.add_child(n)
 			e.set_meta("view", n)
 		_seen(n)
 		n.position = P(e.x, e.y)
 		n.queue_redraw()
-		if live:
+		# a model enemy is drawn in the live layer itself, so it needs no cut-out
+		if live and not Enemy3D.has_model(e.data):
 			live.cut(n, e.r + 1.25, body_lift(e))
+	var lit := blend()
+	crowd.sync(S.enemies, func(e): return P(e.x, e.y), units, live, 0.0 if S.paused or S.over else S.speed,
+		get_process_delta_time(), PX, (func(vp): MapLight.light(vp, lit)) if lit else Callable())

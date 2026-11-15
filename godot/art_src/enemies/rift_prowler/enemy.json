@@ -1,0 +1,16 @@
+{
+	"model": "rift_prowler.glb",
+	"height": 1.45,
+	"walk_speed": 52,
+	"anims": {
+		"idle": "idle",
+		"walk": "walk",
+		"slowed": "slowed",
+		"hit": "hit",
+		"stun": "stun",
+		"frozen": "frozen",
+		"knockback": "knockback",
+		"attack": "attack",
+		"death": "death"
+	}
+}
