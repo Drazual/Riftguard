@@ -1207,6 +1207,26 @@ func _strike_band(g: Node2D, S: Run, h: Hero) -> void:
 		_ring(g, e.pos(), e.r + 4, hx(0xff5d6c, 0.95), 2)
 
 
+## The outline of the build spot a tower standing at p fills: the diamond of a map's snap lattice, else the square.
+func _snap_shape(p: Vector2) -> PackedVector2Array:
+	var S := _S()
+	if S.map.snap_lattice:
+		var foot := p + Vector2(0, Game.FOOT_DY)
+		var ij: Vector2 = S.map.lattice_ij(foot)
+		var c: Vector2 = S.map.lattice_pt(roundf(ij.x), roundf(ij.y))
+		var ha: Vector2 = S.map.snap_a * 0.47
+		var hb: Vector2 = S.map.snap_b * 0.47
+		return PackedVector2Array([c - ha - hb, c + ha - hb, c + ha + hb, c - ha + hb])
+	var r := _snap_square(p)
+	return PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
+
+
+func _outline(g: CanvasItem, pts: PackedVector2Array, col: Color, w: float) -> void:
+	var loop := pts.duplicate()
+	loop.append(pts[0])
+	g.draw_polyline(loop, col, w)
+
+
 ## The grid square a tower standing at p fills on a free-build map: the snap grid square its foot is in (the same
 ## squares Game.snap_cell picks from), a hair inside the grid lines.
 func _snap_square(p: Vector2) -> Rect2:
@@ -2225,7 +2245,7 @@ func _draw_flat() -> void:
 			var edge := hx(0xffffff, 0.22)
 			for c: Vector2i in game.snap_cells():
 				if game.tower_at(c.x, c.y) == null:
-					g.draw_rect(_snap_square(game.cell_pos(c.x, c.y)), edge, false, 1.0)
+					_outline(g, _snap_shape(game.cell_pos(c.x, c.y)), edge, 1.0)
 		if pads: # outline the free pads: green within reach, gold beyond it
 			for i in S.map.pad_centres.size():
 				if game.tower_at(i, MapInfo.SPOT_ROW) == null:
@@ -2239,9 +2259,9 @@ func _draw_flat() -> void:
 				_pad_mark(g, hv.x, hc2, true)
 			elif free: # the new tower's footprint; the tower itself shows as a tinted ghost (_sync_ghost)
 				if game.tower_at(hv.x, hv.y) == null:
-					var sq := _snap_square(game.cell_pos(hv.x, hv.y))
-					g.draw_rect(sq, ca(hc2, 0.3))
-					g.draw_rect(sq, ca(hc2, 0.9), false, 1.5)
+					var sq := _snap_shape(game.cell_pos(hv.x, hv.y))
+					g.draw_colored_polygon(sq, ca(hc2, 0.3))
+					_outline(g, sq, ca(hc2, 0.9), 1.5)
 			else:
 				g.draw_rect(Rect2(hv.x * C, hv.y * C, C, C), hc2)
 			if ok and not (free and game.tower_at(hv.x, hv.y) != null):
@@ -2252,7 +2272,7 @@ func _draw_flat() -> void:
 		if pads:
 			_pad_mark(g, pb.c, ca(DB.towers[pb.type].color, 0.8), false, 2)
 		elif free:
-			g.draw_rect(_snap_square(game.cell_pos(pb.c, pb.r)), ca(DB.towers[pb.type].color, 0.8), false, 2)
+			_outline(g, _snap_shape(game.cell_pos(pb.c, pb.r)), ca(DB.towers[pb.type].color, 0.8), 2)
 		else:
 			g.draw_rect(Rect2(pb.c * C + 4, pb.r * C + 4, C - 8, C - 8), ca(DB.towers[pb.type].color, 0.8), false, 2)
 	var show_r: Tower = S.sel if S.sel != null else tip_tower

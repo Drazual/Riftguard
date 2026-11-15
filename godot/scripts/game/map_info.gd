@@ -36,6 +36,12 @@ var build_step := 4.0 # field units per build mask cell
 var build_w := 0
 var build_h := 0
 var build_mask := PackedByteArray() # per cell: 0 build, 1 road, 2 object, 3 the edge of the city
+## Optional diamond tower grid (layout "snap"): tower feet snap to origin + i*a + j*b (field units), so towers line
+## up with a road laid along a and b. Without it, free-build towers snap to Game.BUILD_SNAP squares.
+var snap_lattice := false
+var snap_o := Vector2.ZERO
+var snap_a := Vector2.ZERO
+var snap_b := Vector2.ZERO
 
 
 static func load_scene(ps: PackedScene) -> MapInfo:
@@ -73,6 +79,12 @@ func _read_art(path: String) -> void:
 			for x in mini(build_w, row.length()):
 				build_mask[y * build_w + x] = row.unicode_at(x) - 48
 		free_build = build_w > 0 and build_h > 0
+	if art.has("snap"):
+		var sn: Dictionary = art.snap
+		snap_o = Vector2(sn.origin[0], sn.origin[1])
+		snap_a = Vector2(sn.a[0], sn.a[1])
+		snap_b = Vector2(sn.b[0], sn.b[1])
+		snap_lattice = absf(snap_a.cross(snap_b)) > 1.0
 	for pad in art.get("pads", []):
 		spots.append(Vector2(pad.tower[0], pad.tower[1]))
 		pad_centres.append(Vector2(pad.centre[0], pad.centre[1]))
@@ -216,6 +228,17 @@ func build_code(p: Vector2) -> int:
 	if i < 0 or j < 0 or i >= build_w or j >= build_h:
 		return 3
 	return build_mask[j * build_w + i]
+
+
+## The diamond grid's (i, j) for a ground point (unrounded); see snap_lattice.
+func lattice_ij(p: Vector2) -> Vector2:
+	var d := p - snap_o
+	var det := snap_a.cross(snap_b)
+	return Vector2(d.cross(snap_b) / det, snap_a.cross(d) / det)
+
+
+func lattice_pt(i: float, j: float) -> Vector2:
+	return snap_o + snap_a * i + snap_b * j
 
 
 ## How far p is from the path's centre line (a hand-painted map's free path).
