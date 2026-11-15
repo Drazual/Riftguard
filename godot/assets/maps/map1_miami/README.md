@@ -59,3 +59,12 @@ sheets). Mask settings: road clearance `ROAD_CLR` 0.56 iso cells from the centre
 buildings and decor, 0.42 around props, a screen border of 70 px at the sides, 150 at the top and 40 at the
 bottom (mockup pixels), and pockets under 60 cells dropped. Re-export, copy the output
 over this folder, and reopen the project so Godot re-imports it.
+
+## Coral-style ground (current look)
+`ground.png` is now painted in Coral Spiral's style along the same road: pale tiled plaza (half-cell iso tiles), a navy
+road with pink neon edges, cyan dashes and an arrow on every straight stretch. `src/coral_ground.py` rebuilds it from
+`layout.json`'s path (`python3 src/coral_ground.py ground.png`, needs numpy and Pillow). The road keeps the old centre
+line and width, so `glints.png` and the `build` mask are unchanged.
+The flat filler tiles between buildings (flower, tool, fountain and hedge tiles, plaza props, the parking lot) were
+removed from `sprites`; buildings, palms, street props, the arch and the portal stay. `glow.png` was rebuilt from the
+remaining sprites' neon plus a faint road edge. The removed sprites' files are still in `spr/`.

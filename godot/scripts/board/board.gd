@@ -2951,7 +2951,9 @@ func _build_art(m: MapInfo) -> void:
 		var tex: String = it.tex
 		sp.texture = load(tex if tex.begins_with("res://") else spr_dir + tex)
 		sp.centered = false
-		sp.scale = Vector2(u, u)
+		# "scale": a sprite painted finer than the map (0.5 = a 2x sprite on a 1x map); tl and key stay in map pixels
+		var ss: float = it.get("scale", 1.0)
+		sp.scale = Vector2(u, u) * ss
 		var tl := Vector2(it.tl[0], it.tl[1])
 		match it.kind:
 			"pad":
@@ -2968,7 +2970,7 @@ func _build_art(m: MapInfo) -> void:
 				sp.material = shared
 		var key: float = it.key
 		sp.position = Vector2(tl.x, key) * u
-		sp.offset = Vector2(0, tl.y - key)
+		sp.offset = Vector2(0, (tl.y - key) / ss)
 		units.add_child(sp)
 		art_sprites.append(sp)
 		if live:
