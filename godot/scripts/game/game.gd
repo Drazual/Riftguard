@@ -3130,11 +3130,11 @@ func boss_act(e: Enemy, dt: float) -> void:
 		e.speed *= 1.3
 		e.color = Color(1, 0, 0)
 		for i in 2:
-			spawn("juggernaut", maxf(0, e.d - 25 - 20 * i))
+			spawn("bastion", maxf(0, e.d - 25 - 20 * i))
 		ring(e.x, e.y, 140, 0xff0000, 0.9, true)
 		do_shake(0.02, 500)
 		sfx("boss")
-		say("The Rift Tyrant is enraged! +30% speed, and 2 Juggernauts join it.")
+		say("The Rift Tyrant is enraged! +30% speed, and 2 Bastions join it.")
 
 
 func boss_power(e: Enemy, p: EnemyData) -> void:

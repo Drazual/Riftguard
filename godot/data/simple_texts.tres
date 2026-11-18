@@ -41,7 +41,7 @@ texts = {
 "enemy:anchor": "Chained down: it cannot be pushed back or knocked back.",
 "enemy:brute": "Has some armor, so weak hits do less.",
 "enemy:grunt": "A basic enemy with nothing special.",
-"enemy:juggernaut": "Huge HP, heavy armor and cannot be slowed.",
+"enemy:bastion": "Huge HP, heavy armor and cannot be slowed.",
 "enemy:knight": "A heavily armored boss that stuns and weakens nearby towers, and stuns your hero up close.",
 "enemy:mender": "Heals nearby enemies over time.",
 "enemy:phantom": "Only Defensive heroes can block it.",

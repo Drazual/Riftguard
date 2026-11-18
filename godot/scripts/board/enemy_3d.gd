@@ -255,8 +255,9 @@ func tick(e: Enemy, speed: float, dt: float, hero := Vector2.INF) -> void:
 	elif hit_t > 0 and state in ["", "hit"]:
 		play("hit", speed, 0.05)
 	elif slowed and _has("slowed") and (moved.length() > 0.01 or speed <= 0.0):
-		# its own heavy, labouring clip: already slow, so it isn't slowed further
-		play("slowed", speed * base_pace, 0.25)
+		# its own heavy, labouring clip: already slow, so it isn't slowed further. A clip that takes real steps sized
+		# for one slow (enemy.json "slowed_for") is paced to the actual slow and heading, so its feet don't slide.
+		play("slowed", speed * base_pace * ((dir_k * (1.0 - e.slow) / (1.0 - float(cfg.slowed_for))) if cfg.has("slowed_for") else 1.0), 0.25)
 	elif moved.length() > 0.01 or speed <= 0.0:
 		play("walk", speed * pace, 0.25 if state == "slowed" else 0.12)
 	else:
