@@ -64,6 +64,11 @@ var last := Vector2.INF
 var frost := 0.0 # how frosted it shows (eases toward the slow)
 var frost_mat: ShaderMaterial
 var dead_t := -1.0 # time since it died, -1 while alive
+var hp := -1.0 # its HP last frame, to see hits
+var hit_t := 0.0 # time left on a hit flinch (models with a "hit" clip)
+var hit_cool := 0.0
+var spawn_t := 0.0 # time left on its spawn clip (models with a "spawn" clip)
+var dir_k := 1.0 # the run's pace for its heading (see tick)
 var _h := 1.5 # its height in metres
 
 
@@ -93,9 +98,9 @@ func setup(dir: String, r: float, shared: Live3D = null) -> void:
 	_h = float(cfg.get("height", 1.5)) * clampf(r / 9.0, 0.6, 2.5)
 	if bb.size.y > 0.01:
 		model.scale = Vector3.ONE * (_h / bb.size.y)
-	for s in ["idle", "walk", "stun", "frozen"]:
+	for s in ["idle", "walk", "slowed", "stun", "frozen"]:
 		_loop(s, Animation.LOOP_LINEAR)
-	for s in ["knockback", "attack", "death"]:
+	for s in ["knockback", "attack", "death", "hit", "spawn"]:
 		_loop(s, Animation.LOOP_NONE)
 	if _frost_shader == null:
 		_frost_shader = Shader.new()
@@ -146,7 +151,17 @@ func setup(dir: String, r: float, shared: Live3D = null) -> void:
 		add_child(pic)
 	yaw = _face(Vector2(-1, 0.3)) # until it first moves
 	want_yaw = yaw
-	play("walk", 1.0, 0.0)
+	if _has("spawn"):
+		spawn_t = ap.get_animation(anims.spawn).length
+		play("spawn", 1.0, 0.0)
+	else:
+		play("walk", 1.0, 0.0)
+
+
+## True when enemy.json names a clip for this state and the model has it.
+func _has(s: String) -> bool:
+	var clip: String = anims.get(s, "")
+	return clip != "" and ap.has_animation(clip)
 
 
 func _loop(s: String, mode: int) -> void:
@@ -196,15 +211,34 @@ func tick(e: Enemy, speed: float, dt: float, hero := Vector2.INF) -> void:
 	last = position
 	var pushed := (e.push_t > 0 or e.pull_t > 0) and not e.pushback_immune
 	var frozen := e.rime_frz > 0
+	var stunned := e.stun_t > 0 and not e.unstun
 	# face the way it walks (not while thrown backwards, dragged, stunned or frozen)
-	if moved.length() > 0.02 and not pushed and e.stun_t <= 0 and not frozen:
+	if moved.length() > 0.02 and not pushed and not stunned and not frozen:
 		want_yaw = _face(moved)
 	var slowed := e.slow_t > 0 and e.slow > 0.01
+	var base_pace := clampf(e.speed / float(cfg.get("walk_speed", 52.0)), 0.4, 2.5)
 	# the run keeps pace with how fast it really moves: a 40% slow plays the clip 40% slower
-	var pace := clampf(e.speed / float(cfg.get("walk_speed", 52.0)), 0.4, 2.5) * ((1.0 - e.slow) if slowed else 1.0)
+	var pace := base_pace * ((1.0 - e.slow) if slowed else 1.0)
+	if moved.length() > 0.01:
+		# the board squashes y by K but the camera looks down at PITCH, so the same board speed covers more or less
+		# ground depending on the heading: the stride follows it (1.124 is the diagonals', which walk_speed is set for)
+		var d := Vector2(moved.x, moved.y / Board.K).normalized()
+		dir_k = clampf(Vector2(d.x, d.y * Board.K / sin(deg_to_rad(PITCH))).length() / 1.124, 0.85, 1.2)
+		pace *= dir_k
+	# a model with "spawn" plays it once as it appears; one with "hit" flinches when hurt while just moving
+	spawn_t -= gdt
+	hit_t -= gdt
+	hit_cool -= gdt
+	var hurt := hp >= 0.0 and e.hp < hp - 0.01
+	hp = e.hp
+	var moving := not frozen and not stunned and not pushed and not e.blocked
+	if hurt and moving and spawn_t <= 0 and hit_cool <= 0 and _has("hit"):
+		hit_t = ap.get_animation(anims.hit).length
+		hit_cool = hit_t + 0.5 # then at least half a second of moving, so steady fire doesn't pin it in place
+		state = ""
 	if frozen:
 		play("frozen", speed, 0.05)
-	elif e.stun_t > 0:
+	elif stunned:
 		play("stun", speed)
 	elif pushed:
 		play("knockback", speed, 0.06)
@@ -216,8 +250,15 @@ func tick(e: Enemy, speed: float, dt: float, hero := Vector2.INF) -> void:
 		if not ap.is_playing():
 			state = ""
 			play("attack", speed * (1.0 - e.slow if slowed else 1.0))
+	elif spawn_t > 0 and state == "spawn":
+		ap.speed_scale = speed
+	elif hit_t > 0 and state in ["", "hit"]:
+		play("hit", speed, 0.05)
+	elif slowed and _has("slowed") and (moved.length() > 0.01 or speed <= 0.0):
+		# its own heavy, labouring clip: already slow, so it isn't slowed further
+		play("slowed", speed * base_pace, 0.25)
 	elif moved.length() > 0.01 or speed <= 0.0:
-		play("walk", speed * pace)
+		play("walk", speed * pace, 0.25 if state == "slowed" else 0.12)
 	else:
 		play("idle", speed)
 	# frost creeps over it while slowed (more for a stronger slow) and covers it while frozen, with a slight icy tint

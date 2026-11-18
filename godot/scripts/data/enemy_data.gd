@@ -20,6 +20,10 @@ extends Resource
 @export_range(0.0, 0.8) var armor := 0.0
 ## Immune to slows (stuns still work).
 @export var unslow := false
+## Stuns do nothing to it (it keeps moving through them).
+@export var unstun := false
+## Heroes and walls can't hold it up: it passes straight through.
+@export var unblockable := false
 ## Push-back and knockback do nothing to it (bosses always are).
 @export var pushback_immune := false
 ## Only Defensive heroes can block it.

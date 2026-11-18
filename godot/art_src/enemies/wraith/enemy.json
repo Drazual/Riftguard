@@ -1,0 +1,17 @@
+{
+	"model": "wraith.glb",
+	"height": 1.75,
+	"walk_speed": 120,
+	"anims": {
+		"idle": "idle",
+		"walk": "move",
+		"slowed": "slowed",
+		"stun": "stun",
+		"frozen": "frozen",
+		"knockback": "knockback",
+		"attack": "attack",
+		"hit": "hit",
+		"spawn": "spawn",
+		"death": "death"
+	}
+}

@@ -1119,6 +1119,8 @@ func render_enemy() -> void:
 	var traits := []
 	if e.phase: traits.append("Phases: only Defensive heroes can block it.")
 	if e.unslow: traits.append("Can’t be slowed (stuns still work).")
+	if e.unstun: traits.append("Can’t be stunned.")
+	if e.unblockable: traits.append("Heroes and walls can’t hold it up.")
 	if e.pushback_immune or e.boss: traits.append("Can’t be pushed back.")
 	if e.split: traits.append("Splits into %d Runners when it dies." % e.split)
 	if e.heal: traits.append("Heals nearby enemies %s of their max HP a second." % UiText.pct(e.heal))
