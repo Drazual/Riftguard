@@ -244,17 +244,32 @@ func new_run(map_id: String) -> void:
 
 
 func start_run(hero_id: String, towers: Array) -> void:
-	Save.meta.loadout = { hero = hero_id, towers = towers.duplicate() }
-	Save.save_meta()
+	if not S.test:
+		Save.meta.loadout = { hero = hero_id, towers = towers.duplicate() }
+		Save.save_meta()
 	S.loadout = towers.duplicate()
 	S.sig = {}
 	for k in towers:
 		if Save.tower_meta(k).get("sig", 0):
 			S.sig[k] = true
+	setup_hero(hero_id)
+	for w in ["build_bar", "inspector", "codex", "enemy_codex", "hero"]:
+		refresh(w)
+	say(S.hero.data.name + " ready. Build towers, then start the wave.")
+
+
+## Makes the run's hero: its menu upgrades, Specials and (for the Wizard) its spell keys. `ab` picks the ability
+## (null: the one equipped in the Heroes menu); `at` puts it somewhere other than its start spot.
+func setup_hero(hero_id: String, ab: AbilityData = null, at = null) -> void:
 	S.hero = Hero.make(hero_id, S.map.base)
+	if ab:
+		S.hero.ab = Ability.from_data(ab)
 	if S.map.hero_spawn != null:
 		S.hero.x = S.map.hero_spawn.x
 		S.hero.y = S.map.hero_spawn.y
+	if at is Vector2:
+		S.hero.x = at.x
+		S.hero.y = at.y
 	apply_hero_meta(S.hero)
 	apply_specials(S.hero)
 	S.hero.base_dmg = S.hero.dmg
@@ -275,9 +290,91 @@ func start_run(hero_id: String, towers: Array) -> void:
 		h.els = PackedStringArray(load)
 		var push_re := RegEx.create_from_string("push|blow|hurl|drag|back along")
 		h.can = { freeze = text.contains("freez"), wall = text.contains("wall"), push = push_re.search(text) != null }
-	for w in ["build_bar", "inspector", "codex", "enemy_codex", "hero"]:
+
+
+# ---------- the Test Room ----------
+const TEST_GOLD := 999999.0
+const TEST_LIVES := 9999
+
+
+## A sandbox run on the Test Room map: every tower, endless gold and base HP, and no waves. Enemies come from
+## test_spawn (the Test Room panel), and nothing it does is saved.
+func start_test_room(hero_id: String) -> void:
+	new_run(DB.TEST_MAP)
+	S.test = true
+	S.gold = TEST_GOLD
+	S.lives = TEST_LIVES
+	S.start_lives = TEST_LIVES
+	S.test_els = Progress.wiz_loadout()
+	max_wave = 99
+	S.wave = 1
+	S.interval = 0.5
+	S.wave_active = true # so cooldowns, auras and boss powers run as in a wave; the wave never ends on its own
+	start_run(hero_id, Array(DB.tower_order))
+	S.pending_levels = 0
+	say("Test Room. Spawn enemies from the panel on the left. Gold and base HP never run out.")
+
+
+## Queues `count` enemies of a type. They walk in one after another, `gap` seconds apart, with the HP of wave `wave`.
+func test_spawn(type: String, count: int, wave: int, gap: float) -> void:
+	if S == null or not S.test or not DB.enemies.has(type):
+		return
+	S.wave = clampi(wave, 1, 99)
+	S.interval = clampf(gap, 0.05, 5.0)
+	for i in clampi(count, 1, 1000):
+		S.spawn_q.append(type)
+	S.spawn_t = minf(S.spawn_t, 0.1)
+	refresh("build_bar")
+
+
+## Removes every enemy on the board and in the queue, without rewards.
+func test_clear() -> void:
+	if S == null or not S.test:
+		return
+	S.spawn_q.clear()
+	for e in S.enemies:
+		e.dead = true
+	S.enemies = []
+	S.shells = []
+	S.discs = []
+	S.proj = []
+	say("Enemies cleared.")
+
+
+## Swaps the hero for another one (or the same one with its other ability), where the old one stood.
+## `alt` takes the hero's second ability. The Wizard uses S.test_els for its elements.
+func test_swap_hero(hero_id: String, alt: bool) -> void:
+	if S == null or not S.test or not DB.heroes.has(hero_id):
+		return
+	S.build = ""
+	S.merge_from = null
+	S.pending_build = null
+	S.strike_ready = false
+	S.pierce_aiming = false
+	S.pierce_click = false
+	S.pending_cast = null
+	S.runes = []
+	S.hero_sel = false
+	var old := S.hero
+	var at = old.pos() if old and old.ko <= 0 else null
+	var d: HeroData = DB.heroes[hero_id]
+	setup_hero(hero_id, d.alt if alt and d.alt else d.ability, at)
+	S.pending_levels = 0
+	for w in ["build_bar", "inspector", "codex", "hero", "runes"]:
 		refresh(w)
-	say(S.hero.data.name + " ready. Build towers, then start the wave.")
+	say(d.name + (" · " + S.hero.ab.name if not d.spells else "") + " ready.")
+
+
+## The Test Room: refills the ability (and the Wizard's mana and walls) at once.
+func test_ready_ability() -> void:
+	if S == null or not S.test:
+		return
+	var h := S.hero
+	h.ab.t = 0
+	h.mana = h.max_mana
+	h.wall_charges = maxi(h.wall_charges, DB.rules.wall_charges)
+	h.hp = h.max_hp
+	refresh("build_bar")
 
 
 func apply_hero_meta(h: Hero) -> void:
@@ -440,6 +537,8 @@ func owns(id: String) -> bool:
 
 
 func wiz_loadout() -> Array:
+	if S and S.test and S.test_els.size():
+		return S.test_els
 	return Progress.wiz_loadout()
 
 
@@ -2943,6 +3042,8 @@ func choose_mode(i: int) -> void:
 
 
 func start_wave() -> void:
+	if S and S.test:
+		return
 	# a reward or choice still waiting to open (a hero upgrade, the wave choice, the shop) comes first
 	if S.wave_active or S.over or S.paused or S.pending_levels > 0 or S.need_choice or S.need_shop or S.pending_heroic > 0 or S.pending_boon != "":
 		return
@@ -3071,7 +3172,7 @@ func spawn(type: String, at_d := -1.0) -> void:
 	var speed := d.speed * S.mod_enemy_speed * (R.blitz_speed if m.get("challenge", "") == "blitz" else 1.0) * (R.tough_speed if has_tough("speed") else 1.0)
 	var at := maxf(0, at_d)
 	var p := pos_at(at)
-	if not Save.meta.seen.get(type, false):
+	if not S.test and not Save.meta.seen.get(type, false):
 		Save.meta.seen[type] = true
 		Save.save_meta()
 		refresh("enemy_codex")
@@ -3329,6 +3430,9 @@ func update(dt: float) -> void:
 		S.need_choice = false
 		offer_wave_choice()
 		return
+	if S.test:
+		S.gold = maxf(S.gold, TEST_GOLD)
+		S.lives = TEST_LIVES
 	dt *= S.speed
 	S.time += dt
 	if S.req_limit and S.wave_active and S.ws and not S.req_failed and S.time - S.ws.start > S.req_limit:
@@ -3341,7 +3445,7 @@ func update(dt: float) -> void:
 		if S.spawn_t <= 0 and S.spawn_q.size():
 			spawn(S.spawn_q.pop_front())
 			S.spawn_t = S.interval
-		if S.spawn_q.is_empty() and S.enemies.is_empty():
+		if S.spawn_q.is_empty() and S.enemies.is_empty() and not S.test:
 			end_wave()
 			return
 	if S.overclock_t > 0:
@@ -3927,6 +4031,8 @@ func _leak(e: Enemy) -> bool:
 	var big := BIG_BOSS.has(e.type)
 	ring(S.map.base.x, S.map.base.y, 120 if big else 30, 0xff5d6c, 0.6, e.boss)
 	do_shake(0.02 if e.boss else 0.004, 450 if e.boss else 120)
+	if S.test: # the Test Room's base never falls
+		return false
 	# The Tyrant ends the run if it gets through; other bosses cost their lives in base HP.
 	if big:
 		if S.mod_phoenix:
@@ -5187,6 +5293,8 @@ func hero_run_stat() -> int:
 func end_run(won: bool, quit := false) -> void:
 	S.over = true
 	refresh("mode")
+	if S.test: # nothing from the Test Room is saved
+		return
 	close_wave_log(won)
 	var M := Save.meta
 	var sc: MapScene = S.map.scene

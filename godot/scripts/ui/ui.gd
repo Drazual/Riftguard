@@ -30,6 +30,7 @@ var xp_meter: Kit.Meter
 var build_bar: HFlowContainer
 var corner_bar: HBoxContainer
 var hero_card: PanelContainer
+var test_panel: TestRoomPanel # the Test Room's spawn and hero panel, over the left edge of the map
 var inspector: PanelContainer
 var codex_box: VBoxContainer
 var enemy_box: VBoxContainer
@@ -273,6 +274,8 @@ func _board_frame() -> Control:
 	area.add_child(top_mid)
 	# the side panel floats over the right edge of the map, under the corner buttons, so the map can use the full width
 	area.add_child(_side())
+	test_panel = TestRoomPanel.new(self)
+	area.add_child(test_panel)
 	# toast
 	toast_box = PanelContainer.new()
 	toast_box.theme_type_variation = "Toast"
@@ -672,11 +675,13 @@ func update_hud() -> void:
 	if h == null:
 		boss_bar.visible = false
 		mode_banner.visible = false
+		test_panel.visible = false
 		wave_lbl.get_parent().visible = false
 		_veil(false)
 		return
 	if S.over:
 		_veil(false)
+		test_panel.visible = false
 	_mode_timer()
 	var boss: Enemy = null
 	for e: Enemy in S.enemies:
@@ -685,6 +690,8 @@ func update_hud() -> void:
 	boss_bar.visible = boss != null
 	if boss:
 		boss_name.text = DB.enemies[boss.type].name + (" · if it reaches your base, the run is lost" if Game.BIG_BOSS.has(boss.type) else " · costs %d base HP if it gets through" % DB.enemies[boss.type].lives)
+		if S.test:
+			boss_name.text = DB.enemies[boss.type].name
 		boss_fill.frac = maxf(0, boss.hp) / boss.max
 		var danger := Game.BIG_BOSS.has(boss.type) and boss.d / S.map.path_len >= 0.75
 		boss_warn.visible = danger
@@ -695,6 +702,10 @@ func update_hud() -> void:
 	top_wave.text = "%d/%d" % [S.wave, game.max_wave]
 	top_lives.text = str(S.lives)
 	top_gold.text = str(int(floor(S.gold)))
+	if S.test:
+		top_wave.text = "Test"
+		top_lives.text = "∞"
+		top_gold.text = "∞"
 	top_lvl.text = ("KO %ds" % ceili(h.ko)) if h.ko > 0 else "Lv %d" % h.lvl
 	hp_meter.frac = h.hp / h.max_hp
 	hp_meter.over = h.shield / h.max_hp if h.shield > 0 else 0.0
@@ -816,16 +827,21 @@ func render_build_bar() -> void:
 		Kit.tip_on(ab, func(): return Kit.b("Aim point") + "  " + Kit.c("F", Kit.GOLD) + "\n" + Kit.c("Point at the board and press F: Piercing Shot always fires from your Sniper toward that spot, wherever it stands. Press F on the point (or click this button) to clear it.", Kit.MUTED), "above")
 		build_bar.add_child(ab)
 	Kit.clear(corner_bar)
-	wave_lbl.text = "WAVE %d/%d" % [S.wave, game.max_wave]
+	wave_lbl.text = ("TEST ROOM · WAVE %d HP" % S.wave) if S.test else "WAVE %d/%d" % [S.wave, game.max_wave]
 	wave_lbl.get_parent().visible = true
 	corner_bar.add_child(Kit.button(("Resume" if S.user_pause else "Pause") + "  P", game.toggle_pause, "OnButton" if S.user_pause else ""))
 	corner_bar.add_child(Kit.button("%d×" % S.speed, func():
 		S.speed = 1 if S.speed == 3 else S.speed + 1
 		render_build_bar()))
-	var wave_txt: String = "Wave running" if S.wave_active else ("Start wave %d  Space" % (S.wave + 1))
-	var wb := Kit.go(wave_txt, game.start_wave)
-	wb.disabled = S.wave_active or S.over
-	corner_bar.add_child(wb)
+	if S.test:
+		corner_bar.add_child(Kit.button("Leave test room", func():
+			game.end_run(false, true)
+			menus.show_menu()))
+	else:
+		var wave_txt: String = "Wave running" if S.wave_active else ("Start wave %d  Space" % (S.wave + 1))
+		var wb := Kit.go(wave_txt, game.start_wave)
+		wb.disabled = S.wave_active or S.over
+		corner_bar.add_child(wb)
 	_veil(S.user_pause and not S.over)
 	ability_meter()
 	render_runes()
@@ -1381,6 +1397,7 @@ func refresh_run_panels() -> void:
 	render_enemy_codex()
 	render_hero()
 	render_mode_banner()
+	test_panel.render()
 
 
 # ---------- keys ----------
