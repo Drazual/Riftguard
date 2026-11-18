@@ -1,0 +1,18 @@
+{
+	"model": "bastion.glb",
+	"height": 0.8,
+	"walk_speed": 26,
+	"slowed_for": 0.35,
+	"anims": {
+		"idle": "idle",
+		"walk": "move",
+		"slowed": "slowed",
+		"stun": "stun",
+		"frozen": "frozen",
+		"knockback": "knockback",
+		"attack": "attack",
+		"hit": "hit",
+		"spawn": "spawn",
+		"death": "death"
+	}
+}

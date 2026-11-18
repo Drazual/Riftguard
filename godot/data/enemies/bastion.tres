@@ -4,8 +4,8 @@
 
 [resource]
 script = ExtResource("1_msag4")
-id = "juggernaut"
-name = "Juggernaut"
+id = "bastion"
+name = "Bastion"
 hp = 600.0
 speed = 26.0
 gold = 25
@@ -13,6 +13,7 @@ lives = 4
 atk = 35.0
 radius = 16.0
 color = Color(0.6039216, 0.47843137, 0.4, 1)
+model_dir = "res://art_src/enemies/bastion"
 armor = 0.3
 unslow = true
 first_wave = 9

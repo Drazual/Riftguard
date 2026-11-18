@@ -257,7 +257,7 @@ func enemies() -> Array:
 		E({ id = "wraith", name = "Wraith", hp = 45.0, speed = 120.0, gold = 5, lives = 1, atk = 6.0, radius = 8.0, color = col(0x9ad8ff), unslow = true, first_wave = 6, per_wave = 2, info = "Very fast and can’t be slowed.", counter = "Stuns still work. Chain lightning and long range." }),
 		E({ id = "phantom", name = "Phantom", hp = 70.0, speed = 70.0, gold = 7, lives = 2, atk = 10.0, radius = 9.0, color = col(0xc8b8ff), phase = true, first_wave = 7, per_wave = 2, info = "Only Defensive heroes can block it.", counter = "The Vanguard stops it. Everyone else has to shoot it down." }),
 		E({ id = "splitter", name = "Splitter", hp = 150.0, speed = 45.0, gold = 8, lives = 2, atk = 14.0, radius = 12.0, color = col(0x7fe07f), split = 2, first_wave = 8, per_wave = 1, info = "Splits into 2 Runners when it dies.", counter = "Splash and chain damage clean up the pieces." }),
-		E({ id = "juggernaut", name = "Juggernaut", hp = 600.0, speed = 26.0, gold = 25, lives = 4, atk = 35.0, radius = 16.0, color = col(0x9a7a66), armor = 0.3, unslow = true, first_wave = 9, per_wave = 1, info = "30% armor, huge HP and can’t be slowed.", counter = "Burns, Hex Brand, Brittle, Sunder and the Grave Anvil." }),
+		E({ id = "bastion", name = "Bastion", hp = 600.0, speed = 26.0, gold = 25, lives = 4, atk = 35.0, radius = 16.0, color = col(0x9a7a66), armor = 0.3, unslow = true, first_wave = 9, per_wave = 1, info = "30% armor, huge HP and can’t be slowed.", counter = "Burns, Hex Brand, Brittle, Sunder and the Grave Anvil." }),
 		E({ id = "shieldbearer", name = "Shieldbearer", hp = 260.0, speed = 38.0, gold = 15, lives = 3, atk = 18.0, radius = 13.0, color = col(0xd8b84a), armor = 0.2, shield_aura = 0.15, first_wave = 11, per_wave = 1, info = "20% armor and gives enemies within 70 +15% armor.", counter = "Kill it first; Sunder and Armor Break cut through." }),
 		E({ id = "mender", name = "Mender", hp = 120.0, speed = 48.0, gold = 12, lives = 2, atk = 8.0, radius = 10.0, color = col(0x7dffb0), heal = 0.03, first_wave = 12, per_wave = 1, info = "Heals enemies within 70 for 3% of their max HP every second.", counter = "Focus it first. Sniper Spotter and Headhunter help." }),
 		E({ id = "knight", name = "Rift Knight", hp = 1100.0, speed = 30.0, gold = 60, lives = 5, atk = 30.0, radius = 16.0, color = col(0xff2e4d), boss = true, armor = 0.25, cores = 1,
@@ -268,7 +268,7 @@ func enemies() -> Array:
 			info = "30% armor. Rift Lock: every 10s stuns 2 random towers for 3s. Summons Grunts at 75%, 50% and 25% HP.", counter = "Grounded makes stuns shorter." }),
 		E({ id = "tyrant", name = "Rift Tyrant", hp = 9000.0, speed = 22.0, gold = 300, lives = 20, atk = 80.0, radius = 23.0, color = col(0xff2e4d), boss = true, big_boss = true, armor = 0.35, unslow = true, cores = 5,
 			power_name = "Roar", power_every = 12.0, power_towers = 3, power_stun = 3.0, power_roar = true,
-			info = "35% armor, can’t be slowed. Roar: every 12s stuns 3 towers and knocks your hero back. Enrages at 50% HP and summons 2 Juggernauts.", counter = "Stuns still work. Save your ability for the enrage." }),
+			info = "35% armor, can’t be slowed. Roar: every 12s stuns 3 towers and knocks your hero back. Enrages at 50% HP and summons 2 Bastions.", counter = "Stuns still work. Save your ability for the enrage." }),
 	]
 
 
