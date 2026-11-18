@@ -19,7 +19,9 @@ def order_of(name):
     return ARM_ORDER[0] if name.endswith('Arm') else 'XYZ'
 
 def clip(name, length, keys, loop=True):
-    """keys: list of (t, {bone:(rx,ry,rz) world degrees}, hips_offset (x,y,z) world)"""
+    """keys: list of (t, {bone:(rx,ry,rz) world degrees}, hips_offset (x,y,z) world). Every key lands on a whole
+    frame (looped clips use a key count that divides their frames evenly), and the export slides each clip to start
+    at 0, so a loop never holds a pose for an extra frame."""
     act=bpy.data.actions.new(name); ao.animation_data.action=act
     bones=set(); [bones.update(k[1].keys()) for k in keys]
     bones.add("Hips")
@@ -76,7 +78,7 @@ def tail(phase, amp=10, droop=0):
     return d
 
 # ---------- idle: ready crouch, breathing, tail swishing ----------
-keys=[]; L=2.0; n=16
+keys=[]; L=2.0; n=20
 for i in range(n):
     x=i/n
     p=add(stance(), tail(x,9))
@@ -90,7 +92,7 @@ clip("idle",L,keys)
 # Legs: big forward reach, a high heel tuck on the recovery, a flat foot through stance and a toe push-off.
 # Arms: tucked in close with the elbows bent, pumping against the legs. Everything after the hips trails a little
 # behind it (forearms, hands, head, each tail segment), so nothing moves in lockstep.
-def run(L=0.52, n=26):
+def run(L=16/30, n=16):
     ks=[]
     for i in range(n):
         x=i/n; f=2*math.pi*x
@@ -125,13 +127,13 @@ def run(L=0.52, n=26):
         ks.append((L*x,p,(0,0.0,-0.05-0.045*bounce)))
     return ks
 ARM_ORDER[0]="YXZ"
-clip("run",0.52,run())
+clip("run",16/30,run())
 ARM_ORDER[0]="XYZ"
 
 base=add(stance(),tail(0,0))
 
 # ---------- stunned: dazed, head lolling in circles, arms hanging, wobbling on bent knees ----------
-keys=[]; L=1.4; n=16
+keys=[]; L=1.4; n=14
 for i in range(n):
     x=i/n
     p=stance(1.6, arms_in=22)
@@ -206,6 +208,6 @@ for sock,name in ((bs.inputs['Base Color'],'prowler_color'),(bs.inputs['Normal']
 bpy.ops.wm.save_as_mainfile(filepath=blend.replace('.blend','_anim.blend'))
 bpy.ops.wm.save_as_mainfile(filepath=blend.replace('.blend','_anim.blend'))  # for checking the clips in Blender
 bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_animation_mode='ACTIONS',
-    export_force_sampling=True, export_frame_step=1, export_anim_single_armature=True, export_def_bones=False,
+    export_force_sampling=True, export_frame_step=1, export_anim_slide_to_zero=True, export_anim_single_armature=True, export_def_bones=False,
     export_image_format='AUTO', export_yup=True, export_apply=False)
 print("EXPORTED", [a.name for a in bpy.data.actions])

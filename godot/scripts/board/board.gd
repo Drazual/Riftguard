@@ -3036,7 +3036,7 @@ func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col
 	if e.hex_t > 0:
 		var a0 := S.time * 4
 		_arc(o, p, e.r + 5, a0, a0 + 4, hx(0xb07cff, 0.9), 2)
-	if e.stun_t > 0:
+	if e.stun_t > 0 and not e.unstun:
 		_ring(o, p, e.r + 2, Color(1, 1, 1, 0.9), 2)
 	elif e.slow:
 		_ring(o, p, e.r + 2, ca(frost_col, 0.9), 2)

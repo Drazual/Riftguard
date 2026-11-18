@@ -3090,6 +3090,8 @@ func spawn(type: String, at_d := -1.0) -> void:
 	e.regen = R.tough_regen if has_tough("regen") else 0.0
 	e.steady = has_tough("steady")
 	e.unslow = d.unslow
+	e.unstun = d.unstun
+	e.unblockable = d.unblockable
 	e.pushback_immune = d.pushback_immune or d.boss
 	e.phase = d.phase
 	e.split = d.split
@@ -3762,6 +3764,8 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 	for e in order:
 		e.blocked = false
 		e.aura_armor = 0
+		if e.unblockable:
+			continue # Wraiths can't be held up at all
 		if e.phase and not tank:
 			continue # Phantoms walk through every hero except Defensive ones
 		if h.ko <= 0 and blocking < h.block + int(sb("block")) and hyp(e.x - h.x, e.y - h.y) <= e.r + 14:
@@ -3777,6 +3781,8 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 	for e in S.enemies:
 		if e.dead:
 			continue
+		if e.unstun:
+			e.stun_t = 0.0 # every stun slides off it
 		if e.slow_t > 0:
 			e.slow_t -= dt
 			if e.slow_t <= 0:
@@ -3894,7 +3900,7 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 		else:
 			# Stone walls stop enemies (Phantoms drift through) and take their attacks
 			var step: float = e.speed * (1 - e.slow) * dt
-			var wall = wall_ahead(e, step) if not e.phase and S.walls.size() else null
+			var wall = wall_ahead(e, step) if not e.phase and not e.unblockable and S.walls.size() else null
 			if wall:
 				e.d = maxf(e.d, wall.d - e.r)
 				wall.hp -= e.atk * dt

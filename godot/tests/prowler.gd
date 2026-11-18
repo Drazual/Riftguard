@@ -89,7 +89,7 @@ func _ready() -> void:
 	await _wait(0.4)
 	var vs := main.board.crowd.view_of(slowed)
 	var vw := main.board.crowd.view_of(walker)
-	_check(_clip(slowed) == "walk" and is_equal_approx(vs.ap.speed_scale, vw.ap.speed_scale * (1.0 - slowed.slow)), "slowed %d%%: its run is that much slower (%.2f vs %.2f)" % [int(slowed.slow * 100), vs.ap.speed_scale, vw.ap.speed_scale])
+	_check(_clip(slowed) == "walk" and absf(vs.ap.speed_scale / vs.dir_k - vw.ap.speed_scale / vw.dir_k * (1.0 - slowed.slow)) < 0.01, "slowed %d%%: its run is that much slower (%.2f vs %.2f)" % [int(slowed.slow * 100), vs.ap.speed_scale, vw.ap.speed_scale])
 	_check(vs.frost > 0.5 and vw.frost == 0.0, "slowed: frosted over (%.2f), the other isn't" % vs.frost)
 	_check(_clip(stunned) == "stun", "stunned (%s)" % _clip(stunned))
 	_check(_clip(frozen) == "frozen", "frozen (%s)" % _clip(frozen))
