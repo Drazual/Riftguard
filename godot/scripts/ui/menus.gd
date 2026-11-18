@@ -21,7 +21,6 @@ var ui: Ui
 var game: Game
 var sb_open := { main = true, pick = false, more = false }
 var music_screen: Control = null
-var hub := false # a Heroes or Towers screen opened from its building in the home base (Back returns there)
 
 
 func _init(u: Ui) -> void:
@@ -83,84 +82,16 @@ func queue_tip(id: String) -> void:
 	first_tip.call_deferred(id)
 
 
-# ---------- start, the home base ----------
-## The first screen: the title and a start button, which leads into the home base.
-func show_start() -> void:
-	game.S = null
-	ui.close_modal()
-	var box := ui.show_screen(show_menu)
-	Sound.start()
-	var c := Kit.vbox(18)
-	c.alignment = BoxContainer.ALIGNMENT_CENTER
-	c.custom_minimum_size = Vector2(0, ui.get_viewport_rect().size.y - 90)
-	box.add_child(c)
-	var title := Kit.rich("[center]" + Kit.c("RIFT", Kit.TECH) + Kit.c("GUARD", Kit.ARCANE) + "[/center]", 96)
-	title.add_theme_font_override("normal_font", Kit.display_bold)
-	title.add_theme_constant_override("outline_size", 0)
-	c.add_child(title)
-	c.add_child(Kit.rich("[center]Hold the rift.[/center]", 17, Kit.MUTED))
-	var col := Kit.vbox(8)
-	col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	col.custom_minimum_size = Vector2(260, 0)
-	col.add_child(Kit.go("START", go_home))
-	c.add_child(col)
-	c.add_child(Kit.rich("[center]Version %s[/center]" % ProjectSettings.get_setting("application/config/version"), 12, Kit.MUTED))
-
-
-## The hero you walk the home base as: the one you last played (if it's unlocked), else the Striker.
-func home_hero() -> String:
-	var last = Save.meta.get("loadout")
-	if last is Dictionary and DB.heroes.has(last.get("hero", "")) and Progress.hero_open(last.hero):
-		return last.hero
-	return "striker"
-
-
-## Makes `id` the hero you play as: you walk the home base as it, and it's picked first for the next run.
-func set_home_hero(id: String) -> void:
-	var last = Save.meta.get("loadout")
-	if not last is Dictionary:
-		last = { hero = id, towers = [] }
-	last.hero = id
-	Save.meta.loadout = last
-	Save.save_meta()
-
-
-## Into the home base (from the start button, or Esc out of the menu).
-func go_home() -> void:
-	game.S = null
-	hub = false
-	ui.hide_screen()
-	ui.close_modal()
-	ui.home.open(home_hero())
-
-
-## A building's door in the home base: its menu, and its Back (or Esc) returns to the base.
-func open_building(id: String) -> void:
-	hub = true
-	match id:
-		"heroes":
-			show_heroes(home_hero())
-		"towers":
-			show_towers()
-		"start":
-			show_map_select()
-
-
-## Where a menu screen's Back goes: the home base if you came from one of its buildings, else the main menu.
+## Where a menu screen's Back goes: the main menu.
 func back() -> void:
-	if hub and ui.home.visible:
-		go_home()
-	else:
-		show_menu()
+	show_menu()
 
 
 # ---------- main menu ----------
 func show_menu() -> void:
 	game.S = null
-	hub = false
 	ui.close_modal()
-	# Esc (or HOME BASE) goes back into the home base
-	var box := ui.show_screen(go_home)
+	var box := ui.show_screen()
 	Sound.start()
 	var c := Kit.vbox(14)
 	c.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -175,10 +106,9 @@ func show_menu() -> void:
 	var col := Kit.vbox(8)
 	col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.custom_minimum_size = Vector2(260, 0)
-	col.add_child(Kit.button("HOME BASE", go_home))
 	col.add_child(Kit.go("PLAY", show_map_select))
-	col.add_child(Kit.button("HEROES", func(): hub = false; show_heroes()))
-	col.add_child(Kit.button("TOWERS", func(): hub = false; show_towers()))
+	col.add_child(Kit.button("HEROES", func(): show_heroes()))
+	col.add_child(Kit.button("TOWERS", func(): show_towers()))
 	col.add_child(Kit.button("MUSIC", show_music))
 	col.add_child(Kit.button("SETTINGS", show_settings))
 	col.add_child(Kit.button("STATS LOG", show_log))
@@ -446,7 +376,6 @@ func _ability_picks(hero: String, redraw: Callable) -> Control:
 
 
 func start_run(hero: String, towers: Array) -> void:
-	ui.home.close()
 	ui.hide_screen()
 	game.start_run(hero, towers)
 	ui.refresh_run_panels()
@@ -893,14 +822,6 @@ func show_heroes(sel := "vanguard") -> void:
 	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := Kit.vbox(8)
 	c.add_child(v)
-	if hub and ui.home.visible:
-		# opened from the home base's hero building: switch who you walk the base as (and the next run's pick)
-		if sel == home_hero():
-			v.add_child(Kit.rich(Kit.c("You're playing as %s." % d.name, Kit.GOLD), 15))
-		else:
-			var play := Kit.go("PLAY AS %s" % d.name.to_upper(), func(): set_home_hero(sel); go_home())
-			play.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			v.add_child(play)
 	var top := Kit.hbox(12)
 	top.add_child(Portrait.make(sel, 3))
 	var tv := Kit.vbox(4)

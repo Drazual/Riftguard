@@ -19,7 +19,7 @@ func _ready() -> void:
 	ui.setup(game, board)
 	add_child(ui)
 	board.bind(game)
-	ui.menus.show_start()
+	ui.menus.show_menu()
 	if MergeSelftest.wanted():
 		var st := MergeSelftest.new()
 		st.name = "MergeSelftest"

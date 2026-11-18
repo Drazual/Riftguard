@@ -53,7 +53,6 @@ var boss_fill: Kit.Meter
 var boss_warn: Label
 var pause_veil: Control
 var screen: Control
-var home: HomeBase # the walkable home base the start button leads to (under the menu screens)
 var screen_body: VBoxContainer
 var screen_scroll: ScrollContainer
 var screen_back := Callable()
@@ -141,9 +140,6 @@ func _build() -> void:
 	bar.add_child(build_bar)
 	left.add_child(bar)
 	# overlays
-	home = HomeBase.new()
-	home.enter.connect(func(id: String): menus.open_building(id))
-	add_child(home)
 	screen = _screen_layer()
 	add_child(screen)
 	modal_layer = _modal_layer()
@@ -1467,9 +1463,6 @@ func _esc_back() -> bool:
 	if in_run():
 		if not game.esc_step():
 			menus.show_settings()
-		return true
-	if home.live():
-		menus.show_menu() # in the home base, Esc opens the menus (and Esc again comes back)
 		return true
 	return false
 
