@@ -107,6 +107,7 @@ func show_menu() -> void:
 	col.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	col.custom_minimum_size = Vector2(260, 0)
 	col.add_child(Kit.go("PLAY", show_map_select))
+	col.add_child(Kit.button("TEST ROOM", start_test_room))
 	col.add_child(Kit.button("HEROES", func(): show_heroes()))
 	col.add_child(Kit.button("TOWERS", func(): show_towers()))
 	col.add_child(Kit.button("MUSIC", show_music))
@@ -373,6 +374,17 @@ func _ability_picks(hero: String, redraw: Callable) -> Control:
 			return UiText.ability_tip(null, h))
 		g.add_child(ch)
 	return g
+
+
+## The Test Room: a sandbox map with every tower, endless gold and a panel to spawn enemies and swap heroes.
+func start_test_room() -> void:
+	var last = Save.meta.get("loadout")
+	var hero: String = last.hero if last is Dictionary and DB.heroes.has(last.get("hero", "")) else DB.hero_order[0]
+	ui.hide_screen()
+	ui.close_modal()
+	game.start_test_room(hero)
+	ui.top_map.text = DB.maps[DB.TEST_MAP].scene.map_name
+	ui.refresh_run_panels()
 
 
 func start_run(hero: String, towers: Array) -> void:
@@ -1406,14 +1418,14 @@ func show_settings() -> void:
 			var id := game.S.map_id
 			ui.close_modal()
 			game.S.paused = false
+			var test := game.S.test
 			game.end_run(false, true)
 			ui.close_modal()
-			new_run(id)))
+			if test:
+				start_test_room()
+			else:
+				new_run(id)))
 		row.add_child(Kit.button("MAIN MENU", confirm_quit))
-		# for testing: each press adds 1000 gold to the run
-		row.add_child(Kit.button("+1000 GOLD", func():
-			game.S.gold += 1000
-			ui.toast("+1000 gold (%d now)." % int(game.S.gold))))
 	row.add_child(Kit.button("QUIT GAME", func(): ui.get_tree().quit()))
 	box.add_child(row)
 	ui.settings_open = true
@@ -1472,7 +1484,9 @@ func close_settings() -> void:
 
 
 func confirm_quit() -> void:
-	if game.S.over:
+	if game.S.over or game.S.test:
+		if not game.S.over:
+			game.end_run(false, true)
 		show_menu()
 		return
 	game.S.paused = true

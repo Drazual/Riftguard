@@ -5,6 +5,9 @@ extends RefCounted
 
 var map: MapInfo
 var map_id := ""
+## The Test Room: endless gold and base HP, every tower, no waves (enemies come from its spawn panel), nothing saved.
+var test := false
+var test_els: Array = [] # the Wizard's elements in the Test Room (any element, unlocked or not)
 var gold := 150.0
 var tower_bonus := 0.0 # extra damage for every tower, won from Challenge waves
 var lives := 20

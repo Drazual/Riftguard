@@ -3,6 +3,9 @@
 extends Node
 
 const RULES_PATH := "res://data/rules.tres"
+## The Test Room's map: loaded into `maps` but kept out of `map_order`, so it never shows on the map choice.
+const TEST_MAP := "test_room"
+const TEST_MAP_PATH := "res://maps/test_room.tscn"
 
 var rules: GameRules
 var maps := {} # id -> MapInfo
@@ -37,6 +40,8 @@ func load_all() -> void:
 		var m := MapInfo.load_scene(ps)
 		maps[m.id] = m
 		map_order.append(m.id)
+	if ResourceLoader.exists(TEST_MAP_PATH):
+		maps[TEST_MAP] = MapInfo.load_scene(load(TEST_MAP_PATH))
 	towers.clear()
 	tower_order.clear()
 	for t in rules.towers:
