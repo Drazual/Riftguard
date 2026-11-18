@@ -1,4 +1,4 @@
-## The Test Room: it opens from the main menu with every tower and endless gold, its panel spawns any enemy in any
+## The Test Room (Coral Spiral's look, with a simple road): it opens from the main menu with every tower and endless gold, its panel spawns any enemy in any
 ## number, enemies that get through never end it, heroes and abilities swap in place, and nothing is saved.
 ## Prints TEST ROOM PASS or FAIL.
 ## godot --headless --path godot res://tests/test_room.tscn
@@ -61,6 +61,14 @@ func _ready() -> void:
 	if g:
 		var d: EnemyData = DB.enemies.grunt
 		_check(g.max > d.hp * 1.5, "wave 5 HP is applied (grunt %d HP vs %d base)" % [roundi(g.max), roundi(d.hp)])
+	_check(not S.map.art.is_empty(), "the room is a hand-painted map (Coral Spiral's look)")
+	if DisplayServer.get_name() != "headless":
+		await _frames(5)
+		var modeled := 0
+		for e: Enemy in S.enemies:
+			if main.board.crowd.view_of(e):
+				modeled += 1
+		_check(modeled > 0, "enemies with a 3D model are drawn from it (%d on the road)" % modeled)
 	if ui.test_panel.visible and DisplayServer.get_name() != "headless" and OS.get_cmdline_user_args().size():
 		S.paused = false
 		await _frames(30)
