@@ -10,7 +10,7 @@ extends Node2D
 ## "release" times say when in each clip the spell leaves, and the wind-up before it is sped up to "windup" seconds,
 ## since the spell itself lands the moment it is cast.
 
-const PITCH := 35.0 # how far the camera looks down (flatter than the ground's tilt, so heroes read from the front)
+const PITCH := 35.264 # how far the camera looks down: StyleRig.PITCH, the one game-wide angle (a literal so the bake tools load without the game)
 const K := 0.75 # Board.K: the ground's vertical squash; facings go through it so they match the screen
 const Q := 2 # render at 2x board pixels and draw at half size, for detail on big screens
 const BOX := Vector2(128, 128) # the viewport in board pixels
@@ -30,7 +30,7 @@ var cam: Camera3D
 var rig: StyleRig = null
 var anchor: Node3D = null
 var art_per_unit := 1.0
-var pitch := PITCH # the camera's look-down angle, for facings (the shared camera's is the scenery's 30)
+var pitch := PITCH # the camera's look-down angle, for facings (always StyleRig.PITCH now)
 var model: Node3D
 var ap: AnimationPlayer
 var skel: Skeleton3D

@@ -46,7 +46,7 @@ var clean := false
 const K := 0.75 # the board squashes the ground vertically by this (Board.K); the 8 facings follow it
 ## How far the camera looks down. Flatter than the ground's tilt (asin(K), about 49) so characters read more
 ## from the front, like hand-drawn 3/4 sprites.
-const PITCH := 35.0
+const PITCH := 35.264 # StyleRig.PITCH: the game-wide true isometric angle
 const ROWS := { idle = [0, 4, 5.0, true], walk = [4, 8, 12.0, true], fire = [12, 4, 15.0, false] } # first row, frames, fps, loops
 const OUTLINE := Color(0.06, 0.05, 0.12)
 

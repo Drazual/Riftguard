@@ -16,7 +16,7 @@ extends Control
 ##
 ## Coordinates: "art" pixels are the 2x scenery art's (1536x832 for the whole board, Board's base x2); board field
 ## points convert to art pixels as the board draws them (art = 2 * PX * (x, TOP + y * K)). The camera's pitch is the
-## scenery's own: Ocean Drive's ground is 2:1 isometric, so the camera looks down 30 degrees (sin 30 = 0.5 squash),
+## scenery's own: every map's ground is true isometric, so the camera looks down StyleRig.PITCH (35.264, sin = 0.577),
 ## turned 45 degrees so 3D footprints line up with the painted diamond tiles. Gameplay's own K (0.75) is untouched:
 ## models are placed where the board would draw them, so ranges and movement don't change.
 

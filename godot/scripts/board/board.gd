@@ -2319,7 +2319,7 @@ func _draw_flat() -> void:
 		if e.heal:
 			_ring(g, e.pos(), e.r + 6 + 4 * sin(S.time * 5), hx(0x7dffb0, 0.15 + 0.15 * sin(S.time * 5)), 2)
 		if e.unslow:
-			_line(g, game.pos_at(maxf(0, e.d - 18)), e.pos(), hx(0x4fa8ff, 0.35), e.r)
+			_line(g, game.pos_at(maxf(0, e.d - 18), e.lane), e.pos(), hx(0x4fa8ff, 0.35), e.r)
 		_shadow(g, e.x, e.y + 4 / K, e.r * 2.2)
 	if h.tx != null and h.ko <= 0:
 		_ring(g, Vector2(h.tx, h.ty), 6, ca(hc, 0.5), 1)

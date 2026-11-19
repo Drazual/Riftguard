@@ -138,8 +138,8 @@ func map() -> MapInfo:
 	return S.map
 
 
-func pos_at(d: float) -> Vector2:
-	return S.map.pos_at(d)
+func pos_at(d: float, lane := 0) -> Vector2:
+	return S.map.pos_at(d, lane)
 
 
 func tower_data(t) -> TowerData:
@@ -792,7 +792,7 @@ func _kill(e: Enemy, src) -> void:
 				S.takedowns.towers[k] = S.takedowns.towers.get(k, 0) + 1
 	if e.split:
 		for i in e.split:
-			spawn("runner", maxf(0, e.d - 8 + 16 * i))
+			spawn("runner", maxf(0, e.d - 8 + 16 * i), e.lane)
 	if e.hex_t > 0 and e.hex_nova:
 		var boom := e.taken * e.hex_nova
 		ring(e.x, e.y, 80, 0xb07cff, 0.45, true)
@@ -1060,7 +1060,7 @@ func ion_power(d: float) -> float:
 func ion_shell(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
 	var T := ion_flight(t)
 	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * T
-	var p := pos_at(minf(S.map.path_len, e.d + lead))
+	var p := pos_at(minf(S.map.path_len, e.d + lead), e.lane)
 	t.hit_at = p
 	fx_add({ k = "ion_shell", tw = t, x = p.x, y = p.y, flight = T, pw = ion_power(d), t = T + 0.05, quiet = true })
 	later(T, func():
@@ -1176,7 +1176,7 @@ func cryo_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool
 	var px := func(p: Vector2) -> float: return Vector2(p.x - t.x, (p.y - t.y) * 0.75 + 30.0).length()
 	var flight := maxf(0.08, px.call(e.pos()) / speed)
 	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * flight
-	var p := pos_at(minf(S.map.path_len, e.d + lead))
+	var p := pos_at(minf(S.map.path_len, e.d + lead), e.lane)
 	flight = maxf(0.08, px.call(p) / speed)
 	t.hit_at = p
 	var pw := ion_power(d)
@@ -1246,7 +1246,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 			line(target.x, target.y, o.x, o.y, t.color, 0.12, 1)
 			apply_hit(t, o, d * 0.4, false, aslow)
 	if t.pierce:
-		var behind := S.enemies.filter(func(e): return not e.dead and (fake or e != target) and e.d < target.d and e.d > target.d - 140)
+		var behind := S.enemies.filter(func(e): return not e.dead and (fake or e != target) and e.d < target.d and e.d > target.d - 140 and S.map.same_road(e.lane, e.d, target.lane, target.d))
 		behind.sort_custom(by_d_desc)
 		for o in behind.slice(0, int(round(t.pierce))):
 			apply_hit(t, o, d * 0.6, false, aslow)
@@ -1322,7 +1322,7 @@ func lob_shell(t: Tower, e: Enemy, mult: float) -> void:
 	var wait := fire_lead(t)
 	var T := SHELL_TIME / (1.25 if S.sig.get("mortar", false) else 1.0)
 	var lead := 0.0 if e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * (T + wait)
-	var p := pos_at(minf(S.map.path_len, e.d + lead))
+	var p := pos_at(minf(S.map.path_len, e.d + lead), e.lane)
 	t.shot_at = S.time
 	t.hit_at = p # a 3D mortar turns toward where the shell will land
 	S.shells.append({ tw = t, x0 = t.x, y0 = t.y, x1 = p.x, y1 = p.y, t = 0.0, T = T, mult = mult, wait = wait, done = false })
@@ -1356,7 +1356,7 @@ func throw_disc(t: Tower, e, mult := 1.0, dir = null, hits := -1) -> Vector2:
 	if dir == null:
 		var T: float = hyp(e.x - t.x, e.y - t.y) / t.disc_speed
 		var lead: float = 0.0 if e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * T
-		var aim: Vector2 = pos_at(minf(S.map.path_len, e.d + lead)) - t.pos()
+		var aim: Vector2 = pos_at(minf(S.map.path_len, e.d + lead), e.lane) - t.pos()
 		dir = (aim if aim.length() > 1 else Vector2(e.x - t.x, e.y - t.y)).normalized()
 	var dmg := t.dmg * mult * S.mod_tower_dmg * tower_mode_mul()
 	if t.buff:
@@ -1505,7 +1505,7 @@ func anvil_slam(t: Tower, area: Array, mult: float) -> void:
 			if o.dead or area.has(o):
 				continue
 			for e in area:
-				if absf(o.d - e.d) <= 80:
+				if absf(o.d - e.d) <= 80 and S.map.same_road(o.lane, o.d, e.lane, e.d):
 					hits.append(o)
 					ring(o.x, o.y, 14, t.color, 0.25)
 					break
@@ -1986,25 +1986,10 @@ func slam_dmg(h: Hero, a: Ability) -> float:
 
 ## Which way along the path Shield Slam's shockwave runs from distance d: away from the hero, so it carries on
 ## through the enemies coming at it (-1 toward the spawn, +1 toward the base).
-func _slam_way(h: Hero, d: float) -> float:
-	var back := pos_at(maxf(0.0, d - 12.0))
-	var on := pos_at(minf(S.map.path_len, d + 12.0))
+func _slam_way(h: Hero, d: float, lane := 0) -> float:
+	var back := pos_at(maxf(0.0, d - 12.0), lane)
+	var on := pos_at(minf(S.map.path_len, d + 12.0), lane)
 	return -1.0 if hyp(back.x - h.x, back.y - h.y) >= hyp(on.x - h.x, on.y - h.y) else 1.0
-
-
-## The path distance nearest to a point (where the shockwave starts when nobody was in front).
-func _path_d_near(p: Vector2) -> float:
-	var best := 0.0
-	var bd := INF
-	for sg in S.map.seg:
-		var ab: Vector2 = sg.b - sg.a
-		var l2 := ab.length_squared()
-		var k := clampf((p - sg.a).dot(ab) / l2, 0.0, 1.0) if l2 > 0 else 0.0
-		var dd := p.distance_squared_to(sg.a + ab * k)
-		if dd < bd:
-			bd = dd
-			best = sg.start + sg.len * k
-	return best
 
 
 ## Stun or slow from Shield Slam: bosses get half as long.
@@ -2033,13 +2018,17 @@ func slam(h: Hero, a: Ability, mult: float, at = null) -> void:
 	ring(x, y, 30, 0x5fe39a, 0.4, true)
 	do_shake(0.012 if mult >= 1 else 0.007, 220)
 	# the shockwave starts at the furthest enemy it slammed (else where the shield landed) and runs away from the hero
-	var d0 := _path_d_near(Vector2(x, y))
+	var sp := S.map.near_spot(Vector2(x, y))
+	var d0: float = sp.d
+	var ln: int = sp.lane
 	if front.size():
 		d0 = front[0].d
-		var way0 := _slam_way(h, d0)
+		ln = front[0].lane
+		var way0 := _slam_way(h, d0, ln)
 		for e in front:
-			d0 = minf(d0, e.d) if way0 < 0 else maxf(d0, e.d)
-	var way := _slam_way(h, d0)
+			if S.map.same_road(e.lane, e.d, ln, d0):
+				d0 = minf(d0, e.d) if way0 < 0 else maxf(d0, e.d)
+	var way := _slam_way(h, d0, ln)
 	var swept := [0]
 	var steps := 8
 	for i in steps:
@@ -2053,7 +2042,7 @@ func slam(h: Hero, a: Ability, mult: float, at = null) -> void:
 			var dmin := minf(a_d, b_d) - 6.0
 			var dmax := maxf(a_d, b_d) + 6.0
 			for e in S.enemies:
-				if e.dead or hit.has(e) or e.d < dmin or e.d > dmax:
+				if e.dead or hit.has(e) or e.d < dmin or e.d > dmax or not S.map.same_road(e.lane, e.d, ln, e.d):
 					continue
 				hit[e] = true
 				swept[0] += 1
@@ -2061,7 +2050,7 @@ func slam(h: Hero, a: Ability, mult: float, at = null) -> void:
 				slow_enemy(e, a.slow, _slam_t(e, a.slow_t * mult))
 				if a.magnet and not e.pushback_immune:
 					e.d = back_d(e, 50)
-			var p := pos_at(clampf(b_d, 0.0, S.map.path_len))
+			var p := pos_at(clampf(b_d, 0.0, S.map.path_len), ln)
 			ring(p.x, p.y, 26, 0x9af0ff, 0.35, true)
 			if i == steps - 1 and S.hero == h and h.ko <= 0:
 				give_shield(h, swept[0] * a.shield_per * mult, a.dur))
@@ -2352,7 +2341,7 @@ func pull_enemy(e: Enemy, at: Vector2, h: Hero) -> void:
 	var reach := 260.0
 	var d := maxf(MapInfo.C, e.d - reach)
 	while d <= minf(S.map.path_len, e.d + reach):
-		var q := pos_at(d)
+		var q := pos_at(d, e.lane)
 		var dd := q.distance_squared_to(at)
 		if dd < bd:
 			bd = dd
@@ -2472,30 +2461,23 @@ func burn_ground(x: float, y: float, r: float, t: float, dps: float, color = 0xf
 
 ## The point on the path nearest (x, y), as a path distance, if it's within reach (else -1).
 func path_point_near(x: float, y: float, reach: float) -> float:
-	var best := -1.0
-	var bd := reach
-	var d := 0.0
-	while d <= S.map.path_len:
-		var p := pos_at(d)
-		var dd := hyp(p.x - x, p.y - y)
-		if dd < bd:
-			bd = dd
-			best = d
-		d += 4
-	return best
+	var sp := S.map.near_spot(Vector2(x, y))
+	return sp.d if sp.dist < reach else -1.0
 
 
 ## Walls lock onto the grid: the centre of the path tile nearest the cursor.
 func wall_spot(x: float, y: float):
 	if S.map.free_path:
 		# a hand-painted road has no tiles: lock onto the nearest point of the road
-		var d0 := path_point_near(x, y, 140)
-		if d0 < 0:
+		var sp := S.map.near_spot(Vector2(x, y))
+		if sp.dist > 140:
 			return null
-		var p0 := pos_at(d0)
-		var a0 := pos_at(maxf(0, d0 - 6))
-		var b0 := pos_at(minf(S.map.path_len, d0 + 6))
-		return { d = d0, x = p0.x, y = p0.y, across = absf(b0.x - a0.x) > absf(b0.y - a0.y) }
+		var d0: float = sp.d
+		var ln: int = sp.lane
+		var p0 := pos_at(d0, ln)
+		var a0 := pos_at(maxf(0, d0 - 6), ln)
+		var b0 := pos_at(minf(S.map.path_len, d0 + 6), ln)
+		return { d = d0, lane = ln, x = p0.x, y = p0.y, across = absf(b0.x - a0.x) > absf(b0.y - a0.y) }
 	var best = null
 	var bd := 140.0
 	for cell in S.map.path_cells:
@@ -2523,8 +2505,8 @@ const WALL_SLAM_AHEAD := 16.0
 ## The way a wall faces: along the path toward the enemies coming (they walk toward higher d).
 func wall_front(w: Dictionary) -> Vector2:
 	# a short look either side, so a wall at a bend faces along the piece of road it stands on
-	var a := pos_at(maxf(0, w.d - 3))
-	var b := pos_at(minf(S.map.path_len, w.d + 3))
+	var a := pos_at(maxf(0, w.d - 3), w.get("lane", 0))
+	var b := pos_at(minf(S.map.path_len, w.d + 3), w.get("lane", 0))
 	return (a - b).normalized() if a != b else Vector2.LEFT
 
 
@@ -2542,7 +2524,7 @@ func raise_wall(h: Hero, x: float, y: float, hp: float, _dur: float, pow: float,
 		return false
 	h.wall_charges -= cost
 	var dur := INF
-	var w := { d = p.d, x = p.x, y = p.y, across = p.across, hp = hp * h.wall_bonus, max = hp * h.wall_bonus, t = dur, T = dur,
+	var w := { d = p.d, lane = p.get("lane", 0), x = p.x, y = p.y, across = p.across, hp = hp * h.wall_bonus, max = hp * h.wall_bonus, t = dur, T = dur,
 		art = "greatwall" if slam_dmg else "stonewall", born = S.time, thorns = 0.0, color = null }
 	w.merge(more, true)
 	S.walls.append(w)
@@ -2869,7 +2851,7 @@ func cast_runes(x: float, y: float) -> void:
 ## Walls: enemies walking into one stop and batter it.
 func wall_ahead(e: Enemy, step: float):
 	for w in S.walls:
-		if w.hp > 0 and e.d < w.d and e.d + step >= w.d - e.r:
+		if w.hp > 0 and e.d < w.d and e.d + step >= w.d - e.r and S.map.same_road(e.lane, e.d, w.get("lane", 0), w.d):
 			return w
 	return null
 
@@ -3156,8 +3138,12 @@ func fail_req(why: String) -> void:
 	refresh("mode")
 
 
-## at_d >= 0: spawn partway along the path (Splitter pieces, boss summons).
-func spawn(type: String, at_d := -1.0) -> void:
+## at_d >= 0: spawn partway along the path (Splitter pieces, boss summons), on `lane` (theirs). A new enemy at the
+## start takes the map's lanes in turn.
+func spawn(type: String, at_d := -1.0, lane := -1) -> void:
+	if lane < 0:
+		lane = S.lane_next % S.map.lane_count()
+		S.lane_next += 1
 	var d: EnemyData = DB.enemies[type]
 	var m := S.mode
 	# Enemies get much tougher each wave; bosses also scale with the wave they lead.
@@ -3171,7 +3157,7 @@ func spawn(type: String, at_d := -1.0) -> void:
 		scale *= R.swarm_hp
 	var speed := d.speed * S.mod_enemy_speed * (R.blitz_speed if m.get("challenge", "") == "blitz" else 1.0) * (R.tough_speed if has_tough("speed") else 1.0)
 	var at := maxf(0, at_d)
-	var p := pos_at(at)
+	var p := pos_at(at, lane)
 	if not S.test and not Save.meta.seen.get(type, false):
 		Save.meta.seen[type] = true
 		Save.save_meta()
@@ -3185,6 +3171,7 @@ func spawn(type: String, at_d := -1.0) -> void:
 	e.max = e.hp
 	e.speed = speed
 	e.d = at
+	e.lane = lane
 	e.x = p.x if at_d >= 0 else p.x - 30
 	e.y = p.y
 	e.armor = (d.armor + S.map.scene.armor_bonus if d.armor else 0.0) + (R.tough_armor if has_tough("armor") else 0.0)
@@ -3222,7 +3209,7 @@ func boss_act(e: Enemy, dt: float) -> void:
 		while e.summons < 3 and e.hp / e.max <= steps[e.summons]:
 			e.summons += 1
 			for i in 4:
-				spawn("grunt", maxf(0, e.d - 15 - 12 * i))
+				spawn("grunt", maxf(0, e.d - 15 - 12 * i), e.lane)
 			ring(e.x, e.y, 70, 0xff2e4d, 0.6, true)
 			do_shake(0.006, 200)
 			say("The Rift Warden tears open a rift!")
@@ -3231,7 +3218,7 @@ func boss_act(e: Enemy, dt: float) -> void:
 		e.speed *= 1.3
 		e.color = Color(1, 0, 0)
 		for i in 2:
-			spawn("bastion", maxf(0, e.d - 25 - 20 * i))
+			spawn("bastion", maxf(0, e.d - 25 - 20 * i), e.lane)
 		ring(e.x, e.y, 140, 0xff0000, 0.9, true)
 		do_shake(0.02, 500)
 		sfx("boss")
@@ -4018,7 +4005,7 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 					return true
 				continue
 		if not e.dead:
-			var p := pos_at(e.d)
+			var p := pos_at(e.d, e.lane)
 			e.x = p.x
 			e.y = p.y
 	return false
@@ -5422,8 +5409,8 @@ func can_hold() -> bool:
 ## The centre of the path tile nearest (x, y), or null when no path tile is within reach.
 func path_tile_near(x: float, y: float, reach: float):
 	if S.map.free_path:
-		var d0 := path_point_near(x, y, reach)
-		return pos_at(d0) if d0 >= 0 else null
+		var sp := S.map.near_spot(Vector2(x, y))
+		return pos_at(sp.d, sp.lane) if sp.dist < reach else null
 	var best = null
 	var bd := reach
 	for cell in S.map.path_cells:
