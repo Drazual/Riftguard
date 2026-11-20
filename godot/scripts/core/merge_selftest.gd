@@ -1,5 +1,5 @@
 ## Checks every merge model in a real run, in the editor (tests/merge_models.tscn) or in a built game
-## (Riftguard.exe -- --merge-selftest). For each of the 7 recipes it maxes two parents along different paths, merges
+## (Riftguard.exe -- --merge-selftest). For each of the 8 recipes it maxes two parents along different paths, merges
 ## them, and checks: MergeArt finds the recipe's GLB, the board draws it through Merge3D (not the plinth), both accent
 ## masks load, the colours start as the parents' paths, and picking 1, 2 and 3 fusions moves the glow, trim and
 ## detail to those paths' colours (the most points lead, ties to the one picked first).
@@ -17,8 +17,9 @@ const RECIPES := {
 	"mortar+plasma": "bombard.glb",
 	"plasma+tesla": "ion_storm.glb",
 	"arcane+plasma": "starbolt.glb",
+	"mortar+tesla": "thunder_battery.glb",
 }
-## Three runs cover all 8 recipes (a run carries 4 tower types).
+## Three runs cover all 9 recipes (a run carries 4 tower types).
 const RUNS := [
 	["arcane", "frost", "laser", "tesla"],
 	["plasma", "mortar", "frost", "tesla"],

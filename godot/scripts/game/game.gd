@@ -998,6 +998,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		var lead := merge_lead(t) if not art and not t.beam and not t.lob else 0.0
 		if lead > 0:
 			# a merge model charges first: the shot leaves, and lands, at its fire clip's shot moment
+			if t.thunder and target == targets[0]:
+				fx_add({ k = "thunder_charge", tw = t, secs = lead, pw = ion_power(d), t = lead, quiet = true })
 			later(lead, func():
 				if not S.towers.has(t):
 					return
@@ -1005,6 +1007,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 					ion_shell(t, target, d, splash, big, frz, over, oc, aslow)
 				elif t.cryo and target is Enemy:
 					cryo_ball(t, target, d, splash, big, frz, over, oc, aslow)
+				elif t.thunder and target is Enemy:
+					thunder_ball(t, target, d, splash, big, frz, over, oc, aslow)
 				elif t.rime and target is Enemy:
 					rime_shard(t, target, d, d / maxf(0.01, mult), splash, big, frz, over, oc, aslow)
 				elif t.star and target is Enemy:
@@ -1234,6 +1238,36 @@ func cryo_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool
 		fx_add({ k = "cryo_burst", tw = t, x = p.x, y = p.y, r = splash, pw = pw, zone = z, t = 0.4, quiet = true }))
 
 
+## Thunder Battery: three small coils charge a ball of lightning at the mortar's mouth for the whole fire clip (its
+## shot_time, 0.85 s unupgraded), then the mortar fires it very fast (tower.json "bolt_speed", board px/s) on a low,
+## short lob at where the target will be (led like the mortar's shells). It lands in a big blast (THUNDER_SPLASH x the
+## splash) with a lightning crackle; Tesla's chain still hops on from the blast. Slower and heavier than a plain
+## merge (THUNDER_RATE / THUNDER_DMG keep its DPS a bit under), with a much bigger radius. The board draws it from
+## the "thunder_ball" and "thunder_blast" fx; the game owns the timing and the damage.
+## SUGGESTED tuning: the multipliers below and bolt_speed / lob_k in tower.json.
+const THUNDER_SPEED := 1500.0
+const THUNDER_RATE := 1.8 # x the merged rate (a slower, longer charge)
+const THUNDER_DMG := 1.7 # x the merged damage (DPS 1.7 / 1.8 = 0.94x, still under the 2.6x merge cap)
+const THUNDER_SPLASH := 1.4 # x the merged splash (the big AoE)
+func thunder_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
+	var speed := maxf(200.0, cryo_cfg(t, "bolt_speed", THUNDER_SPEED))
+	# board px: the ground is squashed by K and the ball leaves the mortar's mouth, about 40 px up
+	var px := func(p: Vector2) -> float: return Vector2(p.x - t.x, (p.y - t.y) * 0.75 + 40.0).length()
+	var flight := maxf(0.06, px.call(e.pos()) / speed)
+	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * flight
+	var p := pos_at(minf(S.map.path_len, e.d + lead), e.lane)
+	flight = maxf(0.06, px.call(p) / speed)
+	t.hit_at = p
+	var pw := ion_power(d) * (1.3 if big else 1.0)
+	fx_add({ k = "thunder_ball", tw = t, x = p.x, y = p.y, flight = flight, pw = pw, t = flight + 0.05, quiet = true })
+	later(flight, func():
+		if not S.towers.has(t):
+			return
+		_land(t, { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }, d, splash, big, frz, over, oc, aslow, false)
+		fx_add({ k = "thunder_blast", tw = t, x = p.x, y = p.y, r = splash, pw = pw, t = 0.6, quiet = true })
+		do_shake(0.005, 120))
+
+
 ## Ion Storm's lightning: forks straight out from the blast to the nearest enemies it missed (no hop-to-hop and no
 ## falloff), out to the splash plus the chain's reach (145 px unupgraded), each for chain_mul of the shot (all of it with Tesla's Overcharge or chain_keep), with chain_blast and
 ## the Static Shock stun on each like a normal chain.
@@ -1268,7 +1302,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	var h := S.hero
 	var fake: bool = target is Dictionary
 	var hits: Array = in_range(target.x, target.y, splash) if splash else ([] if fake else [target])
-	if splash and not t.radial_chain and not t.cryo and not t.star:
+	if splash and not t.radial_chain and not t.cryo and not t.star and not t.thunder:
 		ring(target.x, target.y, splash, t.color, 0.25, big)
 	if splash and S.sig.get("plasma", false) and t.base_types().has("plasma"):
 		zone({ x = target.x, y = target.y, r = splash * 0.7, t = 2.0, dps = d * 0.25, color = col(0xff8a3d), src = t })
@@ -5247,6 +5281,12 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.star = true
 	if not m.is_super and m.type == "plasma+tesla":
 		m.radial_chain = true
+	# Thunder Battery charges longer and hits harder and wider (applied before the DPS cap; its DPS goes down a bit)
+	if not m.is_super and m.type == "mortar+tesla":
+		m.thunder = true
+		m.rate *= THUNDER_RATE
+		m.dmg *= THUNDER_DMG
+		m.splash = maxf(m.splash, 40.0) * THUNDER_SPLASH
 	if not m.is_super and m.type == "arcane+laser":
 		m.beam = true
 		m.lance = true

@@ -316,7 +316,7 @@ texts = {
 "recipe:laser+plasma": "Exploding shots that heat up on one enemy.",
 "recipe:laser+tesla": "Lightning that heats up on its main target.",
 "recipe:mortar+plasma": "Long-range shells with huge explosions.",
-"recipe:mortar+tesla": "Long-range blasts that throw out lightning.",
+"recipe:mortar+tesla": "Charges up, then fires a fast lightning ball into a huge blast.",
 "recipe:plasma+tesla": "Exploding shells that throw out lightning.",
 "relic:capacitor": "All towers fire faster.",
 "relic:chrono": "All towers fire much faster.",
