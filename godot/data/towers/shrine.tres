@@ -58,8 +58,8 @@ title = "Haste"
 desc = "Your hero’s ability recharges 7% faster per point."
 effect = "t.hb_cdr += 0.07"
 mastery_name = "Second Wind"
-mastery_desc = "Your hero’s ability recharges another 15% faster."
-mastery_effect = "t.hb_cdr += 0.15"
+mastery_desc = "Each kill by your hero's ability gives back 1s of its cooldown (up to 3s a cast)."
+mastery_effect = "t.hb_refund = 1.0"
 
 [sub_resource type="Resource" id="Path_quick"]
 script = ExtResource("1_tp")
@@ -72,8 +72,8 @@ title = "Speed"
 desc = "Your hero attacks 7% faster per point."
 effect = "t.hb_rate += 0.07"
 mastery_name = "Flurry"
-mastery_desc = "Your hero attacks another 15% faster."
-mastery_effect = "t.hb_rate += 0.15"
+mastery_desc = "Every 5th attack by your hero hits its target twice."
+mastery_effect = "t.hb_flurry = 1"
 
 [sub_resource type="Resource" id="Set_any"]
 script = ExtResource("2_ps")
@@ -140,11 +140,12 @@ tag = "precision"
 adjective = "Far"
 noun = "Spire"
 title = "Reach"
-desc = "Your hero’s attacks reach 7% farther per point."
-effect = "t.hb_range += 0.07"
+desc = "Your hero’s attacks reach 5% farther and crit 3% more often per point."
+effect = "t.hb_range += 0.05
+t.hb_crit += 0.03"
 mastery_name = "Hawkeye"
-mastery_desc = "Your hero gets +10% crit chance."
-mastery_effect = "t.hb_crit += 0.1"
+mastery_desc = "Your hero's crits also hit the next enemy behind the target for full damage."
+mastery_effect = "t.hb_pierce = 1"
 
 [sub_resource type="Resource" id="Path_keen"]
 script = ExtResource("1_tp")

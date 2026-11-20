@@ -1,0 +1,10 @@
+RES,anvil,crush+pin+quake,805,868115,859,865277,15900
+RES,anvil,crush+pin+pressure,770,807854,477,30339,1803
+RES,anvil,crush+pin+guardian,1068,1158104,477,30339,1803
+RES,anvil,crush+quake+pressure,1141,1197036,859,43175,4031
+RES,anvil,crush+quake+guardian,1595,1477090,859,43175,4031
+RES,anvil,crush+pressure+guardian,1517,1438748,477,25141,1803
+RES,anvil,pin+quake+pressure,634,1228659,477,1224808,16673
+RES,anvil,pin+quake+guardian,886,1374525,477,865277,11130
+RES,anvil,pin+pressure+guardian,843,1441860,265,30339,1262
+RES,anvil,quake+pressure+guardian,1259,1617040,477,43175,2822

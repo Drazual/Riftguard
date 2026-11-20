@@ -1147,7 +1147,7 @@ func render_enemy() -> void:
 	var now := []
 	if e.stun_t > 0: now.append("Stunned %ss" % UiText.f1(e.stun_t))
 	if e.slow > 0 and e.slow_t > 0: now.append("Slowed %s" % UiText.pct(e.slow))
-	if e.burn_t > 0 or e.fire_t > 0: now.append("Burning")
+	if game.is_burning(e) or e.fire_t > 0: now.append("Burning")
 	if e.hex_t > 0: now.append("Hexed")
 	if e.mark_t > 0 or e.spot_t > 0: now.append("Marked")
 	if e.brittle_t > 0: now.append("Brittle")

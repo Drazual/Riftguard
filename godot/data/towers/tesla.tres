@@ -18,21 +18,21 @@ title = "Storms"
 desc = "Lightning jumps to 1 more enemy per point."
 effect = "t.chain += 1"
 mastery_name = "Storm Call"
-mastery_desc = "Every 4th shot calls lightning down on 3 random enemies in range."
-mastery_effect = "t.storm += 3"
+mastery_desc = "Every 4th shot calls lightning down on 4 random enemies in range."
+mastery_effect = "t.storm += 4"
 
 [sub_resource type="Resource" id="Resource_3eeww"]
 script = ExtResource("1_w7usc")
 id = "volt"
-name = "Static Shock"
+name = "Static Charge"
 adjective = "Charged"
 noun = "Coil"
 title = "Voltage"
-desc = "Lightning jumps get a 4% chance per point to stun for 0.6s."
-effect = "t.stun += 0.04"
+desc = "Lightning makes every enemy it hits take +8% damage from all sources per point for 2s."
+effect = "t.static_amp += 0.08"
 mastery_name = "Overload"
-mastery_desc = "Lightning jumps get another +15% stun chance (31% in all)."
-mastery_effect = "t.stun += 0.15"
+mastery_desc = "Lightning jumps get a 25% chance to stun for 0.5s (bosses 0.2s)."
+mastery_effect = "t.stun = max(t.stun, 0.25)"
 
 [sub_resource type="Resource" id="Resource_wpk1r"]
 script = ExtResource("1_w7usc")
@@ -42,8 +42,9 @@ tag = "chain"
 adjective = "Conductive"
 noun = "Conduit"
 title = "Currents"
-desc = "Jumps lose 7% less damage per point."
-effect = "t.chain_mul = min(0.95, t.chain_mul + 0.07)"
+desc = "Jumps keep 7% more of the shot's damage per point (70% to 95%). If jumps already lose nothing, +7% jump damage per point instead."
+effect = "t.chain_mul = min(0.95, t.chain_mul + 0.07)
+t.conduct_bonus += 0.07"
 mastery_name = "Ion Burst"
 mastery_desc = "Every lightning jump explodes for 30% damage around it."
 mastery_effect = "t.chain_blast += 0.3"
@@ -82,13 +83,13 @@ script = ExtResource("2_ui3f5")
 id = "tesla"
 name = "Tesla Coil"
 cost = 80
-dmg = 24.0
+dmg = 35.0
 rate = 1.1
 range = 157.5
 chain = 3
 element_tag = "chain"
 color = Color(0.30980393, 0.84705883, 1, 1)
-info = "Fires lightning that jumps from enemy to enemy, losing a bit of power with each jump. Great for long lines of enemies."
+info = "Fires lightning that jumps from enemy to enemy (each jump hits a bit softer than the shot). Great for long lines of enemies."
 paths = Array[ExtResource("1_w7usc")]([SubResource("Resource_rnw8n"), SubResource("Resource_3eeww"), SubResource("Resource_wpk1r"), SubResource("Resource_t4s08"), SubResource("Resource_bhcqx")])
 signature_name = "Overcharge"
 signature_desc = "Chain lightning no longer loses power on each jump."

@@ -1,0 +1,10 @@
+RES,mortar,payload+blast+napalm,1527,46600,997687,825862,485121
+RES,mortar,payload+blast+reload,1474,44217,1069372,813578,492159
+RES,mortar,payload+blast+shock,610,24396,672509,430968,354718
+RES,mortar,payload+napalm+reload,2206,68906,655353,525394,325605
+RES,mortar,payload+napalm+shock,1023,40513,493631,266575,210808
+RES,mortar,payload+reload+shock,921,39214,890534,287004,287247
+RES,mortar,blast+napalm+reload,1580,50012,1027010,639380,442974
+RES,mortar,blast+napalm+shock,875,33823,848749,429630,343530
+RES,mortar,blast+reload+shock,451,19176,1580142,460078,561509
+RES,mortar,napalm+reload+shock,1148,51461,1158267,375048,200971

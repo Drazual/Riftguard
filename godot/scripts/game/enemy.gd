@@ -40,6 +40,9 @@ var rime_full := 0.0 # that tower's shot damage, for the shatter and its splinte
 var burn_t := 0.0
 var burn_dps := 0.0
 var burn_src = null
+## Tower burns: up to Game.BURN_STACKS stacks per source tower, each {dps, t, src} (burn_t/burn_dps is the one
+## spell-poison and run-modifier slot).
+var burns: Array = []
 var fire_t := 0.0 # Fire spell burn: seconds left and share of max HP per second
 var fire_pct := 0.0
 var mark_t := 0.0
@@ -48,8 +51,16 @@ var brittle := 0.0
 var brittle_t := 0.0
 var brk := 0.0
 var brk_t := 0.0
+## Armor cut (Frost Brittle's shred, supers and the Expose spell): armor points off while shred_t lasts.
+var shred := 0.0
+var shred_t := 0.0
+## Timed "takes +X% damage" debuffs by key (Game.add_vuln): {amt, t, tw}. tw: only from towers.
+var vulns := {}
 var taken := 0.0
 var still_t := 0.0
+var still_peak := 0.0 # still_t when it started moving again (Crushing Tide fades it out over 3s)
+var walled_t := 0.0 # a wall stopped it just now (the Anvil's Bulwark Pact counts it as stopped)
+var pin_cd := 0.0 # the Anvil's Pin can't pin it again until this runs out
 var hex := 0.0
 var hex_t := 0.0
 var hex_tick := 1.0

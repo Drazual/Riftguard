@@ -42,18 +42,29 @@ static func traits(g: Game, t: Tower) -> Array:
 	var out := ["Shoots the enemy " + who + (", plus %d more at once." % int(t.multi) if t.multi else ".")]
 	if t.splash: out.append("Explodes on hit, damaging all enemies within %s." % f0(t.splash))
 	if t.slow: out.append("Slows enemies by %d%% for %ss." % [int(round(minf(0.85, t.slow + S.mod_slow) * 100)), f1(t.slow_dur if t.slow_dur else 1.6)])
-	if t.chain: out.append("Lightning jumps to %d more enemies at %s damage, less each jump." % [int(t.chain), pct(t.chain_mul if t.chain_mul else 0.7)])
-	if t.burn: out.append("Burns enemies for %s of hit damage over 2s." % pct(t.burn))
+	if t.chain:
+		var keep: bool = (S.sig.get("tesla", false) and t.base_types().has("tesla")) or t.chain_keep
+		var jd := (1.0 + t.conduct_bonus) if keep else (t.chain_mul if t.chain_mul else 0.7)
+		out.append("Lightning jumps to %d more enemies at %s damage%s." % [int(t.chain), pct(jd), "" if keep or t.base_types().has("tesla") else ", less each jump"])
+	if t.burn: out.append("Burns enemies for %s of hit damage over 2s (stacks up to %d times)." % [pct(t.burn), Game.BURN_STACKS])
 	if t.ramp and not t.beam: out.append("Gains +%s damage per hit in a row on the same enemy (5 stacks)." % pct(t.ramp))
 	if t.surge: out.append("Every %dth shot deals triple damage." % int(t.surge))
-	if t.brittle: out.append("Slowed enemies take +%s damage from everything." % pct(t.brittle))
-	if t.mark: out.append("Marks enemies to take +%s damage for 2s." % pct(t.mark))
-	if t.cluster: out.append("Throws %d bomblets per shot." % int(t.cluster))
+	if t.brittle: out.append("Hit enemies take +%s damage from everything." % pct(t.brittle))
+	if t.shred: out.append("Hits cut %s of enemy armor." % pct(t.shred))
+	if t.mark: out.append("Marks enemies to take +%s damage for 2s%s." % [pct(t.mark), (", spreading to enemies within %s" % f0(t.mark_spread)) if t.mark_spread else ""])
+	if t.static_amp: out.append("Enemies hit by its lightning take +%s damage from everything for 2s." % pct(t.static_amp))
+	if t.phase_lock: out.append("At full heat its target takes +%s damage from all towers for 1s." % pct(t.phase_lock))
+	if t.boss_bonus: out.append("Deals +%s damage to bosses." % pct(t.boss_bonus))
+	if t.disc_boss_bonus or t.disc_heavy: out.append("Discs deal +%s damage to bosses." % pct(t.disc_boss_bonus + (0.5 if t.disc_heavy else 0.0)))
+	if t.disc_grow: out.append("Each enemy a disc cuts makes it %s stronger (up to +40%%)." % pct(t.disc_grow))
+	if t.spread_slows: out.append("Shoots enemies that aren't slowed yet first.")
+	if t.cluster: out.append("Throws %d bomblets per shot for %s damage." % [int(t.cluster), pct(t.cluster_pct)])
 	if t.orbital: out.append("Every %dth shot is a huge triple-damage blast." % int(t.orbital))
-	if t.freeze: out.append("Every %dth shot freezes enemies for 1.2s." % int(t.freeze))
-	if t.zero: out.append("Constantly slows every enemy in range by %s." % pct(t.zero))
-	if t.beam: out.append("Beam heat: +%s damage per tick on the same target, up to %d ticks (+%s).%s%s" % [pct(t.ramp), int(t.ramp_max), pct(t.ramp * t.ramp_max),
-		" Double damage at full heat." if t.melt else "", " Keeps half its heat when switching." if t.retain else ""])
+	if t.freeze: out.append("Every %dth shot freezes enemies for 1.2s (bosses 0.4s)." % int(t.freeze))
+	if t.zero: out.append("Constantly slows every enemy in range by %s (unslowable enemies %s)." % [pct(t.zero), pct(t.zero * 0.5)])
+	if t.beam: out.append("Beam heat: +%s damage per tick on the same target, up to %d ticks (+%s).%s%s%s" % [pct(t.ramp), int(t.ramp_max), pct(t.ramp * t.ramp_max),
+		(" Heats up %s faster." % pct(t.heat_gain)) if t.heat_gain else "", " +50% damage at full heat." if t.melt else "",
+		(" Keeps %s of its heat when switching." % pct(t.retain_pct)) if t.retain else ""])
 	if t.lance and t.spark_n: out.append("Arcane sparks: each tick, %d nearby enemies (one more at half heat%s) take %s of its damage." % [int(t.spark_n),
 		(", +%d from Prism Split" % int(round(t.prism))) if t.prism else "", pct(t.spark_pct)])
 	if t.rime: out.append("Volleys of %d ice shards, %s of the shot each. 5 rime freezes an enemy for 0.6s, then it shatters for %s and splinters into 3 nearby enemies." % [1 + int(t.multi), pct(g.rime_share(1 + int(t.multi))), pct(1.2)])
@@ -61,9 +72,9 @@ static func traits(g: Game, t: Tower) -> Array:
 	if t.thunder: out.append("Its coils charge a ball of lightning, then fires it very fast into a big lightning blast (charges longer than other merges).")
 	if t.radial_chain and t.chain: out.append("Each blast throws lightning out to the %d nearest enemies it missed, for %s of the shot." % [int(t.chain), pct(t.chain_mul)])
 	if t.lob: out.append("Lobs shells up to %s away; they land a moment later.%s%s%s" % [f0(g.t_range(t)), (" A second shell follows for %s." % pct(t.salvo)) if t.salvo else "",
-		" Leaves burning ground." if t.firestorm else "", " Every 4th shell stuns." if t.quake_stun else ""])
+		" Leaves burning ground." if t.firestorm else "", " Every 3rd shell stuns." if t.quake_stun else ""])
 	if t.hypo: out.append("Hits add chill stacks; at %d stacks the enemy freezes for 0.8s (bosses 0.3s)%s" % [int(t.hypo), " and the freeze bursts to enemies within 70." if t.cold_snap else "."])
-	if t.stun: out.append("Lightning jumps have a %s chance to stun." % pct(t.stun))
+	if t.stun: out.append("Lightning jumps have a %s chance to stun for 0.5s (bosses 0.2s)." % pct(t.stun))
 	if t.prism: out.append("Hits split to %s nearby enemies for 40%% damage." % f0(t.prism))
 	if t.execute: out.append("Finishes non-boss enemies below %s HP." % pct(t.execute))
 	if t.nova: out.append("Every 6th shot blasts everything in range for %s damage." % pct(t.nova))
@@ -72,7 +83,7 @@ static func traits(g: Game, t: Tower) -> Array:
 	if t.gravity: out.append("Every 5th shot drags enemies %s back." % f0(t.gravity))
 	if t.time_lock: out.append("Every 8th shot stuns everything in range for %ss." % f2(t.time_lock))
 	if t.shatter: out.append("Stunned enemies take +%s damage from it." % pct(t.shatter))
-	if t.frostfire: out.append("Slowed enemies burn for %s of each hit." % pct(t.frostfire))
+	if t.frostfire: out.append("Slowed enemies burn for %s of each hit over 2s (stacks up to %d times)." % [pct(t.frostfire), Game.BURN_STACKS])
 	if t.storm: out.append("Every 4th shot calls lightning on %s enemies." % f0(t.storm))
 	if t.chain_blast: out.append("Lightning jumps explode for %s damage." % pct(t.chain_blast))
 	if t.overload: out.append("Every 10th shot deals +%s damage and stuns." % pct(t.overload))
@@ -100,7 +111,7 @@ static func support_traits(g: Game, t: Tower) -> Array:
 	if t.b_tempo: out.append("Tempo Link: every 10s, buffed towers fire twice as fast for 3s.")
 	if t.b_light: out.append("Lighthouse: buffed towers hit enemies within twice their range.")
 	if t.b_break: out.append("Armor Break: hits from buffed towers strip 15% armor for 3s (up to 45%).")
-	if t.b_rush: out.append("Gold Rush: kills by buffed towers can drop 25 gold coins.")
+	if t.b_rush: out.append("Gold Rush: kills by buffed towers can drop 25 gold coins (they fly to you after 3s).")
 	if g.S:
 		var n := 0
 		for x in g.S.towers:
@@ -113,13 +124,13 @@ static func support_traits(g: Game, t: Tower) -> Array:
 static func anvil_traits(g: Game, t: Tower) -> Array:
 	var out := ["Slams every %ss, hitting every enemy within %s. Moving enemies take 30%%." % [f1(t.rate * g.S.mod_tower_rate), f0(g.t_range(t))],
 		"Stopped enemies (blocked, stunned, frozen) take +%s more per second stopped, up to +%s." % [pct(t.press), pct(t.press_cap)]]
-	if t.pin: out.append("Holds stopped enemies in place %ss longer." % f1(t.pin))
+	if t.pin: out.append("Holds stopped enemies in place %ss longer (not again for 2s after a pin ends)." % f1(t.pin))
 	if t.guard: out.append("Your hero takes %s less damage from enemies it blocks in range." % pct(t.guard))
 	if t.crush_exec: out.append("Crushes stopped enemies below %s HP." % pct(t.crush_exec))
 	if t.shackle: out.append("Every 4th slam roots everything in range for 1s.")
 	if t.after: out.append("Each slam has a 50% aftershock.")
-	if t.tide: out.append("Pressure fades over 3s instead of resetting.")
-	if t.pact: out.append("Slams twice as fast while your hero blocks an enemy in range.")
+	if t.tide: out.append("Pressure fades over 3s instead of resetting; enemies slammed at full pressure take +15% damage for 1.5s.")
+	if t.pact: out.append("Slams 50% faster while any enemy in range is stopped.")
 	if t.buff: out.append("Beacon buff: +%s damage." % pct(t.buff.dmg))
 	return out
 
@@ -150,6 +161,9 @@ static func shrine_traits(_g: Game, t: Tower) -> Array:
 	if t.hb_block: out.append("In Bruiser Form, Gale holds %d more enemies." % int(t.hb_block))
 	if t.hb_shield: out.append("Every 12s of a wave, your hero gets a shield worth %s of max HP." % pct(t.hb_shield))
 	if t.hb_bruiser: out.append("Bruiser Form: Gale hits far harder but holds 6 enemies instead of all.")
+	if t.hb_refund: out.append("Second Wind: each kill by your hero's ability gives back %ss of its cooldown (up to 3s a cast)." % f1(t.hb_refund))
+	if t.hb_flurry: out.append("Flurry: every 5th attack by your hero hits twice.")
+	if t.hb_pierce: out.append("Hawkeye: your hero's crits also hit the next enemy behind the target.")
 	if t.stun_t > 0: out.append("Stunned: no hero buffs until it recovers.")
 	return out
 
@@ -261,7 +275,9 @@ static func tower_stats(g: Game, t: Tower) -> Array:
 		["Damage", 0.0 if t.support else t.dmg * S.mod_tower_dmg, "n"], ["Shots", 0.0 if t.support else 1 / (t.rate * S.mod_tower_rate), "r"], ["Range", t.range * (1 + S.hero.tower_range), "n"],
 		["Blast radius", t.splash, "n"], ["Slow", t.slow, "p"], ["Slow time", t.slow_dur, "s"], ["Jumps", t.chain, "n"], ["Jump power", t.chain_mul, "p"],
 		["Jump reach", t.chain_reach, "n"], ["Extra targets", t.multi, "n"], ["Damage per hit in a row", t.ramp, "p"], ["Max heat stacks", t.ramp_max if t.beam else 0.0, "n"], ["Triple shot every", t.surge, "n"],
-		["Burn", t.burn, "p"], ["Brittle", t.brittle, "p"], ["Mark", t.mark, "p"], ["Bomblets", t.cluster, "n"], ["Huge blast every", t.orbital, "n"],
+		["Burn", t.burn, "p"], ["Brittle", t.brittle, "p"], ["Armor cut", t.shred, "p"], ["Mark", t.mark, "p"], ["Mark spread", t.mark_spread, "n"],
+		["Static charge", t.static_amp, "p"], ["Bomblets", t.cluster, "n"], ["Bomblet damage", t.cluster_pct if t.cluster else 0.0, "p"], ["Huge blast every", t.orbital, "n"],
+		["Heat gain", t.heat_gain, "p"], ["Phase lock", t.phase_lock, "p"], ["Boss damage", t.boss_bonus + t.disc_boss_bonus + (0.5 if t.disc_heavy else 0.0), "p"],
 		["Freeze every", t.freeze, "n"], ["Chill stacks to freeze", t.hypo, "n"], ["Aura slow", t.zero, "p"], ["Stun chance", t.stun, "p"], ["Prism splits", t.prism, "n"], ["Execute below", t.execute, "p"],
 		["Nova", t.nova, "p"], ["Echo", t.echo, "p"], ["Death blast", t.death_blast, "p"], ["Drag back", t.gravity, "n"], ["Time lock", t.time_lock, "s"],
 		["Shatter", t.shatter, "p"], ["Frostfire", t.frostfire, "p"], ["Storm bolts", t.storm, "n"], ["Ion burst", t.chain_blast, "p"], ["Overload", t.overload, "p"],
@@ -271,7 +287,7 @@ static func tower_stats(g: Game, t: Tower) -> Array:
 		["Pin", t.pin, "s"], ["Hero damage taken", 1 - t.guard if t.type == "anvil" else 0.0, "p"], ["Crush below", t.crush_exec, "p"],
 		["Enemies per disc", t.disc_hits if t.type == "disc" and not t.disc_unbound else 0.0, "n"], ["Disc size", t.disc_r if t.type == "disc" else 0.0, "n"],
 		["Disc flight", t.disc_reach if t.type == "disc" and not t.disc_unbound else 0.0, "n"], ["Trail: damage taken", t.disc_trail, "p"],
-		["Discs per throw", 1 + t.disc_volley if t.disc_volley else 0.0, "n"],
+		["Discs per throw", 1 + t.disc_volley if t.disc_volley else 0.0, "n"], ["Disc growth per cut", t.disc_grow, "p"],
 	]
 
 
