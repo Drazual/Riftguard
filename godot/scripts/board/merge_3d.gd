@@ -321,12 +321,19 @@ func aim(screen: Vector2) -> void:
 
 
 ## speed > 1 plays the fire clip faster, for a tower that shoots more often than the clip is long (Game.merge_clip_k).
-func shoot(speed := 1.0) -> void:
+## clip: another fire clip by its tower.json "anims" key (Starbolt's "supernova"); the plain fire clip if it has none.
+func shoot(speed := 1.0, clip := "") -> void:
 	if beam:
 		return # a beam's ticks leave the clip alone (beam_on / beam_off drive it)
-	if ap and fire != "":
+	var c := fire
+	if clip != "" and ap:
+		var anims: Dictionary = cfg.get("anims", {}) if cfg.get("anims") is Dictionary else {}
+		var n := str(anims.get(clip, ""))
+		if n != "" and ap.has_animation(n):
+			c = n
+	if ap and c != "":
 		ap.stop()
-		ap.play(fire, -1, maxf(1.0, speed))
+		ap.play(c, -1, maxf(1.0, speed))
 
 
 ## The beam warms up: the charge clip plays (once per lock; ticks and retargets don't restart it).

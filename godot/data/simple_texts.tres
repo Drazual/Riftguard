@@ -301,7 +301,7 @@ texts = {
 "recipe:arcane+frost": "Ice shard volleys that slow, freeze and shatter enemies.",
 "recipe:arcane+laser": "A beam that heats up on one enemy, with sparks that jump to others.",
 "recipe:arcane+mortar": "Long-range bolts that explode.",
-"recipe:arcane+plasma": "Fast bolts that explode on impact.",
+"recipe:arcane+plasma": "Fast star bolts that burst on impact. Every 4th shot is a big supernova.",
 "recipe:arcane+tesla": "Heavy bolts that jump to more enemies.",
 "recipe:beacon+frost": "Slowing shots, and buffs nearby towers.",
 "recipe:beacon+laser": "Shots that heat up, and buffs nearby towers.",

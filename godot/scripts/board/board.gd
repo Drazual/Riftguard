@@ -745,7 +745,7 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 			_sync_merge_smooth(S, t, spec, speed, dt)
 			if bool(spec.cfg.get("beam", false)):
 				_sync_lance(S, t, spec, speed, dt)
-			if t.rime:
+			if spec.cfg.has("heat_node"):
 				_rime_heat(t, spec, dt * speed)
 		else:
 			_sync_merge_live(S, t, spec, speed)
@@ -753,6 +753,7 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 	_sync_ion(S, speed, dt)
 	_sync_cryo(S, speed, dt)
 	_sync_rime(S, speed, dt)
+	_sync_star(S, speed, dt)
 	# beams of towers that are gone (sold, merged on) or of a finished run fade out
 	for t in lance_beams.keys():
 		if S.over or not S.towers.has(t) or not t.lance or t.get_meta("lance_f", -1) != frame_no:
@@ -971,6 +972,32 @@ func _sync_rime(S: Run, speed: float, dt: float) -> void:
 	rime_fx.tick(dt * speed)
 
 
+## Starbolt's star bolts and their bursts (the game's "star_bolt" and "star_burst" fx), drawn by one shared
+## StarboltFX on top, in game time.
+var star_fx: Node2D = null
+func _sync_star(S: Run, speed: float, dt: float) -> void:
+	if S == null:
+		return
+	for f: Dictionary in S.fx:
+		if (f.k != "star_bolt" and f.k != "star_burst") or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		if star_fx == null or not is_instance_valid(star_fx):
+			star_fx = _merge_fx_for(tw)
+		if star_fx == null:
+			continue
+		if f.k == "star_bolt":
+			var mz = merge_muzzle(tw)
+			star_fx.shoot(mz if mz != null else Vector2(tw.x, SY(tw.y) - 40), Vector2(f.x, SY(f.y) - body_lift(f.e)), f.flight, Callable(), f.pw, f.nova)
+		elif f.nova:
+			star_fx.supernova(Vector2(f.x, SY(f.y)), f.r, f.pw, f.linger, int(game.rime_cfg(tw, "nova_stars", 12)))
+		else:
+			star_fx.splash(Vector2(f.x, SY(f.y)), f.r, f.pw)
+	if star_fx != null and is_instance_valid(star_fx):
+		star_fx.tick(dt * speed)
+
+
 ## The glow at Rimeshard's crystal tip (tower.json "heat_node", not keyed by any clip) builds up under sustained fire
 ## and fades when it stops.
 func _rime_heat(t: Tower, spec: Dictionary, gdt: float) -> void:
@@ -1065,7 +1092,7 @@ func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float, dt: fl
 		s.aim(Vector2(aim.x - t.x, SY(aim.y) - SY(t.y)))
 	if t.shot_at != s.get_meta("st"):
 		s.set_meta("st", t.shot_at)
-		s.shoot(1.0 / game.merge_clip_k(t))
+		s.shoot(1.0 / game.merge_clip_k(t), "supernova" if t.star and t.nova_at == t.shot_at else "")
 	s.tick(dt * speed)
 
 

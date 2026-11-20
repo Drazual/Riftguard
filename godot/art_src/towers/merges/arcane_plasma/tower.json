@@ -1,0 +1,44 @@
+{
+	"model": "starbolt.glb",
+	"yaw": "Turret",
+	"pitch": "Turret/Gun",
+	"anims": {
+		"idle": "idle",
+		"fire": "fire",
+		"supernova": "supernova",
+		"spawn": "spawn"
+	},
+	"muzzle": "Muzzle",
+	"buff_point": "BuffPoint",
+	"accent_mask": "starbolt_accent_mask.png",
+	"accent_mask_b": "starbolt_accent_mask_b.png",
+	"recipe_color": "#FF6FD8",
+	"parents": [
+		"arcane",
+		"plasma"
+	],
+	"aim": 0.0,
+	"dirs": 16,
+	"idle_frames": 12,
+	"idle_time": 4.0,
+	"fire_frames": 8,
+	"fire_time": 0.45,
+	"shot_time": 0.15,
+	"bolt_speed": 950,
+	"spin_node": "Star",
+	"heat_node": "HeatGlow",
+	"fx": "fx/starbolt_fx.tscn",
+	"size": 160,
+	"wide": 49,
+	"foot": [
+		80,
+		140
+	],
+	"out": "starbolt_3d",
+	"nova_every": 4,
+	"nova_dmg": 1.4,
+	"nova_splash": 1.8,
+	"nova_stars": 12,
+	"nova_linger": 1.2,
+	"nova_linger_dps": 0.15
+}
