@@ -6,7 +6,7 @@ extends RefCounted
 ## Numbers merges keep the stronger value of (the original game's TRAITS list).
 const TRAITS := ["splash", "slow", "slow_dur", "chain", "chain_mul", "chain_reach", "multi", "ramp", "surge", "burn", "brittle", "mark", "cluster", "orbital",
 	"freeze", "zero", "stun", "prism", "execute", "nova", "echo", "death_blast", "gravity", "time_lock", "shatter", "frostfire", "storm", "chain_blast", "overload",
-	"pierce", "sunder", "loot", "leech", "tempo", "hex", "hex_nova", "hypo", "cold_snap", "crush", "b_dmg", "b_rate", "b_range", "b_sunder", "b_gold", "b_overdrive", "b_tempo",
+	"pierce", "sunder", "shred", "mark_spread", "static_amp", "conduct_bonus", "heat_gain", "retain_pct", "phase_lock", "cluster_pct", "boss_bonus", "loot", "leech", "tempo", "hex", "hex_nova", "hypo", "cold_snap", "crush", "b_dmg", "b_rate", "b_range", "b_sunder", "b_gold", "b_overdrive", "b_tempo",
 	"b_light", "b_break", "b_rush"]
 
 var type := ""
@@ -96,6 +96,25 @@ var overload := 0.0
 var pierce := 0.0
 ## Share of enemy armor this tower's hits ignore.
 var sunder := 0.0
+## Armor its hits cut off (Frost Brittle), for slow_dur seconds.
+var shred := 0.0
+## Arcane Mark: the mark also lands on enemies within this of the target.
+var mark_spread := 0.0
+## Tesla Static Charge: every enemy the lightning hits takes +static_amp damage for 2s.
+var static_amp := 0.0
+## Tesla Conductive: extra jump damage when the jumps already lose nothing (keep).
+var conduct_bonus := 0.0
+## Prism Laser Heat Sink: extra heat per tick, and the share of heat kept on a retarget (with retain).
+var heat_gain := 0.0
+var retain_pct := 0.5
+## Prism Laser Phase Lock: hits at full heat make the target take +phase_lock damage from towers for 1s.
+var phase_lock := 0.0
+## Share of the shot each cluster bomblet deals.
+var cluster_pct := 0.5
+## Extra damage to bosses (a Disc parent's Heavy Edge, carried into merges).
+var boss_bonus := 0.0
+## Frost Lingering Cold: shoots enemies that aren't slowed yet first.
+var spread_slows := false
 var loot := 0.0
 var leech := 0.0
 var tempo := 0.0
@@ -113,6 +132,7 @@ var radial_chain := false # Ion Storm: its blast throws lightning outward to the
 var star := false # Starbolt: fast star bolts that burst on impact; every nova_every'th shot is a supernova
 var star_n := 0 # Starbolt's shot count (every nova_every'th is a supernova)
 var nova_at := -99.0 # shot_at of Starbolt's last supernova (the board plays its supernova clip)
+var thunder := false # Thunder Battery: a long charge, then a very fast lightning ball into a big blast
 var lance_state := "" # "" (idle), "charge" (warming up, the first tick waits), "on" (the beam is held)
 var lance_wait := 0.0 # charge time left (game time: the clip plays at game speed, whatever speeds the tower up)
 ## Arcane sparks: after each tick's hit, up to spark_n enemies within spark_r of the target take spark_pct of it.
@@ -133,6 +153,9 @@ var disc_reach := 440.0
 var disc_trail := 0.0
 var disc_volley := 0.0
 var disc_heavy := false
+var disc_boss_bonus := 0.0 # Heavy Edge: extra damage to bosses
+var disc_boss_hits := 3 # how many of a disc's hits a boss uses up
+var disc_grow := 0.0 # Long Flight: each enemy cut makes the disc this much stronger (up to +40%)
 var disc_unbound := false
 var disc_scorch := false
 var disc_return := false
@@ -164,6 +187,9 @@ var hb_mana := 0.0
 var hb_shield := 0.0
 var hb_bruiser := 0.0
 var hb_bounce := 0.0
+var hb_refund := 0.0 # Second Wind: seconds of ability cooldown back per ability kill (up to 3s a cast)
+var hb_flurry := 0.0 # Flurry: every 5th hero attack hits twice
+var hb_pierce := 0.0 # Hawkeye: hero crits also hit the next enemy behind
 var buff = null # Dictionary or null
 var cd := 0.0
 var shots := 0

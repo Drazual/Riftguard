@@ -1,0 +1,10 @@
+RES,laser,chainl+focusl+sink,1603,21835,72267,191191,34741
+RES,laser,chainl+focusl+amp,1881,29160,85822,196821,40000
+RES,laser,chainl+focusl+lensr,1000,23382,162044,249358,77509
+RES,laser,chainl+sink+amp,782,11999,46955,104613,30148
+RES,laser,chainl+sink+lensr,416,9689,81432,123377,45641
+RES,laser,chainl+amp+lensr,517,12306,69276,125175,46108
+RES,laser,focusl+sink+amp,3013,41336,16441,58052,8372
+RES,laser,focusl+sink+lensr,1603,36156,80345,161753,26852
+RES,laser,focusl+amp+lensr,1881,44117,70892,153674,34621
+RES,laser,sink+amp+lensr,782,18281,35897,75876,20595

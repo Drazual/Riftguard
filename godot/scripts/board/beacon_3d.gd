@@ -8,6 +8,7 @@ extends Node2D
 ## Pure visuals: the game owns the range, the buff and when it ticks.
 
 const SCENE := "res://art_src/towers/rift_beacon/fx/rift_beacon.tscn"
+const GLB := "res://art_src/towers/rift_beacon/rift_beacon.glb" # its accent mask sits beside it
 const PITCH := Hero3D.PITCH
 const Q := 2 # rendered at 2x board pixels, drawn at half size
 const BOX := Vector2(110, 110) # the tower's viewport, in board pixels
@@ -27,6 +28,8 @@ var ring_pic: Sprite2D
 var radius := 0.0 # the aura's radius on the board, in board world units
 var ring_at := Vector2.ZERO # the aura's centre on the board (the tower's tile), in board world units
 var _upp := 0.0 # model metres per board pixel
+var _tint: Array[ShaderMaterial] = [] # the body's path-colour materials (PathTint), made on the first colours
+var _tinted := false
 
 
 static func available() -> bool:
@@ -104,6 +107,16 @@ func setup(ground: Node2D, range_r: float) -> void:
 
 
 ## Sizes the wrapper's ground ring to the buff range (board world units) and fits the ground camera around it.
+## The tower's 3 zone colours (PathTint.colors): paints the model's accent zones, once per change.
+func set_path_colors(cols: Array[Color]) -> void:
+	if vis == null:
+		return
+	if not _tinted:
+		_tinted = true
+		_tint = PathTint.spatial(vis, GLB)
+	PathTint.push(_tint, self, cols)
+
+
 func set_radius(r: float) -> void:
 	if is_equal_approx(r, radius):
 		return

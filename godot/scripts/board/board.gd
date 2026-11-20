@@ -486,6 +486,18 @@ func merge_muzzle(t) -> Variant:
 	return null
 
 
+## Where a named node of a hybrid's own GLB shows on the board (like merge_muzzle), or null.
+func merge_point(t, path: String) -> Variant:
+	if not (t is Tower) or not t.hybrid or not t.has_meta("view"):
+		return null
+	var v = t.get_meta("view")
+	if v is MERGE_VIEW and is_instance_valid(v):
+		var p = v.point_at(path)
+		if p != null:
+			return v.position + p * v.scale
+	return null
+
+
 func body_lift(e) -> float:
 	return e.r * 0.9 - 4 if e is Enemy else 12.0
 
@@ -564,6 +576,7 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 		t.set_meta("view", b)
 		v = b
 	var b = v
+	b.set_path_colors(PathTint.colors(t))
 	_seen(b)
 	# the aura ticks while a wave is on (the game's own beacon pulse, every 3s)
 	if t.support and S.wave_active and S.time - t.fired_at > 3:
@@ -620,6 +633,7 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	s.offset = -d.turret_foot + Vector2(0, FOOT / sc)
 	s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
 	s.speed_scale = speed
+	PathTint.sprite(s, d, t, float(F)) # path colours on its accent zones, live as paths are bought
 	var face: int = s.get_meta("face")
 	# the beam's target, or else where the last shot went (a cannon has no held target)
 	var e = t.last_target
@@ -752,6 +766,7 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 	_sync_lance_sparks(S, speed, dt)
 	_sync_ion(S, speed, dt)
 	_sync_cryo(S, speed, dt)
+	_sync_thunder(S, speed, dt)
 	_sync_rime(S, speed, dt)
 	_sync_star(S, speed, dt)
 	# beams of towers that are gone (sold, merged on) or of a finished run fade out
@@ -889,6 +904,48 @@ func _sync_ion(S: Run, speed: float, dt: float) -> void:
 				fx.fork(at, to, f.pw)
 	if ion_fx != null and is_instance_valid(ion_fx):
 		ion_fx.tick(dt * speed)
+
+
+## Thunder Battery's charge-up glow, lightning balls and blasts (the game's "thunder_charge", "thunder_ball" and
+## "thunder_blast" fx), drawn by one shared ThunderBatteryFX (its tower.json "fx") on top, in game time.
+var thunder_fx: Node2D = null
+func _sync_thunder(S: Run, speed: float, dt: float) -> void:
+	for f: Dictionary in S.fx:
+		if not (f.k in ["thunder_charge", "thunder_ball", "thunder_blast"]) or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		if thunder_fx == null or not is_instance_valid(thunder_fx):
+			thunder_fx = _merge_fx_for(tw)
+		if thunder_fx == null:
+			continue
+		var at := Vector2(f.get("x", tw.x), SY(f.get("y", tw.y)))
+		if f.k == "thunder_charge":
+			# the arcs start on the coils' tips (tower.json "charge_tips", nodes that turn with the turret), every frame
+			var spec := MergeArt.resolve(tw)
+			var tips: Array = spec.cfg.get("charge_tips", []) if not spec.is_empty() else []
+			var where := func():
+				if not S.towers.has(tw):
+					return null
+				var mz = merge_muzzle(tw)
+				if mz == null:
+					return null
+				var pts: Array[Vector2] = []
+				for n in tips:
+					var q = merge_point(tw, str(n))
+					if q != null:
+						pts.append(q)
+				return { at = mz, tips = pts }
+			thunder_fx.charge(where, f.secs, f.pw)
+		elif f.k == "thunder_ball":
+			var mz = merge_muzzle(tw)
+			var spec := MergeArt.resolve(tw)
+			var lob := float(spec.cfg.get("lob_k", 0.12)) if not spec.is_empty() else 0.12
+			thunder_fx.shoot(mz if mz != null else Vector2(tw.x, SY(tw.y) - 40), at, f.flight, f.pw, lob)
+		else:
+			thunder_fx.blast(at, f.r, f.pw)
+	if thunder_fx != null and is_instance_valid(thunder_fx):
+		thunder_fx.tick(dt * speed)
 
 
 ## Rime Cannon's ice-plasma balls, bursts and frozen patches (the game's "cryo_ball" and "cryo_burst" fx), drawn
@@ -3086,7 +3143,7 @@ func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col
 		_ring(o, p, e.r + 2, Color(1, 1, 1, 0.9), 2)
 	elif e.slow:
 		_ring(o, p, e.r + 2, ca(frost_col, 0.9), 2)
-	if e.burn_t > 0:
+	if game.is_burning(e):
 		_circle(o, p - Vector2(0, e.r), 2.5, hx(0xff8a3d, 0.8))
 	if e.fire_t > 0:
 		# Fire spell burn: a flickering orange halo

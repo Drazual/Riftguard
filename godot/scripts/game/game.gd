@@ -17,14 +17,21 @@ const ROWS := 15
 const ALL_BLOCK := 999
 const SLOT_KEYS := ["q", "w", "e", "r"]
 const SHOT_SPEED := 800.0
+## Merge traits that count "every Nth shot": a merge keeps the smaller (better) non-zero value of its parents.
+const CADENCE_TRAITS := ["surge", "orbital", "freeze", "hypo"]
+## Burn stacks one tower can keep on one enemy (each hit adds one, 2s each).
+const BURN_STACKS := 3
 const ATK_FPS := 24.0
 const BOSS_CORES := { knight = 1, warden = 2, tyrant = 5 }
 const BIG_BOSS := { tyrant = true }
-const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", "knock", "crit", "boss", "aura", "spell", "mana", "shield", "bruiser"]
+const SHRINE_KEYS := ["dmg", "rate", "armor", "regen", "cdr", "range", "block", "knock", "crit", "boss", "aura", "spell", "mana", "shield", "bruiser",
+	"refund", "flurry", "pierce"]
+const SECOND_WIND_MAX := 3.0 # seconds of cooldown one ability cast can win back with Second Wind
 
 var S: Run = null
 var _spilling := false
 var _fire_ctx := false # true while Fire-element spell damage is landing, so it sets enemies alight
+var _ab_ctx = null # while the hero's ability (and what it schedules) is landing: { left = seconds of Second Wind refund left }
 var R: GameRules
 var max_wave := 20
 var rng := RandomNumberGenerator.new()
@@ -101,7 +108,20 @@ func later(secs: float, fn: Callable) -> void:
 	if _fire_ctx:
 		var g := fn
 		fn = func(): _as_fire(g)
+	if _ab_ctx != null:
+		var ctx = _ab_ctx
+		var g2 := fn
+		fn = func(): _as_ability(ctx, g2)
 	S.delayed.append({ at = S.time + secs, fn = fn })
+
+
+## Runs fn as part of a hero ability cast (its kills refund cooldown with the Shrine's Second Wind).
+func _as_ability(ctx, fn: Callable):
+	var was = _ab_ctx
+	_ab_ctx = ctx
+	var out = fn.call()
+	_ab_ctx = was
+	return out
 
 
 ## Runs fn with Fire spell damage switched on (it sets enemies burning).
@@ -679,9 +699,12 @@ func cores_for(type: String) -> int:
 	return BOSS_CORES.get(type, 0)
 
 
-func slow_enemy(e: Enemy, amt: float, dur := 1.6) -> void:
+## force_half: an unslowable enemy still takes half of it (Absolute Zero).
+func slow_enemy(e: Enemy, amt: float, dur := 1.6, force_half := false) -> void:
 	if e.unslow:
-		return
+		if not force_half:
+			return
+		amt *= 0.5
 	e.slow = minf(0.85, maxf(e.slow, (amt + S.mod_slow) * (0.5 if e.steady else 1.0)))
 	e.slow_t = maxf(e.slow_t, dur if dur else 1.6)
 
@@ -697,12 +720,11 @@ func seg_dist(px: float, py: float, z: Dictionary) -> float:
 
 
 # ---------- combat ----------
-## Armor: % damage taken off, capped. Brittle enemies have none; Shieldbearers add to it; Sunder and Armor Break cut it.
+## Armor: % damage taken off, capped. Shieldbearers add to it; Sunder, Armor Break and shred (Frost Brittle, supers,
+## Expose) cut it. Brittle itself only makes the enemy take more damage (see damage()).
 ## pen: the share of the armor the hit ignores (the hero's armor penetration, Hero.pen_cut).
 func armor_of(e: Enemy, src, pen := 0.0) -> float:
-	if e.brittle_t > 0:
-		return 0.0
-	var a := e.armor + e.aura_armor - (e.brk if e.brk_t > 0 else 0.0)
+	var a := e.armor + e.aura_armor - (e.brk if e.brk_t > 0 else 0.0) - (e.shred if e.shred_t > 0 else 0.0)
 	if src is Tower:
 		a -= src.sunder + (src.buff.sunder if src.buff else 0.0)
 	return clampf(a, 0, R.boss_armor_cap if e.boss else R.armor_cap) * (1.0 - pen)
@@ -715,7 +737,7 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false, pen :=
 	if e.dead:
 		return
 	var tw: bool = src is Tower
-	amt *= 1 + (e.mark if e.mark_t > 0 else 0.0) + (e.brittle if e.brittle_t > 0 else 0.0) + (e.spot if e.spot_t > 0 and tw else 0.0) + (S.mod_boss_dmg if e.boss and tw else 0.0)
+	amt *= 1 + (e.mark if e.mark_t > 0 else 0.0) + (e.brittle if e.brittle_t > 0 else 0.0) + (e.spot if e.spot_t > 0 and tw else 0.0) + (S.mod_boss_dmg if e.boss and tw else 0.0) + vuln_of(e, tw)
 	if tw and src.curse_t > 0:
 		amt *= 1 - src.curse_dmg
 	if not pierce:
@@ -759,6 +781,11 @@ func _kill(e: Enemy, src) -> void:
 	e.dead = true
 	var h := S.hero
 	var by_hero: bool = not (src is Tower)
+	# Second Wind (Hero Shrine): a kill by the hero's ability takes time off its cooldown, up to 3s a cast
+	if by_hero and _ab_ctx != null and sb("refund") > 0 and _ab_ctx.left > 0:
+		var back := minf(sb("refund"), _ab_ctx.left)
+		_ab_ctx.left -= back
+		h.ab.t = maxf(0.0, h.ab.t - back)
 	# Bounty Sigil and War Tithe add a share of the enemy's own gold, so they grow with the game instead of doubling it early.
 	var g: float = e.gold * (S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe)
 	if not by_hero and src.buff and src.buff.gold:
@@ -850,6 +877,52 @@ func level_hero(h: Hero) -> void:
 		Fx.run(code, { h = h, run = S })
 
 
+## A timed "takes +amt damage" debuff under `key` (Static Charge, Phase Lock, Crushing Tide): the stronger one per key
+## counts, and towers_only ones only add to tower damage.
+func add_vuln(e: Enemy, key: String, amt: float, dur: float, towers_only := true) -> void:
+	var v = e.vulns.get(key)
+	if v and v.t > 0 and v.amt > amt:
+		v.t = maxf(v.t, dur)
+		return
+	e.vulns[key] = { amt = amt, t = dur if not v or v.amt < amt else maxf(v.t, dur), tw = towers_only }
+
+
+func vuln_of(e: Enemy, tw: bool) -> float:
+	var sum := 0.0
+	for k in e.vulns:
+		var v: Dictionary = e.vulns[k]
+		if v.t > 0 and (tw or not v.tw):
+			sum += v.amt
+	return sum
+
+
+## A tower burn on `e`: dps for 2s, up to BURN_STACKS stacks per source tower (a new one replaces the weakest).
+func add_burn(e: Enemy, dps: float, src) -> void:
+	var mine := []
+	for b in e.burns:
+		if b.src == src:
+			mine.append(b)
+	if mine.size() >= BURN_STACKS:
+		var low: Dictionary = mine[0]
+		for b in mine:
+			if b.dps < low.dps or b.dps == low.dps and b.t < low.t:
+				low = b
+		if low.dps > dps:
+			return
+		e.burns.erase(low)
+	e.burns.append({ dps = dps, t = 2.0, src = src })
+
+
+func is_burning(e: Enemy) -> bool:
+	return e.burn_t > 0 or not e.burns.is_empty()
+
+
+## Cuts `amt` armor for `dur` seconds (the stronger cut wins, the timer only grows).
+func shred_enemy(e: Enemy, amt: float, dur: float) -> void:
+	e.shred = maxf(e.shred if e.shred_t > 0 else 0.0, amt)
+	e.shred_t = maxf(e.shred_t, dur)
+
+
 ## One hit from a tower. aura_slow: the Oracle's Chilling Presence for towers in its aura.
 func apply_hit(t: Tower, e: Enemy, dmg: float, frz := false, aura_slow := 0.0) -> void:
 	if t.shatter and e.stun_t > 0:
@@ -860,11 +933,11 @@ func apply_hit(t: Tower, e: Enemy, dmg: float, frz := false, aura_slow := 0.0) -
 	if t.execute and not e.boss and (e.hp - dmg) / e.max <= t.execute:
 		dmg = e.hp + 1
 		pierce = 1
+	if t.boss_bonus and e.boss:
+		dmg *= 1 + t.boss_bonus
 	if t.frostfire and e.slow_t > 0:
-		e.burn_dps = maxf(e.burn_dps, dmg * t.frostfire / 2)
-		e.burn_t = 2
-		e.burn_src = t
-	if t.frostfire and e.burn_t > 0:
+		add_burn(e, dmg * t.frostfire / 2, t)
+	if t.frostfire and is_burning(e):
 		slow_enemy(e, minf(0.5, t.frostfire / 3), 1)
 	if S.mod_all_slow:
 		slow_enemy(e, S.mod_all_slow, 1.2)
@@ -878,6 +951,10 @@ func apply_hit(t: Tower, e: Enemy, dmg: float, frz := false, aura_slow := 0.0) -
 	if t.brittle:
 		e.brittle = maxf(e.brittle, t.brittle)
 		e.brittle_t = maxf(e.brittle_t, t.slow_dur if t.slow_dur else 1.6)
+	if t.shred:
+		shred_enemy(e, t.shred, t.slow_dur if t.slow_dur else 1.6)
+	if t.static_amp:
+		add_vuln(e, "static", t.static_amp, 2.0)
 	var hx := t.hex
 	if not hx and S.sig.get("arcane", false) and t.base_types().has("arcane") and t.shots % 5 == 0:
 		hx = 0.02
@@ -892,12 +969,15 @@ func apply_hit(t: Tower, e: Enemy, dmg: float, frz := false, aura_slow := 0.0) -
 	if t.mark:
 		e.mark = maxf(e.mark, t.mark)
 		e.mark_t = 2
+		if t.mark_spread:
+			for o in in_range(e.x, e.y, t.mark_spread):
+				if o != e:
+					o.mark = maxf(o.mark if o.mark_t > 0 else 0.0, t.mark)
+					o.mark_t = maxf(o.mark_t, 2)
 	if t.burn:
-		e.burn_dps = maxf(e.burn_dps, dmg * t.burn / 2)
-		e.burn_t = 2
-		e.burn_src = t
+		add_burn(e, dmg * t.burn / 2, t)
 	if frz:
-		e.stun_t = maxf(e.stun_t, 1.2)
+		e.stun_t = maxf(e.stun_t, 0.4 if e.boss else 1.2)
 	if t.hypo and not e.dead:
 		e.chill += 1
 		if e.chill >= t.hypo:
@@ -983,13 +1063,16 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		var d := dmg
 		if t.ramp:
 			if t.last_target == target:
-				t.stacks = minf(t.ramp_max if t.ramp_max else 5.0, t.stacks + (2 if t.beam and S.sig.get("laser", false) else 1))
+				t.stacks = minf(t.ramp_max if t.ramp_max else 5.0, t.stacks + (2 if t.beam and S.sig.get("laser", false) else 1) * (1 + t.heat_gain))
 			else:
-				t.stacks = floorf(t.stacks / 2) if t.retain else 0.0
+				t.stacks = floorf(t.stacks * t.retain_pct) if t.retain else 0.0
 				t.last_target = target
 			d *= 1 + t.ramp * t.stacks
-			if t.melt and t.stacks >= t.ramp_max:
-				d *= 2
+			if t.stacks >= t.ramp_max:
+				if t.melt:
+					d *= 1.5
+				if t.phase_lock and target is Enemy:
+					add_vuln(target, "phase", t.phase_lock, 1.0)
 		var splash := t.splash * (2 if big else 1)
 		if big:
 			d *= 3
@@ -998,6 +1081,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		var lead := merge_lead(t) if not art and not t.beam and not t.lob else 0.0
 		if lead > 0:
 			# a merge model charges first: the shot leaves, and lands, at its fire clip's shot moment
+			if t.thunder and target == targets[0]:
+				fx_add({ k = "thunder_charge", tw = t, secs = lead, pw = ion_power(d), t = lead, quiet = true })
 			later(lead, func():
 				if not S.towers.has(t):
 					return
@@ -1005,6 +1090,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 					ion_shell(t, target, d, splash, big, frz, over, oc, aslow)
 				elif t.cryo and target is Enemy:
 					cryo_ball(t, target, d, splash, big, frz, over, oc, aslow)
+				elif t.thunder and target is Enemy:
+					thunder_ball(t, target, d, splash, big, frz, over, oc, aslow)
 				elif t.rime and target is Enemy:
 					rime_shard(t, target, d, d / maxf(0.01, mult), splash, big, frz, over, oc, aslow)
 				elif t.star and target is Enemy:
@@ -1234,9 +1321,39 @@ func cryo_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool
 		fx_add({ k = "cryo_burst", tw = t, x = p.x, y = p.y, r = splash, pw = pw, zone = z, t = 0.4, quiet = true }))
 
 
+## Thunder Battery: three small coils charge a ball of lightning at the mortar's mouth for the whole fire clip (its
+## shot_time, 0.85 s unupgraded), then the mortar fires it very fast (tower.json "bolt_speed", board px/s) on a low,
+## short lob at where the target will be (led like the mortar's shells). It lands in a big blast (THUNDER_SPLASH x the
+## splash) with a lightning crackle; Tesla's chain still hops on from the blast. Slower and heavier than a plain
+## merge (THUNDER_RATE / THUNDER_DMG keep its DPS a bit under), with a much bigger radius. The board draws it from
+## the "thunder_ball" and "thunder_blast" fx; the game owns the timing and the damage.
+## SUGGESTED tuning: the multipliers below and bolt_speed / lob_k in tower.json.
+const THUNDER_SPEED := 1500.0
+const THUNDER_RATE := 1.8 # x the merged rate (a slower, longer charge)
+const THUNDER_DMG := 1.7 # x the merged damage (DPS 1.7 / 1.8 = 0.94x, still under the 2.6x merge cap)
+const THUNDER_SPLASH := 1.4 # x the merged splash (the big AoE)
+func thunder_ball(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float) -> void:
+	var speed := maxf(200.0, cryo_cfg(t, "bolt_speed", THUNDER_SPEED))
+	# board px: the ground is squashed by K and the ball leaves the mortar's mouth, about 40 px up
+	var px := func(p: Vector2) -> float: return Vector2(p.x - t.x, (p.y - t.y) * 0.75 + 40.0).length()
+	var flight := maxf(0.06, px.call(e.pos()) / speed)
+	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * flight
+	var p := pos_at(minf(S.map.path_len, e.d + lead), e.lane)
+	flight = maxf(0.06, px.call(p) / speed)
+	t.hit_at = p
+	var pw := ion_power(d) * (1.3 if big else 1.0)
+	fx_add({ k = "thunder_ball", tw = t, x = p.x, y = p.y, flight = flight, pw = pw, t = flight + 0.05, quiet = true })
+	later(flight, func():
+		if not S.towers.has(t):
+			return
+		_land(t, { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }, d, splash, big, frz, over, oc, aslow, false)
+		fx_add({ k = "thunder_blast", tw = t, x = p.x, y = p.y, r = splash, pw = pw, t = 0.6, quiet = true })
+		do_shake(0.005, 120))
+
+
 ## Ion Storm's lightning: forks straight out from the blast to the nearest enemies it missed (no hop-to-hop and no
 ## falloff), out to the splash plus the chain's reach (145 px unupgraded), each for chain_mul of the shot (all of it with Tesla's Overcharge or chain_keep), with chain_blast and
-## the Static Shock stun on each like a normal chain.
+## the Overload stun on each like a normal chain.
 func ion_forks(t: Tower, at, d: float, splash: float, hits: Array, n: int, aslow: float) -> void:
 	var keep: bool = (S.sig.get("tesla", false) and t.base_types().has("tesla")) or t.chain_keep
 	var hd := d * (1.0 if keep else t.chain_mul)
@@ -1268,7 +1385,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	var h := S.hero
 	var fake: bool = target is Dictionary
 	var hits: Array = in_range(target.x, target.y, splash) if splash else ([] if fake else [target])
-	if splash and not t.radial_chain and not t.cryo and not t.star:
+	if splash and not t.radial_chain and not t.cryo and not t.star and not t.thunder:
 		ring(target.x, target.y, splash, t.color, 0.25, big)
 	if splash and S.sig.get("plasma", false) and t.base_types().has("plasma"):
 		zone({ x = target.x, y = target.y, r = splash * 0.7, t = 2.0, dps = d * 0.25, color = col(0xff8a3d), src = t })
@@ -1307,7 +1424,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 		for n in near.slice(0, int(t.cluster)):
 			ring(n.x, n.y, cr, t.color, 0.2)
 			for e in in_range(n.x, n.y, cr):
-				apply_hit(t, e, d * 0.5, false, aslow)
+				apply_hit(t, e, d * t.cluster_pct, false, aslow)
 	var chain_n := int(t.chain) + (1 if oc and h.ab.chrono else 0)
 	if t.radial_chain:
 		ion_forks(t, target, d, splash, hits, chain_n, aslow)
@@ -1317,7 +1434,8 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 		for e in hits:
 			hit[e] = true
 		var from = target
-		var cd := d * (1.0 if keep else t.chain_mul)
+		# (Conductive: when the jumps already lose nothing, they hit harder instead)
+		var cd := d * ((1.0 + t.conduct_bonus) if keep else t.chain_mul)
 		var wait := 0.0
 		for i in chain_n:
 			var best = null
@@ -1340,7 +1458,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 						if o != n:
 							damage(o, hd * t.chain_blast, t)
 				if t.stun and randf() < t.stun:
-					n.stun_t = maxf(n.stun_t, 0.6)
+					n.stun_t = maxf(n.stun_t, 0.2 if n.boss else 0.5)
 			if art and t.beam:
 				if S.beams.size() < 60:
 					S.beams.append({ x0 = from.x, y0 = from.y, e = n, t = 0.22 })
@@ -1353,7 +1471,8 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 				jump.call()
 			hit[n] = true
 			from = n
-			if not keep:
+			# each hop loses a little more, except a Tesla's own lightning (it only loses the flat chain_mul)
+			if not keep and not t.base_types().has("tesla"):
 				cd *= 0.85
 
 
@@ -1363,7 +1482,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 const SHELL_TIME := 0.8
 func lob_shell(t: Tower, e: Enemy, mult: float) -> void:
 	var wait := fire_lead(t)
-	var T := SHELL_TIME / (1.25 if S.sig.get("mortar", false) else 1.0)
+	var T := SHELL_TIME / (1.4 if S.sig.get("mortar", false) else 1.0)
 	var lead := 0.0 if e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * (T + wait)
 	var p := pos_at(minf(S.map.path_len, e.d + lead), e.lane)
 	t.shot_at = S.time
@@ -1384,7 +1503,7 @@ func land_shell(sh: Dictionary) -> void:
 	t.splash = keep
 	if t.firestorm:
 		zone({ x = spot.x, y = spot.y, r = r * 0.8, t = 3.0, dps = t.dmg * S.mod_tower_dmg * 0.25, color = col(0xff8a3d), src = t })
-	if t.quake_stun and t.shots % 4 == 0:
+	if t.quake_stun and t.shots % 3 == 0:
 		for e in in_range(spot.x, spot.y, r):
 			e.stun_t = maxf(e.stun_t, 0.3 if e.boss else 0.8)
 		ring(spot.x, spot.y, r + 15, 0xfff0a0, 0.5)
@@ -1415,7 +1534,7 @@ func throw_disc(t: Tower, e, mult := 1.0, dir = null, hits := -1) -> Vector2:
 	t.hit_at = t.pos() + dir * 80.0 # a 3D Razor Disc turns its launcher along the throw
 	sfx("shot")
 	S.discs.append({ tw = t, x = t.x, y = t.y, dir = dir, speed = t.disc_speed, r = t.disc_r * (1.25 if sig else 1.0), dmg = dmg,
-		hits = n, left = 1e9 if t.disc_unbound else n, hit = {}, flown = 0.0, reach = t.disc_reach, back = false, spin = randf() * TAU,
+		base = dmg, hits = n, left = 1e9 if t.disc_unbound else n, hit = {}, flown = 0.0, reach = t.disc_reach, back = false, spin = randf() * TAU,
 		tx = t.x, ty = t.y, wait = fire_lead(t), done = false })
 	return dir
 
@@ -1452,11 +1571,14 @@ func move_discs(dt: float) -> void:
 			if e.dead or dk.hit.has(e) or hyp(e.x - dk.x, e.y - dk.y) > dk.r + e.r:
 				continue
 			dk.hit[e] = true
-			dk.left -= 3 if e.boss and not t.disc_heavy else 1
+			dk.left -= t.disc_boss_hits if e.boss else 1
 			if t.disc_trail:
 				e.brittle = maxf(e.brittle, t.disc_trail)
 				e.brittle_t = maxf(e.brittle_t, 2.0)
-			apply_hit(t, e, dk.dmg * (1.5 if e.boss and t.disc_heavy else 1.0))
+			apply_hit(t, e, dk.dmg * ((1.0 + t.disc_boss_bonus + (0.5 if t.disc_heavy else 0.0)) if e.boss else 1.0))
+			# Long Flight: every cut makes this disc a little stronger (up to +40%)
+			if t.disc_grow:
+				dk.dmg = minf(dk.base * 1.4, dk.dmg * (1 + t.disc_grow))
 			ring(e.x, e.y, e.r + 6, t.color, 0.15)
 		var off: bool = dk.x < -30 or dk.x > W + 30 or dk.y < -30 or dk.y > H + 30
 		if dk.left <= 0 or off or (not dk.back and not t.disc_unbound and dk.flown >= dk.reach):
@@ -1488,8 +1610,10 @@ func shot_effects(t: Tower, dmg: float) -> void:
 			line(e.x, e.y - 200, e.x, e.y, 0x8affff, 0.2, 2)
 
 
+## How strong a Beacon's buff is, to pick the strongest one in reach. Gold (Tithe) doesn't count: a gold Beacon
+## mustn't take a tower's damage buff away.
 func beacon_power(b: Tower) -> float:
-	return b.b_dmg + b.b_rate + b.b_range + b.b_sunder + b.b_gold
+	return b.b_dmg + b.b_rate + 0.5 * b.b_sunder + 0.25 * b.b_range
 
 
 ## Rift Beacon: each tower takes the strongest Beacon in reach (two with Twin Signal).
@@ -1560,8 +1684,14 @@ func anvil_slam(t: Tower, area: Array, mult: float) -> void:
 			ring(e.x, e.y, e.r + 10, 0xffffff, 0.4, true)
 			continue
 		apply_hit(t, e, d)
-		if stopped and t.pin:
-			e.stun_t = maxf(e.stun_t, t.pin / 2 if e.boss else t.pin)
+		# Crushing Tide: slammed at full pressure, it takes more damage for a moment
+		if t.tide and t.press * e.still_t >= t.press_cap:
+			add_vuln(e, "crush", 0.15, 1.5)
+		# Pin: can't pin the same enemy again until 2s after its last pin ended
+		if stopped and t.pin and e.pin_cd <= 0:
+			var pin_time := t.pin / 2 if e.boss else t.pin
+			e.stun_t = maxf(e.stun_t, pin_time)
+			e.pin_cd = pin_time + 2.0
 	if t.shackle and t.shots % 4 == 0:
 		for e in hits:
 			e.stun_t = maxf(e.stun_t, 0.5 if e.boss else 1.0)
@@ -1601,7 +1731,8 @@ func super_power(t: Tower) -> bool:
 					e.push_t = maxf(e.push_t, 1.5)
 					e.push_spd = maxf(e.push_spd, 120)
 				e.brittle = maxf(e.brittle, 0.3)
-				e.brittle_t = maxf(e.brittle_t, 5))
+				e.brittle_t = maxf(e.brittle_t, 5)
+				shred_enemy(e, 1.0, 5))
 			for i in 3:
 				ring(t.x, t.y, R_ * (1 - i * 0.25), 0xb07cff, 0.7 + i * 0.15, true, { shrink = true })
 			do_shake(0.012, 300)
@@ -1618,6 +1749,7 @@ func super_power(t: Tower) -> bool:
 				e.stun_t = maxf(e.stun_t, 0.8 if e.boss else 2.5)
 				e.brittle = maxf(e.brittle, 0.4)
 				e.brittle_t = maxf(e.brittle_t, 5)
+				shred_enemy(e, 1.0, 5)
 				ring(e.x, e.y, e.r + 8, 0xdff6ff, 0.8, true))
 			ring(t.x, t.y, R_, 0x9fe6ff, 1.0, true)
 			ring(t.x, t.y, R_ * 0.5, 0xffffff, 0.6, true)
@@ -1715,6 +1847,10 @@ func use_ability(auto := false) -> void:
 
 ## Runs the ability's effect. Free casts (Blade Dancer) don't touch the cooldown.
 func cast_ability(_free: bool) -> void:
+	_as_ability({ left = SECOND_WIND_MAX }, func(): _cast_ability(_free))
+
+
+func _cast_ability(_free: bool) -> void:
 	var h := S.hero
 	var a := h.ab
 	if a.id == "pierce":
@@ -2616,6 +2752,7 @@ func _spell_each(sp: SpellData, h: Hero, p: float, push_only := [], at := Vector
 		if sp.expose:
 			e.brittle = maxf(e.brittle, sp.expose)
 			e.brittle_t = maxf(e.brittle_t, sp.expose_time)
+			shred_enemy(e, 1.0, sp.expose_time)
 		if sp.armor_break:
 			e.brk = maxf(e.brk, sp.armor_break)
 			e.brk_t = maxf(e.brk_t, sp.armor_break_time)
@@ -3549,7 +3686,12 @@ func update(dt: float) -> void:
 				say("Boss approaching your base! If it gets through, the run is lost.")
 				sfx("boss")
 				break
-	for z in S.zones:
+	# a tower's own zones (fire trails, burning ground, ice patches) don't stack: an enemy takes the damage of only the
+	# strongest one per tower each frame (zones are visited strongest first)
+	var ticked := {}
+	var zs := S.zones.duplicate()
+	zs.sort_custom(func(a, b): return float(a.get("dps", 0.0)) > float(b.get("dps", 0.0)))
+	for z in zs:
 		z.t -= dt
 		if z.dps or z.slow or z.vuln:
 			for e in S.enemies:
@@ -3560,7 +3702,13 @@ func update(dt: float) -> void:
 						continue
 				elif hyp(e.x - z.x, e.y - z.y) > z.r:
 					continue
-				if z.dps:
+				var zsrc = z.get("src")
+				var once: bool = z.dps and zsrc is Tower
+				if once and ticked.has([zsrc, e]):
+					pass
+				elif z.dps:
+					if once:
+						ticked[[zsrc, e]] = true
 					if z.get("fire", false):
 						_as_fire(func(): damage(e, z.dps * dt, z.get("src"), 1))
 					else:
@@ -3601,14 +3749,15 @@ func update(dt: float) -> void:
 	S.shells = S.shells.filter(func(sh): return not sh.done)
 	move_discs(dt)
 	_towers_step(h, dt)
-	if h.ko <= 0:
-		for c in S.coins:
-			if not c.get("got", false) and hyp(c.x - h.x, c.y - h.y) <= 30:
-				c.got = true
-				S.gold += 25
-				ring(c.x, c.y, 20, 0xf2c14e, 0.4, true)
-				sfx("kill")
-		S.coins = S.coins.filter(func(c): return not c.get("got", false))
+	# Gold Rush coins: the hero picks them up, and any left after 3s collect themselves
+	for c in S.coins:
+		c.t += dt
+		if not c.get("got", false) and (c.t >= 3.0 or h.ko <= 0 and hyp(c.x - h.x, c.y - h.y) <= 30):
+			c.got = true
+			S.gold += 25
+			ring(c.x, c.y, 20, 0xf2c14e, 0.4, true)
+			sfx("kill")
+	S.coins = S.coins.filter(func(c): return not c.get("got", false))
 	for ec in S.echoes:
 		if S.time >= ec.at:
 			ec.done = true
@@ -3823,6 +3972,24 @@ func _hero_hit(h: Hero, HX: Dictionary, t: Enemy, dmg: float, crit: bool) -> voi
 	if ex:
 		dmg = t.hp + 1
 	damage(t, dmg, null, 1 if ex else 0, crit and not ex, h.pen_cut())
+	# Flurry (Hero Shrine): every 5th attack hits twice
+	if sb("flurry") > 0 and h.attacks % 5 == 0 and not t.dead:
+		damage(t, dmg, null, 0, crit, h.pen_cut())
+	# Hawkeye (Hero Shrine): a crit also hits the next enemy behind the target
+	if sb("pierce") > 0 and crit:
+		var behind = null
+		var bd := 70.0
+		var far := hyp(t.x - h.x, t.y - h.y)
+		for o in S.enemies:
+			if o == t or o.dead or hyp(o.x - h.x, o.y - h.y) <= far:
+				continue
+			var dd := hyp(o.x - t.x, o.y - t.y)
+			if dd < bd:
+				bd = dd
+				behind = o
+		if behind:
+			damage(behind, dmg, null, 0, true, h.pen_cut())
+			line(t.x, t.y, behind.x, behind.y, 0xffffff, 0.1, 2)
 	if h.knock and not t.dead:
 		# Gale: every hit shoves the enemy back a little (bosses barely move)
 		push_back(t, 0.15, h.knock * (1 + sb("knock")) / 0.15, h)
@@ -3927,6 +4094,10 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 				e.brittle = 0
 		if e.brk_t > 0:
 			e.brk_t -= dt
+		if e.shred_t > 0:
+			e.shred_t -= dt
+			if e.shred_t <= 0:
+				e.shred = 0.0
 		if e.boss:
 			boss_act(e, dt)
 		if e.regen and e.hp < e.max:
@@ -3963,12 +4134,27 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			else:
 				e.slowed_for = 0
 		# Grave Anvil pressure: time spent not moving.
+		# (with Crushing Tide it fades out over exactly 3s once it moves again, instead of resetting)
 		if e.stun_t > 0 or e.blocked or e.taunt_t > 0:
 			e.still_t += dt
+			e.still_peak = 0.0
+		elif S.tide and e.still_t > 0:
+			if e.still_peak <= 0:
+				e.still_peak = e.still_t
+			e.still_t = maxf(0, e.still_t - e.still_peak / 3.0 * dt)
 		else:
-			e.still_t = maxf(0, e.still_t - dt * 2) if S.tide else 0.0
+			e.still_t = 0.0
+			e.still_peak = 0.0
+		if e.walled_t > 0:
+			e.walled_t -= dt
+		if e.pin_cd > 0:
+			e.pin_cd -= dt
 		if e.mark_t > 0:
 			e.mark_t -= dt
+		for k in e.vulns.keys():
+			e.vulns[k].t -= dt
+			if e.vulns[k].t <= 0:
+				e.vulns.erase(k)
 		if e.spot_t > 0:
 			e.spot_t -= dt
 		if S.stasis_t > 0 and e.pos().distance_to(S.stasis_at) <= h.ab.r:
@@ -3983,6 +4169,15 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			damage(e, e.burn_dps * dt, e.burn_src, 1)
 			if e.dead:
 				continue
+		if not e.burns.is_empty():
+			for b in e.burns.duplicate():
+				b.t -= dt
+				damage(e, b.dps * dt, b.src, 1)
+				if e.dead:
+					break
+			if e.dead:
+				continue
+			e.burns = e.burns.filter(func(b): return b.t > 0)
 		if e.fire_t > 0:
 			e.fire_t -= dt
 			damage(e, e.max * e.fire_pct * dt, null, 1)
@@ -4037,6 +4232,7 @@ func _enemies_step(h: Hero, dt: float) -> bool:
 			var wall = wall_ahead(e, step) if not e.phase and not e.unblockable and S.walls.size() else null
 			if wall:
 				e.d = maxf(e.d, wall.d - e.r)
+				e.walled_t = 0.2
 				wall.hp -= e.atk * dt
 				if h.wall_dmg:
 					damage(e, h.wall_dmg * spell_pow(h) * dt)
@@ -4115,7 +4311,7 @@ func _towers_step(h: Hero, dt: float) -> void:
 			continue
 		if t.zero:
 			for e in in_range(t.x, t.y, t_range(t)):
-				slow_enemy(e, t.zero, 0.2)
+				slow_enemy(e, t.zero, 0.2, true)
 		var spd := 1 + h.ab.power if overclocked(t) else 1 + h.ab.power * 0.5 if conductor else 1.0
 		if h.ab.haste and S.stasis_t > 0 and S.stasis_at.distance_to(t.pos()) <= h.ab.r:
 			spd *= 1 + h.ab.haste
@@ -4130,15 +4326,18 @@ func _towers_step(h: Hero, dt: float) -> void:
 			spd *= (1 + t.buff.rate) * (2.0 if t.buff.tempo else 1.0)
 		if t.curse_t > 0:
 			spd *= 1 - t.curse_rate
-		if t.pact and S.enemies.any(func(e): return e.blocked and hyp(e.x - t.x, e.y - t.y) <= t_range(t)):
-			spd *= 2
+		# Bulwark Pact: faster while anything in range is stopped (blocked, stunned, frozen, taunted or walled)
+		if t.pact and S.enemies.any(func(e): return (e.stun_t > 0 or e.blocked or e.taunt_t > 0 or e.walled_t > 0) and not e.dead and hyp(e.x - t.x, e.y - t.y) <= t_range(t)):
+			spd *= 1.5
 		if t.lance:
 			# the beam drops when nothing is in range: heat bleeds off, and the next lock warms up again
 			var any := not in_range(t.x, t.y, t_range(t)).is_empty()
 			if t.lance_state != "" and not any:
 				t.lance_state = ""
 			if t.lance_state == "":
-				t.stacks = maxf(0.0, t.stacks - dt * 5.0)
+				# idle heat bleeds off (Heat Sink's mastery keeps it)
+				if not t.retain:
+					t.stacks = maxf(0.0, t.stacks - dt * 5.0)
 				if not any:
 					continue
 				# acquiring from idle: the charge plays and the first tick waits for it (no charge on a retarget)
@@ -4147,7 +4346,7 @@ func _towers_step(h: Hero, dt: float) -> void:
 				t.lance_state = "charge"
 				t.lance_wait = LANCE_CHARGE
 				if t.last_target != first[0]:
-					t.stacks = floorf(t.stacks / 2) if t.retain else 0.0
+					t.stacks = floorf(t.stacks * t.retain_pct) if t.retain else 0.0
 				t.last_target = first[0]
 				continue
 			if t.lance_state == "charge":
@@ -4173,6 +4372,9 @@ func _towers_step(h: Hero, dt: float) -> void:
 			continue
 		var targets := in_range(t.x, t.y, t_range(t))
 		sort_targets(t, targets)
+		if t.spread_slows:
+			# Lingering Cold: enemies that aren't slowed yet come first (in the tower's own order)
+			targets = targets.filter(func(o): return o.slow_t <= 0) + targets.filter(func(o): return o.slow_t > 0)
 		targets = targets.slice(0, 1 + int(t.multi))
 		if t.type == "disc":
 			if targets.size():
@@ -5216,6 +5418,12 @@ func try_merge(a: Tower, b: Tower) -> void:
 	m.up_start = hybrid_up_start(m.parents, m.is_super)
 	for k in Tower.TRAITS:
 		m.set(k, maxf(float(a.get(k)), float(b.get(k))))
+	# "every Nth shot" counters: lower is better, and 0 means the parent doesn't have it
+	for k in CADENCE_TRAITS:
+		var va := float(a.get(k))
+		var vb := float(b.get(k))
+		m.set(k, minf(va, vb) if va > 0 and vb > 0 else maxf(va, vb))
+	m.spread_slows = a.spread_slows or b.spread_slows
 	m.chain_keep = a.chain_keep or b.chain_keep
 	m.retain = a.retain or b.retain
 	m.melt = a.melt or b.melt
@@ -5247,6 +5455,12 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.star = true
 	if not m.is_super and m.type == "plasma+tesla":
 		m.radial_chain = true
+	# Thunder Battery charges longer and hits harder and wider (applied before the DPS cap; its DPS goes down a bit)
+	if not m.is_super and m.type == "mortar+tesla":
+		m.thunder = true
+		m.rate *= THUNDER_RATE
+		m.dmg *= THUNDER_DMG
+		m.splash = maxf(m.splash, 40.0) * THUNDER_SPLASH
 	if not m.is_super and m.type == "arcane+laser":
 		m.beam = true
 		m.lance = true
@@ -5256,8 +5470,15 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.spark_r = LANCE_SPARK_R
 		m.spark_pct = LANCE_SPARK_PCT
 	# a hybrid fires normal shots, so the Razor Disc's cutting lives on as pierce
+	# (more with Long Flight), Searing Path carries over as a damage-taken amp on hit, and Heavy Edge as a boss bonus
 	if m.parents.has("disc"):
 		m.pierce = maxf(m.pierce, 3)
+		for dp: Tower in [a, b]:
+			if dp.type != "disc":
+				continue
+			m.pierce = maxf(m.pierce, 3 + floorf((dp.disc_hits - 6) / 2))
+			m.brittle = maxf(m.brittle, dp.disc_trail)
+			m.boss_bonus = maxf(m.boss_bonus, dp.disc_boss_bonus + (0.5 if dp.disc_heavy else 0.0))
 	# Fast + heavy parents would otherwise get the big hit at the fast rate: keep damage per second within 2.6x
 	# the stronger parent's (6x for supers).
 	var dps_cap := (6.0 if m.is_super else 2.6) * maxf(a.dmg / a.rate, b.dmg / b.rate)

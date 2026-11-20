@@ -1,0 +1,10 @@
+RES,tesla,arcs+volt+conduct,66,1018,37656,18128,20877
+RES,tesla,arcs+volt+bank,132,2275,24691,15460,19515
+RES,tesla,arcs+volt+jump,66,1018,25364,18901,21632
+RES,tesla,arcs+conduct+bank,132,2275,58798,36160,37022
+RES,tesla,arcs+conduct+jump,66,1018,60892,35916,39249
+RES,tesla,arcs+bank+jump,132,2275,50875,40403,42161
+RES,tesla,volt+conduct+bank,112,1936,42699,26101,25188
+RES,tesla,volt+conduct+jump,55,849,63837,41010,34765
+RES,tesla,volt+bank+jump,112,1936,37765,29640,32043
+RES,tesla,conduct+bank+jump,112,1936,95013,60540,60024

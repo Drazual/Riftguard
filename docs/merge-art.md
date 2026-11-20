@@ -52,6 +52,25 @@ A node may instead hold metadata `accent_mask` (a `Texture2D`). That overrides t
 
 Path colours are pushed onto the material when a path is bought, on the next board sync. No mask means the material is not touched.
 
+## Base towers
+
+The base (non-merged) towers take path colours too, through the same `<model>_accent_mask.png` convention
+(R trim, G glow, B details; 0/255 on UV0) next to each model in `art_src/towers/<tower>/`: arcane, ice, laser,
+mortar, plasma, tesla, sawblade (the Disc) and rift_beacon. The shrine has no paths and the anvil no model, so they
+have none.
+
+- Baked turrets: the board draws them from their sprite sheets, so each mask is baked into a matching sheet,
+  `res://assets/towers/<out>_mask.png` (same frames, same layout as `<out>.png`), with
+  `render_tower.gd -- <tower folder> mask`. `PathTint.sprite()` (`scripts/board/path_tint.gd`) puts a canvas shader on
+  the turret sprite that keeps the board's chunky 1x look (`tower_pixel.gdshader`) and recolours the zones. Re-bake
+  the mask sheet whenever the colour sheet is re-rendered, or they drift apart.
+- Rift Beacon: `Beacon3D.set_path_colors()` swaps its body material for `PathTint`'s spatial version.
+- A zone takes its path colour once that path is bought (zone 1 = the 1st path invested, and so on). Until then it keeps
+  the model's own colours, so an un-upgraded tower looks exactly as before. Buying a path recolours on the next sync.
+- Same shade formula as the merges: the zone keeps `0.30 + 1.25 x luminance` of the pixel under it; the glow zone is
+  also lit (+30% of its colour on the sprites, emission on the beacon).
+- No mask sheet (or no mask) means the tower is left untouched.
+
 ## Merge folders
 
 ```

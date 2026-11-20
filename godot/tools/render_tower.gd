@@ -3,6 +3,11 @@ extends "res://tools/render_hero.gd"
 ## fire clip for each. Same camera as the heroes (see render_hero.gd / render_hero.md), and by default the same clean
 ## look as the live 3D heroes: the model's own materials under neutral light, no outline, no colour filter.
 ##   xvfb-run godot --path godot --rendering-driver opengl3 -s res://tools/render_tower.gd -- <tower folder>
+## Path-colour masks: add "mask" to bake the folder's <model>_accent_mask.png (R trim, G glow, B detail on UV0) into
+## res://assets/towers/<out>_mask.png, the same frames in the same layout as the colour sheet, so the board's turret
+## sprite can recolour its zones (docs/merge-art.md). Only that file is written; the sheet, .tres and muzzle.json
+## are left alone. The mask shows unlit; effect meshes off the atlas (glows, arcs) bake as no zone.
+##   xvfb-run godot --path godot --rendering-driver opengl3 -s res://tools/render_tower.gd -- <tower folder> mask
 ## <tower folder> is a folder in res://art_src/towers/ holding the model and a tower.json:
 ##   model   the .glb: Y up, metres, origin at the base's bottom centre, the turret aiming +Z
 ##   yaw     the node that turns the turret (rotation.y); pitch: the node that tilts it (rotation.x, negative = up).
@@ -98,6 +103,20 @@ func _run() -> void:
 	base_yaw = deg_to_rad(float(cfg.get("base_yaw", 0.0)))
 	model.rotation.y = base_yaw
 	_toon(model)
+	var mask_mode := args.has("mask")
+	if mask_mode:
+		vibrance = [1.0, 1.0]
+		painted = false
+		clean = true
+		var mpath := dir + String(cfg.model).get_basename() + "_accent_mask.png"
+		var mimg := Image.load_from_file(ProjectSettings.globalize_path(mpath))
+		if mimg == null:
+			push_error("render_tower: no mask at " + mpath)
+			quit(1)
+			return
+		mimg.convert(Image.FORMAT_RGBA8)
+		mimg.generate_mipmaps()
+		_maskify(model, ImageTexture.create_from_image(mimg))
 	yaw_node = model.get_node_or_null(cfg.get("yaw", ""))
 	pitch_node = model.get_node_or_null(cfg.get("pitch", ""))
 	var muzzle: Node3D = model.find_child(cfg.get("muzzle", "Muzzle"), true, false)
@@ -127,6 +146,11 @@ func _run() -> void:
 			if f >= 0:
 				var tip := cam.unproject_position(muzzle.global_position) / SS
 				tips["%d_%d" % [face, f]] = [snappedf(tip.x, 0.1), snappedf(tip.y, 0.1)]
+	if mask_mode:
+		sheet.save_png("res://assets/towers/%s_mask.png" % out)
+		print("render_tower: wrote %s_mask" % out)
+		quit()
+		return
 	sheet.save_png("res://assets/towers/%s.png" % out)
 	var shot := false
 	if cfg.has("shot"):
@@ -145,6 +169,30 @@ func _run() -> void:
 		first.append_array(tips["%d_%d" % [face, sf]])
 	print("render_tower: wrote %s; TowerData.turret_muzzle = PackedVector2Array(%s)" % [out, ", ".join(first.map(func(v): return str(v)))])
 	quit()
+
+
+## Every surface textured from the atlas shows the accent mask unlit; the rest (effects off the atlas) shows black,
+## keeping its own transparency, so it bakes as no zone.
+func _maskify(n: Node, mask: Texture2D) -> void:
+	if n is MeshInstance3D:
+		var mi: MeshInstance3D = n
+		for i in mi.mesh.get_surface_count():
+			var m := mi.get_active_material(i)
+			var u := StandardMaterial3D.new()
+			u.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			u.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+			if m is BaseMaterial3D and (m as BaseMaterial3D).albedo_texture != null:
+				u.albedo_texture = mask
+			else:
+				u.albedo_color = Color.BLACK
+				if m is BaseMaterial3D:
+					u.transparency = (m as BaseMaterial3D).transparency
+					u.albedo_color.a = (m as BaseMaterial3D).albedo_color.a
+			if m is BaseMaterial3D:
+				u.cull_mode = (m as BaseMaterial3D).cull_mode
+			mi.set_surface_override_material(i, u)
+	for c in n.get_children():
+		_maskify(c, mask)
 
 
 var shot_size := 32

@@ -73,7 +73,7 @@ title = "Fortune"
 desc = "Kills by buffed towers give +10% gold per point."
 effect = "t.b_gold += 0.1"
 mastery_name = "Gold Rush"
-mastery_desc = "Each kill by a buffed tower has an 8% chance to drop a 25 gold coin. Walk your hero over it (coins left at the end of a wave are collected for you)."
+mastery_desc = "Each kill by a buffed tower has an 8% chance to drop a 25 gold coin. Walk your hero over it, or it flies to you after 3s."
 mastery_effect = "t.b_rush = 1"
 
 [resource]

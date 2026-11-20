@@ -392,6 +392,19 @@ func muzzle_at() -> Vector2:
 	return cam.unproject_position(muzzle.global_position) / Q - foot
 
 
+## Where any named node of the model shows (like muzzle_at), e.g. Thunder Battery's coil tips; null if it has none.
+var _points := {} # node name -> Node3D (or null)
+func point_at(path: String) -> Variant:
+	if model == null or cam == null:
+		return null
+	if not _points.has(path):
+		_points[path] = _node(path, [])
+	var n: Node3D = _points[path]
+	if n == null:
+		return null
+	return cam.unproject_position(n.global_position) / Q - foot
+
+
 func _process(dt: float) -> void:
 	if not driven:
 		_turn(dt * (ap.speed_scale if ap else 1.0))

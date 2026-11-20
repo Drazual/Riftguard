@@ -31,10 +31,10 @@ tag = "precision"
 adjective = "Focused"
 noun = "Lens"
 title = "Focus"
-desc = "Each tick on the same target adds +3% more heat damage per point."
-effect = "t.ramp += 0.03"
+desc = "Each tick on the same target adds +2% more heat damage per point."
+effect = "t.ramp += 0.02"
 mastery_name = "Meltdown"
-mastery_desc = "At full heat the beam deals double damage."
+mastery_desc = "At full heat the beam deals 50% more damage."
 mastery_effect = "t.melt = true"
 
 [sub_resource type="Resource" id="Resource_o7tn8"]
@@ -45,11 +45,13 @@ tag = "burn"
 adjective = "Smoldering"
 noun = "Core"
 title = "Embers"
-desc = "Holds 5 more heat stacks per point."
-effect = "t.ramp_max += 5"
+desc = "Holds 5 more heat stacks per point and heats up 15% faster per point."
+effect = "t.ramp_max += 5
+t.heat_gain += 0.15"
 mastery_name = "Residual Heat"
-mastery_desc = "Switching targets only halves the heat instead of resetting it."
-mastery_effect = "t.retain = true"
+mastery_desc = "Switching targets keeps 75% of the heat instead of resetting it, and a held beam's heat doesn't fade while idle."
+mastery_effect = "t.retain = true
+t.retain_pct = 0.75"
 
 [sub_resource type="Resource" id="Resource_cdduv"]
 script = ExtResource("1_6i1nf")
@@ -60,9 +62,9 @@ noun = "Emitter"
 title = "Power"
 desc = "The beam ignores 10% armor per point."
 effect = "t.sunder += 0.1"
-mastery_name = "Sear"
-mastery_desc = "Hits burn for 40% of their damage over 2s."
-mastery_effect = "t.burn += 0.4"
+mastery_name = "Phase Lock"
+mastery_desc = "Hits at full heat make the target take +20% damage from all towers for 1s."
+mastery_effect = "t.phase_lock = 0.2"
 
 [sub_resource type="Resource" id="Resource_71iak"]
 script = ExtResource("1_6i1nf")
