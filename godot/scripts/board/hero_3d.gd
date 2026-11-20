@@ -21,6 +21,7 @@ const FEET := Vector2(64, 112) # where the hero's feet land in the viewport, in 
 const STRIDE := 1.15
 const NARROW := 0.0 # degrees each thigh turns in during a walk or run (see _narrow)
 const MAX_PACE := 2.2
+const RUNFIRE_SWAY := 0.8 # how much of an authored run's torso movement stays on while shooting on the move (see _upper_from)
 
 var vp: SubViewport # its own viewport and camera (null when drawn in a shared StyleRig)
 var cam: Camera3D
@@ -138,7 +139,10 @@ func _setup_model(dir: String) -> void:
 		if cfg.has("lock_root") and not posed:
 			_lock_root(anim, cfg.lock_root)
 		anim.loop_mode = Animation.LOOP_NONE if a == "fire" else Animation.LOOP_LINEAR
-		if (a == "walk" or a == "run") and not posed and not hover:
+		# an authored run (hero.json "run_speed": the ground speed it was made for) is used as made: its feet are
+		# planted for that speed, so stretching or narrowing the legs would make them slide
+		var authored: bool = a == "run" and cfg.has("run_speed")
+		if (a == "walk" or a == "run") and not posed and not hover and not authored:
 			_stretch(anim, cfg.get("stride", STRIDE))
 			_narrow(anim, float(cfg.get("narrow", NARROW)))
 		# a firing clip that lowers the gun after the shot is cut where the gun is still up, so firing again and
@@ -174,6 +178,10 @@ func _setup_model(dir: String) -> void:
 			ap.add_animation_library("ext", AnimationLibrary.new())
 		ap.get_animation_library("ext").add_animation("walkfire", wf)
 		anims.walkfire = "ext/walkfire"
+		# and the same on a run: the run's legs with the raised gun
+		if anims.has("run"):
+			ap.get_animation_library("ext").add_animation("runfire", _upper_from(ap.get_animation(anims.run), ap.get_animation(anims.fire), RUNFIRE_SWAY))
+			anims.runfire = "ext/runfire"
 	if cfg.has("held"):
 		held = (load(dir.path_join(cfg.held.scene)) as PackedScene).instantiate()
 		(anchor if rig else vp).add_child(held)
@@ -302,8 +310,11 @@ func _legs_from(to: Animation, from: Animation) -> void:
 			to.track_insert_key(t, at, from.track_get_key_value(src, k))
 
 
-## A copy of `walk` whose upper body (everything but the legs and hips) holds `fire`'s last pose.
-func _upper_from(walk: Animation, fire: Animation) -> Animation:
+## A copy of `walk` whose upper body (everything but the legs and hips) holds `fire`'s last pose. With `sway` (for a
+## run), the spine, neck and head keep that share of the run's own movement (the chest's counter-turn against the hips,
+## the flex on each footfall, the head held steady) on top of the aimed pose, so the raised gun rides the stride with
+## the torso instead of sitting on a frozen one. The arms keep the aim; the barrel correction in _process keeps it on target.
+func _upper_from(walk: Animation, fire: Animation, sway := 0.0) -> Animation:
 	var a: Animation = walk.duplicate(true)
 	for t in a.get_track_count():
 		var path := a.track_get_path(t)
@@ -325,6 +336,20 @@ func _upper_from(walk: Animation, fire: Animation) -> Animation:
 				v = fire.scale_track_interpolate(src, at)
 			_:
 				continue
+		if sway > 0.0 and type == Animation.TYPE_ROTATION_3D and (bone.contains("Spine") or bone.contains("Neck") or bone.ends_with("Head")):
+			var n := a.track_get_key_count(t)
+			var q0: Quaternion = a.track_get_key_value(t, 0)
+			var sum := Quaternion(0, 0, 0, 0)
+			for i in n:
+				var q: Quaternion = a.track_get_key_value(t, i)
+				if q.dot(q0) < 0:
+					q = -q
+				sum = Quaternion(sum.x + q.x, sum.y + q.y, sum.z + q.z, sum.w + q.w)
+			var mean := sum.normalized()
+			for i in n:
+				var d := mean.inverse() * (a.track_get_key_value(t, i) as Quaternion)
+				a.track_set_key_value(t, i, ((v as Quaternion) * Quaternion.IDENTITY.slerp(d, sway)).normalized())
+			continue
 		while a.track_get_key_count(t) > 0:
 			a.track_remove_key(t, 0)
 		a.track_insert_key(t, 0.0, v)
@@ -709,7 +734,7 @@ func _process(dt: float) -> void:
 	# weapon's origin to its Muzzle.
 	var gun: Node3D = held if held else (muzzle.get_parent() as Node3D if muzzle else null)
 	var fix := 0.0
-	if (state == "fire" or state == "walkfire") and gun:
+	if (state == "fire" or state == "walkfire" or state == "runfire") and gun:
 		var m := muzzle_at() - _on_bone(gun)
 		if m.length() > 0.05:
 			fix = clampf(aim_fix + _barrel_turn(m), -1.2, 1.2)
@@ -724,7 +749,9 @@ func _process(dt: float) -> void:
 	model.position.z = back.z
 	# the stretched strides lift the feet off the ground, so the hips come down to keep the lower foot on it
 	var drop := 0.0
-	if fitted and ankle > 0.0 and (state == "walk" or state == "run" or state == "walkfire"):
+	# (not on an authored run: it has real airborne moments, and pulling the hips down then would flatten them)
+	var authored: bool = cfg.has("run_speed") and (state == "run" or state == "runfire")
+	if fitted and ankle > 0.0 and not authored and (state == "walk" or state == "run" or state == "walkfire"):
 		var low := INF
 		for f in [cfg.get("foot", "mixamorig_LeftFoot"), cfg.get("foot_r", "mixamorig_RightFoot")]:
 			var b := skel.find_bone(f)
@@ -826,6 +853,9 @@ func _fit() -> void:
 	ankle = feet if feet < INF and hover.is_empty() else 0.0
 	walk_speed = _stride_speed(anims.walk) if anims.has("walk") and hover.is_empty() else 1.0
 	run_speed = _stride_speed(anims.run) if anims.has("run") else 0.0
+	if anims.has("run") and cfg.has("run_speed"):
+		# hero.json "run_speed": the clip's ground speed in model metres a second, scaled like the model on the board
+		run_speed = float(cfg.run_speed) * skel.global_transform.basis.get_scale().y
 	if anims.has(state):
 		ap.play(anims[state]) # measuring moved the player off the current clip
 
@@ -853,8 +883,9 @@ func move(px_per_s: float, game_speed: float, backwards: bool, aiming: bool = fa
 	var px_per_unit := tall / 1.8
 	var what := "walkfire" if aiming and anims.has("walkfire") else "walk"
 	var rate := px_per_s / (walk_speed * px_per_unit)
-	if run_speed > 0.0 and rate > 1.4 and not aiming:
-		what = "run"
+	# a hero whose attack is a whole-body swing or cast ("walkfire": false) has no aimed walk, so it keeps running
+	if run_speed > 0.0 and rate > 1.4 and (not aiming or anims.has("runfire") or not anims.has("walkfire")):
+		what = "runfire" if aiming and anims.has("runfire") else "run"
 		rate = px_per_s / (run_speed * px_per_unit)
 	play(what, game_speed * clampf(rate, 0.3, float(cfg.get("max_pace", MAX_PACE))) * (-1.0 if backwards else 1.0))
 

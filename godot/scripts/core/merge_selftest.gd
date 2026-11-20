@@ -16,11 +16,13 @@ const RECIPES := {
 	"frost+plasma": "cryo_cannon.glb",
 	"mortar+plasma": "bombard.glb",
 	"plasma+tesla": "ion_storm.glb",
+	"arcane+plasma": "starbolt.glb",
 }
-## Two runs cover all 7 recipes (a run carries 4 tower types).
+## Three runs cover all 8 recipes (a run carries 4 tower types).
 const RUNS := [
 	["arcane", "frost", "laser", "tesla"],
 	["plasma", "mortar", "frost", "tesla"],
+	["arcane", "plasma", "laser", "mortar"],
 ]
 
 var main: Main

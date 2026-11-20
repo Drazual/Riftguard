@@ -3,7 +3,8 @@
 	"anims": {
 		"idle": "idle",
 		"walk": "walk",
-		"fire": "cast_fire"
+		"fire": "cast_fire",
+		"run": "wizard_run.glb"
 	},
 	"lock_root": "mixamorig_Hips",
 	"weapon": "WizardStaff",
@@ -72,10 +73,6 @@
 	},
 	"stride": 2.0,
 	"max_pace": 1.5,
-	"run_from_walk": {
-		"stride": 1.35,
-		"lean": 14,
-		"bounce": 0.05
-	},
-	"narrow": 8
+	"narrow": 8,
+	"run_speed": 8.68
 }

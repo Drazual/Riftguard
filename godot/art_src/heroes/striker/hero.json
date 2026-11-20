@@ -3,7 +3,8 @@
 	"anims": {
 		"idle": "idle",
 		"walk": "walk",
-		"fire": "fire"
+		"fire": "fire",
+		"run": "striker_run.glb"
 	},
 	"lock_root": "mixamorig_Hips",
 	"out": "striker_3d",
@@ -11,5 +12,6 @@
 	"style": "painted",
 	"fire_legs": "idle",
 	"fire_end": 0.4,
-	"narrow": 7
+	"narrow": 7,
+	"run_speed": 10.25
 }

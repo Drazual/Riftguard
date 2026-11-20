@@ -659,7 +659,7 @@ func recipes() -> RecipeList:
 	var arr: Array[RecipeData] = []
 	for x in [
 		["arcane+frost", "Rimeshard", 0xc9b8ff, "Fires rapid ice shards that slow every enemy they hit. Arcane speed with Frost control."],
-		["arcane+plasma", "Starbolt", 0xff6fd8, "Fires fast bolts that explode on impact. Arcane speed with Plasma splash, so it shreds groups."],
+		["arcane+plasma", "Starbolt", 0xff6fd8, "Fires fast star bolts that burst on impact. Every 4th shot is a supernova: a wider blast that rains tiny falling stars."],
 		["arcane+tesla", "Railgun", 0x8affff, "Fires heavy bolts that arc to more enemies on hit. Huge single hits that also clear lines."],
 		["frost+plasma", "Steam Engine", 0xe0e6ff, "Blasts scalding steam that splashes and slows every enemy caught in the cloud."],
 		["frost+tesla", "Cryo Coil", 0x9af0ff, "Chain lightning that slows every enemy it jumps to. Locks down whole lines."],

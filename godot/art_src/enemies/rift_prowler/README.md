@@ -1,3 +1,5 @@
+**Current run: [RUN_V3.md](RUN_V3.md)** (built by `anim_v3.py`). RUN_FIX.md and RUN_V2.md describe older passes; their scripts stay as a record of how the clips were built.
+
 # Rift Prowler (the Grunt)
 
 A rigged, animated enemy model. `data/enemies/grunt.tres` points at this folder (`model_dir`), so on the

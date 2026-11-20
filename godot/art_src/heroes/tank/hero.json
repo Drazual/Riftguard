@@ -5,7 +5,8 @@
 		"walk": "@run",
 		"fire": "@punch",
 		"block": "@brace",
-		"hold": "@brace_glow"
+		"hold": "@brace_glow",
+		"run": "tank_run.glb"
 	},
 	"lock_root": "mixamorig_Hips",
 	"walkfire": false,
@@ -1474,5 +1475,6 @@
 				"LeftHand"
 			]
 		}
-	}
+	},
+	"run_speed": 8.19
 }

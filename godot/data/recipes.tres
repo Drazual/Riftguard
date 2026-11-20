@@ -18,7 +18,7 @@ script = ExtResource("1_qr0rf")
 key = "arcane+plasma"
 name = "Starbolt"
 color = Color(1, 0.43529412, 0.84705883, 1)
-desc = "Fires fast bolts that explode on impact. Arcane speed with Plasma splash, so it shreds groups."
+desc = "Fires fast star bolts that burst on impact. Every 4th shot is a supernova: a wider blast that rains tiny falling stars."
 boon_name = "Starburst Rounds"
 boon_desc = "Your hero’s attacks explode, dealing 40% damage to nearby enemies."
 boon_effect = "h.boon_splash = 0.4"

@@ -110,6 +110,9 @@ var lance := false
 var rime := false # Rimeshard: shard volleys that stack rime, freeze at 5 and shatter
 var cryo := false # Rime Cannon: an ice-plasma ball that bursts and leaves a frozen patch
 var radial_chain := false # Ion Storm: its blast throws lightning outward to the nearest enemies it missed
+var star := false # Starbolt: fast star bolts that burst on impact; every nova_every'th shot is a supernova
+var star_n := 0 # Starbolt's shot count (every nova_every'th is a supernova)
+var nova_at := -99.0 # shot_at of Starbolt's last supernova (the board plays its supernova clip)
 var lance_state := "" # "" (idle), "charge" (warming up, the first tick waits), "on" (the beam is held)
 var lance_wait := 0.0 # charge time left (game time: the clip plays at game speed, whatever speeds the tower up)
 ## Arcane sparks: after each tick's hit, up to spark_n enemies within spark_r of the target take spark_pct of it.

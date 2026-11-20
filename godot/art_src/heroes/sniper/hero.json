@@ -3,9 +3,11 @@
 	"anims": {
 		"idle": "idle",
 		"walk": "walk",
-		"fire": "fire"
+		"fire": "fire",
+		"run": "sniper_run.glb"
 	},
 	"lock_root": "mixamorig_Hips",
 	"kick": 6,
-	"narrow": 4
+	"narrow": 4,
+	"run_speed": 8.49
 }

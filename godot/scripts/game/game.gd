@@ -973,6 +973,12 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 		sfx("boom" if t.splash else "shot")
 	var aslow := h.aura_slow if aura else 0.0
 	var art := is_sprite_tower(t)
+	var nova := false
+	if t.star:
+		t.star_n += 1
+		nova = t.star_n % maxi(1, int(rime_cfg(t, "nova_every", STAR_NOVA_EVERY))) == 0
+		if nova:
+			t.nova_at = t.shot_at
 	for target in targets:
 		var d := dmg
 		if t.ramp:
@@ -1001,6 +1007,8 @@ func fire(t: Tower, targets: Array, mult := 1.0) -> void:
 					cryo_ball(t, target, d, splash, big, frz, over, oc, aslow)
 				elif t.rime and target is Enemy:
 					rime_shard(t, target, d, d / maxf(0.01, mult), splash, big, frz, over, oc, aslow)
+				elif t.star and target is Enemy:
+					star_bolt(t, target, d, splash, big, frz, over, oc, aslow, nova)
 				else:
 					line(t.x, t.y, target.x, target.y, t.color, 0.12, 3, { tw = t })
 					land.call())
@@ -1118,6 +1126,41 @@ func rime_shard(t: Tower, e: Enemy, d: float, full: float, splash: float, big: b
 			add_rime(t, e, full))
 
 
+## Starbolt (arcane+plasma): at the fire clip's shot moment a fast magenta star bolt leaves the star at bolt_speed
+## (tower.json, board px/s) and bursts where it lands (the plasma splash). Every nova_every'th shot is a supernova:
+## nova_dmg x damage over nova_splash x the splash radius, tiny stars falling around it, and (nova_linger > 0) a
+## faint star field left behind for nova_linger s doing nova_linger_dps x the hit per second. The board draws it
+## from the "star_bolt" and "star_burst" fx; the game owns the timing and the damage. (Numbers SUGGESTED.)
+const STAR_SPEED := 950.0
+const STAR_NOVA_EVERY := 4
+const STAR_NOVA_DMG := 1.4
+const STAR_NOVA_SPLASH := 1.8
+const STAR_NOVA_LINGER := 1.2
+const STAR_NOVA_LINGER_DPS := 0.15
+func star_bolt(t: Tower, e: Enemy, d: float, splash: float, big: bool, frz: bool, over: bool, oc: bool, aslow: float, nova: bool) -> void:
+	var speed := maxf(100.0, rime_cfg(t, "bolt_speed", STAR_SPEED))
+	var T := maxf(0.04, Vector2(e.x - t.x, (e.y - t.y) * 0.75 + 40.0).length() / speed)
+	var lead := 0.0 if e.dead or e.stun_t > 0 or e.blocked else e.speed * (1 - e.slow) * T
+	var p := pos_at(minf(S.map.path_len, e.d + lead)) if lead > 0 else Vector2(e.x, e.y)
+	var pw := clampf(d / 72.0, 0.75, 1.5)
+	if nova:
+		d *= rime_cfg(t, "nova_dmg", STAR_NOVA_DMG)
+		splash *= rime_cfg(t, "nova_splash", STAR_NOVA_SPLASH)
+	fx_add({ k = "star_bolt", tw = t, e = e, x = p.x, y = p.y, flight = T, pw = pw, nova = nova, t = T + 0.05, quiet = true })
+	later(T, func():
+		if not S.towers.has(t):
+			return
+		# lands on the enemy if it's still there, else where it was headed
+		var at = e if not e.dead and Vector2(e.x - p.x, e.y - p.y).length() < splash + e.r else { x = p.x, y = p.y, d = -1.0, dead = false, fake = true }
+		_land(t, at, d, splash, big, frz, over, oc, aslow, false)
+		var linger := rime_cfg(t, "nova_linger", STAR_NOVA_LINGER) if nova else 0.0
+		if linger > 0:
+			zone({ x = at.x, y = at.y, r = splash * 0.75, t = linger, dps = d * rime_cfg(t, "nova_linger_dps", STAR_NOVA_LINGER_DPS), color = col(0xff6fd8), src = t, quiet = true })
+		fx_add({ k = "star_burst", tw = t, x = at.x, y = at.y, r = splash, pw = pw, nova = nova, linger = linger, t = 0.6, quiet = true })
+		if nova:
+			do_shake(0.003, 90))
+
+
 ## One rime stack on e from t (a shard or a splinter); the rime_max'th freezes it.
 func add_rime(t: Tower, e: Enemy, full: float) -> void:
 	if e.dead or e.rime_frz > 0:
@@ -1225,7 +1268,7 @@ func _land(t: Tower, target, d: float, splash: float, big: bool, frz: bool, over
 	var h := S.hero
 	var fake: bool = target is Dictionary
 	var hits: Array = in_range(target.x, target.y, splash) if splash else ([] if fake else [target])
-	if splash and not t.radial_chain and not t.cryo:
+	if splash and not t.radial_chain and not t.cryo and not t.star:
 		ring(target.x, target.y, splash, t.color, 0.25, big)
 	if splash and S.sig.get("plasma", false) and t.base_types().has("plasma"):
 		zone({ x = target.x, y = target.y, r = splash * 0.7, t = 2.0, dps = d * 0.25, color = col(0xff8a3d), src = t })
@@ -5200,6 +5243,8 @@ func try_merge(a: Tower, b: Tower) -> void:
 		m.multi = maxf(m.multi, 2.0)
 	if not m.is_super and m.type == "frost+plasma":
 		m.cryo = true
+	if not m.is_super and m.type == "arcane+plasma":
+		m.star = true
 	if not m.is_super and m.type == "plasma+tesla":
 		m.radial_chain = true
 	if not m.is_super and m.type == "arcane+laser":

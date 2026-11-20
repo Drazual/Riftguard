@@ -5,7 +5,8 @@
 		"walk": "@run",
 		"fire": "@slash",
 		"block": "@brace",
-		"hold": "bulwark_hold"
+		"hold": "bulwark_hold",
+		"run": "gale_tank_run.glb"
 	},
 	"lock_root": "mixamorig_Hips",
 	"walkfire": false,
@@ -1473,5 +1474,6 @@
 			},
 			"fill_from": "attack"
 		}
-	}
+	},
+	"run_speed": 8.49
 }

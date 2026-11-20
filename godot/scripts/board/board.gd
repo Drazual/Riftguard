@@ -70,6 +70,8 @@ var ground_for = null
 var ground_anim: Array[Texture2D] = []
 var ground_anim_t := 0.0
 var ground_blend := ShaderMaterial.new()
+## Towers keep the 1x boards' chunky pixels on every map (see tower_pixel.gdshader); its block follows F.
+var tower_px := ShaderMaterial.new()
 var frame_no := 0
 var tip_tower: Tower = null
 var ghost: AnimatedSprite2D = null # the tower being placed, on a free-build map
@@ -124,6 +126,8 @@ func _ready() -> void:
 	ground.centered = false
 	ground.scale = Vector2(1 / PX, 1 / PX)
 	ground_blend.shader = preload("res://scripts/board/ground_blend.gdshader")
+	tower_px.shader = preload("res://scripts/board/tower_pixel.gdshader")
+	tower_px.set_shader_parameter("block", float(F))
 	world.add_child(ground)
 	art_flat = Node2D.new()
 	world.add_child(art_flat)
@@ -511,6 +515,7 @@ func _sync_towers(S: Run, speed: float) -> void:
 			s.animation_finished.connect(func():
 				s.play("recover" if s.animation == "attack" else "idle"))
 			s.play("idle")
+			_pixelate(s, true)
 			units.add_child(s)
 			t.set_meta("view", s)
 			if live:
@@ -554,6 +559,7 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 		b.position = Vector2(t.x, SY(t.y) + FOOT)
 		units.add_child(b)
 		b.setup(low, game.t_range(t))
+		_pixelate(b.pic)
 		b.set_meta("st", t.shot_at)
 		t.set_meta("view", b)
 		v = b
@@ -577,6 +583,16 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 ## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target (a beam's
 ## target, or where a cannon's last shot went), holds that facing when it has none, and plays its fire clip as it
 ## shoots.
+## Gives a tower's picture the 1x boards' chunky pixels (tower_px). `nearest` also samples it unsmoothed, as the
+## 1x boards draw plain sprite towers.
+func _pixelate(n: CanvasItem, nearest := false) -> void:
+	if n == null or n.material != null:
+		return
+	n.material = tower_px
+	if nearest:
+		n.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+
 func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	if live and Live3D.tower_dir(d) != "":
 		_sync_turret_live(S, t, d, speed)
@@ -592,6 +608,7 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 		s.set_meta("face", TURRET_REST * n / 16)
 		s.animation_finished.connect(func(): s.play("idle_%d" % s.get_meta("face")))
 		s.play("idle_%d" % s.get_meta("face"))
+		_pixelate(s)
 		units.add_child(s)
 		t.set_meta("view", s)
 		if live:
@@ -728,7 +745,7 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 			_sync_merge_smooth(S, t, spec, speed, dt)
 			if bool(spec.cfg.get("beam", false)):
 				_sync_lance(S, t, spec, speed, dt)
-			if t.rime:
+			if spec.cfg.has("heat_node"):
 				_rime_heat(t, spec, dt * speed)
 		else:
 			_sync_merge_live(S, t, spec, speed)
@@ -736,6 +753,7 @@ func _sync_merges(S: Run, speed: float, dt: float) -> void:
 	_sync_ion(S, speed, dt)
 	_sync_cryo(S, speed, dt)
 	_sync_rime(S, speed, dt)
+	_sync_star(S, speed, dt)
 	# beams of towers that are gone (sold, merged on) or of a finished run fade out
 	for t in lance_beams.keys():
 		if S.over or not S.towers.has(t) or not t.lance or t.get_meta("lance_f", -1) != frame_no:
@@ -954,6 +972,32 @@ func _sync_rime(S: Run, speed: float, dt: float) -> void:
 	rime_fx.tick(dt * speed)
 
 
+## Starbolt's star bolts and their bursts (the game's "star_bolt" and "star_burst" fx), drawn by one shared
+## StarboltFX on top, in game time.
+var star_fx: Node2D = null
+func _sync_star(S: Run, speed: float, dt: float) -> void:
+	if S == null:
+		return
+	for f: Dictionary in S.fx:
+		if (f.k != "star_bolt" and f.k != "star_burst") or f.get("_b", false):
+			continue
+		f._b = true
+		var tw: Tower = f.tw
+		if star_fx == null or not is_instance_valid(star_fx):
+			star_fx = _merge_fx_for(tw)
+		if star_fx == null:
+			continue
+		if f.k == "star_bolt":
+			var mz = merge_muzzle(tw)
+			star_fx.shoot(mz if mz != null else Vector2(tw.x, SY(tw.y) - 40), Vector2(f.x, SY(f.y) - body_lift(f.e)), f.flight, Callable(), f.pw, f.nova)
+		elif f.nova:
+			star_fx.supernova(Vector2(f.x, SY(f.y)), f.r, f.pw, f.linger, int(game.rime_cfg(tw, "nova_stars", 12)))
+		else:
+			star_fx.splash(Vector2(f.x, SY(f.y)), f.r, f.pw)
+	if star_fx != null and is_instance_valid(star_fx):
+		star_fx.tick(dt * speed)
+
+
 ## The glow at Rimeshard's crystal tip (tower.json "heat_node", not keyed by any clip) builds up under sustained fire
 ## and fades when it stops.
 func _rime_heat(t: Tower, spec: Dictionary, gdt: float) -> void:
@@ -1025,6 +1069,7 @@ func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float, dt: fl
 			return
 		m.set_meta("glb", want)
 		m.set_meta("st", t.shot_at)
+		_pixelate(m.get_node_or_null("Pic"))
 		units.add_child(m)
 		if blend():
 			MapLight.light(m.vp, blend())
@@ -1047,7 +1092,7 @@ func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float, dt: fl
 		s.aim(Vector2(aim.x - t.x, SY(aim.y) - SY(t.y)))
 	if t.shot_at != s.get_meta("st"):
 		s.set_meta("st", t.shot_at)
-		s.shoot(1.0 / game.merge_clip_k(t))
+		s.shoot(1.0 / game.merge_clip_k(t), "supernova" if t.star and t.nova_at == t.shot_at else "")
 	s.tick(dt * speed)
 
 
@@ -2893,6 +2938,7 @@ func _set_res(f: int) -> void:
 	if F == f and viewport.size == Vector2i(ART_W * f, ART_H * f):
 		return
 	F = f
+	tower_px.set_shader_parameter("block", float(F))
 	viewport.size = Vector2i(ART_W * F, ART_H * F)
 	bg.size = Vector2(ART_W * F, ART_H * F)
 	world.scale = Vector2(PX * F, PX * F)
