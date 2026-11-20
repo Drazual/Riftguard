@@ -70,6 +70,8 @@ var ground_for = null
 var ground_anim: Array[Texture2D] = []
 var ground_anim_t := 0.0
 var ground_blend := ShaderMaterial.new()
+## Towers keep the 1x boards' chunky pixels on every map (see tower_pixel.gdshader); its block follows F.
+var tower_px := ShaderMaterial.new()
 var frame_no := 0
 var tip_tower: Tower = null
 var ghost: AnimatedSprite2D = null # the tower being placed, on a free-build map
@@ -124,6 +126,8 @@ func _ready() -> void:
 	ground.centered = false
 	ground.scale = Vector2(1 / PX, 1 / PX)
 	ground_blend.shader = preload("res://scripts/board/ground_blend.gdshader")
+	tower_px.shader = preload("res://scripts/board/tower_pixel.gdshader")
+	tower_px.set_shader_parameter("block", float(F))
 	world.add_child(ground)
 	art_flat = Node2D.new()
 	world.add_child(art_flat)
@@ -511,6 +515,7 @@ func _sync_towers(S: Run, speed: float) -> void:
 			s.animation_finished.connect(func():
 				s.play("recover" if s.animation == "attack" else "idle"))
 			s.play("idle")
+			_pixelate(s, true)
 			units.add_child(s)
 			t.set_meta("view", s)
 			if live:
@@ -554,6 +559,7 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 		b.position = Vector2(t.x, SY(t.y) + FOOT)
 		units.add_child(b)
 		b.setup(low, game.t_range(t))
+		_pixelate(b.pic)
 		b.set_meta("st", t.shot_at)
 		t.set_meta("view", b)
 		v = b
@@ -577,6 +583,16 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 ## A tower rendered from 3D (TowerData.turret): its turret turns to the nearest facing toward its target (a beam's
 ## target, or where a cannon's last shot went), holds that facing when it has none, and plays its fire clip as it
 ## shoots.
+## Gives a tower's picture the 1x boards' chunky pixels (tower_px). `nearest` also samples it unsmoothed, as the
+## 1x boards draw plain sprite towers.
+func _pixelate(n: CanvasItem, nearest := false) -> void:
+	if n == null or n.material != null:
+		return
+	n.material = tower_px
+	if nearest:
+		n.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+
 func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	if live and Live3D.tower_dir(d) != "":
 		_sync_turret_live(S, t, d, speed)
@@ -592,6 +608,7 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 		s.set_meta("face", TURRET_REST * n / 16)
 		s.animation_finished.connect(func(): s.play("idle_%d" % s.get_meta("face")))
 		s.play("idle_%d" % s.get_meta("face"))
+		_pixelate(s)
 		units.add_child(s)
 		t.set_meta("view", s)
 		if live:
@@ -1025,6 +1042,7 @@ func _sync_merge_smooth(S: Run, t: Tower, spec: Dictionary, speed: float, dt: fl
 			return
 		m.set_meta("glb", want)
 		m.set_meta("st", t.shot_at)
+		_pixelate(m.get_node_or_null("Pic"))
 		units.add_child(m)
 		if blend():
 			MapLight.light(m.vp, blend())
@@ -2893,6 +2911,7 @@ func _set_res(f: int) -> void:
 	if F == f and viewport.size == Vector2i(ART_W * f, ART_H * f):
 		return
 	F = f
+	tower_px.set_shader_parameter("block", float(F))
 	viewport.size = Vector2i(ART_W * F, ART_H * F)
 	bg.size = Vector2(ART_W * F, ART_H * F)
 	world.scale = Vector2(PX * F, PX * F)
