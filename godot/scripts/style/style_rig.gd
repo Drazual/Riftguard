@@ -7,14 +7,17 @@ extends Node3D
 ## 3D world; the viewport's size sets the render resolution.
 ##
 ## Coordinates: "art" pixels are the whole board's 2x scenery art (1536x832, the board's base 768x416 at 2x). The
-## camera looks down 30 degrees (Ocean Drive's 2:1 isometric ground, sin 30 = 0.5) turned 45 degrees so 3D square
+## camera looks down PITCH (true isometric, the maps' own ground angle) turned 45 degrees so 3D square
 ## footprints line up with the painted diamond tiles, and the middle of the view is the world's origin.
 ## Models stand upright (never tilted to the camera) and are placed where the board would draw them.
 
 const ART := Vector2(1536, 832)
 const BASE := Vector2(768, 416)
-const UNIT := 0.03 # world metres per art pixel (a 1.8 m hero stands 1.8 * cos(30) / UNIT = 52 art px = 26 board px)
-const PITCH := 30.0
+const UNIT := 0.03 # world metres per art pixel (a 1.8 m hero stands 1.8 * cos(PITCH) / UNIT = 49 art px)
+## THE camera angle for the whole game: true isometric (atan(1/sqrt 2) = 35.264 degrees down, turned 45). Every map's
+## ground is drawn at it (diamond tiles 0.577 as tall as wide, sin 35.264 = 0.577), and the live heroes, enemies,
+## towers and the tower sheet baker all use this one value.
+const PITCH := 35.264
 const YAW := 45.0
 const TOON := preload("res://scripts/style/toon_model.gdshader")
 const OUTLINE := preload("res://scripts/style/outline.gdshader")

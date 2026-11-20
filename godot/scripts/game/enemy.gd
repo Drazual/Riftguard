@@ -9,6 +9,7 @@ var hp := 1.0
 var max := 1.0
 var speed := 50.0
 var d := 0.0 # distance along the path
+var lane := 0 # which of the map's entries it came in by (MapInfo.lanes)
 var x := 0.0
 var y := 0.0
 var r := 9.0

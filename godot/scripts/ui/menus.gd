@@ -145,7 +145,7 @@ func show_map_select() -> void:
 	queue_tip("maps")
 	var box := ui.show_screen(back)
 	head(box, "Choose a map", back)
-	lead(box, "More maps are under construction. Harder maps will have more waves and pay more Rift Shards.")
+	lead(box, "Each map lies deeper into the rift. Harder maps have more waves and pay more Rift Shards.")
 	var g := GridContainer.new()
 	g.columns = 2
 	g.add_theme_constant_override("h_separation", 12)

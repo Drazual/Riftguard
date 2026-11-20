@@ -31,6 +31,7 @@ var boss_proof := false # Heart of the Rift: bosses can't stun or curse towers
 var wave := 0
 var wave_active := false
 var spawn_q: Array = []
+var lane_next := 0 # the lane the next new enemy takes, on maps with more than one entry
 var spawn_t := 0.0
 var interval := 0.9
 var enemies: Array = [] # Enemy
