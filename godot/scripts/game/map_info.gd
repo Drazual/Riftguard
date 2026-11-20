@@ -19,6 +19,11 @@ var water_cells := {}
 var prop_cells := {} # Vector2i -> atlas coords
 var blocked := {}
 var base := Vector2.ZERO
+## Lanes (layout "paths"): extra entries whose roads join the main one. Lane 0 is wp/seg/path_len above; every lane
+## has the same length and they share the road from merge_d to the base, so an enemy's d means the same distance to go
+## on any lane. Enemies take the lanes in turn.
+var lanes: Array = [] # per lane: { wp, seg, len }
+var merge_d := 0.0 # past this distance every lane is the same road
 var problem := "" # why the map can't be played, if its path is broken
 ## A hand-painted map (MapScene.art_layout): the layout data, the path as free points instead of tiles, and
 ## build pads or a build mask instead of the build grid. A pad is the cell (index, SPOT_ROW), so towers still key on a cell.
@@ -66,7 +71,8 @@ func _read_art(path: String) -> void:
 	art_dir = path.get_base_dir() + "/"
 	free_path = true
 	wp.clear()
-	for p in art.path:
+	var all_paths: Array = art.get("paths", [art.get("path", [])])
+	for p in all_paths[0]:
 		wp.append(Vector2(p[0], p[1]))
 	if art.has("build"):
 		var b: Dictionary = art.build
@@ -98,6 +104,16 @@ func _read_art(path: String) -> void:
 		problem = "The path needs at least 2 points."
 		return
 	_segments()
+	for k in range(1, all_paths.size()):
+		var pts: Array[Vector2] = []
+		for p in all_paths[k]:
+			pts.append(Vector2(p[0], p[1]))
+		var ln := _lane(pts)
+		if absf(ln.len - path_len) > 2.0:
+			problem = "Lane %d is %.0f long but the main road is %.0f; every lane must be as long." % [k, ln.len, path_len]
+			return
+		lanes.append(ln)
+	_find_merge()
 
 
 func kind_at(cell: Vector2i) -> String:
@@ -190,28 +206,76 @@ func _trace() -> void:
 
 
 func _segments() -> void:
-	seg.clear()
-	path_len = 0.0
-	for i in wp.size() - 1:
-		var l := wp[i].distance_to(wp[i + 1])
-		seg.append({ a = wp[i], b = wp[i + 1], len = l, start = path_len })
-		path_len += l
+	var ln := _lane(wp)
+	seg = ln.seg
+	path_len = ln.len
 	base = wp[wp.size() - 1]
+	lanes = [ln]
+	merge_d = 0.0
 
 
-func pos_at(d: float) -> Vector2:
-	if seg.is_empty() or d > path_len:
+static func _lane(pts: Array[Vector2]) -> Dictionary:
+	var sg := []
+	var total := 0.0
+	for i in pts.size() - 1:
+		var l := pts[i].distance_to(pts[i + 1])
+		sg.append({ a = pts[i], b = pts[i + 1], len = l, start = total })
+		total += l
+	return { wp = pts, seg = sg, len = total }
+
+
+# where the lanes become one road: walking back from the base, the first distance at which some lane leaves lane 0
+func _find_merge() -> void:
+	merge_d = 0.0
+	if lanes.size() < 2:
+		return
+	var d := path_len
+	while d > 0.0:
+		for k in range(1, lanes.size()):
+			if pos_at(d, k).distance_to(pos_at(d)) > 1.0:
+				merge_d = d + 2.0
+				return
+		d -= 2.0
+
+
+func lane_count() -> int:
+	return maxi(1, lanes.size())
+
+
+## Whether two spots along the road (lane, distance) are on the same stretch of it: the same lane, or both past the
+## point where the lanes join.
+func same_road(la: int, da: float, lb: int, db: float) -> bool:
+	return la == lb or (da >= merge_d and db >= merge_d)
+
+
+## The spot on any lane nearest p: { lane, d, dist }.
+func near_spot(p: Vector2) -> Dictionary:
+	var out := { lane = 0, d = 0.0, dist = INF }
+	for k in lane_count():
+		for sg in (lanes[k].seg if lanes.size() else seg):
+			var ab: Vector2 = sg.b - sg.a
+			var l2 := ab.length_squared()
+			var t := clampf((p - sg.a).dot(ab) / l2, 0.0, 1.0) if l2 > 0 else 0.0
+			var dd := p.distance_to(sg.a + ab * t)
+			if dd < out.dist - 0.01:
+				out = { lane = k, d = sg.start + sg.len * t, dist = dd }
+	return out
+
+
+func pos_at(d: float, lane := 0) -> Vector2:
+	var sl: Array = seg if lane <= 0 or lane >= lanes.size() else lanes[lane].seg
+	if sl.is_empty() or d > path_len:
 		return base
 	# binary search: hand-painted paths have many short segments
 	var lo := 0
-	var hi := seg.size() - 1
+	var hi := sl.size() - 1
 	while lo < hi:
 		var mid := (lo + hi) >> 1
-		if d <= seg[mid].start + seg[mid].len:
+		if d <= sl[mid].start + sl[mid].len:
 			hi = mid
 		else:
 			lo = mid + 1
-	var s: Dictionary = seg[lo]
+	var s: Dictionary = sl[lo]
 	return s.a.lerp(s.b, (d - s.start) / s.len) if s.len > 0 else s.b
 
 
@@ -244,6 +308,7 @@ func lattice_pt(i: float, j: float) -> Vector2:
 ## How far p is from the path's centre line (a hand-painted map's free path).
 func path_dist(p: Vector2) -> float:
 	var best := INF
-	for sg in seg:
-		best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, sg.a, sg.b)))
+	for k in lane_count():
+		for sg in (lanes[k].seg if lanes.size() else seg):
+			best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, sg.a, sg.b)))
 	return best
