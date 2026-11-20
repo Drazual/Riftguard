@@ -576,6 +576,7 @@ func _sync_beacon(S: Run, t: Tower, speed: float) -> void:
 		t.set_meta("view", b)
 		v = b
 	var b = v
+	b.set_path_colors(PathTint.colors(t))
 	_seen(b)
 	# the aura ticks while a wave is on (the game's own beacon pulse, every 3s)
 	if t.support and S.wave_active and S.time - t.fired_at > 3:
@@ -632,6 +633,7 @@ func _sync_turret(S: Run, t: Tower, d: TowerData, speed: float) -> void:
 	s.offset = -d.turret_foot + Vector2(0, FOOT / sc)
 	s.modulate = Color("#666677") if t.stun_t > 0 else (Color("#c9a8ff") if t.curse_t > 0 else Color.WHITE)
 	s.speed_scale = speed
+	PathTint.sprite(s, d, t, float(F)) # path colours on its accent zones, live as paths are bought
 	var face: int = s.get_meta("face")
 	# the beam's target, or else where the last shot went (a cannon has no held target)
 	var e = t.last_target
