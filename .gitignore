@@ -3,3 +3,5 @@ dist/
 .DS_Store
 *.log
 release/
+qa_out/
+*.blend1
