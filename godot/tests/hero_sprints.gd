@@ -43,6 +43,7 @@ func _cross(h: Hero, n: int, shots := "", pts := []) -> Dictionary:
 		pts = [Vector2(h.x + 320 if h.x < 500 else h.x - 320, h.y), h.pos()]
 	var at := 0
 	var a0 := h.atk_at
+	var times := []
 	g.move_hero(pts[0].x, pts[0].y)
 	for i in n:
 		await get_tree().process_frame
@@ -58,8 +59,13 @@ func _cross(h: Hero, n: int, shots := "", pts := []) -> Dictionary:
 		if h.atk_at != a0:
 			a0 = h.atk_at
 			res.atk += 1
-		if shots != "" and i < 40 and i % 2 == 0:
-			await _crop("%s_%02d" % [shots, i / 2], Vector2(h.x, Board.SY(h.y) - 20), Vector2(60, 60))
+		if shots != "" and i < 45:
+			await _crop("%s_%02d" % [shots, i], Vector2(h.x, Board.SY(h.y) - 20), Vector2(60, 60))
+			times.append(main.game.S.time)
+	if times.size() > 1:
+		# the game time at each frame, so the GIF can play at true speed
+		var f := FileAccess.open(out.path_join(shots + "_times.txt"), FileAccess.WRITE)
+		f.store_string(" ".join(times.map(func(x): return "%.4f" % x)))
 	return res
 
 
