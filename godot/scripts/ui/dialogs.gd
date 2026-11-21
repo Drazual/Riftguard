@@ -258,17 +258,9 @@ func enemy_intro(data: Dictionary) -> void:
 		row.add_child(EnemyPic.make(d))
 		var tv := Kit.vbox(6)
 		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var kind := "Final boss" if d.big_boss else ("Boss" if d.boss else "")
+		var kind := "Boss" if d.big_boss else ("Mini boss" if d.boss else "")
 		tv.add_child(Kit.head(d.name + ("  ·  " + kind if kind else ""), 26, d.color))
-		tv.add_child(Kit.rich(DB.tx("enemy:" + k, d.info), 15, Kit.TEXT))
-		var facts := ["%s HP this wave" % UiText.f0(d.hp * game.hp_scale(d, data.wave)), "speed %s" % UiText.f0(d.speed)]
-		if d.armor > 0:
-			facts.append("%s armor" % UiText.pct(d.armor))
-		facts.append("ends the run if it gets through" if d.big_boss else "costs %d base HP if it gets through" % d.lives)
-		var line := " · ".join(facts)
-		tv.add_child(Kit.muted(line.substr(0, 1).to_upper() + line.substr(1), 13))
-		if d.counter != "":
-			tv.add_child(Kit.rich(Kit.c("Counter: ", Kit.GOLD) + d.counter, 14, Kit.MUTED))
+		tv.add_child(Kit.rich(DB.tx("blurb:" + k, d.blurb if d.blurb != "" else d.info), 15, Kit.TEXT))
 		row.add_child(tv)
 		box.add_child(row)
 	var r := Kit.hbox()

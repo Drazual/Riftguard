@@ -15,5 +15,6 @@ color = Color(0.49019608, 1, 0.6901961, 1)
 heal = 0.03
 first_wave = 12
 per_wave = 1
+blurb = "The Mender is weak on its own but keeps healing the enemies around it."
 info = "Heals enemies within 70 for 3% of their max HP every second."
 counter = "Focus it first. Sniper Spotter and Headhunter help."

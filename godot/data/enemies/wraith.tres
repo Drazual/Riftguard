@@ -16,5 +16,6 @@ unstun = true
 unblockable = true
 first_wave = 6
 per_wave = 2
+blurb = "The Wraith is a blur of rift energy. Very fast, can't be stunned, and heroes and walls can't hold it up."
 info = "Very fast. Can’t be stunned, and heroes and walls can’t hold it up."
 counter = "Slows work. Frost and long range."

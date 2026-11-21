@@ -14,6 +14,7 @@ atk = 70.0
 radius = 18.0
 color = Color(1, 0.18039216, 0.3019608, 1)
 armor = 0.5
+blurb = "The Rift Warden is heavily armored, slows nearby towers and leaves your hero exposed, and calls in Grunts as it weakens."
 info = "50% armor. Rift Lock: every 9s makes 2 random towers attack 40% slower for 8s, and makes your hero take 30% more damage. Summons Grunts at 75%, 50% and 25% HP."
 counter = "Armor-piercing towers help. Kill the Grunts before they pile up."
 pushback_immune = true

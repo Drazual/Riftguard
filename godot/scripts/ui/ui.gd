@@ -1120,7 +1120,7 @@ func render_enemy() -> void:
 	Kit.clear(enemy_card)
 	var v := Kit.vbox(6)
 	enemy_card.add_child(v)
-	var kind := "Boss" if e.boss else ("Special" if d.first_wave > 0 else "Enemy")
+	var kind := ("Boss" if d.big_boss else "Mini boss") if e.boss else ("Special" if d.first_wave > 0 else "Enemy")
 	v.add_child(Kit.h3("%s · %s" % [d.name, kind], e.color))
 	var hp := Kit.meter(maxf(0, e.hp) / e.max, Kit.DANGER if e.boss else Kit.OK, 16)
 	hp.text = "%d/%d HP" % [ceili(maxf(0, e.hp)), roundi(e.max)]
@@ -1155,8 +1155,6 @@ func render_enemy() -> void:
 	if e.blocked: now.append("Blocked")
 	if now.size():
 		v.add_child(Kit.rich(Kit.c("Right now: ", Kit.MUTED) + Kit.c(", ".join(now), Kit.TECH), 13))
-	if d.counter != "":
-		v.add_child(Kit.rich(Kit.c("Counter: " + d.counter, Kit.GOLD), 13))
 
 
 func render_codex() -> void:
@@ -1195,7 +1193,7 @@ func render_enemy_codex() -> void:
 		return
 	for e: EnemyData in game.R.enemies:
 		if Save.meta.seen.get(e.id, false):
-			enemy_box.add_child(Kit.rich(Kit.b(Kit.c(e.name, e.color)) + "  " + Kit.c(DB.tx("enemy:" + e.id, e.info) + (" Can’t be pushed back." if e.pushback_immune or e.boss else ""), Kit.MUTED) + "\n" + Kit.c("Counter: " + e.counter, Kit.GOLD), 13))
+			enemy_box.add_child(Kit.rich(Kit.b(Kit.c(e.name, e.color)) + "  " + Kit.c(DB.tx("enemy:" + e.id, e.info) + (" Can’t be pushed back." if e.pushback_immune or e.boss else ""), Kit.MUTED), 13))
 		else:
 			enemy_box.add_child(Kit.rich("???  " + Kit.c("Not met yet", Kit.MUTED), 13))
 

@@ -114,9 +114,9 @@ extends Resource
 @export var boss_hp_growth := 0.2
 @export var grunts_base := 8
 @export var grunts_per_wave := 3
-@export var runners_from := 2
+@export var runners_from := 3
 @export var runners_per_wave := 2
-@export var brutes_from := 4
+@export var brutes_from := 6
 ## Waves stop getting longer here (as a wave of the first map, Game.level_of): tougher waves after it send the same
 ## number of enemies, but every level past it swaps big_swap Grunts for one Brute, and HP keeps climbing.
 @export var count_cap := 12

@@ -37,6 +37,8 @@ extends Resource
 ## Special enemies: the first wave it shows up, and how many come each time.
 @export var first_wave := 0
 @export var per_wave := 0
+## A short flavour line shown when the enemy first appears (no numbers: players find those out).
+@export_multiline var blurb := ""
 @export_multiline var info := ""
 @export_multiline var counter := ""
 @export_group("Boss")

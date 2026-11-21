@@ -182,7 +182,7 @@ func show_map_select() -> void:
 
 # ---------- a new run: hero and towers ----------
 ## A map's difficulty in one line for its card: how strong its waves start and end, its prices, its start gold
-## and the enemies it brings in for the first time ("" for the first map, which has none of that).
+## ("" for the first map, which has none of that). New enemies are left for players to find.
 static func map_rules(m: MapScene) -> String:
 	var out := []
 	if m.start_level > 1.0:
@@ -192,8 +192,6 @@ static func map_rules(m: MapScene) -> String:
 		out.append("everything costs %d%% more" % roundi((m.price - 1.0) * 100))
 	if m.start_gold > 0:
 		out.append("start with %d gold" % m.start_gold)
-	if m.new_enemies.size():
-		out.append("new: " + ", ".join(Array(m.new_enemies).map(func(k): return DB.enemies[k].name if DB.enemies.has(k) else k)))
 	return (", ".join(out)).substr(0, 1).to_upper() + (", ".join(out)).substr(1) + "." if out.size() else ""
 
 

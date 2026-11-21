@@ -59,13 +59,16 @@ func _ready() -> void:
 	_check(is_equal_approx(g.level_of(7), 7.0), "the first map's waves play at their own number")
 
 	var p1 := _types_by_wave(order[0])
-	for k in ["splitter", "bastion", "anchor", "shieldbearer", "mender"]:
+	for k in ["phantom", "splitter", "bastion", "anchor", "shieldbearer", "mender"]:
 		_check(_first(p1, k) == 0, "%s never comes on the first map" % k)
-	_check(_first(p1, "wraith") == 6 and _first(p1, "phantom") == 8, "the first map brings Wraiths at wave 6 and Phantoms at 8 (%d, %d)" % [_first(p1, "wraith"), _first(p1, "phantom")])
+	_check(_first(p1, "wraith") == 12, "the first map brings Wraiths at wave 12 (%d)" % _first(p1, "wraith"))
+	_check(_first(p1, "runner") == 3 and _first(p1, "brute") == 6, "the first map brings Runners at 3 and Brutes at 6 (%d, %d)" % [_first(p1, "runner"), _first(p1, "brute")])
 	var p2 := _types_by_wave(order[1])
 	_check(p2[1].has("brute") and p2[1].has("wraith"), "map 2 has Brutes and Wraiths from wave 1")
-	_check(_first(p2, "splitter") == 4 and _first(p2, "bastion") == 9, "map 2 introduces Splitters at 4 and Bastions at 9 (%d, %d)" % [_first(p2, "splitter"), _first(p2, "bastion")])
-	_check(_first(p2, "anchor") == 0 and _first(p2, "mender") == 0, "map 2 has no Anchors or Menders (later maps bring them)")
+	_check(_first(p2, "phantom") == 10, "map 2 introduces Phantoms at 10 (%d)" % _first(p2, "phantom"))
+	_check(_first(p2, "splitter") == 0 and _first(p2, "mender") == 0, "map 2 has no Splitters or Menders (later maps bring them)")
+	for i in order.size():
+		_check(DB.maps[order[i]].scene.new_enemies.size() <= 1, "%s brings in at most one new enemy" % DB.maps[order[i]].scene.map_name)
 	var last := _types_by_wave(order[order.size() - 1])
 	var all_in := true
 	for k in DB.special_enemies:
@@ -84,13 +87,18 @@ func _ready() -> void:
 	g.S.wave_active = false
 	g.S.spawn_q.clear()
 	intros.clear()
+	g.S.wave = 2
 	g.start_wave()
-	_check(intros.size() == 1 and not intros[0].has("grunt") and intros[0].has("runner"), "wave 2 introduces the Runner, not the Grunt again (%s)" % [intros])
+	_check(intros.size() == 1 and not intros[0].has("grunt") and intros[0].has("runner"), "wave 3 introduces the Runner, not the Grunt again (%s)" % [intros])
 
 	# the map cards say how hard each map is
 	for k in order:
 		print("     %s: %s" % [k, Menus.map_rules(DB.maps[k].scene)])
-	_check(Menus.map_rules(DB.maps[order[0]].scene).contains("Wraith") and Menus.map_rules(DB.maps[order[1]].scene).contains("15% more"), "the map cards list the new enemies and prices")
+	var leaks := false
+	for k in order:
+		for e in DB.special_enemies:
+			leaks = leaks or Menus.map_rules(DB.maps[k].scene).contains(DB.enemies[e].name)
+	_check(not leaks and Menus.map_rules(DB.maps[order[1]].scene).contains("15% more"), "the map cards give prices but never name the enemies a map brings")
 
 	print("MAP PROGRESSION PASS" if fails == 0 else "MAP PROGRESSION FAIL (%d)" % fails)
 	get_tree().quit(1 if fails else 0)
