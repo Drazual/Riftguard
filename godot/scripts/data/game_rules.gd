@@ -117,6 +117,10 @@ extends Resource
 @export var runners_from := 2
 @export var runners_per_wave := 2
 @export var brutes_from := 4
+## Waves stop getting longer here (as a wave of the first map, Game.level_of): tougher waves after it send the same
+## number of enemies, but every level past it swaps big_swap Grunts for one Brute, and HP keeps climbing.
+@export var count_cap := 12
+@export var big_swap := 3
 @export var spawn_gap_start := 0.9
 @export var spawn_gap_per_wave := 0.04
 @export var spawn_gap_min := 0.3

@@ -1,5 +1,6 @@
 ## Playtest bot: plays whole runs with one hero, loadout and strategy, and prints per-wave rows and a summary.
 ## Run: godot --headless --path godot res://tests/playtest_bot.tscn -- <map> <hero> <strategy> <towers,comma> [seeds]
+## VET=0.5 in the environment: play as a returning player with half of every menu upgrade bought.
 ## Strategies:
 ##   balanced  mixed loadout, builds while a tower is not much dearer than an upgrade, Normal waves
 ##   towers    tower-heavy: builds up to the cap first, picks tower perks (aura, range, cheaper levels)
@@ -43,6 +44,15 @@ func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 	# every run starts from a fresh save: no menu upgrades, mastery perks or map wins carried over from earlier runs
 	Save.meta = Save.default_meta()
 	Save._fill()
+	# VET=0.5: a returning player who has bought half of every menu upgrade (all-hero, all-tower and this hero's)
+	var vet := float(OS.get_environment("VET")) if OS.get_environment("VET") != "" else 0.0
+	if vet > 0:
+		for u: UpgradeData in game.R.global_meta.items:
+			Save.meta.global[u.id] = roundi(u.max_rank * vet)
+		for u: UpgradeData in game.R.tower_global.items:
+			Save.meta.tower_global[u.id] = roundi(u.max_rank * vet)
+		for u: UpgradeData in DB.heroes[hero].meta:
+			Save.hero_meta(hero)[u.id] = roundi(u.max_rank * vet)
 	game.new_run(map_id)
 	game.start_run(hero, towers)
 	var S := game.S
