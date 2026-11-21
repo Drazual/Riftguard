@@ -70,9 +70,9 @@ func _ready() -> void:
 	_check(h.pen_cut() < 1.0, "%.0f penetration still leaves armor (%.4f ignored)" % [h.armor_pen, h.pen_cut()])
 	m.queue_free()
 	await get_tree().process_frame
-	# Sniper: Piercing Shot 2.0x
+	# Sniper: Piercing Shot 1.0x (halved Nov 2026)
 	m = await _run("sniper", false)
-	_check(m.game.S.hero.ab.id == "pierce" and is_equal_approx(m.game.S.hero.ab.mult, 2.0), "Piercing Shot %.1fx" % m.game.S.hero.ab.mult)
+	_check(m.game.S.hero.ab.id == "pierce" and is_equal_approx(m.game.S.hero.ab.mult, 1.0), "Piercing Shot %.1fx" % m.game.S.hero.ab.mult)
 	m.queue_free()
 	await get_tree().process_frame
 	# Sniper with Orbital Strike: Radiation Field

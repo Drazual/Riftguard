@@ -127,6 +127,7 @@ var aegis := false
 var debt := 0.0
 var free_build := 0
 var ab_crit := false
+var black_hole := false # Event Horizon: the ability opens a black hole that drags enemies in and strips armor
 var lifesteal := 0.0
 var overkill := false
 # boss debuffs on the hero

@@ -149,6 +149,18 @@ rarity = "legendary"
 kind = "unique:overwatch"
 heroes = PackedStringArray()
 
+[sub_resource type="Resource" id="U_blackhole"]
+script = ExtResource("1_7nimu")
+id = "blackhole"
+name = "Event Horizon"
+desc = "Your ability tears open a black hole for 3s that drags nearby enemies into its middle and strips 30% of their armor."
+effect = "h.black_hole = true"
+pool = "sniper"
+also_pools = PackedStringArray()
+rarity = "legendary"
+kind = "unique:blackhole"
+heroes = PackedStringArray()
+
 [sub_resource type="Resource" id="U_abcrit"]
 script = ExtResource("1_7nimu")
 id = "abcrit"
@@ -435,4 +447,4 @@ heroes = PackedStringArray()
 
 [resource]
 script = ExtResource("2_rcrdk")
-items = Array[ExtResource("1_7nimu")]([SubResource("U_thornarmor"), SubResource("U_echo"), SubResource("U_archmage"), SubResource("U_manashield"), SubResource("U_aegis"), SubResource("U_unbreak"), SubResource("U_exec"), SubResource("U_stasisL"), SubResource("U_storm"), SubResource("U_master"), SubResource("U_warp"), SubResource("U_deadeye"), SubResource("U_overwatch"), SubResource("U_abcrit"), SubResource("U_bruiser"), SubResource("U_eyestorm"), SubResource("U_downdraft"), SubResource("U_lifesteal"), SubResource("U_overkill"), SubResource("U_bounty"), SubResource("U_tithe"), SubResource("U_interest"), SubResource("U_sun"), SubResource("U_midas"), SubResource("U_heart"), SubResource("U_sl_overlord"), SubResource("U_sl_titan"), SubResource("U_sl_dilation"), SubResource("U_sm_horizon"), SubResource("U_sm_engine"), SubResource("U_sm_godhand"), SubResource("U_dev_money"), SubResource("U_dev_console"), SubResource("U_dev_noclip"), SubResource("U_dev_lives")])
+items = Array[ExtResource("1_7nimu")]([SubResource("U_thornarmor"), SubResource("U_echo"), SubResource("U_archmage"), SubResource("U_manashield"), SubResource("U_aegis"), SubResource("U_unbreak"), SubResource("U_exec"), SubResource("U_stasisL"), SubResource("U_storm"), SubResource("U_master"), SubResource("U_warp"), SubResource("U_deadeye"), SubResource("U_overwatch"), SubResource("U_blackhole"), SubResource("U_abcrit"), SubResource("U_bruiser"), SubResource("U_eyestorm"), SubResource("U_downdraft"), SubResource("U_lifesteal"), SubResource("U_overkill"), SubResource("U_bounty"), SubResource("U_tithe"), SubResource("U_interest"), SubResource("U_sun"), SubResource("U_midas"), SubResource("U_heart"), SubResource("U_sl_overlord"), SubResource("U_sl_titan"), SubResource("U_sl_dilation"), SubResource("U_sm_horizon"), SubResource("U_sm_engine"), SubResource("U_sm_godhand"), SubResource("U_dev_money"), SubResource("U_dev_console"), SubResource("U_dev_noclip"), SubResource("U_dev_lives")])
