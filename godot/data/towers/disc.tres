@@ -86,6 +86,7 @@ script = ExtResource("2_data")
 id = "disc"
 name = "Razor Disc"
 cost = 150
+level_price = 0.6
 dmg = 80.0
 rate = 2.2
 range = 200.0
