@@ -1267,7 +1267,12 @@ func render_hero() -> void:
 			["Crit damage", UiText.pct(h.crit_dmg)]]
 	if h.brace:
 		rows.append(["Brace", UiText.f2(h.brace) + "s"])
-	rows += [["Armor", "%d (%s less damage)" % [int(round(h.armor)), UiText.pct(h.armor_cut())]], ["Blocks", UiText.block_text(h.block)], ["Regen/s", UiText.f1(h.regen)], ["Respawn", UiText.f1(h.respawn) + "s"],
+	# damage heroes show how much enemy armor their shots ignore; the rest (tanks, support, the Wizard) show their armor
+	if d.category == "offensive":
+		rows.append(["Armor pen", "%d (ignores %s)" % [int(round(h.armor_pen)), UiText.pct(h.pen_cut())]])
+	else:
+		rows.append(["Armor", "%d (%s less damage)" % [int(round(h.armor)), UiText.pct(h.armor_cut())]])
+	rows += [["Blocks", UiText.block_text(h.block)], ["Regen/s", UiText.f1(h.regen)], ["Respawn", UiText.f1(h.respawn) + "s"],
 		["Build range", f.call(h.build_range)], ["Move speed", f.call(h.speed)]]
 	if h.aura: rows.append(["Tower aura", "+" + UiText.pct(h.aura)])
 	if h.bounty: rows.append(["Hero kill gold", "+" + UiText.pct(h.bounty)])

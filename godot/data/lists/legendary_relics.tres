@@ -28,7 +28,7 @@ heroes = PackedStringArray()
 script = ExtResource("1_0c8rn")
 id = "phoenixcore"
 name = "Phoenix Core"
-desc = "The first time your base would fall, it survives with 10 HP."
+desc = "The first time your base would fall, it survives with 10 HP. It can't stop the Rift Tyrant."
 effect = "run.mod_phoenix = true"
 also_pools = PackedStringArray()
 rarity = "legendary"

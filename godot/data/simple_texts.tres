@@ -325,7 +325,7 @@ texts = {
 "relic:lens": "All towers reach farther.",
 "relic:loop": "Your ability recharges much faster and your hero attacks faster.",
 "relic:overcharger": "All towers deal more damage.",
-"relic:phoenixcore": "Your base survives the first time it would fall.",
+"relic:phoenixcore": "Your base survives the first time it would fall (not against the Rift Tyrant).",
 "relic:repair": "Your base heals some HP.",
 "relic:starforge": "All towers deal more damage and reach farther.",
 "relic:treasury": "Kills give more gold.",
