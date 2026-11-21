@@ -441,7 +441,7 @@ id = "apround"
 name = "Armor-Piercing Rounds"
 desc = "{h.ab.name} deals +{pct(m)} damage."
 effect = "h.ab.mult *= 1 + m"
-m = 0.3
+m = 0.15
 pool = "sniper"
 also_pools = PackedStringArray()
 kind = "ability"
@@ -865,7 +865,7 @@ name = "Radiation Field"
 desc = "{iff(h.ab.rad_t > 0, 'The radiation field lasts 1s longer and deals +' + pct(m) + ' of your hero damage more each second.', 'Orbital Strike leaves a radiation field for 4s: enemies in it are slowed 30% and take ' + pct(m) + ' of your hero damage every second.')}"
 effect = "h.ab.rad_dps += m
 h.ab.rad_t = iff(h.ab.rad_t > 0, h.ab.rad_t + 1, 4.0)"
-m = 0.3
+m = 0.15
 pool = "sniper"
 also_pools = PackedStringArray()
 ability = "strike"

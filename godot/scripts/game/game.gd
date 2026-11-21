@@ -2191,7 +2191,9 @@ func orbital_strike(h: Hero, a: Ability) -> void:
 		line(x, 0, x, y, 0xffffff, 0.25, 10 * mult)
 		ring(x, y, r, 0xffd36e, 0.5, true)
 		if a.scorch:
-			zone({ x = x, y = y, r = r * 0.8, t = 4.0, dps = hero_dmg() * 0.6, color = 0xff8a3d })
+			zone({ x = x, y = y, r = r * 0.8, t = 4.0, dps = hero_dmg() * 0.3, color = 0xff8a3d })
+		if h.black_hole and mult >= 1.0:
+			open_black_hole(x, y)
 		if a.rad_t > 0 and mult >= 1.0:
 			# Radiation Field: a glowing patch that keeps burning and slowing whatever walks through it
 			zone({ x = x, y = y, r = r * 0.9, t = a.rad_t, dps = hero_dmg() * a.rad_dps, slow = 0.3, color = 0x7dff4a, rad = true })
@@ -2479,11 +2481,19 @@ func piercing_shot(h: Hero, a: Ability) -> void:
 				if o != e:
 					damage(o, base * 0.4)
 			ring(e.x, e.y, 50, 0xffb35d, 0.3, true)
+	if h.black_hole:
+		var mid := Vector2(goal.x, goal.y)
+		if hit.size():
+			mid = Vector2.ZERO
+			for e in hit:
+				mid += e.pos()
+			mid /= hit.size()
+		open_black_hole(mid.x, mid.y)
 	var ex2 := h.x + ux * 2000
 	var ey2 := h.y + uy * 2000
 	line(h.x, h.y, ex2, ey2, 0xffd36e, 0.35, 14 if a.rail else 4, { pierce = true })
 	if a.rail:
-		zone({ line = true, x = h.x, y = h.y, x1 = h.x, y1 = h.y, x2 = ex2, y2 = ey2, r = w, t = 3.0, dps = hero_dmg() * 0.8, color = 0xffd36e })
+		zone({ line = true, x = h.x, y = h.y, x1 = h.x, y1 = h.y, x2 = ex2, y2 = ey2, r = w, t = 3.0, dps = hero_dmg() * 0.4, color = 0xffd36e })
 	if a.bounce:
 		var from = lead
 		if hit.size():
@@ -2558,6 +2568,32 @@ func push_back(e: Enemy, dur: float, spd: float, h: Hero) -> void:
 	if h.cls == "gale":
 		e.spot = maxf(e.spot if e.spot_t > 0 else 0.0, R.tailwind)
 		e.spot_t = maxf(e.spot_t, R.tailwind_time)
+
+
+const HOLE_TIME := 3.0
+const HOLE_R := 150.0
+const HOLE_SHRED := 0.3
+## Event Horizon: a black hole that, every quarter second for HOLE_TIME, drags the enemies within HOLE_R toward its
+## middle (along the path; bosses a third of the way, anything that can't be pushed back stays put) and strips
+## HOLE_SHRED of their armor for a few seconds.
+func open_black_hole(x: float, y: float) -> void:
+	S.holes.append({ x = x, y = y, t = HOLE_TIME, tick = 0.0 })
+	ring(x, y, HOLE_R, 0x9b5cff, 0.6, true)
+
+
+func _holes_step(dt: float) -> void:
+	for b in S.holes:
+		b.t -= dt
+		b.tick -= dt
+		if b.tick > 0:
+			continue
+		b.tick = 0.25
+		var at := Vector2(b.x, b.y)
+		for e in in_range(b.x, b.y, HOLE_R):
+			shred_enemy(e, HOLE_SHRED, 3.0)
+			e.pull_n = 0 # the hole doesn't wear off like a spell's pull
+			pull_enemy(e, at, S.hero)
+	S.holes = S.holes.filter(func(b): return b.t > 0)
 
 
 const PULL_TIME := 0.3
@@ -4164,6 +4200,8 @@ func update(dt: float) -> void:
 			ring(c.x, c.y, 20, 0xf2c14e, 0.4, true)
 			sfx("kill")
 	S.coins = S.coins.filter(func(c): return not c.get("got", false))
+	if S.holes.size():
+		_holes_step(dt)
 	if S.quest_drop != null and h.ko <= 0 and hyp(S.quest_drop.x - h.x, S.quest_drop.y - h.y) <= QUEST_PICKUP:
 		pick_up_quest()
 	for ec in S.echoes:

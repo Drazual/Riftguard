@@ -16,6 +16,7 @@ var boss_kills := 0
 var log: Array = []
 var ws = null # this wave's log entry (Dictionary)
 var drained = null # Tower
+var holes: Array = [] # Event Horizon black holes: { x, y, t, tick }
 var lone_tower = null # Tower: Lone Tower's pick, the only tower that deals damage this wave
 var top_tower = null # Tower: last wave's top damage dealer (Burnout shuts it down)
 var recent_mods: Array = [] # the modifiers the last few wave choices offered, so they rarely repeat

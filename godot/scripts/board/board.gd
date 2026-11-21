@@ -2612,6 +2612,15 @@ func _draw_over() -> void:
 		var p := P(c.x, c.y, 6)
 		_circle(o, p, 6, hx(0xf2c14e))
 		_ring(o, p, 8 + 2 * sin(S.time * 6), Color(1, 1, 1, 0.8), 1)
+	for b in S.holes:
+		# Event Horizon: a dark core with violet rings spiralling in
+		var hp := P(b.x, b.y)
+		var fade := clampf(b.t / 0.4, 0.0, 1.0)
+		_circle(o, hp, 22 * fade, Color(0.02, 0.0, 0.06, 0.95 * fade))
+		for i in 3:
+			var k := fmod(S.time * 0.8 + i / 3.0, 1.0)
+			_ring(o, hp, lerpf(game.HOLE_R, 24, k) * fade, hx(0x9b5cff, 0.6 * k * fade), 2)
+		_ring(o, hp, 24 * fade, hx(0xd0a8ff, 0.9 * fade), 2)
 	if S.quest_drop != null:
 		# a flag bearer's dropped quest: a little banner on a pole, pulsing, until the hero walks over it
 		var qp := P(S.quest_drop.x, S.quest_drop.y)
