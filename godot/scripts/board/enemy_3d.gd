@@ -267,6 +267,8 @@ func tick(e: Enemy, speed: float, dt: float, hero := Vector2.INF) -> void:
 	frost = move_toward(frost, want, gdt * (4.0 if want > frost else 1.5))
 	frost_mat.set_shader_parameter("frost", frost)
 	modulate = Color.WHITE.lerp(Color(0.8, 0.92, 1.15), frost)
+	if e.flag: # a flag bearer: tinted pink and glowing
+		modulate *= Color(1.5, 0.75, 1.4).lerp(Color(1.9, 1.0, 1.8), 0.5 + 0.5 * sin(Time.get_ticks_msec() / 200.0))
 	_turn(gdt)
 
 

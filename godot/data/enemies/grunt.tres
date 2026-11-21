@@ -10,5 +10,6 @@ hp = 55.0
 speed = 52.0
 color = Color(1, 0.3647059, 0.42352942, 1)
 model_dir = "res://art_src/enemies/rift_prowler"
+blurb = "The Grunt is the rift's foot soldier. Nothing special, but they come in numbers."
 info = "No special trait."
 counter = "Anything works."

@@ -3,60 +3,132 @@
 [ext_resource type="Script" uid="uid://b6dcjvwh7voow" path="res://scripts/data/upgrade_data.gd" id="1_qkisx"]
 [ext_resource type="Script" uid="uid://dc0q6jhs6auw6" path="res://scripts/data/upgrade_list.gd" id="2_156ye"]
 
-[sub_resource type="Resource" id="Resource_eg337"]
+[sub_resource type="Resource" id="Resource_hp"]
 script = ExtResource("1_qkisx")
 id = "hp"
 name = "Thick Hide"
-desc = "Enemies have 40% more HP."
+desc = "Enemies have double HP."
 also_pools = PackedStringArray()
-pts = 1
+pts = 3
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_pynu2"]
+[sub_resource type="Resource" id="Resource_armor"]
 script = ExtResource("1_qkisx")
 id = "armor"
 name = "Plated"
-desc = "Enemies take 15% less damage (extra armor)."
+desc = "Enemies have double armor, and unarmored ones get 15%."
 also_pools = PackedStringArray()
-pts = 1
+pts = 2
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_urnjn"]
-script = ExtResource("1_qkisx")
-id = "speed"
-name = "Quickened"
-desc = "Enemies move 20% faster."
-also_pools = PackedStringArray()
-pts = 1
-heroes = PackedStringArray()
-
-[sub_resource type="Resource" id="Resource_tb0aa"]
-script = ExtResource("1_qkisx")
-id = "regen"
-name = "Regenerating"
-desc = "Enemies heal 2% of their max HP every second."
-also_pools = PackedStringArray()
-pts = 1
-heroes = PackedStringArray()
-
-[sub_resource type="Resource" id="Resource_yvtwn"]
+[sub_resource type="Resource" id="Resource_horde"]
 script = ExtResource("1_qkisx")
 id = "horde"
 name = "Horde"
-desc = "25% more enemies."
+desc = "50% more enemies."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_speed"]
+script = ExtResource("1_qkisx")
+id = "speed"
+name = "Quickened"
+desc = "Enemies move 35% faster."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_regen"]
+script = ExtResource("1_qkisx")
+id = "regen"
+name = "Regenerating"
+desc = "Enemies heal 3% of their max HP every second."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_unslow"]
+script = ExtResource("1_qkisx")
+id = "unslow"
+name = "Unshakable"
+desc = "Slows don't work at all."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_unstun"]
+script = ExtResource("1_qkisx")
+id = "unstun"
+name = "Unstoppable"
+desc = "Enemies can't be stunned."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_ghost"]
+script = ExtResource("1_qkisx")
+id = "ghost"
+name = "Ethereal"
+desc = "Heroes and walls can't block enemies."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_anchored"]
+script = ExtResource("1_qkisx")
+id = "anchored"
+name = "Anchored"
+desc = "Enemies can't be pushed back and have 30% more HP."
 also_pools = PackedStringArray()
 pts = 1
 heroes = PackedStringArray()
 
-[sub_resource type="Resource" id="Resource_4r78p"]
+[sub_resource type="Resource" id="Resource_escort"]
 script = ExtResource("1_qkisx")
-id = "steady"
-name = "Steadfast"
-desc = "Slows are half as strong."
+id = "escort"
+name = "Escorted"
+desc = "Two extra Rift Knights join the wave."
 also_pools = PackedStringArray()
-pts = 1
+pts = 3
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_brood"]
+script = ExtResource("1_qkisx")
+id = "brood"
+name = "Brood"
+desc = "Every enemy that isn't a boss splits into 2 Runners when it dies."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_rush"]
+script = ExtResource("1_qkisx")
+id = "rush"
+name = "Rush"
+desc = "Enemies come in twice as fast and move 15% faster."
+also_pools = PackedStringArray()
+pts = 2
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_swarm"]
+script = ExtResource("1_qkisx")
+id = "swarm"
+name = "Swarm"
+desc = "Twice as many enemies, each with 25% less HP."
+also_pools = PackedStringArray()
+pts = 3
+heroes = PackedStringArray()
+
+[sub_resource type="Resource" id="Resource_iron"]
+script = ExtResource("1_qkisx")
+id = "iron"
+name = "Iron Tide"
+desc = "Every enemy is a Brute, and there are more of them."
+also_pools = PackedStringArray()
+pts = 3
 heroes = PackedStringArray()
 
 [resource]
 script = ExtResource("2_156ye")
-items = Array[ExtResource("1_qkisx")]([SubResource("Resource_eg337"), SubResource("Resource_pynu2"), SubResource("Resource_urnjn"), SubResource("Resource_tb0aa"), SubResource("Resource_yvtwn"), SubResource("Resource_4r78p")])
+items = Array[ExtResource("1_qkisx")]([SubResource("Resource_hp"), SubResource("Resource_armor"), SubResource("Resource_horde"), SubResource("Resource_speed"), SubResource("Resource_regen"), SubResource("Resource_unslow"), SubResource("Resource_unstun"), SubResource("Resource_ghost"), SubResource("Resource_anchored"), SubResource("Resource_escort"), SubResource("Resource_brood"), SubResource("Resource_rush"), SubResource("Resource_swarm"), SubResource("Resource_iron")])

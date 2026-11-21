@@ -179,7 +179,12 @@ func map_price() -> float:
 
 
 func has_tough(id: String) -> bool:
-	return S.mode.has("tough") and (S.mode.tough as Array).has(id)
+	return S != null and S.mode.has("tough") and (S.mode.tough as Array).has(id)
+
+
+## A handicap of this wave's mode (Weakened, Benched, Lone Tower and the like).
+func has_debuff(id: String) -> bool:
+	return S != null and S.mode.has("debuffs") and (S.mode.debuffs as Array).has(id)
 
 
 func in_range(x: float, y: float, r: float) -> Array:
@@ -507,7 +512,7 @@ func t_range(t: Tower) -> float:
 	var b := 1.0
 	if t.buff:
 		b = (1 + t.buff.range) * (2.0 if t.buff.light else 1.0)
-	return t.range * (1 + S.hero.tower_range) * b * (1 - t.curse_range if t.curse_t > 0 else 1.0)
+	return t.range * (1 + S.hero.tower_range) * b * (1 - t.curse_range if t.curse_t > 0 else 1.0) * (R.short_range if has_debuff("short") else 1.0) * (R.lone_pick_range if t == S.lone_tower and has_debuff("lonetower") else 1.0)
 
 
 func tower_name(t: Tower) -> String:
@@ -598,14 +603,30 @@ func hyp(x: float, y: float) -> float:
 
 
 func tower_mode_mul() -> float:
-	var ch = S.mode.get("challenge", "")
-	return (R.lone_tower if ch == "lone" else R.weak_tower if ch == "weak" else 1.0) * (1 + S.tower_bonus)
+	return (R.lone_tower if has_debuff("lone") else 1.0) * (R.weak_tower if has_debuff("weak") else 1.0) * (1 + S.tower_bonus)
+
+
+## Lone Tower: the one tower that deals damage this wave. If it's gone (sold or merged), the next tower to land a hit
+## takes over.
+func lone_pick() -> Tower:
+	if not has_debuff("lonetower"):
+		return null
+	if S.lone_tower != null and not S.towers.has(S.lone_tower):
+		S.lone_tower = null
+	return S.lone_tower
+
+
+## Burnout and Power Surges: towers that can't act right now.
+func tower_off(t: Tower) -> bool:
+	if has_debuff("burnout") and S.mode.get("off") == t:
+		return true
+	return has_debuff("surges") and S.wave_active and fmod(S.time, R.surge_every) >= R.surge_every - R.surge_off
 
 
 func hero_dmg() -> float:
 	var h := S.hero
 	var base := h.dmg + (h.max_hp * R.tank_attack_hp if h.data.category == "defensive" else 0.0)
-	return base * (R.lone_hero if S.mode.get("challenge", "") == "lone" else 1.0) * (1 + sb("dmg")) * (1 - h.weak if h.weak_t > 0 else 1.0)
+	return base * (R.lone_hero if has_debuff("lone") else 1.0) * (R.exhausted_hero if has_debuff("exhausted") else 1.0) * (1 + sb("dmg")) * (1 - h.weak if h.weak_t > 0 else 1.0)
 
 
 ## A Hero Shrine buff to the hero (dmg, rate, armor, regen, cdr, range, block, knock, crit, boss, aura, spell, mana, shield).
@@ -626,11 +647,11 @@ func in_view(e) -> bool:
 
 
 func hero_range(h: Hero) -> float:
-	return h.range if h.range >= 9999 else h.range * (1 + sb("range"))
+	return h.range if h.range >= 9999 else h.range * (1 + sb("range")) * (R.short_range if has_debuff("short") else 1.0)
 
 
 func spell_pow(h: Hero) -> float:
-	return h.spell * (R.lone_hero if S and S.mode.get("challenge", "") == "lone" else 1.0) * (1 + sb("spell"))
+	return h.spell * (R.lone_hero if has_debuff("lone") else 1.0) * (R.exhausted_hero if has_debuff("exhausted") else 1.0) * (1 + sb("spell"))
 
 
 func is_sprite_tower(t: Tower) -> bool:
@@ -703,6 +724,8 @@ func cores_for(type: String) -> int:
 
 ## force_half: an unslowable enemy still takes half of it (Absolute Zero).
 func slow_enemy(e: Enemy, amt: float, dur := 1.6, force_half := false) -> void:
+	if has_tough("unslow"):
+		return # Unshakable: no slow works at all this wave
 	if e.unslow:
 		if not force_half:
 			return
@@ -739,6 +762,17 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false, pen :=
 	if e.dead:
 		return
 	var tw: bool = src is Tower
+	if has_debuff("lonetower"):
+		# Lone Tower: only the picked tower hurts enemies (the others still slow, stun and debuff)
+		if not tw:
+			return
+		var lp := lone_pick()
+		if lp == null:
+			S.lone_tower = src
+			lp = src
+		if src != lp:
+			return
+		amt *= R.lone_pick_dmg
 	amt *= 1 + (e.mark if e.mark_t > 0 else 0.0) + (e.brittle if e.brittle_t > 0 else 0.0) + (e.spot if e.spot_t > 0 and tw else 0.0) + (S.mod_boss_dmg if e.boss and tw else 0.0) + vuln_of(e, tw)
 	if tw and src.curse_t > 0:
 		amt *= 1 - src.curse_dmg
@@ -782,6 +816,11 @@ func damage(e: Enemy, amt: float, src = null, pierce := 0, crit := false, pen :=
 func _kill(e: Enemy, src) -> void:
 	e.dead = true
 	var h := S.hero
+	if e.flag:
+		S.quest_drop = { x = e.x, y = e.y }
+		ring(e.x, e.y, 60, FLAG_COLOR, 0.8, true)
+		say("The flag bearer dropped a quest! Send your hero to pick it up.")
+		sfx("level")
 	var by_hero: bool = not (src is Tower)
 	# Second Wind (Hero Shrine): a kill by the hero's ability takes time off its cooldown, up to 3s a cast
 	if by_hero and _ab_ctx != null and sb("refund") > 0 and _ab_ctx.left > 0:
@@ -789,7 +828,7 @@ func _kill(e: Enemy, src) -> void:
 		_ab_ctx.left -= back
 		h.ab.t = maxf(0.0, h.ab.t - back)
 	# Bounty Sigil and War Tithe add a share of the enemy's own gold, so they grow with the game instead of doubling it early.
-	var g: float = e.gold * (S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe)
+	var g: float = 0.0 if has_debuff("poor") else e.gold * (S.mod_gold + (h.bounty if by_hero else 0.0) + h.tithe)
 	if not by_hero and src.buff and src.buff.gold:
 		g *= 1 + src.buff.gold
 	if not by_hero and src.buff and src.buff.rush and randf() < 0.08:
@@ -1627,13 +1666,13 @@ func beacon_power(b: Tower) -> float:
 func compute_buffs() -> void:
 	S.shrine = {}
 	for b in S.towers:
-		if b.hero_buff and not (b.stun_t > 0):
+		if b.hero_buff and not (b.stun_t > 0) and not tower_off(b):
 			# a boss curse on the Shrine weakens what it gives the hero
 			var cut := 1.0 - (maxf(b.curse_dmg, maxf(b.curse_rate, b.curse_range)) if b.curse_t > 0 else 0.0)
 			for k in SHRINE_KEYS:
 				var v := float(b.get("hb_" + k))
 				S.shrine[k] = S.shrine.get(k, 0.0) + (v if k == "bruiser" or k == "block" else v * cut)
-	var beacons := S.towers.filter(func(b): return (b.support or b.b_dmg > 0) and not b.hero_buff and not (b.stun_t > 0))
+	var beacons := S.towers.filter(func(b): return (b.support or b.b_dmg > 0) and not b.hero_buff and not (b.stun_t > 0) and not tower_off(b))
 	for t in S.towers:
 		t.buff = null
 		if t.support or t.hero_buff or beacons.is_empty():
@@ -1830,6 +1869,10 @@ func use_ability(auto := false) -> void:
 	var h := S.hero if S else null
 	if h == null or h.ko > 0 or h.ab.t > 0 or S.over or S.paused or h.data.spells or h.stun_t > 0:
 		return
+	if has_debuff("silenced"):
+		if not auto:
+			say("Silenced: your hero's ability can't be used this wave.")
+		return
 	var a := h.ab
 	if a.id == "pierce" and pierce_goal() == null:
 		say("No target for " + a.name + ". Press F to set an aim point.")
@@ -1849,6 +1892,7 @@ func use_ability(auto := false) -> void:
 		return
 	S.strike_ready = false
 	a.t = a.cd
+	quest_break("ability")
 	cast_ability(false)
 
 
@@ -2963,7 +3007,7 @@ func cast_runes(x: float, y: float) -> void:
 	var r = resolve_runes(S.runes)
 	if r == null or h.ko > 0 or S.over or S.paused:
 		return
-	if S.mode.get("challenge", "") == "benched":
+	if (has_debuff("benched") or has_debuff("lonetower")):
 		say("Benched: your hero can’t attack or cast spells this wave.")
 		return
 	if S.time < h.cast_t:
@@ -3151,16 +3195,18 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	for k in types:
 		for i in DB.enemies[k].per_wave * (1 + int(floor(since[k] / 2.0))):
 			q.append(k)
-	if (mode.get("tough", []) as Array).has("horde"):
+	var tough: Array = mode.get("tough", [])
+	if tough.has("horde"):
 		q += q.slice(0, int(round(q.size() * R.tough_horde)))
-	var ch = mode.get("challenge", "")
-	if ch == "swarm":
+	if tough.has("swarm"):
 		q += q.duplicate()
-	if ch == "iron":
-		var nb := maxi(4, int(round(q.size() / 3.0)))
+	if tough.has("iron"):
+		var nb := maxi(6, int(round(q.size() * R.iron_share)))
 		q = []
 		for i in nb:
 			q.append("brute")
+	if tough.has("escort"):
+		q += ["knight", "knight"]
 	q.shuffle()
 	var boss := boss_for(n)
 	if boss != "":
@@ -3171,8 +3217,9 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	return q
 
 
-## Hard and Challenge pay the same gold; Normal (once wave choices start) pays R.normal_reward_share of it. Challenge also gives a free hero upgrade or a lasting tower buff.
-## Legendary and Secret waves pay a relic and a free hero upgrade, only if the requirement is met.
+## Hard pays more gold the tougher its buff is. Challenge pays more gold the more (and tougher) modifiers it stacks,
+## plus a free hero upgrade or a lasting tower buff. Legendary and Secret waves pay a relic, a free hero upgrade and
+## a lot of gold, only if the requirement is met. Normal (once wave choices start) pays R.normal_reward_share.
 const CHALLENGE_TOWER_BUFF := 0.1 # a Challenge wave's tower reward: every tower deals this much more, for the run
 
 
@@ -3180,7 +3227,8 @@ func wave_gold(n: int) -> int:
 	return int(round(20 + 4 * level_of(n)))
 
 
-func wave_reward(n: int, kind: String, tower_buff := false):
+## pts: how hard the wave's modifiers are, summed (each modifier's pts in tough.tres / challenges.tres).
+func wave_reward(n: int, kind: String, tower_buff := false, pts := 0):
 	if kind == "normal":
 		var ng := int(round(wave_gold(n) * R.normal_reward_share))
 		return { gold = ng, perk = false, relic = null, label = "+%d gold" % ng }
@@ -3191,11 +3239,12 @@ func wave_reward(n: int, kind: String, tower_buff := false):
 		var src: UpgradeList = R.secret_relics if kind == "secret" else R.legendary_relics
 		var pool := src.items.filter(func(r): return r.repeat or not owned.has(r.id))
 		var relic: UpgradeData = pick(pool) if pool.size() else R.relics.find("repair")
-		var g := (120 if kind == "secret" else 80) + 8 * n
+		var g := (120 + 8 * n) if kind == "secret" else (150 + 14 * n)
 		return { gold = g, relic = relic, perk = true, label = "%s relic: %s (%s), +%d gold and a free hero upgrade" % [DB.rar[kind].name, relic.name, relic_desc(relic).trim_suffix("."), g] }
-	var gold := wave_gold(n)
 	if kind == "hard":
-		return { gold = gold, perk = false, relic = null, label = "+%d gold" % gold }
+		var hg := int(round(wave_gold(n) * (0.75 + 0.25 * maxi(1, pts))))
+		return { gold = hg, perk = false, relic = null, label = "+%d gold" % hg }
+	var gold := int(round(wave_gold(n) * (0.6 + 0.3 * maxi(2, pts))))
 	if tower_buff:
 		return { gold = gold, perk = false, relic = null, tower_buff = CHALLENGE_TOWER_BUFF,
 			label = "+%d gold and +%d%% damage for every tower for the rest of the run" % [gold, int(round(CHALLENGE_TOWER_BUFF * 100))] }
@@ -3206,15 +3255,20 @@ func relic_desc(r: UpgradeData) -> String:
 	return DB.tx("relic:" + r.id, r.desc)
 
 
-## The text for a mode's rules: toughness rules, the handicap and the goal. Each: { k, name, rule }.
+## The text for a mode's rules: enemy buffs, handicaps and the goal. Each: { k, name, rule }.
 func mode_lines(m: Dictionary) -> Array:
 	var out := []
 	for id in m.get("tough", []):
 		var t: UpgradeData = R.tough.find(id)
 		out.append({ k = "tough", name = t.name, rule = DB.tx("tough:" + id, t.desc) })
-	if m.get("challenge", "") != "":
-		var c: UpgradeData = R.challenges.find(m.challenge)
-		out.append({ k = "debuff", name = c.name, rule = DB.tx("challenge:" + c.id, c.desc) })
+	for id in m.get("debuffs", []):
+		var c: UpgradeData = R.challenges.find(id)
+		var rule := DB.tx("challenge:" + c.id, c.desc)
+		if id == "burnout" and m.get("off") != null:
+			rule = "Your %s did the most damage last wave, so it's shut down for this one." % tower_name(m.off)
+		elif id == "lonetower" and m.has("opts_n"):
+			rule += " You pick the tower after choosing."
+		out.append({ k = "debuff", name = c.name, rule = rule })
 	if m.get("gilded", false):
 		out.append({ k = "debuff", name = "Gilded", rule = "Golden enemies with double HP. Every kill drops triple gold." })
 	if m.get("req", "") != "":
@@ -3224,46 +3278,128 @@ func mode_lines(m: Dictionary) -> Array:
 
 
 var wave_opts: Array = []
-const HANDICAPS := ["lone", "weak", "benched"] # the challenges that weaken your hero or towers
+## Modifiers that never come together: each list holds ones that overlap or would stack into something unplayable.
+const MOD_CLASH := [["lone", "lonetower", "benched", "exhausted"], ["weak", "lone", "lonetower"], ["burnout", "lonetower"],
+	["swarm", "horde", "iron"], ["speed", "rush"], ["silenced", "lonetower"]]
+
+
+## Whether a modifier can come up this wave (Lone Tower needs towers to pick from, Burnout needs last wave's top tower).
+func mod_ok(id: String) -> bool:
+	match id:
+		"lonetower":
+			return S.towers.filter(func(t): return not t.hero_buff and not t.support).size() >= 2
+		"burnout":
+			return S.top_tower != null and S.towers.has(S.top_tower) and S.towers.size() >= 3
+		"silenced", "benched", "exhausted":
+			return true
+	return true
+
+
+func _clashes(id: String, have: Array) -> bool:
+	for g in MOD_CLASH:
+		if g.has(id) and have.any(func(o): return o != id and g.has(o)):
+			return true
+	return false
+
+
+## Picks `count` modifiers from the enemy buffs ("tough"), the handicaps ("debuff") or both ("any"), none of them in
+## `taken` (already on another card) or clashing with each other. Ones offered in recent wave choices are much less
+## likely, so they rarely repeat. Returns { tough, debuffs, pts }.
+func pick_mods(side: String, count: int, taken: Array) -> Dictionary:
+	var out := { tough = [], debuffs = [], pts = 0 }
+	var have := []
+	for i in count:
+		var pool := []
+		if side != "debuff":
+			pool += R.tough.items.map(func(u): return [u, "tough"])
+		if side != "tough":
+			pool += R.challenges.items.map(func(u): return [u, "debuffs"])
+		pool = pool.filter(func(x): return not taken.has(x[0].id) and not have.has(x[0].id) and mod_ok(x[0].id) and not _clashes(x[0].id, have))
+		if pool.is_empty():
+			break
+		var total := 0.0
+		var ws := []
+		for x in pool:
+			var w := R.repeat_weight if S.recent_mods.has(x[0].id) else 1.0
+			ws.append(w)
+			total += w
+		var roll := randf() * total
+		var at := 0
+		for j in ws.size():
+			roll -= ws[j]
+			if roll <= 0:
+				at = j
+				break
+		var u: UpgradeData = pool[at][0]
+		(out[pool[at][1]] as Array).append(u.id)
+		out.pts += u.pts
+		have.append(u.id)
+	return out
 
 
 func offer_wave_choice() -> void:
 	var n := S.wave + 1
-	var ch: UpgradeData = pick(R.challenges.items)
-	var req: UpgradeData = pick(R.requirements.items)
-	var tl := R.tough.items.duplicate()
-	tl.shuffle()
-	# enemy buffs are the toughness rules; hero/tower handicaps are the challenges that weaken your side
-	var handicaps := R.challenges.items.filter(func(c): return c.id in HANDICAPS)
-	var ids := func(list): return list.map(func(x): return x.id)
-	var hard: Dictionary = { kind = "hard", name = "Hard", reward = wave_reward(n, "hard") }
-	if randf() < 0.5:
-		hard.tough = [tl[0].id]
-	else:
-		hard.challenge = (pick(handicaps) as UpgradeData).id
-	wave_opts = [
-		{ kind = "normal", name = "Normal", reward = wave_reward(n, "normal") },
-		hard,
-		{ kind = "challenge", name = "Challenge", challenge = (pick(handicaps) as UpgradeData).id, tough = [tl[1].id],
-			reward = wave_reward(n, "challenge", randf() < 0.5) },
-	]
+	var taken := []
+	# Hard: exactly one enemy buff
+	var hm := pick_mods("tough", 1, taken)
+	taken += hm.tough
+	var hard: Dictionary = { kind = "hard", name = "Hard", tough = hm.tough, reward = wave_reward(n, "hard", false, hm.pts) }
+	# Challenge: several modifiers, enemy buffs and handicaps in any mix
+	var cn := R.challenge_mods + (1 if n >= R.challenge_third_from and randf() < R.challenge_third else 0)
+	var cm := pick_mods("any", cn, taken)
+	taken += cm.tough + cm.debuffs
+	var chal: Dictionary = { kind = "challenge", name = "Challenge", tough = cm.tough, debuffs = cm.debuffs,
+		reward = wave_reward(n, "challenge", randf() < 0.5, cm.pts) }
+	wave_opts = [{ kind = "normal", name = "Normal", reward = wave_reward(n, "normal") }, hard, chal]
 	var roll := randf()
-	if roll < 0.03:
+	if roll < R.secret_chance:
+		var req: UpgradeData = pick(R.requirements.items)
 		wave_opts[2] = { kind = "secret", rarity = "secret", name = "Secret: Gilded Breach", gilded = true, hp_mul = 2.0, req = req.id, reward = wave_reward(n, "secret") }
-	elif roll < 0.13:
-		tl.shuffle()
-		wave_opts[2] = { kind = "legendary", rarity = "legendary", name = "Legendary: " + req.name, challenge = ch.id, req = req.id, tough = ids.call(tl.slice(0, 2)),
+	elif roll < R.secret_chance + R.legendary_chance:
+		# Legendary: two handicaps, two enemy buffs and a goal, for a relic
+		var req: UpgradeData = pick(R.requirements.items)
+		var ld := pick_mods("debuff", 2, taken)
+		var lt := pick_mods("tough", 2, taken + ld.debuffs)
+		wave_opts[2] = { kind = "legendary", rarity = "legendary", name = "Legendary: " + req.name, debuffs = ld.debuffs, tough = lt.tough, req = req.id,
 			reward = wave_reward(n, "legendary") }
+	for o in wave_opts:
+		if (o.get("debuffs", []) as Array).has("burnout"):
+			o.off = S.top_tower
+		if (o.get("debuffs", []) as Array).has("lonetower"):
+			o.opts_n = true
+		for id in o.get("tough", []) + o.get("debuffs", []):
+			S.recent_mods.append(id)
+	S.recent_mods = S.recent_mods.slice(maxi(0, S.recent_mods.size() - R.recent_mods))
 	S.paused = true
 	modal.emit("wave_choice", { n = n, boss = boss_for(n) != "", opts = wave_opts })
 
 
 func choose_mode(i: int) -> void:
 	S.mode = wave_opts[i]
+	S.mode.erase("opts_n")
 	S.paused = false
+	S.lone_tower = null
+	if has_debuff("lonetower"):
+		# the top damage tower is picked to start with; the window lets the player choose another
+		var cands := lone_candidates()
+		cands.sort_custom(func(a, b): return a.dmg_total > b.dmg_total)
+		S.lone_tower = cands[0] if cands.size() else null
+		modal.emit("lone_pick", { towers = cands })
 	refresh("build_bar")
 	refresh("mode")
 	say(S.mode.name + " chosen. Build up, then start the wave.")
+
+
+## The towers Lone Tower can pick: any that attack.
+func lone_candidates() -> Array:
+	return S.towers.filter(func(t): return not t.hero_buff and not t.support)
+
+
+func set_lone_tower(t: Tower) -> void:
+	if has_debuff("lonetower") and S.towers.has(t):
+		S.lone_tower = t
+		say("Lone Tower: %s is your only damage this wave." % tower_name(t))
+		refresh("mode")
 
 
 func start_wave() -> void:
@@ -3275,12 +3411,15 @@ func start_wave() -> void:
 	S.wave += 1
 	S.spawn_q = make_wave(S.wave, S.mode)
 	S.spawn_t = 0.3
+	roll_flag_bearer()
+	if S.quest != null and S.quest.id == "hardline" and S.wave >= S.quest.from and S.mode.get("kind", "normal") == "normal":
+		quest_fail("you took a Normal wave")
 	# an enemy type the player has never had introduced gets a window about it as its wave starts (the UI pauses)
 	var fresh := []
 	for ed: EnemyData in R.enemies:
 		if S.spawn_q.has(ed.id) and not Save.meta.intro.get(ed.id, false):
 			fresh.append(ed.id)
-	S.interval = maxf(R.spawn_gap_min, R.spawn_gap_start - level_of(S.wave) * R.spawn_gap_per_wave) * (0.6 if S.mode.get("challenge", "") == "swarm" else 1.0)
+	S.interval = maxf(R.spawn_gap_min, R.spawn_gap_start - level_of(S.wave) * R.spawn_gap_per_wave) * (0.6 if has_tough("swarm") else 1.0) * (0.5 if has_tough("rush") else 1.0)
 	S.wave_active = true
 	S.fury = false
 	S.hero.unbreak_left = S.hero.unbreak_max
@@ -3347,6 +3486,10 @@ func end_wave() -> void:
 				top = t
 		S.drained = top if top.dmg_wave else null
 	close_wave_log(true)
+	S.top_tower = null
+	for t in S.towers:
+		if t.dmg_wave > 0 and (S.top_tower == null or t.dmg_wave > S.top_tower.dmg_wave):
+			S.top_tower = t
 	for t in S.towers:
 		t.dmg_wave = 0
 	var bonus := int(round(R.wave_gold_base + R.wave_gold_per_wave * level_of(S.wave)))
@@ -3376,11 +3519,13 @@ func end_wave() -> void:
 		if r.get("tower_buff", 0.0) > 0:
 			S.tower_bonus += r.tower_buff
 			msgs.append("+%d%% tower damage" % int(round(r.tower_buff * 100)))
+	quest_wave_end(msgs)
 	if S.wave >= max_wave:
 		end_run(true)
 		return
 	say("Wave %d cleared: %s.%s" % [S.wave, ", ".join(msgs), (" " + tower_name(S.drained) + " is drained next wave.") if S.drained else ""])
 	S.mode = { kind = "normal", name = "Normal" }
+	S.lone_tower = null
 	S.req_failed = false
 	refresh("build_bar")
 	refresh("hero")
@@ -3400,6 +3545,175 @@ func fail_req(why: String) -> void:
 	S.req_failed = true
 	say("Challenge failed: " + why + ". No reward this wave.")
 	sfx("leak")
+	refresh("mode")
+
+
+# ---------- flag bearers and their quests ----------
+const FLAG_COLOR := 0xff4fd8
+const QUEST_PICKUP := 28.0
+## Multi-wave quests a flag bearer drops. need: waves to see through (never one, so no quest is done in a wave).
+## rule takes the wave count (and Hoarder's gold). Breaking a quest's rule fails it on the spot.
+const QUESTS := {
+	flawless = { name = "Unbroken", rule = "Lose no base HP for %d waves.", need = 4 },
+	noupgrade = { name = "Hands Off", rule = "Don't level up or merge towers for %d waves.", need = 3 },
+	nobuild = { name = "No New Ground", rule = "Don't build any towers for %d waves.", need = 5 },
+	miser = { name = "Miser", rule = "Don't spend any gold for %d waves.", need = 3 },
+	noability = { name = "Restraint", rule = "Don't use your hero's ability for %d waves.", need = 4 },
+	standing = { name = "Still Standing", rule = "Don't let your hero get knocked out for %d waves.", need = 4 },
+	hardline = { name = "Hard Line", rule = "Take a Hard, Challenge or rarer wave for each of the next %d waves.", need = 3 },
+	hoarder = { name = "Hoarder", rule = "End each of the next %d waves with at least %d gold.", need = 3 },
+}
+## What breaks each quest (see quest_break).
+const QUEST_BREAKS := { flawless = "leak", noupgrade = "upgrade", nobuild = "build", miser = "spend", noability = "ability", standing = "ko" }
+
+
+## As a wave starts: about one wave in 20 has a flag bearer (never in the first map's first waves, never while a quest
+## is waiting or running, and not so late that a quest couldn't be finished).
+func roll_flag_bearer() -> void:
+	S.flag_in = -1
+	if S.test or S.quest != null or S.quest_drop != null or S.quest_offer != null or max_wave - S.wave < 4:
+		return
+	if DB.map_order.find(S.map_id) <= 0 and S.wave < R.flag_from_wave:
+		return
+	if randf() >= R.flag_chance:
+		return
+	var q := S.spawn_q.size()
+	S.flag_in = randi_range(int(q * 0.2), maxi(int(q * 0.2), int(q * 0.7)))
+
+
+## A flag bearer: a tougher, richer, glowing version of its kind.
+func make_flag_bearer(e: Enemy) -> void:
+	S.flag_in = -1
+	e.flag = true
+	e.hp *= R.flag_hp
+	e.max = e.hp
+	e.armor = minf(0.85, e.armor + R.flag_armor)
+	e.gold *= R.flag_gold
+	e.r *= 1.2
+	e.color = col(FLAG_COLOR)
+	say("A flag bearer joins the wave! Kill it for a quest.")
+
+
+## The hero walked over a dropped quest: offer it (accept or throw it away). The window pauses the game.
+func pick_up_quest() -> void:
+	S.quest_drop = null
+	S.quest_offer = make_quest()
+	sfx("level")
+	modal.emit("quest", S.quest_offer)
+
+
+func make_quest() -> Dictionary:
+	var ids := QUESTS.keys().filter(func(k):
+		if QUESTS[k].need > max_wave - S.wave:
+			return false
+		if k == "hardline":
+			return S.wave >= R.choice_from
+		if k == "noability":
+			return not S.hero.data.spells
+		return true)
+	if ids.is_empty():
+		ids = ["miser"]
+	var id: String = ids[randi() % ids.size()]
+	var qd: Dictionary = QUESTS[id]
+	var n := S.wave + 1
+	var q := { id = id, name = qd.name, need = qd.need, done = 0, from = n }
+	if id == "hoarder":
+		q.gold = int(round(maxf(200.0, wave_gold(n) * 6) / 10.0)) * 10
+		q.rule = qd.rule % [qd.need, q.gold]
+	else:
+		q.rule = qd.rule % qd.need
+	var rewards := [
+		{ k = "gold", v = wave_gold(n) * 5, label = "+%d gold" % (wave_gold(n) * 5) },
+		{ k = "upgrades", v = 2, label = "2 free hero upgrades" },
+		{ k = "towers", v = 0.12, label = "+12% damage for every tower for the rest of the run" },
+	]
+	var owned := S.relics.map(func(r): return r.id)
+	var relics := R.relics.items.filter(func(r): return r.repeat or not owned.has(r.id))
+	if relics.size():
+		var r: UpgradeData = pick(relics)
+		rewards.append({ k = "relic", v = r, label = "a relic: %s (%s)" % [r.name, relic_desc(r).trim_suffix(".")] })
+	var penalties := [
+		{ k = "gold", v = 0.4, label = "lose 40% of your gold" },
+		{ k = "lives", v = 5, label = "lose 5 base HP" },
+		{ k = "towers", v = 0.08, label = "-8% damage for every tower for the rest of the run" },
+	]
+	q.reward = rewards[randi() % rewards.size()]
+	q.penalty = penalties[randi() % penalties.size()]
+	return q
+
+
+## From the quest window: take the offered quest on, or throw it away.
+func answer_quest(accept: bool) -> void:
+	var q = S.quest_offer
+	S.quest_offer = null
+	if q == null:
+		return
+	if accept:
+		q.from = S.wave + 1 # it counts from the next wave to start
+		S.quest = q
+		say("Quest accepted: %s. %s" % [q.name, q.rule])
+	else:
+		say("Quest discarded.")
+	refresh("mode")
+
+
+## Something that breaks a quest's rule happened ("leak", "upgrade", "build", "spend", "ability", "ko").
+func quest_break(kind: String) -> void:
+	if S == null or S.test or S.quest == null:
+		return
+	if QUEST_BREAKS.get(S.quest.id, "") != kind:
+		return
+	if (kind == "leak" or kind == "ko") and S.wave < S.quest.from:
+		return # those only count during the quest's own waves
+	quest_fail({ leak = "you lost base HP", upgrade = "you levelled up a tower", build = "you built a tower", spend = "you spent gold",
+		ability = "you used your ability", ko = "your hero was knocked out" }[kind])
+
+
+func quest_fail(why: String) -> void:
+	var q = S.quest
+	if q == null:
+		return
+	S.quest = null
+	var p: Dictionary = q.penalty
+	match p.k:
+		"gold":
+			S.gold = floorf(S.gold * (1.0 - p.v))
+		"lives":
+			S.lives = maxi(1, S.lives - int(p.v))
+		"towers":
+			S.tower_bonus -= p.v
+	say("Quest failed: %s. %s." % [why, p.label.substr(0, 1).to_upper() + p.label.substr(1)])
+	sfx("leak")
+	refresh("hud")
+	refresh("mode")
+
+
+## At the end of each wave: Hoarder checks the bank, and a quest that has seen its waves through pays out.
+func quest_wave_end(msgs: Array) -> void:
+	var q = S.quest
+	if q == null or S.wave < q.from:
+		return
+	if q.id == "hoarder" and S.gold < q.gold:
+		quest_fail("you ended a wave under %d gold" % q.gold)
+		return
+	q.done += 1
+	if q.done < q.need:
+		refresh("mode")
+		return
+	S.quest = null
+	var r: Dictionary = q.reward
+	match r.k:
+		"gold":
+			S.gold += r.v
+		"upgrades":
+			S.pending_levels += r.v
+			S.reward_picks += r.v
+		"towers":
+			S.tower_bonus += r.v
+		"relic":
+			apply_relic(r.v)
+	msgs.append("quest complete: " + r.label)
+	sfx("level")
 	refresh("mode")
 
 
@@ -3423,9 +3737,11 @@ func spawn(type: String, at_d := -1.0, lane := -1) -> void:
 	if has_tough("hp"):
 		scale *= R.tough_hp
 	scale *= float(m.get("hp_mul", 1.0))
-	if m.get("challenge", "") == "swarm":
+	if has_tough("swarm"):
 		scale *= R.swarm_hp
-	var speed := d.speed * S.mod_enemy_speed * (R.blitz_speed if m.get("challenge", "") == "blitz" else 1.0) * (R.tough_speed if has_tough("speed") else 1.0)
+	if has_tough("anchored"):
+		scale *= R.anchored_hp
+	var speed := d.speed * S.mod_enemy_speed * (R.rush_speed if has_tough("rush") else 1.0) * (R.tough_speed if has_tough("speed") else 1.0)
 	var at := maxf(0, at_d)
 	var p := pos_at(at, lane)
 	if not S.test and not Save.meta.seen.get(type, false):
@@ -3444,15 +3760,17 @@ func spawn(type: String, at_d := -1.0, lane := -1) -> void:
 	e.lane = lane
 	e.x = p.x if at_d >= 0 else p.x - 30
 	e.y = p.y
-	e.armor = (d.armor + S.map.scene.armor_bonus if d.armor else 0.0) + (R.tough_armor if has_tough("armor") else 0.0)
+	e.armor = d.armor + S.map.scene.armor_bonus if d.armor else 0.0
+	if has_tough("armor"):
+		e.armor = minf(0.85, maxf(e.armor * 2, R.tough_armor))
 	e.regen = R.tough_regen if has_tough("regen") else 0.0
 	e.steady = has_tough("steady")
-	e.unslow = d.unslow
-	e.unstun = d.unstun
-	e.unblockable = d.unblockable
-	e.pushback_immune = d.pushback_immune or d.boss
+	e.unslow = d.unslow or has_tough("unslow")
+	e.unstun = d.unstun or has_tough("unstun")
+	e.unblockable = d.unblockable or has_tough("ghost")
+	e.pushback_immune = d.pushback_immune or d.boss or has_tough("anchored")
 	e.phase = d.phase
-	e.split = d.split
+	e.split = d.split if d.split or d.boss or at_d >= 0 or not has_tough("brood") else 2
 	e.heal = d.heal
 	e.shield_aura = d.shield_aura
 	e.gold = d.gold * (3 if m.get("gilded", false) else 1)
@@ -3462,6 +3780,11 @@ func spawn(type: String, at_d := -1.0, lane := -1) -> void:
 	e.color = col(0xf2c14e) if m.get("gilded", false) else d.color
 	if d.boss and d.power_every:
 		e.pow_t = d.power_every * 0.6
+	if at_d < 0 and S.flag_in >= 0:
+		if S.flag_in == 0 and not d.boss:
+			make_flag_bearer(e)
+		elif S.flag_in > 0:
+			S.flag_in -= 1
 	if S.fury: # anything that shows up after the wave turned restless (a split, a summon) breaks through too
 		e.unblockable = true
 		e.pushback_immune = true
@@ -3629,6 +3952,7 @@ func knock_out(h: Hero) -> void:
 		S.ws.hero_kos += 1
 	if S.mode.get("req", "") == "alive":
 		fail_req("your hero was knocked out")
+	quest_break("ko")
 	h.shield = 0
 	h.shield_t = 0
 	h.od_t = 0
@@ -3840,6 +4164,8 @@ func update(dt: float) -> void:
 			ring(c.x, c.y, 20, 0xf2c14e, 0.4, true)
 			sfx("kill")
 	S.coins = S.coins.filter(func(c): return not c.get("got", false))
+	if S.quest_drop != null and h.ko <= 0 and hyp(S.quest_drop.x - h.x, S.quest_drop.y - h.y) <= QUEST_PICKUP:
+		pick_up_quest()
 	for ec in S.echoes:
 		if S.time >= ec.at:
 			ec.done = true
@@ -3931,7 +4257,7 @@ func _hero_step(h: Hero, HX: Dictionary, dt: float) -> void:
 			h.aim_y = aimed[0].y
 			h.aim_live = true
 	# (a spell caster's range is how far it can cast: it never auto-attacks)
-	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and S.mode.get("challenge", "") != "benched" and h.range > 0 and not h.data.spells:
+	if h.cd <= 0 and (not h.brace or h.brace_t >= h.brace) and not (has_debuff("benched") or has_debuff("lonetower")) and h.range > 0 and not h.data.spells:
 		var inr := in_range(h.x, h.y, hero_range(h)).filter(in_view)
 		if h.cls == "sniper":
 			sort_by_aim(h.target, h.x, h.y, inr)
@@ -4348,9 +4674,11 @@ func _leak(e: Enemy) -> bool:
 		S.lives = 0
 		end_run(false)
 		return true
-	S.lives -= e.lives
+	var lost := e.lives * (2 if has_debuff("fragile") else 1)
+	S.lives -= lost
 	if S.ws:
-		S.ws.lives_lost += e.lives
+		S.ws.lives_lost += lost
+	quest_break("leak")
 	if S.mode.get("req", "") == "last" and S.wave_active:
 		S.lose_reason = "Last Stand: an enemy got through."
 		S.lives = 0
@@ -4383,6 +4711,9 @@ func _towers_step(h: Hero, dt: float) -> void:
 			t.stun_t -= dt
 			t.lance_state = ""
 			continue
+		if tower_off(t):
+			t.lance_state = ""
+			continue
 		if t.support or t.hero_buff:
 			continue
 		if t.zero:
@@ -4402,6 +4733,10 @@ func _towers_step(h: Hero, dt: float) -> void:
 			spd *= (1 + t.buff.rate) * (2.0 if t.buff.tempo else 1.0)
 		if t.curse_t > 0:
 			spd *= 1 - t.curse_rate
+		if has_debuff("jammed"):
+			spd *= R.jam_rate
+		if t == S.lone_tower and has_debuff("lonetower"):
+			spd *= R.lone_pick_rate
 		# Bulwark Pact: faster while anything in range is stopped (blocked, stunned, frozen, taunted or walled)
 		if t.pact and S.enemies.any(func(e): return (e.stun_t > 0 or e.blocked or e.taunt_t > 0 or e.walled_t > 0) and not e.dead and hyp(e.x - t.x, e.y - t.y) <= t_range(t)):
 			spd *= 1.5
@@ -4891,6 +5226,8 @@ func buy(i: int) -> void:
 	var price := shop_price(x)
 	if x.sold or S.gold < price:
 		return
+	if price > 0:
+		quest_break("spend")
 	S.gold -= price
 	x.sold = true
 	shop_free = false
@@ -5076,6 +5413,8 @@ func tower_body_at(x: float, y: float) -> Tower:
 
 
 func build_problem(c: int, r: int, type: String) -> String:
+	if has_debuff("lockdown"):
+		return "Lockdown: no building until the wave ends."
 	var k := Vector2i(c, r)
 	if free_build():
 		var p := cell_pos(c, r)
@@ -5147,6 +5486,9 @@ func place_tower(c: int, r: int, type: String) -> void:
 	var cost := tower_cost(type)
 	var t := new_tower(type, c, r)
 	var h := S.hero
+	quest_break("build")
+	if cost > 0:
+		quest_break("spend")
 	S.gold -= cost
 	t.spent = cost
 	S.towers.append(t)
@@ -5176,6 +5518,8 @@ func sell(t: Tower) -> void:
 		S.sel = null
 	if S.drained == t:
 		S.drained = null
+	if S.lone_tower == t:
+		S.lone_tower = null
 	say("Sold %s for %d gold." % [tower_name(t), v])
 	sfx("click")
 	refresh("inspector")
@@ -5305,6 +5649,12 @@ func level_tower(t: Tower, o: Dictionary) -> void:
 	var lc := level_cost(t, o)
 	if S.gold < lc or t.lvl >= R.max_level or path_state(t, o) != "open":
 		return
+	if has_debuff("lockdown"):
+		say("Lockdown: no level-ups until the wave ends.")
+		return
+	quest_break("upgrade")
+	if lc > 0:
+		quest_break("spend")
 	if t.free_ups > 0:
 		t.free_ups -= 1
 	elif S.free_levels > 0:
@@ -5351,6 +5701,8 @@ func preview_level(t: Tower, o: Dictionary) -> Dictionary:
 # ---------- merging ----------
 ## Why two towers can't merge, or "" if they can.
 func merge_problem(a: Tower, b: Tower) -> String:
+	if has_debuff("lockdown"):
+		return "Lockdown: no merging until the wave ends."
 	if a.hero_buff or b.hero_buff:
 		return "The Hero Shrine can’t be merged."
 	if a.is_super or b.is_super:
@@ -5431,6 +5783,9 @@ func try_merge(a: Tower, b: Tower) -> void:
 		say("Merging costs %d gold." % cost)
 		refresh("inspector")
 		return
+	quest_break("upgrade")
+	if cost > 0:
+		quest_break("spend")
 	S.gold -= cost
 	var tags := tower_tags(a) + tower_tags(b)
 	# A merged tower always shoots: it drops the beam, the lobbed shells and the Beacon's no-attack role, and keeps
@@ -5575,6 +5930,10 @@ func try_merge(a: Tower, b: Tower) -> void:
 	S.towers.erase(a)
 	if S.drained == a or S.drained == b:
 		S.drained = null
+	if S.lone_tower == a or S.lone_tower == b:
+		S.lone_tower = m
+	if S.mode.get("off") == a or S.mode.get("off") == b:
+		S.mode.off = m
 	ring(b.x, b.y, 60 if m.is_super else 40, m.color, 0.6, true)
 	if key != "":
 		var is_new: bool = not Save.codex.get(key, false)

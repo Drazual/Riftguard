@@ -16,5 +16,6 @@ color = Color(0.49803922, 0.8784314, 0.49803922, 1)
 split = 2
 first_wave = 8
 per_wave = 1
+blurb = "The Splitter bursts into smaller, faster enemies when it dies."
 info = "Splits into 2 Runners when it dies."
 counter = "Splash and chain damage clean up the pieces."

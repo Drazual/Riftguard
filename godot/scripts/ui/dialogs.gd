@@ -22,6 +22,8 @@ func open(kind: String, data: Dictionary) -> void:
 		"end": end(data)
 		"secret": secret(data)
 		"enemy_intro": enemy_intro(data)
+		"lone_pick": lone_pick(data)
+		"quest": quest(data)
 
 
 func _title(box: VBoxContainer, text: String, col := Kit.TEXT) -> void:
@@ -192,7 +194,7 @@ func wave_choice(data: Dictionary) -> void:
 	var box := ui.open_modal(780)
 	_title(box, "Choose wave %d" % data.n)
 	_lead(box, ("A boss leads this wave. " if data.boss else "")
-		+ "Hard waves add one enemy buff or one handicap for extra gold. Challenge waves add both, for the same gold plus a hero upgrade or a tower buff.")
+		+ "Hard waves add one enemy buff for extra gold. Challenge waves stack several enemy buffs and handicaps, for more gold plus a hero upgrade or a tower buff.")
 	var g := _choices(box)
 	var line_col := { tough = Kit.HEROIC, debuff = Kit.DANGER, req = Kit.OK }
 	for i in opts.size():
@@ -218,6 +220,55 @@ func wave_choice(data: Dictionary) -> void:
 			ui.render_build_bar()
 			ui.render_mode_banner())
 		g.add_child(ch)
+
+
+# ---------- Lone Tower: which tower deals the damage ----------
+func lone_pick(data: Dictionary) -> void:
+	var towers: Array = data.towers
+	if towers.is_empty():
+		return
+	var S := game.S
+	S.paused = true
+	var done := func():
+		ui.close_modal()
+		S.paused = false
+		ui.render_mode_banner()
+	var box := ui.open_modal(720, done)
+	_title(box, "Lone Tower: pick your tower")
+	_lead(box, "Only this tower deals damage next wave. It deals double damage, attacks 40% faster and has 30% more range. Your other towers still slow, stun and debuff, and your hero can't deal damage.")
+	var g := _choices(box)
+	for t: Tower in towers:
+		var ch := Choice.new(t.color, Kit.PANEL)
+		ch.custom_minimum_size = Vector2(200, 0)
+		ch.add(Kit.b(game.tower_name(t)), 16, Kit.TEXT)
+		ch.add("Level %d · %s damage this run" % [t.lvl, UiText.f0(t.dmg_total)], 13, Kit.MUTED)
+		if t == S.lone_tower:
+			ch.add(Kit.c("Picked for you: your top damage tower", Kit.GOLD), 13)
+		ch.pressed.connect(func():
+			game.set_lone_tower(t)
+			done.call())
+		g.add_child(ch)
+
+
+# ---------- a flag bearer's quest ----------
+func quest(q: Dictionary) -> void:
+	var S := game.S
+	S.paused = true
+	var answer := func(yes: bool):
+		ui.close_modal()
+		S.paused = false
+		game.answer_quest(yes)
+		ui.render_mode_banner()
+	var box := ui.open_modal(600, func(): answer.call(false))
+	box.add_child(Kit.rich(_path("Flag bearer's quest", Game.col(Game.FLAG_COLOR)), 13))
+	_title(box, q.name, Game.col(Game.FLAG_COLOR))
+	_lead(box, q.rule + " Counts from the next wave.")
+	box.add_child(Kit.rich(Kit.c("Reward: ", Kit.GOLD) + q.reward.label.substr(0, 1).to_upper() + q.reward.label.substr(1), 15, Kit.TEXT))
+	box.add_child(Kit.rich(Kit.c("If you fail: ", Kit.DANGER) + q.penalty.label.substr(0, 1).to_upper() + q.penalty.label.substr(1), 15, Kit.TEXT))
+	var r := Kit.hbox()
+	r.add_child(Kit.go("ACCEPT", func(): answer.call(true)))
+	r.add_child(Kit.button("Discard", func(): answer.call(false), "FlatButton"))
+	box.add_child(r)
 
 
 # ---------- the end of a run ----------
@@ -258,17 +309,9 @@ func enemy_intro(data: Dictionary) -> void:
 		row.add_child(EnemyPic.make(d))
 		var tv := Kit.vbox(6)
 		tv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var kind := "Final boss" if d.big_boss else ("Boss" if d.boss else "")
+		var kind := "Boss" if d.big_boss else ("Mini boss" if d.boss else "")
 		tv.add_child(Kit.head(d.name + ("  ·  " + kind if kind else ""), 26, d.color))
-		tv.add_child(Kit.rich(DB.tx("enemy:" + k, d.info), 15, Kit.TEXT))
-		var facts := ["%s HP this wave" % UiText.f0(d.hp * game.hp_scale(d, data.wave)), "speed %s" % UiText.f0(d.speed)]
-		if d.armor > 0:
-			facts.append("%s armor" % UiText.pct(d.armor))
-		facts.append("ends the run if it gets through" if d.big_boss else "costs %d base HP if it gets through" % d.lives)
-		var line := " · ".join(facts)
-		tv.add_child(Kit.muted(line.substr(0, 1).to_upper() + line.substr(1), 13))
-		if d.counter != "":
-			tv.add_child(Kit.rich(Kit.c("Counter: ", Kit.GOLD) + d.counter, 14, Kit.MUTED))
+		tv.add_child(Kit.rich(DB.tx("blurb:" + k, d.blurb if d.blurb != "" else d.info), 15, Kit.TEXT))
 		row.add_child(tv)
 		box.add_child(row)
 	var r := Kit.hbox()

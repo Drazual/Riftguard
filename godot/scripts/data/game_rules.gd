@@ -114,9 +114,9 @@ extends Resource
 @export var boss_hp_growth := 0.2
 @export var grunts_base := 8
 @export var grunts_per_wave := 3
-@export var runners_from := 2
+@export var runners_from := 3
 @export var runners_per_wave := 2
-@export var brutes_from := 4
+@export var brutes_from := 6
 ## Waves stop getting longer here (as a wave of the first map, Game.level_of): tougher waves after it send the same
 ## number of enemies, but every level past it swaps big_swap Grunts for one Brute, and HP keeps climbing.
 @export var count_cap := 12
@@ -144,16 +144,47 @@ extends Resource
 ## Investments can never pay more than this share of your gold per wave.
 @export var interest_cap := 0.15
 @export_group("Hard and Challenge rules")
-@export var tough_hp := 1.4
+## Enemy buffs (Hard waves take exactly one; Challenge and Legendary waves mix them with handicaps).
+@export var tough_hp := 2.0
+## Plated: armor is doubled, and an unarmored enemy gets this much.
 @export var tough_armor := 0.15
-@export var tough_speed := 1.2
-@export var tough_regen := 0.02
-@export var tough_horde := 0.25
-@export var swarm_hp := 0.65
-@export var blitz_speed := 1.4
-@export var lone_tower := 0.6
+@export var tough_speed := 1.35
+@export var tough_regen := 0.03
+@export var tough_horde := 0.5
+@export var anchored_hp := 1.3
+@export var rush_speed := 1.15
+@export var swarm_hp := 0.75
+@export var iron_share := 0.45
+## Handicaps.
+@export var lone_tower := 0.4
 @export var lone_hero := 2.0
-@export var weak_tower := 0.75
+@export var weak_tower := 0.6
+@export var short_range := 0.5
+@export var jam_rate := 0.6
+@export var exhausted_hero := 0.4
+@export var surge_every := 12.0
+@export var surge_off := 3.0
+## Lone Tower: the picked tower's damage, attack speed and range.
+@export var lone_pick_dmg := 2.0
+@export var lone_pick_rate := 1.4
+@export var lone_pick_range := 1.3
+## How many modifiers each wave kind brings, and how often the rare ones show.
+@export var challenge_mods := 2
+## From this wave a Challenge can bring a third modifier, this often.
+@export var challenge_third_from := 10
+@export var challenge_third := 0.35
+@export var legendary_chance := 0.08
+@export var secret_chance := 0.02
+## A modifier offered in the last few wave choices is this much less likely to come up again.
+@export var repeat_weight := 0.08
+@export var recent_mods := 14
+@export_group("Flag bearers")
+## The chance a wave has a flag bearer (never in the first map's first flag_from_wave waves).
+@export var flag_chance := 0.05
+@export var flag_from_wave := 6
+@export var flag_hp := 2.5
+@export var flag_armor := 0.1
+@export var flag_gold := 4.0
 @export_group("Rewards")
 @export var shards_per_wave := 4
 @export var shards_per_boss := 15

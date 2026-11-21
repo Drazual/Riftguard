@@ -17,5 +17,6 @@ armor = 0.1
 pushback_immune = true
 first_wave = 10
 per_wave = 1
+blurb = "The Anchor is chained to the ground, so nothing can push it back."
 info = "10% armor and chained to the ground: push-back and knockback do nothing to it."
 counter = "Walls, stuns, slows and raw damage. Don’t rely on blowing it back."

@@ -15,5 +15,6 @@ color = Color(0.78431374, 0.72156864, 1, 1)
 phase = true
 first_wave = 7
 per_wave = 2
+blurb = "The Phantom drifts through most blockers. Only a sturdy defender can stop it in its tracks."
 info = "Only Defensive heroes can block it."
 counter = "The Vanguard stops it. Everyone else has to shoot it down."

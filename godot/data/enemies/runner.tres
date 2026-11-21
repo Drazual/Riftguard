@@ -12,5 +12,6 @@ gold = 4
 atk = 5.0
 radius = 7.0
 color = Color(1, 0.7019608, 0.3647059, 1)
+blurb = "The Runner is small and fragile but very fast, and slips past slow defenses."
 info = "Fast."
 counter = "Slows and chain lightning."
