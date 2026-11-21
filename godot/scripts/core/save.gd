@@ -18,7 +18,7 @@ func _ready() -> void:
 
 
 func default_meta() -> Dictionary:
-	return { v = 2, shards = 0, cores = 0, specials = {}, heroes = {}, global = {}, best = {}, runs = [], towers = {}, loadout = null, seen = {},
+	return { v = 2, shards = 0, cores = 0, specials = {}, heroes = {}, global = {}, best = {}, runs = [], towers = {}, loadout = null, seen = {}, intro = {},
 		tower_global = {}, kills = { towers = {}, heroes = {} }, hero_stat = {}, wins = { towers = {}, heroes = {} }, takedowns = { towers = {}, heroes = {} },
 		played = {}, abilities = {}, forms = {}, tips = {}, el_stat = {}, wiz_els = {}, wiz_load = null }
 
@@ -47,7 +47,7 @@ func load_all() -> void:
 
 
 func _fill() -> void:
-	for k in ["specials", "heroes", "global", "best", "towers", "seen", "tower_global", "hero_stat", "played", "abilities", "forms", "tips", "el_stat", "wiz_els", "secret_heroes"]:
+	for k in ["specials", "heroes", "global", "best", "towers", "seen", "intro", "tower_global", "hero_stat", "played", "abilities", "forms", "tips", "el_stat", "wiz_els", "secret_heroes"]:
 		if not (meta.get(k) is Dictionary):
 			meta[k] = {}
 	for k in ["kills", "wins", "takedowns"]:
