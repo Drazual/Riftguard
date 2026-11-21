@@ -14,6 +14,8 @@ const FIRST_TIPS := {
 	log = ["Stats log", "Your recent runs: how far you got, what you lost and which towers did the most damage. Copy the full log to share it."],
 	run = ["Your first run", "[b]Build:[/b] pick a tower in the bar below (or press its number) and click a free square. Your hero walks over to build it.\n\n[b]Move:[/b] right-click the map to send your hero somewhere. [b]Q[/b] uses its ability. Scroll the mouse wheel to zoom in on the map.\n\n[b]Upgrade:[/b] click a tower to level it up. Each level adds a point to one of its paths, and each path’s price only rises with its own points.\n\nPress [b]Space[/b] to start a wave, [b]P[/b] to pause, and [b]Esc[/b] to back out of anything."],
 	waves = ["Hard and Challenge waves", "From now on you pick how hard each wave is.\n\n[b]Normal[/b] is the usual wave.\n\n[b]Hard[/b] adds one thing against you, either an enemy buff (more HP, armor, speed and so on) or a handicap on your hero or towers, for extra gold.\n\n[b]Challenge[/b] adds an enemy buff and a handicap. It pays the same gold as Hard, plus a free hero upgrade or a damage buff for all your towers for the rest of the run."],
+	# never opened as a page: set once the player turns the new-enemy windows off (Dialogs.enemy_intro)
+	enemies = ["New enemies", "When a wave brings an enemy you haven't met yet, a window shows what it is, how tough it is and how to beat it."],
 	merge = ["Merging towers", "You have two maxed towers that can merge. Merging [b]uses up both towers and gives you one[/b] much stronger hybrid where the second one stood.\n\nEvery tower type can merge with every other, so there are dozens of hybrids, and two maxed hybrids can merge again into a super tower for 20,000 gold, which unleashes a signature power from each tower inside it every few seconds. The paths each tower took decide what its hybrid can learn, so the same pair can turn out differently every run.\n\nSelect a maxed tower and press [b]Merge[/b], then click the other one."],
 }
 
@@ -161,6 +163,9 @@ func show_map_select() -> void:
 		ch.add(Kit.c("%s · %d WAVES · ×%s SHARDS" % [m.tier.to_upper(), m.waves, UiText.f1t(m.shard_mult)], Kit.MUTED), 11)
 		ch.add(Kit.head(m.map_name, 20, Kit.ARCANE))
 		ch.add(DB.tx("map:" + k, m.desc), 14)
+		var hard := map_rules(m)
+		if hard != "":
+			ch.add(Kit.c(hard, Kit.DANGER), 13)
 		if not built:
 			ch.add(Kit.b(Kit.c("UNDER CONSTRUCTION", Kit.GOLD)), 14)
 		elif open:
@@ -176,6 +181,22 @@ func show_map_select() -> void:
 
 
 # ---------- a new run: hero and towers ----------
+## A map's difficulty in one line for its card: how strong its waves start and end, its prices, its start gold
+## and the enemies it brings in for the first time ("" for the first map, which has none of that).
+static func map_rules(m: MapScene) -> String:
+	var out := []
+	if m.start_level > 1.0:
+		var first: String = DB.maps[DB.map_order[0]].scene.map_name if DB.map_order.size() else "the first map"
+		out.append("Waves start like %s's wave %d and build to wave %d" % [first, roundi(m.start_level), roundi(m.end_level if m.end_level > 0 else float(m.waves))])
+	if m.price > 1.0:
+		out.append("everything costs %d%% more" % roundi((m.price - 1.0) * 100))
+	if m.start_gold > 0:
+		out.append("start with %d gold" % m.start_gold)
+	if m.new_enemies.size():
+		out.append("new: " + ", ".join(Array(m.new_enemies).map(func(k): return DB.enemies[k].name if DB.enemies.has(k) else k)))
+	return (", ".join(out)).substr(0, 1).to_upper() + (", ".join(out)).substr(1) + "." if out.size() else ""
+
+
 func new_run(map_id: String) -> void:
 	game.new_run(map_id)
 	ui.top_map.text = DB.maps[map_id].scene.map_name

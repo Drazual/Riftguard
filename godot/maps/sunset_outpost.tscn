@@ -6,8 +6,16 @@
 script = ExtResource("1_rc")
 id = "verdant"
 map_name = "Cracked Avenue"
-tier = "Level 3"
+tier = "Level 4"
 theme = "reactor"
 art_layout = "res://assets/maps/map3_fronts/layout.json"
 enemy_hp = 1.1
+waves = 35
+start_level = 8.0
+end_level = 36.0
+start_gold = 1400
+price = 1.25
+shard_mult = 1.4
+new_enemies = PackedStringArray("mender")
+new_enemy_waves = PackedInt32Array(6)
 desc = "Two fronts. Enemies come in from the north and the south, and the two roads join halfway to the portal. Split your towers early, or hold the join with your hero. The rift has started to crack the city open: enemies have 10% more HP."

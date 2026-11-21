@@ -26,6 +26,18 @@ extends Node2D
 ## Ground and Props layers aren't used. See assets/maps/map1_miami/README.md.
 @export_file("*.json") var art_layout := ""
 @export var waves := 20
+## How tough the waves are, as a wave of the first map: wave 1 plays like wave start_level and the last wave like
+## end_level, rising slowly at first and faster later (Game.level_of) (enemy count, which enemies come, their HP and the wave gold all follow it;
+## bosses still come on waves 5, 10 and the last). 0 for end_level means the last wave plays like its own number.
+@export var start_level := 1.0
+@export var end_level := 0.0
+## Gold at the start of a run (0 = the usual GameRules.start_gold).
+@export var start_gold := 0
+## The special enemies this map brings in for the first time, and the wave each first shows up on (same order).
+## A special introduced on an earlier map (in map order) comes whenever the wave is tough enough for it; one that
+## a later map introduces never comes here.
+@export var new_enemies: PackedStringArray = []
+@export var new_enemy_waves: PackedInt32Array = []
 @export var shard_mult := 1.0
 @export var enemy_hp := 1.0
 ## Everything costs this much more (towers, level-ups, merges, the shop).

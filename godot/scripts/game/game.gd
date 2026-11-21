@@ -252,7 +252,7 @@ func new_run(map_id: String) -> void:
 	S = Run.new()
 	S.map = m
 	S.map_id = map_id
-	S.gold = R.start_gold + 15 * rank(G, "gold")
+	S.gold = (m.scene.start_gold if m.scene.start_gold > 0 else R.start_gold) + 15 * rank(G, "gold")
 	S.lives = R.start_lives + int(round(1.5 * rank(G, "lives")))
 	S.start_lives = S.lives
 	S.rerolls = R.rerolls + rank(G, "reroll")
@@ -579,8 +579,9 @@ func spell_desc(key: String, h: Hero, p: float) -> String:
 	return Progress.spell_desc(key, h, p, wave_no())
 
 
+## The wave, as a wave of the first map (level_of), for things that grow with the waves (wall HP).
 func wave_no() -> int:
-	return S.wave if S and S.wave else 1
+	return int(round(level_of(S.wave))) if S and S.wave else 1
 
 
 # ---------- small helpers ----------
@@ -3077,28 +3078,73 @@ func first_wave_of(k: String) -> int:
 	return DB.enemies[k].first_wave - S.map.scene.early_specials
 
 
+const LEVEL_EASE := 1.5
+## How tough wave n is, as a wave of the first map (MapScene.start_level and end_level): the first map's waves play
+## at their own number; later maps start tougher and climb to their own end.
+func level_of(n: int) -> float:
+	var sc: MapScene = S.map.scene if S and S.map else null
+	if sc == null or S.test or (sc.start_level <= 1.0 and sc.end_level <= 0.0):
+		return float(n)
+	var last := maxi(2, sc.waves)
+	var end := sc.end_level if sc.end_level > 0 else float(last)
+	# eased in (LEVEL_EASE): the first waves climb slowly while the build is small, the later ones faster
+	return sc.start_level + (end - sc.start_level) * pow(clampf(float(n - 1) / (last - 1), 0.0, 1.0), LEVEL_EASE)
+
+
+## When special enemy k can first come on this map, as { wave = the wave it is introduced on (0: whenever the
+## level allows), never = true if a later map introduces it }. Off the map list (the Test Room), all of them can.
+func special_intro(k: String) -> Dictionary:
+	var i := DB.map_order.find(S.map_id)
+	if i < 0 or S.test:
+		return { wave = 0 }
+	for j in DB.map_order.size():
+		var sc: MapScene = DB.maps[DB.map_order[j]].scene
+		var at := sc.new_enemies.find(k)
+		if at < 0:
+			continue
+		if j < i:
+			return { wave = 0 }
+		if j == i:
+			return { wave = sc.new_enemy_waves[at] if at < sc.new_enemy_waves.size() else 1 }
+		return { never = true }
+	return { wave = 0 } # no map introduces it: it comes on the usual schedule
+
+
 func make_wave(n: int, mode: Dictionary) -> Array:
 	var q: Array = []
-	for i in R.grunts_base + n * R.grunts_per_wave:
+	var lv := level_of(n)
+	var L := int(round(lv))
+	for i in R.grunts_base + L * R.grunts_per_wave:
 		q.append("grunt")
-	if n >= R.runners_from:
-		for i in n * R.runners_per_wave:
+	if L >= R.runners_from:
+		for i in L * R.runners_per_wave:
 			q.append("runner")
-	if n >= R.brutes_from:
+	if L >= R.brutes_from:
 		# the first Warden comes with a lighter Brute pack
-		var brutes := n - 2 if n != R.warden_every else int(round((n - 2) * R.first_warden_brutes))
+		var brutes := L - 2 if n != R.warden_every or L != n else int(round((L - 2) * R.first_warden_brutes))
 		for i in brutes:
 			q.append("brute")
-	# Special enemies join from their first wave (earlier on some maps) and grow every 2 waves. Once more than 3 are
-	# available, each wave brings 2 or 3 of them so waves feel different.
-	var open := Array(DB.special_enemies).filter(func(k): return n >= first_wave_of(k))
+	# Special enemies join from their first wave (earlier on some maps) and grow every 2 waves. A special a map brings
+	# in for the first time joins on its own wave there (see special_intro) and grows from that wave. Once more than 3
+	# are available, each wave brings 2 or 3 of them so waves feel different.
+	var since := {} # special -> waves of growth
+	for k in DB.special_enemies:
+		var intro := special_intro(k)
+		if intro.get("never", false):
+			continue
+		if intro.wave > 0:
+			if n >= intro.wave:
+				since[k] = n - intro.wave
+		elif L >= first_wave_of(k):
+			since[k] = L - first_wave_of(k)
+	var open := since.keys()
 	var types := open
 	if open.size() > 3:
 		types = open.duplicate()
 		types.shuffle()
 		types = types.slice(0, 2 if randf() < 0.5 else 3)
 	for k in types:
-		for i in DB.enemies[k].per_wave * (1 + int(floor((n - first_wave_of(k)) / 2.0))):
+		for i in DB.enemies[k].per_wave * (1 + int(floor(since[k] / 2.0))):
 			q.append(k)
 	if (mode.get("tough", []) as Array).has("horde"):
 		q += q.slice(0, int(round(q.size() * R.tough_horde)))
@@ -3114,7 +3160,7 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	var boss := boss_for(n)
 	if boss != "":
 		q.append(boss)
-		if n >= R.late_knight_from:
+		if L >= R.late_knight_from:
 			for i in R.late_knights:
 				q.append("knight") # late boss waves bring Rift Knights too
 	return q
@@ -3126,7 +3172,7 @@ const CHALLENGE_TOWER_BUFF := 0.1 # a Challenge wave's tower reward: every tower
 
 
 func wave_gold(n: int) -> int:
-	return 20 + 4 * n
+	return int(round(20 + 4 * level_of(n)))
 
 
 func wave_reward(n: int, kind: String, tower_buff := false):
@@ -3224,7 +3270,12 @@ func start_wave() -> void:
 	S.wave += 1
 	S.spawn_q = make_wave(S.wave, S.mode)
 	S.spawn_t = 0.3
-	S.interval = maxf(R.spawn_gap_min, R.spawn_gap_start - S.wave * R.spawn_gap_per_wave) * (0.6 if S.mode.get("challenge", "") == "swarm" else 1.0)
+	# an enemy type the player has never had introduced gets a window about it as its wave starts (the UI pauses)
+	var fresh := []
+	for ed: EnemyData in R.enemies:
+		if S.spawn_q.has(ed.id) and not Save.meta.intro.get(ed.id, false):
+			fresh.append(ed.id)
+	S.interval = maxf(R.spawn_gap_min, R.spawn_gap_start - level_of(S.wave) * R.spawn_gap_per_wave) * (0.6 if S.mode.get("challenge", "") == "swarm" else 1.0)
 	S.wave_active = true
 	S.fury = false
 	S.hero.unbreak_left = S.hero.unbreak_max
@@ -3240,6 +3291,8 @@ func start_wave() -> void:
 	sfx("boss" if msg else "wave")
 	refresh("build_bar")
 	refresh("mode")
+	if fresh.size() and not Save.meta.tips.get("enemies", false): # turned off from the window itself
+		modal.emit("enemy_intro", { types = fresh, wave = S.wave })
 
 
 ## The wave has dragged on (a hero holding a group it can't kill, say): the enemies left shrug off blocks, push-backs
@@ -3291,7 +3344,7 @@ func end_wave() -> void:
 	close_wave_log(true)
 	for t in S.towers:
 		t.dmg_wave = 0
-	var bonus := R.wave_gold_base + R.wave_gold_per_wave * S.wave
+	var bonus := int(round(R.wave_gold_base + R.wave_gold_per_wave * level_of(S.wave)))
 	S.gold += bonus
 	var msgs := ["+%d gold" % bonus]
 	if S.coins.size():
@@ -3347,16 +3400,21 @@ func fail_req(why: String) -> void:
 
 ## at_d >= 0: spawn partway along the path (Splitter pieces, boss summons), on `lane` (theirs). A new enemy at the
 ## start takes the map's lanes in turn.
+## How much an enemy's base HP is multiplied by on wave n (before the wave's own rules: Hard, Challenge and the like).
+## Enemies get much tougher each wave; bosses also scale with the wave they lead.
+func hp_scale(d: EnemyData, n: int) -> float:
+	var w := level_of(n) - 1
+	var scale := 1 + R.boss_hp_growth * maxf(0, w - 4) if d.boss else 1 + R.hp_growth_a * w + R.hp_growth_b * w * w
+	return scale * S.mod_enemy_hp * R.enemy_hp_mult
+
+
 func spawn(type: String, at_d := -1.0, lane := -1) -> void:
 	if lane < 0:
 		lane = S.lane_next % S.map.lane_count()
 		S.lane_next += 1
 	var d: EnemyData = DB.enemies[type]
 	var m := S.mode
-	# Enemies get much tougher each wave; bosses also scale with the wave they lead.
-	var w := S.wave - 1
-	var scale := 1 + R.boss_hp_growth * maxi(0, S.wave - 5) if d.boss else 1 + R.hp_growth_a * w + R.hp_growth_b * w * w
-	scale *= S.mod_enemy_hp * R.enemy_hp_mult
+	var scale := hp_scale(d, S.wave)
 	if has_tough("hp"):
 		scale *= R.tough_hp
 	scale *= float(m.get("hp_mul", 1.0))
@@ -4801,7 +4859,7 @@ func show_shop() -> void:
 	S.paused = true
 	S.shops += 1
 	shop_demonic = randf() < (0.1 if S.specials.get("pact", false) else 0.01)
-	var scale := 1 + S.wave / 20.0
+	var scale := 1 + level_of(S.wave) / 20.0
 	shop_free = bool(S.specials.get("bazaar", false))
 	var list := R.shop.items.filter(dmg_ok)
 	list.shuffle()

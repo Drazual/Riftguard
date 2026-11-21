@@ -6,10 +6,14 @@
 script = ExtResource("1_rc")
 id = "warped"
 map_name = "Chroma Reactor"
-tier = "Level 5"
+tier = "Level 6"
 theme = "reactor"
 art_layout = "res://assets/maps/map5_crossroads/layout.json"
-waves = 30
+waves = 45
 shard_mult = 2.0
 drain = true
+start_level = 8.5
+end_level = 42.0
+start_gold = 2000
+price = 1.35
 desc = "Crossroads. The road crosses itself twice, so a tower beside a crossing hits every enemy twice. After each wave, the tower that dealt the most damage is drained and deals half damage for the next wave only."
