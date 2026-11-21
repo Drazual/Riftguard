@@ -20,6 +20,7 @@ var atk := 8.0
 var armor := 0.0
 var aura_armor := 0.0
 var regen := 0.0
+var flag := false # a flag bearer: buffed, glowing, drops a quest when it dies
 var steady := false
 var unslow := false
 var unstun := false # stuns do nothing to it

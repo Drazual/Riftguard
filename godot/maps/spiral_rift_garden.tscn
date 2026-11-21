@@ -18,4 +18,6 @@ start_level = 14.0
 end_level = 82.0
 start_gold = 4000
 price = 1.3
+new_enemies = PackedStringArray("mender")
+new_enemy_waves = PackedInt32Array(12)
 desc = "The finale. The city is torn into islands floating in the void. Three lanes cross on bridges of light and join before the portal, and towers only fit on the islands. Rift Storm: armored enemies get +10% armor and special enemies show up 1 wave early. The final Tyrant drops 8 Boss Cores."

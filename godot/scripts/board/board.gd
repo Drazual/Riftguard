@@ -2569,6 +2569,12 @@ func _draw_over() -> void:
 			_rrect(o, Rect2(tp.x - 16, tp.y - 14, 32, 24), 5, ca(t.color, 1.0 if t == S.sel else 0.6), false, 2)
 		if t == S.drained:
 			_line(o, tp + Vector2(-14, -24), tp + Vector2(14, 4), hx(0xff5d6c, 0.9), 2)
+		if game.tower_off(t):
+			# Burnout or a Power Surge: shut down, a red cross over it
+			_line(o, tp + Vector2(-12, -26), tp + Vector2(12, -2), hx(0xff2e4d, 0.95), 3)
+			_line(o, tp + Vector2(12, -26), tp + Vector2(-12, -2), hx(0xff2e4d, 0.95), 3)
+		elif t == S.lone_tower and game.has_debuff("lonetower"):
+			_ring(o, tp + Vector2(0, -6), 24 + 2 * sin(S.time * 4), hx(0xf2c14e, 0.85), 2)
 		var cy := tp.y - 12
 		var cp := Vector2(tp.x, cy)
 		if t.is_super:
@@ -2606,6 +2612,15 @@ func _draw_over() -> void:
 		var p := P(c.x, c.y, 6)
 		_circle(o, p, 6, hx(0xf2c14e))
 		_ring(o, p, 8 + 2 * sin(S.time * 6), Color(1, 1, 1, 0.8), 1)
+	if S.quest_drop != null:
+		# a flag bearer's dropped quest: a little banner on a pole, pulsing, until the hero walks over it
+		var qp := P(S.quest_drop.x, S.quest_drop.y)
+		var fc := hx(Game.FLAG_COLOR)
+		var pulse := 0.5 + 0.5 * sin(S.time * 4)
+		_circle(o, qp, 16 + 4 * pulse, ca(fc, 0.18))
+		_ring(o, qp, 14 + 4 * pulse, ca(fc, 0.8), 2)
+		_line(o, qp, qp + Vector2(0, -26), Color(0.9, 0.9, 1.0), 2)
+		o.draw_colored_polygon(PackedVector2Array([qp + Vector2(1, -26), qp + Vector2(15, -21), qp + Vector2(1, -16)]), fc)
 	var has_anvil := S.towers.any(func(t): return t.type == "anvil")
 	var anvil_col: Color = DB.towers.anvil.color if DB.towers.has("anvil") else Color.WHITE
 	var frost_col: Color = DB.towers.frost.color if DB.towers.has("frost") else Color.WHITE
@@ -3148,6 +3163,14 @@ func _draw_enemy(o: CanvasItem, e: Enemy, p: Vector2, has_anvil: bool, anvil_col
 	if e.fire_t > 0:
 		# Fire spell burn: a flickering orange halo
 		_ring(o, p, e.r + 1, hx(0xff5d1f, 0.55 + 0.35 * sin(S.time * 18 + e.d)), 2)
+	if e.flag:
+		# a flag bearer glows and carries a small banner
+		var fp := 0.5 + 0.5 * sin(S.time * 5)
+		_circle(o, p, e.r + 8 + 3 * fp, hx(0xff4fd8, 0.16 + 0.12 * fp))
+		_ring(o, p, e.r + 5, hx(0xff4fd8, 0.9), 2)
+		var top_y := -(top * 0.5 + 10 if top >= 0 else e.r + 12)
+		_line(o, p + Vector2(e.r * 0.6, 0), p + Vector2(e.r * 0.6, top_y - 6), Color(0.9, 0.9, 1.0), 1.5)
+		o.draw_colored_polygon(PackedVector2Array([p + Vector2(e.r * 0.6, top_y - 6), p + Vector2(e.r * 0.6 + 11, top_y - 2), p + Vector2(e.r * 0.6, top_y + 2)]), hx(0xff4fd8))
 	if e.boss:
 		_ring(o, p, e.r + 4, hx(0xf2c14e), 2)
 	elif e.pushback_immune:

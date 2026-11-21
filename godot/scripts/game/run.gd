@@ -16,6 +16,15 @@ var boss_kills := 0
 var log: Array = []
 var ws = null # this wave's log entry (Dictionary)
 var drained = null # Tower
+var lone_tower = null # Tower: Lone Tower's pick, the only tower that deals damage this wave
+var top_tower = null # Tower: last wave's top damage dealer (Burnout shuts it down)
+var recent_mods: Array = [] # the modifiers the last few wave choices offered, so they rarely repeat
+## Flag bearers: this wave's flag bearer still to come (spawns until it appears), the quest it dropped (on the ground
+## until the hero picks it up: { x, y }), and the quest taken on ({ id, name, rule, need, done, from, reward, penalty }).
+var flag_in := -1
+var quest_drop = null
+var quest = null
+var quest_offer = null
 var boons := {}
 var pending_boon := ""
 var ion_t := 6.0

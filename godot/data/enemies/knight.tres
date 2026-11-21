@@ -14,6 +14,7 @@ atk = 45.0
 radius = 16.0
 color = Color(1, 0.18039216, 0.3019608, 1)
 armor = 0.4
+blurb = "The Rift Knight has high armor and every 7 seconds bashes the nearest towers, cutting their damage for a while."
 info = "40% armor. Shield Bash: every 7s cuts the damage of the 2 nearest towers by 30% for 6s."
 counter = "Spread your towers out so a bash only weakens a couple of them."
 pushback_immune = true

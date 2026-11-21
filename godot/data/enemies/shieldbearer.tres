@@ -17,5 +17,6 @@ armor = 0.2
 shield_aura = 0.15
 first_wave = 11
 per_wave = 1
+blurb = "The Shieldbearer is armored and shields the enemies around it with extra armor."
 info = "20% armor and gives enemies within 70 +15% armor."
 counter = "Kill it first; Sunder and Armor Break cut through."

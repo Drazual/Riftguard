@@ -18,5 +18,6 @@ armor = 0.3
 unslow = true
 first_wave = 9
 per_wave = 1
+blurb = "The Bastion is a walking fortress with heavy armor and huge health, and it can't be slowed."
 info = "30% armor, huge HP and can’t be slowed."
 counter = "Burns, Hex Brand, Brittle, Sunder and the Grave Anvil."
