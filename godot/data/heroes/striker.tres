@@ -11,9 +11,9 @@ script = ExtResource("1_8aiy5")
 id = "nova"
 name = "Rift Nova"
 cd = 10.0
-dmg = 160.0
+dmg = 200.0
 r = 120.0
-desc = "Deals {f1(a.dmg / 40)}× your hero damage to every enemy within {f0(a.r)}, so it grows with every damage upgrade."
+desc = "Deals {f1(a.dmg / 50)}× your hero damage to every enemy within {f0(a.r)}, so it grows with every damage upgrade."
 
 [sub_resource type="Resource" id="Resource_bymy4"]
 script = ExtResource("1_8aiy5")
@@ -73,7 +73,7 @@ name = "Striker"
 color = Color(1, 0.5411765, 0.47843137, 1)
 desc = "A quick all-rounder. Shreds single enemies, blasts groups with Rift Nova, and can take a few hits."
 hp = 240.0
-dmg = 40.0
+dmg = 50.0
 rate = 0.5
 range = 140.0
 armor = 25.0

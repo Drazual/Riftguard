@@ -81,7 +81,7 @@ mastery_effect = "t.quake_stun = true"
 script = ExtResource("2_i81av")
 id = "mortar"
 name = "Siege Mortar"
-cost = 120
+cost = 100
 dmg = 220.0
 rate = 4.5
 range = 320.0

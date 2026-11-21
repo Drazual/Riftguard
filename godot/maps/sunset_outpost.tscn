@@ -9,4 +9,5 @@ map_name = "Cracked Avenue"
 tier = "Level 3"
 theme = "reactor"
 art_layout = "res://assets/maps/map3_fronts/layout.json"
-desc = "Two fronts. Enemies come in from the north and the south, and the two roads join halfway to the portal. Split your towers early, or hold the join with your hero. The rift has started to crack the city open. No modifiers."
+enemy_hp = 1.1
+desc = "Two fronts. Enemies come in from the north and the south, and the two roads join halfway to the portal. Split your towers early, or hold the join with your hero. The rift has started to crack the city open: enemies have 10% more HP."

@@ -40,6 +40,9 @@ func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 	leaks = {}
 	won = false
 	ended = false
+	# every run starts from a fresh save: no menu upgrades, mastery perks or map wins carried over from earlier runs
+	Save.meta = Save.default_meta()
+	Save._fill()
 	game.new_run(map_id)
 	game.start_run(hero, towers)
 	var S := game.S

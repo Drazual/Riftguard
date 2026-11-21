@@ -485,7 +485,8 @@ func level_cost(t: Tower, opt) -> int:
 	if t.hybrid:
 		base = t.up_start * (1 + 0.3 * n) * R.hybrid_level_price
 	else:
-		base = t.base_cost * R.level_cost_mult * (n + 1) * DB.towers[t.type].level_price
+		var mult := R.oracle_level_cost_mult if S.hero.cls == "oracle" else R.level_cost_mult # the Oracle pays more for its early masteries
+		base = t.base_cost * mult * (n + 1) * DB.towers[t.type].level_price
 	return int(round(base * R.level_cost_extra * S.hero.lvl_mul * (1 - 0.025 * rank(Save.meta.tower_global, "cost")) * map_price()))
 
 
@@ -923,6 +924,9 @@ func shred_enemy(e: Enemy, amt: float, dur: float) -> void:
 	e.shred_t = maxf(e.shred_t, dur)
 
 
+const FROST_CHILL := 0.1 # enemies a Frost Pylon (or a merge with one) hits take this much more damage from towers
+
+
 ## One hit from a tower. aura_slow: the Oracle's Chilling Presence for towers in its aura.
 func apply_hit(t: Tower, e: Enemy, dmg: float, frz := false, aura_slow := 0.0) -> void:
 	if t.shatter and e.stun_t > 0:
@@ -948,6 +952,8 @@ func apply_hit(t: Tower, e: Enemy, dmg: float, frz := false, aura_slow := 0.0) -
 	damage(e, dmg, t, pierce)
 	if t.slow:
 		slow_enemy(e, t.slow, t.slow_dur)
+	if t.base_types().has("frost"):
+		add_vuln(e, "chill", FROST_CHILL, t.slow_dur if t.slow_dur else 1.6) # Frost's own payoff: chilled enemies take more from towers
 	if t.brittle:
 		e.brittle = maxf(e.brittle, t.brittle)
 		e.brittle_t = maxf(e.brittle_t, t.slow_dur if t.slow_dur else 1.6)
@@ -3079,7 +3085,9 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 		for i in n * R.runners_per_wave:
 			q.append("runner")
 	if n >= R.brutes_from:
-		for i in n - 2:
+		# the first Warden comes with a lighter Brute pack
+		var brutes := n - 2 if n != R.warden_every else int(round((n - 2) * R.first_warden_brutes))
+		for i in brutes:
 			q.append("brute")
 	# Special enemies join from their first wave (earlier on some maps) and grow every 2 waves. Once more than 3 are
 	# available, each wave brings 2 or 3 of them so waves feel different.
@@ -3106,10 +3114,13 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	var boss := boss_for(n)
 	if boss != "":
 		q.append(boss)
+		if n >= R.late_knight_from:
+			for i in R.late_knights:
+				q.append("knight") # late boss waves bring Rift Knights too
 	return q
 
 
-## Hard and Challenge pay the same gold. Challenge also gives a free hero upgrade or a lasting tower buff.
+## Hard and Challenge pay the same gold; Normal (once wave choices start) pays R.normal_reward_share of it. Challenge also gives a free hero upgrade or a lasting tower buff.
 ## Legendary and Secret waves pay a relic and a free hero upgrade, only if the requirement is met.
 const CHALLENGE_TOWER_BUFF := 0.1 # a Challenge wave's tower reward: every tower deals this much more, for the run
 
@@ -3120,7 +3131,8 @@ func wave_gold(n: int) -> int:
 
 func wave_reward(n: int, kind: String, tower_buff := false):
 	if kind == "normal":
-		return null
+		var ng := int(round(wave_gold(n) * R.normal_reward_share))
+		return { gold = ng, perk = false, relic = null, label = "+%d gold" % ng }
 	var owned := {}
 	for r in S.relics:
 		owned[r.id] = true
@@ -3179,7 +3191,7 @@ func offer_wave_choice() -> void:
 	else:
 		hard.challenge = (pick(handicaps) as UpgradeData).id
 	wave_opts = [
-		{ kind = "normal", name = "Normal", reward = null },
+		{ kind = "normal", name = "Normal", reward = wave_reward(n, "normal") },
 		hard,
 		{ kind = "challenge", name = "Challenge", challenge = (pick(handicaps) as UpgradeData).id, tough = [tl[1].id],
 			reward = wave_reward(n, "challenge", randf() < 0.5) },
@@ -3214,6 +3226,7 @@ func start_wave() -> void:
 	S.spawn_t = 0.3
 	S.interval = maxf(R.spawn_gap_min, R.spawn_gap_start - S.wave * R.spawn_gap_per_wave) * (0.6 if S.mode.get("challenge", "") == "swarm" else 1.0)
 	S.wave_active = true
+	S.fury = false
 	S.hero.unbreak_left = S.hero.unbreak_max
 	S.boss_warned = false
 	S.one_shot_ready = special_on("oneshot")
@@ -3227,6 +3240,20 @@ func start_wave() -> void:
 	sfx("boss" if msg else "wave")
 	refresh("build_bar")
 	refresh("mode")
+
+
+## The wave has dragged on (a hero holding a group it can't kill, say): the enemies left shrug off blocks, push-backs
+## and stuns and head for the base, so every wave ends.
+func rift_fury() -> void:
+	S.fury = true
+	for e in S.enemies:
+		e.unblockable = true
+		e.pushback_immune = true
+		e.unstun = true
+		e.push_t = 0.0
+		e.pull_t = 0.0
+		e.taunt_t = 0.0
+	say("The rift grows restless: the enemies left break through!")
 
 
 func close_wave_log(cleared: bool) -> void:
@@ -3372,6 +3399,10 @@ func spawn(type: String, at_d := -1.0, lane := -1) -> void:
 	e.color = col(0xf2c14e) if m.get("gilded", false) else d.color
 	if d.boss and d.power_every:
 		e.pow_t = d.power_every * 0.6
+	if S.fury: # anything that shows up after the wave turned restless (a split, a summon) breaks through too
+		e.unblockable = true
+		e.pushback_immune = true
+		e.unstun = true
 	S.enemies.append(e)
 
 
@@ -3612,6 +3643,9 @@ func update(dt: float) -> void:
 		if S.spawn_t <= 0 and S.spawn_q.size():
 			spawn(S.spawn_q.pop_front())
 			S.spawn_t = S.interval
+			S.last_spawn_t = S.time
+		if not S.fury and S.spawn_q.is_empty() and S.enemies.size() and S.time - S.last_spawn_t > R.wave_fury_after and not S.test:
+			rift_fury()
 		if S.spawn_q.is_empty() and S.enemies.is_empty() and not S.test:
 			end_wave()
 			return

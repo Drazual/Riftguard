@@ -10,5 +10,5 @@ tier = "Level 2"
 theme = "boardwalk"
 art_layout = "res://assets/maps/map2_coral/layout.json"
 shard_mult = 1.3
-enemy_hp = 1.2
+enemy_hp = 1.15
 desc = "A neon beach island. The road spirals in from the entry gate to the core in the middle of the plaza: a long walk, so enemies come tougher."

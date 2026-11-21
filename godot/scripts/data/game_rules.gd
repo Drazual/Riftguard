@@ -107,8 +107,9 @@ extends Resource
 ## Every enemy's HP is multiplied by this.
 @export var enemy_hp_mult := 1.25
 ## Normal enemy HP x (1 + a(n-1) + b(n-1)^2) on wave n.
-@export var hp_growth_a := 0.55
-@export var hp_growth_b := 0.1
+## a was 0.55 and b 0.1: the same HP by wave 20, but 7-9% less on waves 8-10, where runs used to stall.
+@export var hp_growth_a := 0.35
+@export var hp_growth_b := 0.11
 ## Boss HP x (1 + this x (wave - 5)).
 @export var boss_hp_growth := 0.2
 @export var grunts_base := 8
@@ -121,8 +122,18 @@ extends Resource
 @export var spawn_gap_min := 0.3
 @export var knight_every := 5
 @export var warden_every := 10
+## The first Warden's wave brings this share of the usual Brutes (the first Warden plus a full Brute pack ended most runs).
+@export var first_warden_brutes := 0.4
+## From this wave on, every boss wave also brings late_knights Rift Knights, so the late waves stay a test.
+@export var late_knight_from := 15
+@export var late_knights := 2
+## This many seconds after a wave's last enemy comes in, the enemies still on the road can't be blocked, pushed or
+## stunned any more, so a hero that holds a group it can't kill doesn't stall the wave forever.
+@export var wave_fury_after := 180.0
 @export var wave_gold_base := 25
 @export var wave_gold_per_wave := 5
+## A Normal wave pays this share of a Hard wave's reward gold, so Hard isn't the only sensible pick.
+@export var normal_reward_share := 0.5
 @export var shop_every := 10
 ## Gold upgrades (Bounty Sigil, War Tithe, Investments, Midas Touch, Gold Rush, Rift Treasury) are not offered before this wave.
 @export var gold_from_wave := 8
