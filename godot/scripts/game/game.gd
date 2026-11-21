@@ -3114,15 +3114,20 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 	var q: Array = []
 	var lv := level_of(n)
 	var L := int(round(lv))
-	for i in R.grunts_base + L * R.grunts_per_wave:
+	# past R.count_cap a wave doesn't get longer, its enemies get bigger: Grunts give way to Brutes (and HP climbs)
+	var C := mini(L, R.count_cap)
+	var swap := maxi(0, L - R.count_cap)
+	var grunts := R.grunts_base + C * R.grunts_per_wave
+	var big := mini(swap, int(grunts * 0.75 / R.big_swap))
+	for i in grunts - big * R.big_swap:
 		q.append("grunt")
 	if L >= R.runners_from:
-		for i in L * R.runners_per_wave:
+		for i in C * R.runners_per_wave:
 			q.append("runner")
 	if L >= R.brutes_from:
 		# the first Warden comes with a lighter Brute pack
-		var brutes := L - 2 if n != R.warden_every or L != n else int(round((L - 2) * R.first_warden_brutes))
-		for i in brutes:
+		var brutes := C - 2 if n != R.warden_every or L != n else int(round((C - 2) * R.first_warden_brutes))
+		for i in brutes + big:
 			q.append("brute")
 	# Special enemies join from their first wave (earlier on some maps) and grow every 2 waves. A special a map brings
 	# in for the first time joins on its own wave there (see special_intro) and grows from that wave. Once more than 3
@@ -3134,9 +3139,9 @@ func make_wave(n: int, mode: Dictionary) -> Array:
 			continue
 		if intro.wave > 0:
 			if n >= intro.wave:
-				since[k] = n - intro.wave
+				since[k] = mini(n - intro.wave, maxi(0, R.count_cap - first_wave_of(k)))
 		elif L >= first_wave_of(k):
-			since[k] = L - first_wave_of(k)
+			since[k] = C - first_wave_of(k) if C >= first_wave_of(k) else 0
 	var open := since.keys()
 	var types := open
 	if open.size() > 3:
