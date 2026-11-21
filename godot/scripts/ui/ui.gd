@@ -1346,42 +1346,54 @@ func render_hero() -> void:
 func render_mode_banner() -> void:
 	var S := game.S
 	var m = S.mode if S and S.hero else null
-	var on: bool = m != null and m.kind != "normal" and not S.over
-	mode_banner.visible = on
+	var special: bool = m != null and m.kind != "normal" and not S.over
+	var q = S.quest if S and S.hero and not S.over else null
+	mode_banner.visible = special or q != null
 	mode_timer = null
-	if not on:
+	if not mode_banner.visible:
 		return
-	var border: Color = { hard = Color("#ff9f43"), challenge = Color("#c77dff"), legendary = Color("#c77dff"), secret = Color("#c77dff") }.get(m.kind, Kit.LINE)
-	var title: Color = { hard = Color("#ffb36b"), challenge = Color("#d9a8ff"), legendary = Color("#ffb84d"), secret = Kit.GOLD }.get(m.kind, Kit.TEXT)
+	var kind: String = m.kind if special else "quest"
+	var border: Color = { hard = Color("#ff9f43"), challenge = Color("#c77dff"), legendary = Color("#c77dff"), secret = Color("#c77dff"), quest = Game.col(Game.FLAG_COLOR) }.get(kind, Kit.LINE)
+	var title: Color = { hard = Color("#ffb36b"), challenge = Color("#d9a8ff"), legendary = Color("#ffb84d"), secret = Kit.GOLD }.get(kind, Kit.TEXT)
 	mode_banner.add_theme_stylebox_override("panel", Kit.box_style(Color(0.043, 0.059, 0.11, 0.88), border, 1, 6, 6))
 	Kit.clear(mode_banner)
 	var v := Kit.vbox(2)
 	mode_banner.add_child(v)
-	var t := Kit.label(m.name + ("" if S.wave_active else " · next wave"), 13, title, Kit.display)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(t)
-	if m.get("req", "") != "":
-		var q: UpgradeData = game.R.requirements.find(m.req)
-		var hb := Kit.hbox(6)
-		hb.alignment = BoxContainer.ALIGNMENT_CENTER
-		var g := Kit.label(("✗ Failed: " if S.req_failed else "Goal: ") + DB.tx("req:" + q.id, q.desc), 12, Kit.DANGER if S.req_failed else Color.WHITE)
-		g.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		g.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		hb.add_child(g)
-		if m.req == "timed":
-			mode_timer = Kit.label("", 12, Kit.GOLD)
-			hb.add_child(mode_timer)
-		v.add_child(hb)
-	var mods := []
-	for l in game.mode_lines(m):
-		if l.k != "req":
-			mods.append(l.name)
-	var ml := Kit.label("   ".join(mods), 12, Kit.MUTED)
-	ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ml.tooltip_text = "\n".join(game.mode_lines(m).map(func(l): return l.name + ": " + l.rule))
-	ml.mouse_filter = Control.MOUSE_FILTER_PASS
-	v.add_child(ml)
+	if special:
+		var t := Kit.label(m.name + ("" if S.wave_active else " · next wave"), 13, title, Kit.display)
+		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(t)
+		if m.get("req", "") != "":
+			var rq: UpgradeData = game.R.requirements.find(m.req)
+			var hb := Kit.hbox(6)
+			hb.alignment = BoxContainer.ALIGNMENT_CENTER
+			var g := Kit.label(("✗ Failed: " if S.req_failed else "Goal: ") + DB.tx("req:" + rq.id, rq.desc), 12, Kit.DANGER if S.req_failed else Color.WHITE)
+			g.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			g.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			hb.add_child(g)
+			if m.req == "timed":
+				mode_timer = Kit.label("", 12, Kit.GOLD)
+				hb.add_child(mode_timer)
+			v.add_child(hb)
+		var mods := []
+		for l in game.mode_lines(m):
+			if l.k != "req":
+				mods.append(l.name)
+		if game.has_debuff("lonetower") and S.lone_tower != null:
+			mods.append("(" + game.tower_name(S.lone_tower) + ")")
+		var ml := Kit.label("   ".join(mods), 12, Kit.MUTED)
+		ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ml.tooltip_text = "\n".join(game.mode_lines(m).map(func(l): return l.name + ": " + l.rule))
+		ml.mouse_filter = Control.MOUSE_FILTER_PASS
+		v.add_child(ml)
+	if q != null:
+		var ql := Kit.label("Quest · %s %d/%d" % [q.name, q.done, q.need], 12, Game.col(Game.FLAG_COLOR))
+		ql.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ql.tooltip_text = "%s\nReward: %s\nIf you fail: %s" % [q.rule, q.reward.label, q.penalty.label]
+		ql.mouse_filter = Control.MOUSE_FILTER_PASS
+		v.add_child(ql)
 	_mode_timer()
 
 
