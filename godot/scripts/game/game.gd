@@ -3458,7 +3458,6 @@ func boss_power(e: Enemy, p: EnemyData) -> void:
 			curse_tower(t, p)
 			ring(t.x, t.y, 26, 0xff2e4d, 0.4, true))
 	var h := S.hero
-	var thrown_free := false
 	var hits_hero: bool = (p.power_hero_stun > 0 or p.power_hero_curse != "none") and h.ko <= 0 \
 		and (p.power_hero_reach <= 0 or hyp(h.x - e.x, h.y - e.y) <= p.power_hero_reach)
 	if hits_hero:
@@ -3473,26 +3472,12 @@ func boss_power(e: Enemy, p: EnemyData) -> void:
 			curse_hero(h, p)
 			ring(h.x, h.y, 34, 0xb07cff, 0.5, true))
 	if p.power_roar:
+		# the roar shakes the board; the hero is held by the stun above, never thrown back
 		do_shake(0.014, 450)
 		sfx("boss")
 		ring(e.x, e.y, 220, 0xff2e4d, 0.7)
-		if h.ko <= 0:
-			var dx := h.x - e.x
-			var dy := h.y - e.y
-			var d := hyp(dx, dy)
-			if d == 0:
-				d = 1
-			h.x = clampf(h.x + dx / d * 120, 10, W - 10)
-			h.y = clampf(h.y + dy / d * 120, 10, H - 10)
-			h.tx = null
-			# thrown off its spot: Hold would pin the hero where it landed, so it lets go
-			if h.hold:
-				h.hold = false
-				refresh("build_bar")
-				refresh("hero")
-				thrown_free = true
 	if targets.size() or p.power_roar or hits_hero:
-		say(p.name + ": " + p.power_name + "!" + (" Your hero was knocked off Hold." if thrown_free else ""))
+		say(p.name + ": " + p.power_name + "!")
 
 
 func curse_tower(t: Tower, p: EnemyData) -> void:
@@ -4293,15 +4278,9 @@ func _leak(e: Enemy) -> bool:
 	do_shake(0.02 if e.boss else 0.004, 450 if e.boss else 120)
 	if S.test: # the Test Room's base never falls
 		return false
-	# The Tyrant ends the run if it gets through; other bosses cost their lives in base HP.
+	# The Tyrant ends the run if it gets through, whatever saves the base otherwise (Phoenix Core, Second Chance);
+	# other bosses cost their lives in base HP.
 	if big:
-		if S.mod_phoenix:
-			S.mod_phoenix = false
-			say("Phoenix Core destroyed the " + e.data.name + " at your gate!")
-			return false
-		if S.second_chance:
-			restart_wave("The " + e.data.name + " broke through")
-			return true
 		S.lose_reason = "The " + e.data.name + " broke through your base."
 		S.lives = 0
 		end_run(false)
