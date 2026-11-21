@@ -17,6 +17,10 @@ var leaks := {}
 var won := false
 var rng := RandomNumberGenerator.new()
 var ended := false
+var wavepick := OS.get_environment("WAVEPICK") # "challenge": take Challenge, Legendary or Secret waves whenever offered (not on boss waves)
+var toasts := {}
+var cur_mode := ""
+var modes := {}
 
 
 func _ready() -> void:
@@ -29,6 +33,10 @@ func _ready() -> void:
 	game = Game.new()
 	add_child(game)
 	game.modal.connect(_on_modal)
+	game.toast.connect(func(m: String):
+		for k in ["challenge failed", "Quest accepted", "Quest failed", "quest complete", "flag bearer", "break through"]:
+			if k in m:
+				toasts[k] = toasts.get(k, 0) + 1)
 	for s in range(int(OS.get_environment("SEED0")) if OS.get_environment("SEED0") != "" else 0, seeds):
 		seed(2000 + s)
 		rng.seed = 2000 + s
@@ -39,6 +47,8 @@ func _ready() -> void:
 
 func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 	leaks = {}
+	toasts = {}
+	modes = {}
 	won = false
 	ended = false
 	# every run starts from a fresh save: no menu upgrades, mastery perks or map wins carried over from earlier runs
@@ -104,7 +114,13 @@ func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 			_spend(true, post)
 			game.start_wave()
 			wave_steps = 0
-		if steps % 30 == 0 and S.hero.ko <= 0 and Vector2(S.hero.x, S.hero.y).distance_to(post) > 20:
+			var md: Dictionary = S.mode
+			cur_mode = "%s[%s]" % [md.get("kind", "normal"), "+".join(md.get("tough", []) + md.get("debuffs", []) + ([md.req] if md.get("req", "") != "" else []))]
+			modes[md.get("kind", "normal")] = modes.get(md.get("kind", "normal"), 0) + 1
+		if steps % 30 == 0 and S.hero.ko <= 0 and S.quest_drop != null:
+			S.hero.tx = S.quest_drop.x # walk over a dropped quest to pick it up
+			S.hero.ty = S.quest_drop.y
+		elif steps % 30 == 0 and S.hero.ko <= 0 and Vector2(S.hero.x, S.hero.y).distance_to(post) > 20:
 			S.hero.tx = post.x
 			S.hero.ty = post.y
 		if S.wave_active and steps % 20 == 0:
@@ -145,13 +161,16 @@ func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 				if first_leak == 0:
 					first_leak = w.wave
 				lost_by[w.wave] = w.lives_lost
+			print("MODE|%s|%s|%s|%d|%d|%s|%d|%d" % [map_id, hero, strat + ("+" + wavepick if wavepick else ""), s, w.wave, cur_mode, w.lives_lost, 1 if S.over and not won else 0])
 			print("WAVE,%s,%s,%s,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d" % [map_id, hero, strat, s, w.wave, w.lives_lost, S.lives, int(w.get("tower_dmg", 0)), int(w.hero_dmg), int(S.gold), S.hero.lvl, S.towers.size(), int(w.get("seconds", 0))])
 	var lvls := " ".join(S.towers.map(func(t): return game.tower_name(t).replace(" ", "_") + str(t.lvl)))
 	var dmg := ";".join(dmg_by.keys().map(func(k): return "%s=%d" % [k, int(dmg_by[k])]))
 	var lk := ";".join(leaks.keys().map(func(k): return "%s=%d" % [k, leaks[k]]))
 	var lost := ";".join(lost_by.keys().map(func(k): return "w%d=%d" % [k, lost_by[k]]))
-	print("RUN|%s|%s|%s|%s|%d|%d|%d|%s|%d|%d|%d|%d|%d|%d|%s|%s|%s|%s" % [map_id, hero, strat, ",".join(towers), s, S.wave, game.max_wave,
-		"WIN" if won else "LOSS", S.lives, int(tower_total), int(hero_total), int(gold_total), S.hero.lvl, first_leak, lost, dmg, lk, lvls])
+	var tst := ";".join(toasts.keys().map(func(k): return "%s=%d" % [k, toasts[k]]))
+	var mds := ";".join(modes.keys().map(func(k): return "%s=%d" % [k, modes[k]]))
+	print("RUN|%s|%s|%s|%s|%d|%d|%d|%s|%d|%d|%d|%d|%d|%d|%s|%s|%s|%s|%s|%s" % [map_id, hero, strat, ",".join(towers), s, S.wave, game.max_wave,
+		"WIN" if won else "LOSS", S.lives, int(tower_total), int(hero_total), int(gold_total), S.hero.lvl, first_leak, lost, dmg, lk, lvls, mds, tst])
 
 
 func _cast() -> void:
@@ -344,7 +363,12 @@ func _on_modal(kind: String, data: Dictionary) -> void:
 			game.pick_offer(best)
 		"wave_choice":
 			var pick := 0
-			if strat == "greedy" and not data.boss:
+			var hardline: bool = game.S.quest != null and game.S.quest.id == "hardline"
+			if wavepick == "challenge" and not data.boss:
+				for i in data.opts.size():
+					if data.opts[i].kind in ["challenge", "legendary", "secret"]:
+						pick = i
+			elif (strat == "greedy" or hardline) and not data.boss:
 				for i in data.opts.size():
 					if data.opts[i].kind == "hard":
 						pick = i
@@ -363,6 +387,11 @@ func _on_modal(kind: String, data: Dictionary) -> void:
 			game.take_boon()
 		"secret":
 			game.S.paused = false
+		"quest":
+			# take the quests a bot can keep; turn down the ones that forbid what it always does (build, level, spend, cast)
+			game.answer_quest(data.id in ["flawless", "standing", "hoarder", "hardline"])
+		"lone_pick", "enemy_intro":
+			pass
 		"end":
 			won = data.won
 			ended = true
