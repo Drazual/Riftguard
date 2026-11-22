@@ -110,8 +110,14 @@ extends Resource
 ## a was 0.55 and b 0.1: the same HP by wave 20, but 7-9% less on waves 8-10, where runs used to stall.
 @export var hp_growth_a := 0.35
 @export var hp_growth_b := 0.11
-## Boss HP x (1 + this x (wave - 5)).
-@export var boss_hp_growth := 0.2
+## Boss HP x (1 + this x (wave - 5)) x boss_hp_mult. Knights, Wardens and Tyrants (escort Knights too).
+@export var boss_hp_growth := 0.25
+## Bosses and mini bosses got tougher when shard payouts went up (10 per wave, 30 per boss).
+@export var boss_hp_mult := 1.35
+## A later map's first waves ramp up to its start strength: wave 1 plays at open_level x start_level and wave
+## open_waves + 1 is back on the map's own curve, so a player fresh off the previous map can get their build going.
+@export var open_waves := 6
+@export var open_level := 0.7
 @export var grunts_base := 8
 @export var grunts_per_wave := 3
 @export var runners_from := 3
@@ -186,8 +192,8 @@ extends Resource
 @export var flag_armor := 0.1
 @export var flag_gold := 4.0
 @export_group("Rewards")
-@export var shards_per_wave := 4
-@export var shards_per_boss := 15
+@export var shards_per_wave := 10
+@export var shards_per_boss := 30
 @export var shards_for_win := 60
 @export_group("Hero upgrades")
 ## One entry per rarity: Common, Uncommon, Rare, Mythic, Legendary, Secret, Secret Mythic, Secret Legendary, Developer.

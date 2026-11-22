@@ -45,6 +45,28 @@ func _ready() -> void:
 	get_tree().quit()
 
 
+func _buy_meta(shards: int, hero: String) -> void:
+	var pools := [[game.R.global_meta.items, Save.meta.global], [game.R.tower_global.items, Save.meta.tower_global],
+		[DB.heroes[hero].meta, Save.hero_meta(hero)]]
+	var bought := []
+	while true:
+		var best = null
+		var best_cost := 1 << 30
+		for p in pools:
+			for u: UpgradeData in p[0]:
+				var r := Save.rank(p[1], u.id)
+				var c := UiText.meta_cost(u, r)
+				if r < u.max_rank and c < best_cost:
+					best = [u, p[1]]
+					best_cost = c
+		if best == null or best_cost > shards:
+			break
+		shards -= best_cost
+		best[1][best[0].id] = Save.rank(best[1], best[0].id) + 1
+		bought.append(best[0].id)
+	print("SPENT|%s|left %d|%s" % [hero, shards, " ".join(bought)])
+
+
 func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 	leaks = {}
 	toasts = {}
@@ -63,6 +85,9 @@ func _run(map_id: String, hero: String, towers: Array, s: int) -> void:
 			Save.meta.tower_global[u.id] = roundi(u.max_rank * vet)
 		for u: UpgradeData in DB.heroes[hero].meta:
 			Save.hero_meta(hero)[u.id] = roundi(u.max_rank * vet)
+	# SHARDS=440: a player who earned that many shards and spent them in the menu, cheapest next rank first
+	if OS.get_environment("SHARDS") != "":
+		_buy_meta(int(OS.get_environment("SHARDS")), hero)
 	game.new_run(map_id)
 	game.start_run(hero, towers)
 	var S := game.S
@@ -395,3 +420,4 @@ func _on_modal(kind: String, data: Dictionary) -> void:
 		"end":
 			won = data.won
 			ended = true
+			print("SHARDS|%s|%s|%d|%d|%d|%d" % [game.S.map_id, game.S.hero.cls, int(data.won), int(data.cleared), game.S.boss_kills, int(data.shards)])
