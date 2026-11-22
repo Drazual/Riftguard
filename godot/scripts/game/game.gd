@@ -3168,7 +3168,11 @@ func level_of(n: int) -> float:
 	var last := maxi(2, sc.waves)
 	var end := sc.end_level if sc.end_level > 0 else float(last)
 	# eased in (LEVEL_EASE): the first waves climb slowly while the build is small, the later ones faster
-	return sc.start_level + (end - sc.start_level) * pow(clampf(float(n - 1) / (last - 1), 0.0, 1.0), LEVEL_EASE)
+	var lv := sc.start_level + (end - sc.start_level) * pow(clampf(float(n - 1) / (last - 1), 0.0, 1.0), LEVEL_EASE)
+	# the opening waves ramp up from a softer start (R.open_level), back on the curve after R.open_waves
+	if n <= R.open_waves:
+		lv = lerpf(sc.start_level * R.open_level, lv, float(n - 1) / R.open_waves)
+	return lv
 
 
 ## When special enemy k can first come on this map, as { wave = the wave it is introduced on (0: whenever the
@@ -3759,7 +3763,7 @@ func quest_wave_end(msgs: Array) -> void:
 ## Enemies get much tougher each wave; bosses also scale with the wave they lead.
 func hp_scale(d: EnemyData, n: int) -> float:
 	var w := level_of(n) - 1
-	var scale := 1 + R.boss_hp_growth * maxf(0, w - 4) if d.boss else 1 + R.hp_growth_a * w + R.hp_growth_b * w * w
+	var scale := (1 + R.boss_hp_growth * maxf(0, w - 4)) * R.boss_hp_mult if d.boss else 1 + R.hp_growth_a * w + R.hp_growth_b * w * w
 	return scale * S.mod_enemy_hp * R.enemy_hp_mult
 
 
